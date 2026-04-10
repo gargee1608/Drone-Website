@@ -1,24 +1,11 @@
 "use client";
 
-import {
-  ClipboardList,
-  Plane,
-  User,
-  UserCheck,
-  Users,
-  X,
-} from "lucide-react";
-import { useEffect, useReducer, useState, type ReactNode } from "react";
+import { ClipboardList, Plane, User, UserCheck, Users, X } from "lucide-react";
+import { useEffect, useReducer, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  loadUserRequests,
-  mapUserRequestToAdminRow,
-  USER_REQUESTS_STORAGE_KEY,
-  USER_REQUESTS_UPDATED_EVENT,
-  type UserMissionRequest,
-  type UserRequestAdminRow,
-} from "@/lib/user-requests";
+import { CommandCenterQuickActions } from "@/components/dashboard/command-center-quick-actions";
+import { DetailField } from "@/components/dashboard/user-request-detail-modal";
 import { cn } from "@/lib/utils";
 
 const cc = {
@@ -382,9 +369,7 @@ export function DashboardHomeContent() {
         onRejectPilot={handleRejectPilot}
       />
 
-      <div className="grid grid-cols-12 gap-8">
-        <FleetAvailabilityPanel />
-      </div>
+      <CommandCenterQuickActions />
     </>
   );
 }
@@ -407,20 +392,20 @@ function KpiCard({
   iconBg: string;
 }) {
   return (
-    <div className="cc-glass-card flex items-center justify-between rounded-2xl border border-[#c1c6d7]/15 p-6 shadow-sm">
+    <div className="cc-glass-card flex items-center justify-between rounded-2xl border border-[#c1c6d7]/15 p-5 shadow-sm">
       <div>
         <p
-          className="text-xs uppercase tracking-widest"
+          className="text-[11px] uppercase tracking-widest"
           style={{ color: cc.onSecondaryContainer }}
         >
           {title}
         </p>
-        <h2 className="mt-1 text-3xl font-bold">
+        <h2 className="mt-1 text-2xl font-bold tabular-nums">
           {value}
         </h2>
       </div>
-      <div className={cn("rounded-xl p-3", iconBg)}>
-        <Icon className={cn("size-8", iconClassName)} aria-hidden />
+      <div className={cn("rounded-xl p-2.5", iconBg)}>
+        <Icon className={cn("size-7", iconClassName)} aria-hidden />
       </div>
     </div>
   );
@@ -448,11 +433,11 @@ function PendingRegistrationsSection({
     <section className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-2xl font-bold">
+          <h3 className="text-xl font-bold">
             Pilot registrations
           </h3>
           <p
-            className="mt-1 text-sm"
+            className="mt-1 text-[13px] leading-snug"
             style={{ color: cc.onSecondaryContainer }}
           >
             {pilotRegView === "pending"
@@ -463,9 +448,10 @@ function PendingRegistrationsSection({
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
+            size="sm"
             aria-pressed={pilotRegView === "pending"}
             className={cn(
-              "rounded-lg font-semibold",
+              "rounded-lg text-xs font-semibold",
               pilotRegView === "pending"
                 ? "bg-[#0058bc] text-white shadow-lg shadow-[#0058bc]/20 hover:bg-[#0070eb]"
                 : "bg-[#e7e8e9] hover:bg-[#c1c6d7]/30"
@@ -481,9 +467,10 @@ function PendingRegistrationsSection({
           </Button>
           <Button
             type="button"
+            size="sm"
             aria-pressed={pilotRegView === "approved"}
             className={cn(
-              "rounded-lg font-semibold",
+              "rounded-lg text-xs font-semibold",
               pilotRegView === "approved"
                 ? "bg-[#0058bc] text-white shadow-lg shadow-[#0058bc]/20 hover:bg-[#0070eb]"
                 : "bg-[#e7e8e9] hover:bg-[#c1c6d7]/30"
@@ -550,23 +537,23 @@ function PendingPilotCard({
   const isApproved = variant === "approved";
 
   return (
-    <div className="rounded-xl border border-[#c1c6d7]/15 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-      <div className="mb-4 flex items-start justify-between">
-        <div className="flex items-center space-x-3">
+    <div className="rounded-xl border border-[#c1c6d7]/15 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+      <div className="mb-3 flex items-start justify-between">
+        <div className="flex items-center space-x-2.5">
           <div
-            className="flex size-12 shrink-0 items-center justify-center rounded-full border border-[#c1c6d7]/30 bg-[#e7e8e9]"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full border border-[#c1c6d7]/30 bg-[#e7e8e9]"
             aria-hidden
           >
             <User
-              className="size-6"
+              className="size-5"
               strokeWidth={2}
               style={{ color: cc.onSecondaryContainer }}
             />
           </div>
           <div>
-            <h4 className="text-base font-bold">{name}</h4>
+            <h4 className="text-sm font-bold">{name}</h4>
             <span
-              className="mt-0.5 inline-block rounded px-2 py-0.5 text-[10px] font-bold uppercase"
+              className="mt-0.5 inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase"
               style={
                 isApproved
                   ? {
@@ -584,16 +571,16 @@ function PendingPilotCard({
           </div>
         </div>
         <span
-          className="max-w-[10rem] text-right text-[10px] font-bold opacity-60 sm:max-w-none"
+          className="max-w-[10rem] text-right text-[9px] font-bold opacity-60 sm:max-w-none"
           style={{ color: cc.onSecondaryContainer }}
         >
           {isApproved ? "Registered: " : "Submitted: "}
           {submitted}
         </span>
       </div>
-      <div className="mb-6 space-y-3">
+      <div className="mb-5 space-y-2.5">
         {rows.map(({ k, v, vClass }) => (
-          <div key={k} className="flex justify-between gap-2 text-sm">
+          <div key={k} className="flex justify-between gap-2 text-xs">
             <span style={{ color: cc.onSecondaryContainer }}>{k}</span>
             <span className={cn("text-right font-semibold", vClass)}>{v}</span>
           </div>
@@ -602,25 +589,28 @@ function PendingPilotCard({
       {isApproved ? (
         <Button
           type="button"
+          size="sm"
           variant="outline"
-          className="w-full rounded-lg border-[#0058bc] font-bold text-[#0058bc] hover:bg-[#0058bc] hover:text-white"
+          className="w-full rounded-lg border-[#0058bc] text-xs font-bold text-[#0058bc] hover:bg-[#0058bc] hover:text-white"
           onClick={onViewProfile}
         >
           View profile
         </Button>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2.5">
           <Button
             type="button"
-            className="bg-[#0058bc] font-bold text-white hover:bg-[#0070eb]"
+            size="sm"
+            className="bg-[#0058bc] text-xs font-bold text-white hover:bg-[#0070eb]"
             onClick={onAccept}
           >
             Accept
           </Button>
           <Button
             type="button"
+            size="sm"
             variant="secondary"
-            className="bg-[#e7e8e9] font-bold hover:bg-[#c1c6d7]/30"
+            className="bg-[#e7e8e9] text-xs font-bold hover:bg-[#c1c6d7]/30"
             style={{ color: cc.onSecondaryContainer }}
             onClick={onReject}
           >
@@ -628,204 +618,6 @@ function PendingPilotCard({
           </Button>
         </div>
       )}
-    </div>
-  );
-}
-
-const missionItems = [
-  {
-    title: "Medical Emergency Supply",
-    badge: "CRITICAL",
-    badgeClass: "bg-[#ffdad6] text-[#93000a]",
-    barColor: "#ba1a1a",
-    desc: "Payload: Insulin Cool-Box (4.2kg) | Target: Sector 7G Rural Clinic",
-  },
-  {
-    title: "Industrial Part Delivery",
-    badge: "NORMAL",
-    badgeClass: "bg-[#cde5ff] text-[#001d32]",
-    barColor: "#006195",
-    desc: "Payload: Steel Coupling (12kg) | Target: Port of Aerolia",
-  },
-  {
-    title: "Agricultural Mapping",
-    badge: "ROUTINE",
-    badgeClass: "bg-[#d8e2ff] text-[#001a41]",
-    barColor: "#0058bc",
-    desc: "Payload: Multispectral Camera (1.5kg) | Target: Highland Farms",
-  },
-] as const;
-
-type MissionDemo = (typeof missionItems)[number];
-
-type UserRequestDetailPayload =
-  | { kind: "user"; request: UserMissionRequest }
-  | { kind: "demo"; mission: MissionDemo };
-
-function formatRequestSubmitted(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-const priorityDisplay: Record<string, string> = {
-  urgent: "Urgent",
-  express: "Express",
-  standard: "Standard",
-};
-
-function resolveUserRequestDetail(
-  m: UserRequestAdminRow
-): UserRequestDetailPayload | null {
-  if (m.key.startsWith("demo-")) {
-    const titleFromKey = m.key.slice("demo-".length);
-    const mission = missionItems.find((x) => x.title === titleFromKey);
-    if (!mission) return null;
-    return { kind: "demo", mission };
-  }
-  const request = loadUserRequests().find((r) => r.id === m.key);
-  if (!request) return null;
-  return { kind: "user", request };
-}
-
-function DetailField({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div>
-      <dt
-        className="text-[11px] font-bold uppercase tracking-widest"
-        style={{ color: cc.onSecondaryContainer }}
-      >
-        {label}
-      </dt>
-      <dd className="mt-1 text-sm font-medium text-[#191c1d]">{children}</dd>
-    </div>
-  );
-}
-
-function UserRequestDetailModal({
-  payload,
-  onClose,
-}: {
-  payload: UserRequestDetailPayload | null;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    if (!payload) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [payload, onClose]);
-
-  if (!payload) return null;
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
-      <button
-        type="button"
-        className="absolute inset-0 bg-[#191c1d]/50 backdrop-blur-[2px]"
-        aria-label="Close dialog"
-        onClick={onClose}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="user-request-detail-title"
-        className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-[#c1c6d7]/20 bg-white shadow-2xl sm:rounded-2xl"
-      >
-        <div className="flex shrink-0 items-center justify-between border-b border-[#edeeef] px-5 py-4 sm:px-6">
-          <h2
-            id="user-request-detail-title"
-            className="pr-4 text-lg font-bold text-[#191c1d] sm:text-xl"
-          >
-            Request details
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-lg p-2 text-[#414755] transition-colors hover:bg-[#f3f4f5]"
-            aria-label="Close"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-        <div className="overflow-y-auto px-5 py-5 sm:px-6">
-          {payload.kind === "user" ? (
-            <dl className="grid gap-5 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <DetailField label="Request ID">{payload.request.id}</DetailField>
-              </div>
-              <div className="sm:col-span-2">
-                <DetailField label="Submitted">
-                  {formatRequestSubmitted(payload.request.createdAt)}
-                </DetailField>
-              </div>
-              <div className="sm:col-span-2">
-                <DetailField label="Reason or title">
-                  {payload.request.reasonOrTitle.trim() || "—"}
-                </DetailField>
-              </div>
-              <DetailField label="Pickup location">
-                {payload.request.pickupLocation.trim() || "—"}
-              </DetailField>
-              <DetailField label="Drop location">
-                {payload.request.dropLocation.trim() || "—"}
-              </DetailField>
-              <DetailField label="Payload weight">
-                {payload.request.payloadWeightKg
-                  ? `${payload.request.payloadWeightKg} kg`
-                  : "—"}
-              </DetailField>
-              <DetailField label="Type">
-                {payload.request.requestType.trim() || "—"}
-              </DetailField>
-              <div className="sm:col-span-2">
-                <DetailField label="Priority">
-                  {payload.request.requestPriority
-                    ? priorityDisplay[payload.request.requestPriority] ??
-                      payload.request.requestPriority
-                    : "—"}
-                </DetailField>
-              </div>
-              <div className="sm:col-span-2">
-                <DetailField label="List summary">
-                  {mapUserRequestToAdminRow(payload.request).desc}
-                </DetailField>
-              </div>
-            </dl>
-          ) : (
-            <dl className="grid gap-5">
-              <DetailField label="Mission title">
-                {payload.mission.title}
-              </DetailField>
-              <DetailField label="Priority tier">{payload.mission.badge}</DetailField>
-              <div>
-                <DetailField label="Routing & payload">{payload.mission.desc}</DetailField>
-              </div>
-              <p className="text-xs leading-relaxed text-[#414755]">
-                Illustrative sample mission for the admin dashboard preview.
-              </p>
-            </dl>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
@@ -882,11 +674,11 @@ function ApprovedPilotProfileModal({
             <div className="min-w-0">
               <h2
                 id="approved-pilot-profile-title"
-                className="truncate text-lg font-bold text-[#191c1d] sm:text-xl"
+                className="truncate text-base font-bold text-[#191c1d] sm:text-lg"
               >
                 {pilot.name}
               </h2>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#166534]">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#166534]">
                 {pilot.badge}
               </p>
             </div>
@@ -902,12 +694,12 @@ function ApprovedPilotProfileModal({
         </div>
         <div className="overflow-y-auto px-5 py-5 sm:px-6">
           <p
-            className="mb-5 text-xs font-medium"
+            className="mb-5 text-[11px] font-medium"
             style={{ color: cc.onSecondaryContainer }}
           >
             Registered: {pilot.submitted}
           </p>
-          <dl className="grid gap-5 sm:grid-cols-2">
+          <dl className="grid gap-4 sm:grid-cols-2">
             {pilot.rows.map((row, i) => (
               <div
                 key={`${row.k}-${i}`}
@@ -924,116 +716,5 @@ function ApprovedPilotProfileModal({
         </div>
       </div>
     </div>
-  );
-}
-
-function FleetAvailabilityPanel() {
-  const [userRows, setUserRows] = useState<UserRequestAdminRow[]>([]);
-  const [detailModal, setDetailModal] = useState<UserRequestDetailPayload | null>(
-    null
-  );
-
-  useEffect(() => {
-    const refresh = () => {
-      setUserRows(loadUserRequests().map(mapUserRequestToAdminRow));
-    };
-    refresh();
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === USER_REQUESTS_STORAGE_KEY || e.key === null) {
-        refresh();
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    window.addEventListener(USER_REQUESTS_UPDATED_EVENT, refresh);
-    const onVisible = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener(USER_REQUESTS_UPDATED_EVENT, refresh);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, []);
-
-  const demoRows: UserRequestAdminRow[] = missionItems.map((m) => ({
-    key: `demo-${m.title}`,
-    title: m.title,
-    badge: m.badge as UserRequestAdminRow["badge"],
-    badgeClass: m.badgeClass,
-    barColor: m.barColor,
-    desc: m.desc,
-  }));
-
-  const rows = [...userRows, ...demoRows];
-
-  return (
-    <>
-      <div className="col-span-12 rounded-2xl border border-[#c1c6d7]/15 bg-white p-6 shadow-sm sm:p-8">
-        <h3 className="mb-8 text-2xl font-bold">
-          User Request
-        </h3>
-        <div className="space-y-4">
-          {rows.map((m) => (
-            <div key={m.key} className="relative pl-8">
-              <div
-                className="absolute bottom-0 left-0 top-0 w-1 rounded-full"
-                style={{ backgroundColor: m.barColor }}
-              />
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <button
-                  type="button"
-                  className="min-w-0 flex-1 cursor-pointer rounded-r-lg py-1 pl-1 pr-2 text-left transition-colors hover:bg-[#f8f9fa]/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/40"
-                  onClick={() => {
-                    const p = resolveUserRequestDetail(m);
-                    if (p) setDetailModal(p);
-                  }}
-                >
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <span className="font-bold">{m.title}</span>
-                    <span
-                      className={cn(
-                        "rounded px-2 py-0.5 text-[10px] font-bold uppercase",
-                        m.badgeClass
-                      )}
-                    >
-                      {m.badge}
-                    </span>
-                  </div>
-                  <p
-                    className="mt-1 text-sm"
-                    style={{ color: cc.onSecondaryContainer }}
-                  >
-                    {m.desc}
-                  </p>
-                </button>
-                <div className="flex shrink-0 flex-wrap items-center gap-2 sm:pt-0.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl border-[#0058bc] text-xs font-bold text-[#0058bc] hover:bg-[#0058bc] hover:text-white"
-                  >
-                    Accept
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl border-[#0058bc] text-xs font-bold text-[#0058bc] hover:bg-[#0058bc] hover:text-white"
-                  >
-                    Reject
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <UserRequestDetailModal
-        payload={detailModal}
-        onClose={() => setDetailModal(null)}
-      />
-    </>
   );
 }

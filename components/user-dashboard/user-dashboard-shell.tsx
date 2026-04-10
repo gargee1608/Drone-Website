@@ -83,10 +83,16 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export type UserDashboardShellProps = {
   pageTitle: string;
+  /** Extra classes for the page heading (e.g. `text-center`). */
+  pageTitleClassName?: string;
   children: ReactNode;
 };
 
-export function UserDashboardShell({ pageTitle, children }: UserDashboardShellProps) {
+export function UserDashboardShell({
+  pageTitle,
+  pageTitleClassName,
+  children,
+}: UserDashboardShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [headerSearch, setHeaderSearch] = useState("");
@@ -221,7 +227,12 @@ export function UserDashboardShell({ pageTitle, children }: UserDashboardShellPr
         <div className="flex flex-1 flex-col lg:flex-row">
           <main className="mx-auto w-full max-w-[1280px] flex-1 p-5 sm:p-6 lg:p-8">
             <div className="mb-8 sm:mb-10">
-              <h1 className="mb-6 text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
+              <h1
+                className={cn(
+                  "mb-6 text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl",
+                  pageTitleClassName
+                )}
+              >
                 {pageTitle}
               </h1>
               {children}

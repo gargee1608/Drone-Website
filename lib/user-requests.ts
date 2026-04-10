@@ -51,6 +51,17 @@ export function saveUserRequests(requests: UserMissionRequest[]): void {
   localStorage.setItem(USER_REQUESTS_STORAGE_KEY, JSON.stringify(requests));
 }
 
+/** Removes a stored mission request (e.g. after admin reject or accept clearing the queue). */
+export function removeUserRequestById(id: string): void {
+  const all = loadUserRequests();
+  const next = all.filter((r) => r.id !== id);
+  if (next.length === all.length) return;
+  saveUserRequests(next);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(USER_REQUESTS_UPDATED_EVENT));
+  }
+}
+
 export function appendUserRequest(
   payload: Omit<UserMissionRequest, "id" | "createdAt">
 ): UserMissionRequest {

@@ -219,7 +219,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               />
               <span
                 className={cn(
-                  "shrink-0 text-xl font-bold leading-none tracking-tighter text-[#0058bc] dark:text-[#0070eb] sm:text-2xl"
+                  "shrink-0 text-lg font-bold leading-none tracking-tighter text-[#0058bc] dark:text-[#0070eb] sm:text-xl"
                 )}
               >
                 AEROLAMINAR
@@ -227,24 +227,21 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          <div className="hidden min-w-0 flex-1 justify-center px-2 sm:flex">
-            <div className="group relative w-full max-w-md lg:max-w-lg">
+          <div className="flex min-w-0 max-w-[min(100%,calc(100%-8rem))] flex-1 items-center justify-end gap-2 sm:gap-3 md:gap-4">
+            <div className="group relative hidden min-w-0 sm:block sm:w-full sm:max-w-[14rem] md:max-w-xs lg:max-w-sm">
               <Search
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2"
+                className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2"
                 style={{ color: cc.onSecondaryContainer }}
                 aria-hidden
               />
               <Input
                 type="search"
-                placeholder="Search mission telemetry..."
-                className="h-9 w-full rounded-xl border-0 bg-[#e1e3e4] pl-10 pr-4 text-sm transition-shadow focus-visible:ring-2 focus-visible:ring-[#0058bc]/20"
-                aria-label="Search mission telemetry"
+                placeholder="Search"
+                className="h-8 w-full rounded-xl border-0 bg-[#e1e3e4] pl-9 pr-3 text-xs transition-shadow focus-visible:ring-2 focus-visible:ring-[#0058bc]/20"
+                aria-label="Search"
               />
             </div>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-0.5 sm:gap-1">
+            <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
               <button
                 type="button"
                 className="p-2 transition-colors hover:text-[#0058bc]"
@@ -263,7 +260,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               </Link>
             </div>
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-[#c1c6d7]/30 bg-[#e7e8e9]"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#c1c6d7]/30 bg-[#e7e8e9]"
               aria-label="Account"
             >
               <User
@@ -276,7 +273,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col space-y-12 p-4 pb-24 sm:p-8 sm:pb-24">
+        <div className="flex flex-1 flex-col space-y-10 p-4 pb-24 sm:p-8 sm:pb-24">
           {children}
         </div>
 
