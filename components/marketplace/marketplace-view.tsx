@@ -5,13 +5,11 @@ import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
-  Bell,
   BriefcaseMedical,
   Check,
   CheckCircle2,
   Eye,
-  Search,
-  Settings,
+  Globe,
   ShoppingCart,
   Star,
   Truck,
@@ -19,38 +17,18 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import { ServiceListingMegaMenu } from "@/components/nav/service-listing-mega-menu";
+import { StandardAppHeader } from "@/components/layout/standard-app-header";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-const navLinks = [
-  { href: "/marketplace", label: "Marketplace" },
-  { href: "/onboarding", label: "Onboarding Wizards" },
-  { href: "/services", label: "Service Listing" },
-] as const;
-
-function LoginProfileIcon({ className }: { className?: string }) {
-  return (
-    <span
-      className={cn(
-        "relative inline-flex size-10 shrink-0 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700",
-        className
-      )}
-      aria-hidden
-    >
-      <Image
-        src="/login-user-icon.png"
-        alt=""
-        width={48}
-        height={48}
-        className="size-full min-h-full min-w-full object-cover object-center"
-      />
-    </span>
-  );
-}
-
 const rangeOptions = ["0 - 50", "50 - 200", "200 - 500", "500+"] as const;
+
+const marketplaceFooterCompanyLinks = [
+  { href: "#", label: "Privacy Policy" },
+  { href: "#", label: "Terms of Service" },
+  { href: "#", label: "API Docs" },
+  { href: "#", label: "Contact Support" },
+] as const;
 
 const drones = [
   {
@@ -201,155 +179,25 @@ export function MarketplaceView() {
 
   return (
     <div className="telemetry-grid min-h-screen bg-[#F8FAFC] text-[#0F172A]">
-      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md">
-        <div className="flex w-full min-w-0 items-center gap-2 py-3 pl-2 pr-2 sm:gap-3 sm:pl-3 sm:pr-3 lg:gap-4 lg:pl-4 lg:pr-5">
-          <div className="flex min-w-0 shrink-0 items-center gap-4 sm:gap-5 md:gap-6 lg:gap-8">
-            <Link
-              href="/"
-              className="ml-1 flex shrink-0 items-center gap-2.5 font-heading text-sm font-bold tracking-tight text-foreground transition-opacity hover:opacity-90 sm:ml-2 sm:text-base lg:ml-3"
-            >
-              <Image
-                src="/aerolaminar-logo.png"
-                alt=""
-                width={48}
-                height={48}
-                className="h-9 w-9 shrink-0 translate-y-px object-contain object-center sm:h-10 sm:w-10 sm:translate-y-0.5"
-                priority
-                aria-hidden
-              />
-              <span className="leading-tight">AEROLAMINAR</span>
-            </Link>
-            <nav
-              className={cn(
-                "hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex",
-                "lg:gap-8"
-              )}
-              aria-label="Primary"
-            >
-              {navLinks.map((item) =>
-                item.label === "Marketplace" ? (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className="border-b-2 border-blue-600 pb-0.5 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-                  >
-                    {item.label}
-                  </Link>
-                ) : item.href === "/services" ? (
-                  <ServiceListingMegaMenu
-                    key={item.label}
-                    triggerClassName="text-muted-foreground"
-                  />
-                ) : (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className="transition-colors hover:text-foreground"
-                  >
-                    {item.label}
-                  </Link>
-                )
-              )}
-            </nav>
-          </div>
-
-          <div className="relative mx-auto hidden min-w-0 flex-1 md:block md:max-w-xs lg:max-w-sm">
-            <Search
-              className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <Input
-              type="search"
-              placeholder="Search Smart. Fly Better"
-              className="h-9 rounded-full border-border/80 bg-card pl-9 shadow-sm"
-              aria-label="Search marketplace"
-            />
-          </div>
-
-          <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1 sm:gap-2 md:ml-0 md:flex-1 md:justify-end md:pl-2 lg:pl-4">
-            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground"
-                aria-label="Notifications"
-              >
-                <Bell className="size-4" />
-              </Button>
-              <Link
-                href="/settings"
-                className={cn(
-                  buttonVariants({ variant: "ghost", size: "icon" }),
-                  "hidden text-muted-foreground hover:text-foreground sm:inline-flex"
-                )}
-                aria-label="Settings"
-              >
-                <Settings className="size-4" />
-              </Link>
-              <Button
-                type="button"
-                className="hidden h-9 shrink-0 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-4 text-xs font-semibold tracking-wide text-white shadow-md shadow-blue-500/25 transition hover:from-blue-600/90 hover:to-indigo-600/90 sm:inline-flex"
-              >
-                LAUNCH MISSION
-              </Button>
-            </div>
-            <div className="flex shrink-0 items-center gap-0 border-l border-border/50 pl-2 sm:pl-3 md:pl-4">
-              <Link
-                href="/login"
-                aria-label="Login"
-                className={cn(
-                  buttonVariants({ variant: "ghost" }),
-                  "inline-flex shrink-0 items-center justify-center rounded-full p-1 text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <LoginProfileIcon className="size-10 sm:size-11" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <StandardAppHeader activeHref="/marketplace" />
 
       <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-8 sm:pt-8">
         <header className="mb-10 sm:mb-12">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-            <div className="flex min-w-0 flex-col">
-              <Link
-                href="/"
-                className="mb-3 inline-flex w-fit items-center gap-2 pl-1 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 sm:mb-4 sm:pl-2 -ml-4 sm:-ml-8 lg:-ml-12"
-              >
-                <ArrowLeft className="size-4 shrink-0" aria-hidden />
-                Back to home
-              </Link>
-              <div className="space-y-2 pl-0.5 sm:pl-2 lg:pl-4 -ml-5 sm:-ml-10 lg:-ml-12">
-                <h1
-                  className={cn(
-                    "text-4xl font-bold uppercase leading-none tracking-tight text-slate-900 sm:text-5xl"
-                  )}
-                >
-                  Marketplace
-                </h1>
-                <p className="max-w-xl text-[15px] leading-relaxed text-slate-600 sm:text-base">
-                  Precision logistics and autonomous aerial systems. Filter by
-                  technical specifications or operational utility.
-                </p>
-              </div>
-            </div>
-            <div
+          <Link
+            href="/"
+            className="mb-3 inline-flex w-fit items-center gap-2 pl-1 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 sm:mb-4 sm:pl-2 -ml-4 sm:-ml-8 lg:-ml-12"
+          >
+            <ArrowLeft className="size-4 shrink-0" aria-hidden />
+            Back to home
+          </Link>
+          <div className="pl-0.5 sm:pl-2 lg:pl-4 -ml-5 sm:-ml-10 lg:-ml-12">
+            <h1
               className={cn(
-                "flex flex-wrap items-center gap-4 text-xs font-bold uppercase tracking-widest text-slate-400"
+                "text-4xl font-bold uppercase leading-none tracking-tight text-slate-900 sm:text-5xl"
               )}
             >
-              <span>
-                Active Units:{" "}
-                <span className="font-bold text-blue-600">1,248</span>
-              </span>
-              <span className="hidden h-4 w-px bg-slate-200 sm:block" />
-              <span>
-                Global Nodes:{" "}
-                <span className="font-bold text-blue-600">84</span>
-              </span>
-            </div>
+              Marketplace
+            </h1>
           </div>
         </header>
 
@@ -1031,45 +879,55 @@ export function MarketplaceView() {
         </div>
       ) : null}
 
-      <footer className="w-full border-t border-slate-100 bg-white py-12">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 px-8 md:flex-row">
+      <footer
+        className="w-full border-t border-slate-200/90 bg-[#f8f9fa] py-6 sm:py-8"
+        role="contentinfo"
+      >
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 sm:px-6 lg:px-8 md:grid-cols-3 md:items-center md:gap-6 lg:gap-10">
           <div className="text-center md:text-left">
-            <Link
-              href="/"
-              className={cn(
-                "inline-flex items-center justify-center gap-2.5 text-xl font-bold tracking-tight text-slate-900 transition-opacity hover:opacity-90 md:justify-start"
-              )}
-            >
-              <Image
-                src="/aerolaminar-logo.png"
-                alt=""
-                width={40}
-                height={40}
-                className="h-8 w-8 shrink-0 object-contain object-center sm:h-9 sm:w-9"
-                aria-hidden
-              />
-              <span className="leading-tight">AEROLAMINAR</span>
-            </Link>
-            <p className="mt-2 text-sm text-slate-500">
-              © 2024 AEROLAMINAR Logistics. All rights reserved.
+            <p className="text-sm font-bold uppercase tracking-tight text-black">
+              AEROLAMINAR
             </p>
           </div>
-          <nav
-            className="flex flex-nowrap items-center justify-center gap-x-2 sm:gap-x-4 md:gap-x-6 lg:gap-8"
-            aria-label="Legal and support"
-          >
-            {["Privacy Policy", "Terms of Service", "API Docs", "Contact Support"].map(
-              (label) => (
-                <a
-                  key={label}
-                  href="#"
-                  className="shrink-0 whitespace-nowrap text-xs text-slate-500 transition-colors hover:text-blue-500 sm:text-sm"
-                >
-                  {label}
-                </a>
-              )
-            )}
-          </nav>
+          <div className="min-w-0 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 sm:text-[11px] sm:tracking-widest">
+              Company
+            </p>
+            <ul className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 sm:flex-nowrap sm:gap-x-3 md:gap-x-4">
+              {marketplaceFooterCompanyLinks.map((link) => (
+                <li key={link.label} className="shrink-0">
+                  <a
+                    href={link.href}
+                    className="whitespace-nowrap text-[10px] leading-tight text-[#4a5568] transition hover:text-slate-900 sm:text-[11px] md:text-xs"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex w-full flex-col items-center gap-2">
+            <div className="flex justify-center gap-2">
+              <a
+                href="https://twitter.com"
+                className="inline-flex size-8 items-center justify-center rounded-full border border-gray-200 bg-white text-[#4a5568] shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+                aria-label="X (Twitter)"
+              >
+                <X className="size-3.5" strokeWidth={2} aria-hidden />
+              </a>
+              <a
+                href="#"
+                className="inline-flex size-8 items-center justify-center rounded-full border border-gray-200 bg-white text-[#4a5568] shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+                aria-label="Website"
+              >
+                <Globe className="size-3.5" strokeWidth={2} aria-hidden />
+              </a>
+            </div>
+            <p className="w-full max-w-full text-right text-[10px] leading-snug text-[#4a5568] sm:text-[11px]">
+              © {new Date().getFullYear()} AEROLAMINAR Logistics. All rights
+              reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

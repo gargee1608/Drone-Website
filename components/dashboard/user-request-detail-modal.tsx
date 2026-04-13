@@ -6,6 +6,8 @@ import { useEffect, type ReactNode } from "react";
 import {
   loadUserRequests,
   mapUserRequestToAdminRow,
+  userMissionAdminStatusLabel,
+  userRequestQueueDisplayId,
   type UserRequestAdminRow,
   type UserMissionRequest,
 } from "@/lib/user-requests";
@@ -13,10 +15,6 @@ import {
   USER_REQUEST_DEMO_MISSIONS,
   type UserRequestDemoMission,
 } from "@/components/dashboard/user-request-demos";
-
-export type UserRequestDetailPayload =
-  | { kind: "user"; request: UserMissionRequest }
-  | { kind: "demo"; mission: UserRequestDemoMission };
 
 function formatRequestSubmitted(iso: string): string {
   try {
@@ -34,6 +32,10 @@ const priorityDisplay: Record<string, string> = {
   express: "Express",
   standard: "Standard",
 };
+
+export type UserRequestDetailPayload =
+  | { kind: "user"; request: UserMissionRequest }
+  | { kind: "demo"; mission: UserRequestDemoMission };
 
 export function resolveUserRequestDetail(
   m: UserRequestAdminRow
@@ -134,7 +136,9 @@ export function UserRequestDetailModal({
           {payload.kind === "user" ? (
             <dl className="grid gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <DetailField label="Request ID">{payload.request.id}</DetailField>
+                <DetailField label="Request ID">
+                  {userRequestQueueDisplayId(payload.request.id)}
+                </DetailField>
               </div>
               <div className="sm:col-span-2">
                 <DetailField label="Submitted">
@@ -171,6 +175,11 @@ export function UserRequestDetailModal({
               <div className="sm:col-span-2">
                 <DetailField label="List summary">
                   {mapUserRequestToAdminRow(payload.request).desc}
+                </DetailField>
+              </div>
+              <div className="sm:col-span-2">
+                <DetailField label="Admin decision">
+                  {userMissionAdminStatusLabel(payload.request.adminStatus)}
                 </DetailField>
               </div>
             </dl>

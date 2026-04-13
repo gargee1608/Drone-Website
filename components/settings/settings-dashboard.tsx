@@ -130,7 +130,7 @@ export function SettingsDashboard() {
         <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-6 px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="flex shrink-0 items-center gap-2.5 font-heading text-base font-bold tracking-tight text-primary transition-opacity hover:opacity-90"
+            className="flex shrink-0 items-center gap-2.5 font-heading text-base font-bold tracking-tight text-black transition-opacity hover:opacity-90"
           >
             <Image
               src="/aerolaminar-logo.png"

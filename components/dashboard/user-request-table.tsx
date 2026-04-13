@@ -10,12 +10,19 @@ import {
   X,
 } from "lucide-react";
 
-import type { UserRequestAdminRow } from "@/lib/user-requests";
+import {
+  type UserMissionAdminStatus,
+  type UserRequestAdminRow,
+  userRequestQueueDisplayId,
+} from "@/lib/user-requests";
 import { cn } from "@/lib/utils";
 
 import { USER_REQUEST_DEMO_MISSIONS } from "./user-request-demos";
 
-function parsePayloadAndTarget(desc: string): { payload: string; target: string } {
+export function parsePayloadAndTarget(desc: string): {
+  payload: string;
+  target: string;
+} {
   const m = desc.match(/Payload:\s*([^|]+?)\s*\|\s*Target:\s*(.+)/i);
   if (m) {
     return { payload: m[1].trim(), target: m[2].trim() };
@@ -23,7 +30,7 @@ function parsePayloadAndTarget(desc: string): { payload: string; target: string 
   return { payload: desc.trim() || "—", target: "—" };
 }
 
-function extractPayloadWeightDisplay(payloadPart: string): string {
+export function extractPayloadWeightDisplay(payloadPart: string): string {
   const w = payloadPart.match(/([\d.]+)\s*kg/i);
   if (w) return `${w[1]} kg`;
   return payloadPart;
@@ -31,7 +38,7 @@ function extractPayloadWeightDisplay(payloadPart: string): string {
 
 export function tableRequestId(m: UserRequestAdminRow): string {
   if (!m.key.startsWith("demo-")) {
-    return m.key.startsWith("#") ? m.key : `#${m.key}`;
+    return userRequestQueueDisplayId(m.key);
   }
   const title = m.key.slice("demo-".length);
   const idx = USER_REQUEST_DEMO_MISSIONS.findIndex((x) => x.title === title);
@@ -39,7 +46,7 @@ export function tableRequestId(m: UserRequestAdminRow): string {
   return `#RQ-${n}`;
 }
 
-function requirementTypeIcon(title: string) {
+export function requirementTypeIcon(title: string) {
   const t = title.toLowerCase();
   if (t.includes("medical")) {
     return Stethoscope;
@@ -53,67 +60,57 @@ function requirementTypeIcon(title: string) {
   return Package;
 }
 
-type RequestRowStatusLabel = "Pending" | "Assigned" | "Completed";
+type RequestRowStatusLabel =
+  | "Pending"
+  | "Accepted"
+  | "Rejected";
 
-function statusDisplayForRow(
-  m: UserRequestAdminRow,
-  rowIndex: number
-): {
+function statusLabelForAdminStatus(
+  s: UserMissionAdminStatus
+): RequestRowStatusLabel {
+  switch (s) {
+    case "pending":
+      return "Pending";
+    case "accepted":
+      return "Accepted";
+    case "rejected":
+      return "Rejected";
+    default:
+      return "Pending";
+  }
+}
+
+function statusDisplayForRow(m: UserRequestAdminRow): {
   label: RequestRowStatusLabel;
   dotClass: string;
   textClass: string;
 } {
-  if (m.key.startsWith("demo-")) {
-    const title = m.key.slice("demo-".length);
-    if (title === "Medical Emergency") {
+  if (m.adminStatus !== undefined) {
+    const label = statusLabelForAdminStatus(m.adminStatus);
+    if (label === "Pending") {
       return {
-        label: "Pending",
+        label,
         dotClass: "bg-slate-400",
         textClass: "text-slate-600",
       };
     }
-    if (title === "Medical Emergency Supply") {
+    if (label === "Accepted") {
       return {
-        label: "Assigned",
-        dotClass: "bg-[#0058bc]",
-        textClass: "text-[#0058bc]",
-      };
-    }
-    if (title === "Industrial Part Delivery") {
-      return {
-        label: "Completed",
+        label,
         dotClass: "bg-emerald-600",
         textClass: "text-emerald-700",
       };
     }
-    if (title === "Agricultural Mapping") {
-      return {
-        label: "Assigned",
-        dotClass: "bg-[#0058bc]",
-        textClass: "text-[#0058bc]",
-      };
-    }
-  }
-  const cycle: RequestRowStatusLabel[] = ["Pending", "Assigned", "Completed"];
-  const label = cycle[rowIndex % 3];
-  if (label === "Pending") {
     return {
-      label,
-      dotClass: "bg-slate-400",
-      textClass: "text-slate-600",
-    };
-  }
-  if (label === "Assigned") {
-    return {
-      label,
-      dotClass: "bg-[#0058bc]",
-      textClass: "text-[#0058bc]",
+      label: "Rejected",
+      dotClass: "bg-red-500",
+      textClass: "text-red-700",
     };
   }
   return {
-    label: "Completed",
-    dotClass: "bg-emerald-600",
-    textClass: "text-emerald-700",
+    label: "Pending",
+    dotClass: "bg-slate-400",
+    textClass: "text-slate-600",
   };
 }
 
@@ -222,11 +219,13 @@ export function UserRequestTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((m, rowIndex) => {
+            {rows.map((m) => {
               const { payload, target } = parsePayloadAndTarget(m.desc);
               const weightDisplay = extractPayloadWeightDisplay(payload);
               const ReqIcon = requirementTypeIcon(m.title);
-              const statusUi = statusDisplayForRow(m, rowIndex);
+              const statusUi = statusDisplayForRow(m);
+              const reviewComplete =
+                m.adminStatus === "accepted" || m.adminStatus === "rejected";
               const highlightRow = m.title === "Industrial Part Delivery";
               return (
                 <tr
@@ -318,7 +317,7 @@ export function UserRequestTable({
                         type="button"
                         className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-sky-100 text-[#0058bc] transition-colors hover:bg-sky-200/90 disabled:pointer-events-none disabled:opacity-40"
                         aria-label={`Accept request ${tableRequestId(m)}`}
-                        disabled={!onAcceptRow}
+                        disabled={!onAcceptRow || reviewComplete}
                         onClick={() => onAcceptRow?.(m)}
                       >
                         <Check className="size-[15px]" strokeWidth={2.5} />
@@ -327,7 +326,7 @@ export function UserRequestTable({
                         type="button"
                         className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-red-50 text-red-600 transition-colors hover:bg-red-100 disabled:pointer-events-none disabled:opacity-40"
                         aria-label={`Reject request ${tableRequestId(m)}`}
-                        disabled={!onRejectRow}
+                        disabled={!onRejectRow || reviewComplete}
                         onClick={() => onRejectRow?.(m)}
                       >
                         <X className="size-[15px]" strokeWidth={2.5} />

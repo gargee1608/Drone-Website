@@ -1,7 +1,14 @@
 "use client";
 
-import { CheckCircle2, ClipboardList, Clock, Send } from "lucide-react";
-import { useMemo, useState, type ComponentType } from "react";
+import { CheckCircle2, ClipboardList, Clock, XCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from "react";
 
 import {
   detailPayloadMatchesRow,
@@ -10,7 +17,19 @@ import {
   type UserRequestDetailPayload,
 } from "@/components/dashboard/user-request-detail-modal";
 import { UserRequestTable } from "@/components/dashboard/user-request-table";
-import type { UserRequestAdminRow } from "@/lib/user-requests";
+import {
+  demoAdminRowToAssignPilotRow,
+  upsertDemoAcceptedForAssign,
+} from "@/lib/assign-demo-bridge";
+import {
+  loadUserRequests,
+  mapUserRequestToAdminRow,
+  updateUserRequestAdminStatus,
+  USER_REQUESTS_UPDATED_EVENT,
+  type UserMissionAdminStatus,
+  type UserMissionRequest,
+  type UserRequestAdminRow,
+} from "@/lib/user-requests";
 import { cn } from "@/lib/utils";
 
 type RequestTier = "critical" | "normal" | "routine";
@@ -64,38 +83,12 @@ const REQUESTS: UserRequestRow[] = [
   },
 ];
 
-/** Matches demo row → status used in `UserRequestTable` for the static list. */
-function demoRequestStatus(
-  title: string
-): "Pending" | "Assigned" | "Completed" {
-  const map: Record<string, "Pending" | "Assigned" | "Completed"> = {
-    "Medical Emergency": "Pending",
-    "Medical Emergency Supply": "Assigned",
-    "Industrial Part Delivery": "Completed",
-    "Agricultural Mapping": "Assigned",
-  };
-  return map[title] ?? "Pending";
-}
+const DEMO_ADMIN_STORAGE_KEY = "aerolaminar_user_request_demo_admin_v1";
 
-function requestPageStats(rows: UserRequestRow[]) {
-  let pending = 0;
-  let assigned = 0;
-  let completed = 0;
-  for (const r of rows) {
-    const s = demoRequestStatus(r.title);
-    if (s === "Pending") pending += 1;
-    else if (s === "Assigned") assigned += 1;
-    else completed += 1;
-  }
-  return {
-    total: rows.length,
-    pending,
-    assigned,
-    completed,
-  };
-}
-
-function staticRequestToAdminRow(r: UserRequestRow): UserRequestAdminRow {
+function staticRequestToAdminRow(
+  r: UserRequestRow,
+  adminStatus: UserMissionAdminStatus = "pending"
+): UserRequestAdminRow {
   const desc = `Payload: ${r.payload} (${r.weight}) | Target: ${r.target}`;
   if (r.tier === "critical") {
     return {
@@ -105,6 +98,7 @@ function staticRequestToAdminRow(r: UserRequestRow): UserRequestAdminRow {
       badgeClass: "bg-[#ffdad6] text-[#93000a]",
       barColor: "#ba1a1a",
       desc,
+      adminStatus,
     };
   }
   if (r.tier === "normal") {
@@ -115,6 +109,7 @@ function staticRequestToAdminRow(r: UserRequestRow): UserRequestAdminRow {
       badgeClass: "bg-[#cde5ff] text-[#001d32]",
       barColor: "#006195",
       desc,
+      adminStatus,
     };
   }
   return {
@@ -124,32 +119,146 @@ function staticRequestToAdminRow(r: UserRequestRow): UserRequestAdminRow {
     badgeClass: "bg-[#d8e2ff] text-[#001a41]",
     barColor: "#0058bc",
     desc,
+    adminStatus,
   };
 }
 
 export function UserRequestsView() {
-  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(
-    () => new Set()
-  );
+  const router = useRouter();
+  const demoAdminHydrated = useRef(false);
+  /** Client-only review outcome for built-in demo table rows (localStorage keys use `demo-…`). */
+  const [demoAdminByKey, setDemoAdminByKey] = useState<
+    Record<string, UserMissionAdminStatus>
+  >({});
   const [detailModal, setDetailModal] = useState<UserRequestDetailPayload | null>(
     null
   );
+  const [userRequestRefresh, setUserRequestRefresh] = useState(0);
+  /** Empty on first paint so SSR + hydration match; filled from `localStorage` after mount. */
+  const [storedAdminRows, setStoredAdminRows] = useState<UserRequestAdminRow[]>(
+    []
+  );
+  /** Same as above — never read `localStorage` during render (avoids hydration mismatch). */
+  const [storedRequestsSnapshot, setStoredRequestsSnapshot] = useState<
+    UserMissionRequest[]
+  >([]);
 
-  const visibleRequests = useMemo(
-    () => REQUESTS.filter((r) => !dismissedKeys.has(`demo-${r.title}`)),
-    [dismissedKeys]
+  useEffect(() => {
+    const data = loadUserRequests();
+    setStoredRequestsSnapshot(data);
+    setStoredAdminRows(data.map(mapUserRequestToAdminRow));
+  }, [userRequestRefresh]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DEMO_ADMIN_STORAGE_KEY);
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw);
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          !Array.isArray(parsed)
+        ) {
+          setDemoAdminByKey(parsed as Record<string, UserMissionAdminStatus>);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    demoAdminHydrated.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!demoAdminHydrated.current) return;
+    try {
+      localStorage.setItem(
+        DEMO_ADMIN_STORAGE_KEY,
+        JSON.stringify(demoAdminByKey)
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [demoAdminByKey]);
+
+  useEffect(() => {
+    const onUpdate = () => setUserRequestRefresh((n) => n + 1);
+    window.addEventListener(USER_REQUESTS_UPDATED_EVENT, onUpdate);
+    return () =>
+      window.removeEventListener(USER_REQUESTS_UPDATED_EVENT, onUpdate);
+  }, []);
+
+  const tableRows = useMemo(
+    () => [
+      ...storedAdminRows,
+      ...REQUESTS.map((r) =>
+        staticRequestToAdminRow(
+          r,
+          demoAdminByKey[`demo-${r.title}`] ?? "pending"
+        )
+      ),
+    ],
+    [storedAdminRows, demoAdminByKey]
   );
 
-  const tableRows = visibleRequests.map(staticRequestToAdminRow);
-  const stats = requestPageStats(visibleRequests);
+  const stats = useMemo(() => {
+    let demoPending = 0;
+    let demoAccepted = 0;
+    let demoRejected = 0;
+    for (const r of REQUESTS) {
+      const s = demoAdminByKey[`demo-${r.title}`] ?? "pending";
+      if (s === "pending") demoPending += 1;
+      else if (s === "accepted") demoAccepted += 1;
+      else demoRejected += 1;
+    }
+    let storedPending = 0;
+    let storedAccepted = 0;
+    let storedRejected = 0;
+    for (const r of storedRequestsSnapshot) {
+      if (r.adminStatus === "pending") storedPending += 1;
+      else if (r.adminStatus === "accepted") storedAccepted += 1;
+      else storedRejected += 1;
+    }
+    return {
+      total: REQUESTS.length + storedRequestsSnapshot.length,
+      pending: demoPending + storedPending,
+      accepted: demoAccepted + storedAccepted,
+      rejected: demoRejected + storedRejected,
+    };
+  }, [storedRequestsSnapshot, demoAdminByKey]);
 
   const openRequestDetails = (row: UserRequestAdminRow) => {
     const p = resolveUserRequestDetail(row);
     if (p) setDetailModal(p);
   };
 
-  const dismissRequestRow = (row: UserRequestAdminRow) => {
-    setDismissedKeys((prev) => new Set(prev).add(row.key));
+  const handleAcceptRow = (row: UserRequestAdminRow) => {
+    if (row.key.startsWith("demo-")) {
+      setDemoAdminByKey((prev) => ({ ...prev, [row.key]: "accepted" }));
+      upsertDemoAcceptedForAssign(demoAdminRowToAssignPilotRow(row));
+      setDetailModal((prev) =>
+        prev && detailPayloadMatchesRow(prev, row) ? null : prev
+      );
+      router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
+      return;
+    }
+    updateUserRequestAdminStatus(row.key, "accepted");
+    setUserRequestRefresh((n) => n + 1);
+    setDetailModal((prev) =>
+      prev && detailPayloadMatchesRow(prev, row) ? null : prev
+    );
+    router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
+  };
+
+  const handleRejectRow = (row: UserRequestAdminRow) => {
+    if (row.key.startsWith("demo-")) {
+      setDemoAdminByKey((prev) => ({ ...prev, [row.key]: "rejected" }));
+      setDetailModal((prev) =>
+        prev && detailPayloadMatchesRow(prev, row) ? null : prev
+      );
+      return;
+    }
+    updateUserRequestAdminStatus(row.key, "rejected");
+    setUserRequestRefresh((n) => n + 1);
     setDetailModal((prev) =>
       prev && detailPayloadMatchesRow(prev, row) ? null : prev
     );
@@ -180,18 +289,18 @@ export function UserRequestsView() {
           iconWrapClassName="bg-amber-100"
         />
         <UserRequestStatCard
-          label="Assigned"
-          value={stats.assigned}
-          icon={Send}
-          iconClassName="text-violet-700"
-          iconWrapClassName="bg-violet-100"
+          label="Accepted"
+          value={stats.accepted}
+          icon={CheckCircle2}
+          iconClassName="text-emerald-700"
+          iconWrapClassName="bg-emerald-100"
         />
         <UserRequestStatCard
-          label="Completed"
-          value={stats.completed}
-          icon={CheckCircle2}
-          iconClassName="text-green-700"
-          iconWrapClassName="bg-green-100"
+          label="Rejected"
+          value={stats.rejected}
+          icon={XCircle}
+          iconClassName="text-red-700"
+          iconWrapClassName="bg-red-100"
         />
       </section>
 
@@ -201,8 +310,8 @@ export function UserRequestsView() {
           showTitle={false}
           showTotalSubtitle
           onViewDetails={openRequestDetails}
-          onAcceptRow={dismissRequestRow}
-          onRejectRow={dismissRequestRow}
+          onAcceptRow={handleAcceptRow}
+          onRejectRow={handleRejectRow}
         />
       </div>
 

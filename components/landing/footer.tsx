@@ -13,7 +13,7 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-3 md:grid-cols-3 md:items-start md:gap-x-6 md:gap-y-0">
           <div>
-            <p className="mt-8 font-heading text-xs font-bold leading-none tracking-tight text-foreground sm:mt-10 sm:text-sm">
+            <p className="mt-8 font-heading text-xs font-bold leading-none tracking-tight text-black sm:mt-10 sm:text-sm">
               AEROLAMINAR
             </p>
           </div>

@@ -83,6 +83,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export type UserDashboardShellProps = {
   pageTitle: string;
+  /** Optional line under the title (e.g. welcome message). */
+  pageSubtitle?: ReactNode;
   /** Extra classes for the page heading (e.g. `text-center`). */
   pageTitleClassName?: string;
   children: ReactNode;
@@ -90,28 +92,29 @@ export type UserDashboardShellProps = {
 
 export function UserDashboardShell({
   pageTitle,
+  pageSubtitle,
   pageTitleClassName,
   children,
 }: UserDashboardShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [headerSearch, setHeaderSearch] = useState("");
 
   return (
     <div className="min-h-dvh overflow-x-hidden bg-[#f8f9fa] text-[#191c1d]">
-      <header className="fixed top-0 z-50 mx-auto flex w-full max-w-[1920px] items-center justify-between gap-3 border-b border-[#e1e3e4]/40 bg-slate-50/80 px-4 py-3 shadow-sm backdrop-blur-xl sm:gap-4 sm:px-8 sm:py-4">
-        <div className="flex min-w-0 shrink-0 items-center gap-3 sm:gap-4">
+      <header className="fixed top-0 z-50 mx-auto flex h-16 w-full max-w-[1920px] items-center justify-between gap-4 border-b border-[#e8eaef] bg-[#f8f9fa] px-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
-            className="rounded-xl p-2 text-[#4d5b7f] hover:bg-[#f3f4f5] lg:hidden"
+            className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-[#eceff1] lg:hidden"
             onClick={() => setMobileNavOpen(true)}
             aria-label="Open menu"
           >
-            <Menu className="size-5" strokeWidth={2.5} aria-hidden />
+            <Menu className="size-5" strokeWidth={2.25} aria-hidden />
           </button>
           <button
             type="button"
-            className="hidden rounded-xl p-2 text-[#4d5b7f] transition-colors hover:bg-[#f3f4f5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/40 lg:inline-flex"
+            className="hidden rounded-lg p-2 text-slate-600 transition-colors hover:bg-[#eceff1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400/50 lg:inline-flex"
             onClick={() => setSidebarExpanded((open) => !open)}
             aria-label={
               sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"
@@ -119,7 +122,7 @@ export function UserDashboardShell({
             aria-expanded={sidebarExpanded}
             aria-controls="user-dashboard-sidebar"
           >
-            <Menu className="size-5" strokeWidth={2.5} aria-hidden />
+            <Menu className="size-5" strokeWidth={2.25} aria-hidden />
           </button>
           <Link
             href="/"
@@ -130,53 +133,55 @@ export function UserDashboardShell({
               alt=""
               width={40}
               height={40}
-              className="size-8 shrink-0 translate-y-0.5 object-contain sm:size-10 sm:translate-y-1"
+              className="size-9 shrink-0 object-contain sm:size-10"
               priority
               aria-hidden
             />
-            <span className="bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-xl font-bold tracking-tight text-transparent sm:text-2xl">
+            <span className="truncate text-lg font-bold uppercase tracking-tight text-black sm:text-xl">
               AEROLAMINAR
             </span>
           </Link>
         </div>
 
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3 lg:gap-4">
-          <div className="relative w-full max-w-md min-w-[8rem] sm:min-w-[12rem]">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-3 pl-4 sm:gap-4 sm:pl-8">
+          <div className="relative w-full max-w-[min(100%,18rem)] min-w-[7.5rem] sm:max-w-[20rem] md:max-w-[22rem]">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-[1.125rem] -translate-y-1/2 text-[#414755] sm:left-3.5 sm:size-5"
+              className="pointer-events-none absolute left-3.5 top-1/2 size-[1.125rem] -translate-y-1/2 text-slate-500 sm:left-4 sm:size-[1.15rem]"
               aria-hidden
+              strokeWidth={2}
             />
             <input
               type="search"
               value={headerSearch}
               onChange={(e) => setHeaderSearch(e.target.value)}
-              placeholder="Track mission ID or drone..."
-              aria-label="Search missions and drones"
-              className="w-full min-w-0 rounded-xl border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-3 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#0058bc] focus:ring-2 focus:ring-[#0058bc]/25 sm:py-2.5 sm:pl-11 sm:pr-4"
+              placeholder="Search"
+              title="Search mission ID or drone"
+              aria-label="Search mission ID or drone"
+              className="w-full min-w-0 rounded-full border-0 bg-[#e8eaed] py-2.5 pl-10 pr-4 text-sm text-[#191c1d] shadow-inner shadow-slate-900/5 outline-none ring-0 transition placeholder:text-slate-500 focus:bg-[#e3e5e8] focus:ring-2 focus:ring-slate-300/60 sm:py-2.5 sm:pl-11 sm:pr-5"
             />
           </div>
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
             <button
               type="button"
-              className="rounded-full p-2 text-[#414755] transition-colors hover:bg-[#edeeef] hover:text-[#0058bc]"
+              className="rounded-full p-2 text-slate-600 transition-colors hover:bg-[#e8eaed]"
               aria-label="Notifications"
             >
-              <Bell className="size-5" />
+              <Bell className="size-5" strokeWidth={1.75} />
             </button>
             <button
               type="button"
-              className="rounded-full p-2 text-[#414755] transition-colors hover:bg-[#edeeef] hover:text-[#0058bc]"
+              className="rounded-full p-2 text-slate-600 transition-colors hover:bg-[#e8eaed]"
               aria-label="Settings"
             >
-              <Settings className="size-5" />
+              <Settings className="size-5" strokeWidth={1.75} />
             </button>
           </div>
           <button
             type="button"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-white bg-[#d8e2ff] text-[#0058bc] shadow-sm transition-colors hover:bg-[#c6d4f0] sm:h-10 sm:w-10"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-200 text-slate-600 transition-colors hover:bg-slate-300/90 sm:h-10 sm:w-10"
             aria-label="Account"
           >
-            <UserRound className="size-5" strokeWidth={2} aria-hidden />
+            <UserRound className="size-[1.15rem]" strokeWidth={2} aria-hidden />
           </button>
         </div>
       </header>
@@ -184,7 +189,7 @@ export function UserDashboardShell({
       <aside
         id="user-dashboard-sidebar"
         className={cn(
-          "fixed left-0 top-20 z-40 hidden h-[calc(100dvh-5rem)] w-60 flex-col gap-2 bg-slate-50 p-3.5 transition-transform duration-300 ease-out lg:flex",
+          "fixed left-0 top-16 z-40 hidden h-[calc(100dvh-4rem)] w-60 flex-col gap-2 bg-[#f8f9fa] p-3.5 transition-transform duration-300 ease-out lg:flex",
           sidebarExpanded
             ? "translate-x-0"
             : "-translate-x-full pointer-events-none"
@@ -220,7 +225,7 @@ export function UserDashboardShell({
 
       <div
         className={cn(
-          "flex min-h-screen flex-col pt-20 transition-[margin] duration-300 ease-out",
+          "flex min-h-screen flex-col pt-16 transition-[margin] duration-300 ease-out",
           sidebarExpanded ? "lg:ml-60" : "lg:ml-0"
         )}
       >
@@ -229,13 +234,23 @@ export function UserDashboardShell({
             <div className="mb-8 sm:mb-10">
               <h1
                 className={cn(
-                  "mb-6 text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl",
+                  "text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl",
+                  !pageSubtitle && "mb-6",
                   pageTitleClassName
                 )}
               >
                 {pageTitle}
               </h1>
-              {children}
+              {pageSubtitle ? (
+                <>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#4d5b7f] sm:text-base">
+                    {pageSubtitle}
+                  </p>
+                  <div className="mt-8 sm:mt-10">{children}</div>
+                </>
+              ) : (
+                children
+              )}
             </div>
           </main>
         </div>
@@ -246,7 +261,7 @@ export function UserDashboardShell({
         >
           <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 sm:px-6 lg:px-8 md:grid-cols-3 md:items-center md:gap-6 lg:gap-10">
             <div className="text-center md:text-left">
-              <p className="text-sm font-bold tracking-tight text-slate-900">
+              <p className="text-sm font-bold tracking-tight text-black">
                 AEROLAMINAR
               </p>
             </div>

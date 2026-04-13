@@ -4,7 +4,6 @@ import { ClipboardList, Plane, User, UserCheck, Users, X } from "lucide-react";
 import { useEffect, useReducer, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { CommandCenterQuickActions } from "@/components/dashboard/command-center-quick-actions";
 import { DetailField } from "@/components/dashboard/user-request-detail-modal";
 import { cn } from "@/lib/utils";
 
@@ -368,8 +367,6 @@ export function DashboardHomeContent() {
         onAcceptPilot={handleAcceptPilot}
         onRejectPilot={handleRejectPilot}
       />
-
-      <CommandCenterQuickActions />
     </>
   );
 }

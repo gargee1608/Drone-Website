@@ -219,7 +219,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               />
               <span
                 className={cn(
-                  "shrink-0 text-lg font-bold leading-none tracking-tighter text-[#0058bc] dark:text-[#0070eb] sm:text-xl"
+                  "shrink-0 text-lg font-bold leading-none tracking-tighter text-black dark:text-white sm:text-xl"
                 )}
               >
                 AEROLAMINAR
@@ -283,7 +283,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         >
           <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 sm:px-6 lg:px-8 md:grid-cols-3 md:items-center md:gap-6 lg:gap-10">
             <div className="text-center md:text-left">
-              <p className="text-sm font-bold tracking-tight text-slate-900">
+              <p className="text-sm font-bold tracking-tight text-black">
                 AEROLAMINAR
               </p>
             </div>

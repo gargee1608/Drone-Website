@@ -80,7 +80,7 @@ export function Header({
         <div className="ml-1 flex min-w-0 shrink-0 items-center sm:ml-2 lg:ml-3">
           <Link
             href="/"
-            className="flex shrink-0 items-center gap-2.5 font-heading text-sm font-bold tracking-tight text-foreground transition-opacity hover:opacity-90 sm:text-base"
+            className="flex shrink-0 items-center gap-2.5 font-heading text-sm font-bold tracking-tight text-black transition-opacity hover:opacity-90 sm:text-base"
           >
             <Image
               src="/aerolaminar-logo.png"

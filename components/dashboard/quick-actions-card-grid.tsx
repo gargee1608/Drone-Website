@@ -16,10 +16,14 @@ export type QuickActionCardItem = {
 export function QuickActionsCardGrid({
   items,
   className,
+  variant = "default",
 }: {
   items: readonly QuickActionCardItem[];
   className?: string;
+  /** Larger, stronger CTAs for the main user dashboard. */
+  variant?: "default" | "prominent";
 }) {
+  const prominent = variant === "prominent";
   return (
     <section
       aria-label="Quick actions"
@@ -28,28 +32,51 @@ export function QuickActionsCardGrid({
         className
       )}
     >
-      {items.map(({ href, title, subtitle, icon: Icon, iconWrap }) => (
+      {items.map(({ href, title, subtitle, icon: Icon, iconWrap }, index) => (
         <Link
           key={href + title}
           href={href}
           className={cn(
-            "flex min-h-[4.25rem] items-center gap-3 rounded-xl border border-[#c1c6d7]/15 bg-white p-3.5 shadow-sm transition-colors",
-            "hover:border-[#0058bc]/25 hover:bg-[#f8f9fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/40"
+            "group flex items-center gap-3 rounded-xl border bg-white transition-colors",
+            prominent
+              ? "min-h-[5.25rem] border-[#c1c6d7]/20 p-4 shadow-md sm:min-h-[5.5rem] sm:p-5"
+              : "min-h-[4.25rem] border-[#c1c6d7]/15 p-3.5 shadow-sm",
+            prominent &&
+              index === 0 &&
+              "border-[#0058bc]/30 ring-1 ring-[#0058bc]/15",
+            "hover:border-[#0058bc]/35 hover:bg-[#f5f8ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/40"
           )}
         >
           <span
             className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-lg sm:size-11",
+              "flex shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-[1.02]",
+              prominent ? "size-12 sm:size-14" : "size-10 sm:size-11 rounded-lg",
               iconWrap
             )}
           >
-            <Icon className="size-[18px] sm:size-5" strokeWidth={2} aria-hidden />
+            <Icon
+              className={cn(
+                prominent ? "size-5 sm:size-6" : "size-[18px] sm:size-5"
+              )}
+              strokeWidth={2}
+              aria-hidden
+            />
           </span>
           <span className="min-w-0 flex-1 text-left">
-            <span className="block text-xs font-bold text-[#191c1d] sm:text-sm">
+            <span
+              className={cn(
+                "block font-bold text-[#191c1d]",
+                prominent ? "text-sm sm:text-base" : "text-xs sm:text-sm"
+              )}
+            >
               {title}
             </span>
-            <span className="mt-0.5 block text-[10px] leading-snug text-[#4d5b7f] sm:text-[11px]">
+            <span
+              className={cn(
+                "mt-0.5 block leading-snug text-[#4d5b7f]",
+                prominent ? "text-xs sm:text-sm" : "text-[10px] sm:text-[11px]"
+              )}
+            >
               {subtitle}
             </span>
           </span>

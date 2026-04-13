@@ -1,6 +1,6 @@
 "use client";
 
-import { List, Navigation, Plus, UserRoundPen } from "lucide-react";
+import { List, Plus } from "lucide-react";
 
 import {
   QuickActionsCardGrid,
@@ -22,22 +22,13 @@ const userDashboardQuickActions: readonly QuickActionCardItem[] = [
     icon: List,
     iconWrap: "bg-[#d8e2ff] text-[#0058bc]",
   },
-  {
-    href: "/user-dashboard#recent-missions",
-    title: "Track Delivery",
-    subtitle: "Real-time telemetry for active drones",
-    icon: Navigation,
-    iconWrap: "bg-[#e7e8e9] text-[#414755]",
-  },
-  {
-    href: "/settings",
-    title: "Update Profile",
-    subtitle: "Manage account and verification status",
-    icon: UserRoundPen,
-    iconWrap: "bg-[#e7e8e9] text-[#414755]",
-  },
 ];
 
 export function UserDashboardQuickActions() {
-  return <QuickActionsCardGrid items={userDashboardQuickActions} />;
+  return (
+    <QuickActionsCardGrid
+      items={userDashboardQuickActions}
+      variant="prominent"
+    />
+  );
 }

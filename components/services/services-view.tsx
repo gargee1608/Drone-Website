@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Globe, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { Header } from "@/components/landing/header";
+import { StandardAppHeader } from "@/components/layout/standard-app-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -92,29 +92,12 @@ const services = [
   },
 ] as const;
 
-const enterpriseImage =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuBr4Prar4XG8lD4Ylkh54V0yEzkyEE-fULYX6UT33cL-0AZyDuHEjuBfzst1viKXg7Qibb0ZUYD5bVwqM0akeWh5amvODBYjtx04fz3oPP30iqlWVW4TPFhV6N9r_EwfFAAmWS3zxCPBR9_ZxjbxlKAH_UuBJbXSk8qxrV3I8W_qQsY4uB6LuOvR_llVyLsJdWm0ojkUFO3sjKCXbRE0kVpoD0MjOl7xkkO-7W6z-7mWbcL7-VzEIC24b-1OgVUvxOVn0TrB6mIM8Xs";
-
-function SocialIcon({
-  href,
-  label,
-  children,
-}: {
-  href: string;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <a
-      href={href}
-      title={label}
-      aria-label={label}
-      className="text-slate-500 transition-all duration-300 hover:scale-110 hover:text-[#0058bc]"
-    >
-      {children}
-    </a>
-  );
-}
+const servicesFooterCompanyLinks = [
+  { href: "#", label: "Privacy Policy" },
+  { href: "#", label: "Terms of Service" },
+  { href: "#", label: "API Docs" },
+  { href: "#", label: "Contact Support" },
+] as const;
 
 export function ServicesView() {
   const [detailService, setDetailService] = useState<
@@ -136,8 +119,8 @@ export function ServicesView() {
   }, [detailService]);
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-[#191c1d] antialiased">
-      <Header />
+    <div className="flex min-h-screen flex-col bg-[#f8f9fa] text-[#191c1d] antialiased">
+      <StandardAppHeader activeHref="/services" />
 
       <main className="mx-auto max-w-screen-2xl px-6 pb-20 pt-4 sm:pt-5">
         <Link
@@ -233,63 +216,6 @@ export function ServicesView() {
             </article>
           ))}
         </div>
-
-        <div className="relative mt-24 flex min-h-[280px] flex-col overflow-hidden rounded-3xl p-8 sm:aspect-[21/9] sm:min-h-0 sm:items-center sm:p-12">
-          <div className="absolute inset-0 z-0 bg-gradient-to-r from-[#0058bc] to-[#006195] opacity-90" />
-          <div
-            className="absolute inset-0 z-[1] opacity-20"
-            style={{
-              backgroundImage:
-                "url(https://www.transparenttextures.com/patterns/cubes.png)",
-            }}
-          />
-          <div className="relative z-10 max-w-2xl text-white sm:pr-[45%]">
-            <span
-              className={cn(
-                "mb-4 block text-xs font-bold uppercase tracking-[0.3em] opacity-80"
-              )}
-            >
-              Fleet Operations
-            </span>
-            <h2
-              className={cn(
-                "mb-6 text-3xl font-bold sm:text-4xl"
-              )}
-            >
-              Need a custom enterprise fleet?
-            </h2>
-            <p className="mb-8 text-lg leading-relaxed opacity-90">
-              Our logistics specialists can design a dedicated aerial corridor for
-              your recurring supply chain needs.
-            </p>
-            <button
-              type="button"
-              className={cn(
-                "rounded-full bg-white px-8 py-3 text-sm font-bold text-[#0058bc] transition-all hover:bg-opacity-90"
-              )}
-            >
-              Schedule Consultation
-            </button>
-          </div>
-          <div className="pointer-events-none absolute bottom-0 right-0 top-0 hidden w-1/2 overflow-hidden opacity-30 sm:block">
-            <Image
-              src={enterpriseImage}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="50vw"
-            />
-          </div>
-          <div className="relative mt-8 h-44 w-full shrink-0 overflow-hidden rounded-xl opacity-30 sm:hidden">
-            <Image
-              src={enterpriseImage}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="100vw"
-            />
-          </div>
-        </div>
       </main>
 
       {detailService ? (
@@ -384,92 +310,53 @@ export function ServicesView() {
         </div>
       ) : null}
 
-      <footer className="w-full border-t border-slate-200 bg-slate-50 py-12 dark:border-slate-800 dark:bg-slate-950">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-8 md:grid-cols-2">
-          <div>
-            <span
-              className={cn(
-                "mb-4 block text-base font-bold text-slate-900 dark:text-white"
-              )}
-            >
+      <footer
+        className="mt-auto w-full border-t border-slate-200/90 bg-[#f8f9fa] py-6 sm:py-8"
+        role="contentinfo"
+      >
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 sm:px-6 lg:px-8 md:grid-cols-3 md:items-center md:gap-6 lg:gap-10">
+          <div className="text-center md:text-left">
+            <p className="text-sm font-bold uppercase tracking-tight text-black">
               AEROLAMINAR
-            </span>
-            <p className="max-w-md text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-              Precision aerial logistics for the modern enterprise. Scale your
-              operations with the world&apos;s most advanced drone network.
             </p>
           </div>
-          <div className="flex flex-col gap-6 md:items-end">
-            <div className="flex flex-wrap gap-6 text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">
+          <div className="min-w-0 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 sm:text-[11px] sm:tracking-widest">
+              Company
+            </p>
+            <ul className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 sm:flex-nowrap sm:gap-x-3 md:gap-x-4">
+              {servicesFooterCompanyLinks.map((link) => (
+                <li key={link.label} className="shrink-0">
+                  <a
+                    href={link.href}
+                    className="whitespace-nowrap text-[10px] leading-tight text-[#4a5568] transition hover:text-slate-900 sm:text-[11px] md:text-xs"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex w-full flex-col items-center gap-2">
+            <div className="flex justify-center gap-2">
               <a
-                href="#"
-                className="whitespace-nowrap underline transition-all hover:text-slate-900 dark:hover:text-white"
+                href="https://twitter.com"
+                className="inline-flex size-8 items-center justify-center rounded-full border border-gray-200 bg-white text-[#4a5568] shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+                aria-label="X (Twitter)"
               >
-                Privacy Policy
+                <X className="size-3.5" strokeWidth={2} aria-hidden />
               </a>
               <a
                 href="#"
-                className="whitespace-nowrap underline transition-all hover:text-slate-900 dark:hover:text-white"
+                className="inline-flex size-8 items-center justify-center rounded-full border border-gray-200 bg-white text-[#4a5568] shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+                aria-label="Website"
               >
-                Terms of Service
-              </a>
-              <a
-                href="#"
-                className="whitespace-nowrap underline transition-all hover:text-slate-900 dark:hover:text-white"
-              >
-                Contact Support
-              </a>
-              <a
-                href="#"
-                className="whitespace-nowrap underline transition-all hover:text-slate-900 dark:hover:text-white"
-              >
-                Fleet Registry
+                <Globe className="size-3.5" strokeWidth={2} aria-hidden />
               </a>
             </div>
-            <div className="mb-2 flex gap-5 md:justify-end">
-              <SocialIcon href="#" label="Instagram">
-                <svg
-                  className="size-5"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden
-                >
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                </svg>
-              </SocialIcon>
-              <SocialIcon href="#" label="LinkedIn">
-                <svg
-                  className="size-5"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden
-                >
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                </svg>
-              </SocialIcon>
-              <SocialIcon href="#" label="X (Twitter)">
-                <svg
-                  className="size-5"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden
-                >
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-              </SocialIcon>
-              <SocialIcon href="#" label="Facebook">
-                <svg
-                  className="size-5"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden
-                >
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
-              </SocialIcon>
-            </div>
-            <p className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-600">
-              © 2024 AEROLAMINAR Logistics. All rights reserved.
+            <p className="w-full max-w-full text-right text-[10px] leading-snug text-[#4a5568] sm:text-[11px]">
+              © {new Date().getFullYear()} AEROLAMINAR Logistics. All rights
+              reserved.
             </p>
           </div>
         </div>

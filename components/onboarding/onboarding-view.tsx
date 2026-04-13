@@ -6,14 +6,16 @@ import {
   ArrowLeft,
   ArrowRight,
   ChevronDown,
+  Globe,
   LineChart,
   MapPin,
   Navigation2,
+  X,
   Zap,
 } from "lucide-react";
 import { useState } from "react";
 
-import { Header } from "@/components/landing/header";
+import { StandardAppHeader } from "@/components/layout/standard-app-header";
 import { cn } from "@/lib/utils";
 
 const priorityOptions = [
@@ -25,14 +27,21 @@ const priorityOptions = [
 const mapImageUrl =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCCgQHkSffSTTHuSq_cngCb6tRFw3y83poFh5TIAYIl8MtfsX5MvpR82KHX2mITwQzdVWIjpxUAuTaEE_4ax3iylZ5tC1OjM2-Hix7gJdR6Q07qGDSi5sgKDGIagn6rqc5-GytEcnFP9U0kYSPM_rHwvwjiwgpCCNQTXPFbUchowxdwjr43qam2_55g5naTI1vfWYGhb8FuFj5CuDEbOm8k_kkXz7BWa6fs2zn8c0r6ebXUAj-KnQo4kMjmY0G7XEHizgoHJd6brDaM";
 
+const onboardingFooterCompanyLinks = [
+  { href: "#", label: "Privacy Policy" },
+  { href: "#", label: "Terms of Service" },
+  { href: "#", label: "API Docs" },
+  { href: "#", label: "Contact Support" },
+] as const;
+
 export function OnboardingView() {
   const [packageKg, setPackageKg] = useState(12.5);
   const [priority, setPriority] =
     useState<(typeof priorityOptions)[number]["value"]>("expedited");
 
   return (
-    <div className="telemetry-grid-dots selection:bg-blue-100 selection:text-[#007AFF] min-h-screen bg-[#F8FAFC] text-[#0F172A]">
-      <Header />
+    <div className="telemetry-grid-dots selection:bg-blue-100 selection:text-[#007AFF] flex min-h-screen flex-col bg-[#F8FAFC] text-[#0F172A]">
+      <StandardAppHeader activeHref="/onboarding" />
 
       <main className="mx-auto max-w-5xl px-4 pb-20 pt-2 sm:px-8 sm:pt-4 lg:px-8">
         <Link
@@ -355,33 +364,54 @@ export function OnboardingView() {
         </div>
       </main>
 
-      <footer className="w-full border-t border-slate-100 bg-white py-12">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 px-8 md:flex-row">
-          <div
-            className={cn(
-              "text-base font-bold uppercase tracking-tight text-blue-700"
-            )}
-          >
-            AEROLAMINAR Logistics
+      <footer
+        className="mt-auto w-full border-t border-slate-200/90 bg-[#f8f9fa] py-6 sm:py-8"
+        role="contentinfo"
+      >
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 sm:px-6 lg:px-8 md:grid-cols-3 md:items-center md:gap-6 lg:gap-10">
+          <div className="text-center md:text-left">
+            <p className="text-sm font-bold uppercase tracking-tight text-black">
+              AEROLAMINAR
+            </p>
           </div>
-          <nav
-            className="flex flex-nowrap items-center justify-center gap-x-2 text-slate-500 sm:gap-x-4 md:gap-x-6 lg:gap-8"
-            aria-label="Legal and support"
-          >
-            {["Privacy Policy", "Terms of Service", "API Docs", "Contact Support"].map(
-              (label) => (
-                <a
-                  key={label}
-                  href="#"
-                  className="shrink-0 cursor-pointer whitespace-nowrap text-xs transition-opacity hover:text-blue-600 sm:text-sm"
-                >
-                  {label}
-                </a>
-              )
-            )}
-          </nav>
-          <div className="text-sm text-slate-400">
-            © 2024 AEROLAMINAR Logistics. All rights reserved.
+          <div className="min-w-0 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 sm:text-[11px] sm:tracking-widest">
+              Company
+            </p>
+            <ul className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 sm:flex-nowrap sm:gap-x-3 md:gap-x-4">
+              {onboardingFooterCompanyLinks.map((link) => (
+                <li key={link.label} className="shrink-0">
+                  <a
+                    href={link.href}
+                    className="whitespace-nowrap text-[10px] leading-tight text-[#4a5568] transition hover:text-slate-900 sm:text-[11px] md:text-xs"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex w-full flex-col items-center gap-2">
+            <div className="flex justify-center gap-2">
+              <a
+                href="https://twitter.com"
+                className="inline-flex size-8 items-center justify-center rounded-full border border-gray-200 bg-white text-[#4a5568] shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+                aria-label="X (Twitter)"
+              >
+                <X className="size-3.5" strokeWidth={2} aria-hidden />
+              </a>
+              <a
+                href="#"
+                className="inline-flex size-8 items-center justify-center rounded-full border border-gray-200 bg-white text-[#4a5568] shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+                aria-label="Website"
+              >
+                <Globe className="size-3.5" strokeWidth={2} aria-hidden />
+              </a>
+            </div>
+            <p className="w-full max-w-full text-right text-[10px] leading-snug text-[#4a5568] sm:text-[11px]">
+              © {new Date().getFullYear()} AEROLAMINAR Logistics. All rights
+              reserved.
+            </p>
           </div>
         </div>
       </footer>
