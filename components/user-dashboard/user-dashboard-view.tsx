@@ -185,10 +185,7 @@ export function UserDashboardView() {
   }, []);
 
   return (
-    <UserDashboardShell
-      pageTitle="User Dashboard"
-      pageSubtitle="Welcome back — here's a snapshot of your logistics activity and shortcuts to get things done."
-    >
+    <UserDashboardShell pageTitle="User Dashboard">
       <>
         <SectionLabel>Overview</SectionLabel>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
