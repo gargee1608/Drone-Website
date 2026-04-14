@@ -98,6 +98,8 @@ export function SiteHeader({
   const showAdminDashboardExpandInHeader =
     isAdminDashboard && !adminSidebarExpanded;
 
+  const showDashboardSettings = isUserDashboard || isAdminDashboard;
+
   const navLinkClass = (href: string, options?: { services?: boolean }) => {
     const active = options?.services
       ? pathname.startsWith("/services")
@@ -235,18 +237,20 @@ export function SiteHeader({
               <Button className={ctaButtonClassName}>{ctaLabel}</Button>
             )}
           </div>
-          {/* Settings + login + menu */}
+          {/* Settings (dashboards only) + login + menu */}
           <div className="flex shrink-0 items-center gap-0.5 border-l border-border/50 pl-2 sm:gap-1 sm:pl-3 md:pl-4">
-            <Link
-              href="/settings"
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "icon" }),
-                "text-muted-foreground hover:text-foreground"
-              )}
-              aria-label="Settings"
-            >
-              <Settings className="size-4" />
-            </Link>
+            {showDashboardSettings ? (
+              <Link
+                href="/settings"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "icon" }),
+                  "text-muted-foreground hover:text-foreground"
+                )}
+                aria-label="Settings"
+              >
+                <Settings className="size-4" />
+              </Link>
+            ) : null}
             <Link
               href="/login"
               aria-label="Login"
@@ -359,13 +363,15 @@ export function SiteHeader({
               </a>
             )
           )}
-          <Link
-            href="/settings"
-            className="rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
-            onClick={() => setOpen(false)}
-          >
-            Settings
-          </Link>
+          {showDashboardSettings ? (
+            <Link
+              href="/settings"
+              className="rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
+              onClick={() => setOpen(false)}
+            >
+              Settings
+            </Link>
+          ) : null}
           <Link
             href="/login"
             aria-label="Login"
