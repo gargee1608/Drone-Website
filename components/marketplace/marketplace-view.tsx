@@ -4,31 +4,17 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowLeft,
-  ArrowRight,
-  BriefcaseMedical,
   Check,
-  CheckCircle2,
-  Eye,
-  Globe,
   ShoppingCart,
   Star,
-  Truck,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import { StandardAppHeader } from "@/components/layout/standard-app-header";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const rangeOptions = ["0 - 50", "50 - 200", "200 - 500", "500+"] as const;
-
-const marketplaceFooterCompanyLinks = [
-  { href: "#", label: "Privacy Policy" },
-  { href: "#", label: "Terms of Service" },
-  { href: "#", label: "API Docs" },
-  { href: "#", label: "Contact Support" },
-] as const;
 
 const drones = [
   {
@@ -75,82 +61,7 @@ const drones = [
   },
 ] as const;
 
-const deliveryHeroImage =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuB3FJ1-kHMU2jNh4UzLXYgNXB0buR9eGA83Y5iIOASQU4I02VKbk0s_KHrmLQWWnJCco7hrn6izVOgQYRCemzaTIuWPHMco3VR_-w482aEUMJYnBobAs9uBnn742ggwm3qryLkxpYwaBngD9tdRO7WtDL_W5upFAhO5WOnFcNoA0AGyjKdRDXWdxZO2dvOzV8Pwc6E26OzD81yP9xQEVPDOLIRfAPkZBILgg9anA7BJGlpH4Nysb2ORUzMUBWtwQqjYGGLdTtjNJxHI";
-
-const pilotAvatars = [
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuBh3osiH2bhnHuceAy-rWIfBIOx9gLbALT-Yb9tNe_ZIv3IHRVTWZ098Xp3xj3XUHV3Y5aTplN97ki_S_7SJDPP_pm64VyncnC2__xx0TQpcj21CAhZFeNJnzHhWJQFmTG7Q9Cf61OxsIe-T0A0umVc1SICh1RK58pozoHIavACe81SKhxiBwMSjUtnv5BCgXgyv2jQczNUpL8yCPQ8EcEaLwT2YCGE7VCEilX_em8wEUpI4aa5qHdb3ZkpVFGs-8JmHxxw5QnFOKr6",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuBMkLDlti68MiVqt9e9Nm5bECba5aEYupp0uOROkgaNnfrTobjsyZ_A8IP4UARC_8Zdudof02b924DR3qqwYwltgrbyvtyiEmFocNYs7YqdaY3P3JyvvWG187l4lTSWfvlgG-AB8gTtaTcU90GOU_IiO0GaFn66KPbuyS8Ooof0l7EA4XBIeS66HqgAtk56O5SydhcBNIHN_RgLBYzQzM0eiYoCPfrh_U1q3blxTD-kQVJ4IXzdsIVVzeKnPoNYiDZA-IYcxPfTaOHl",
-] as const;
-
 type DroneItem = (typeof drones)[number];
-
-type ServiceModalId = "delivery" | "recon" | "logistics";
-
-const serviceModalContent: Record<
-  ServiceModalId,
-  {
-    title: string;
-    summary: string;
-    details: string;
-    tags: string[];
-    highlights: string[];
-    pricing: string;
-    cta: string;
-    image?: string;
-  }
-> = {
-  delivery: {
-    title: "Autonomous Delivery",
-    summary:
-      "Fully automated last-mile logistics for e-commerce, pharma, and retail.",
-    details:
-      "Our autonomous delivery network integrates with national airspace management for 99.9% uptime. Routes are optimized in real time for weather, traffic, and priority tiers. Enterprise SLAs include dedicated corridors and white-glove onboarding for your fulfillment centers.",
-    tags: ["Real-time Tracking", "Secure Lockers", "Zero-Emission"],
-    highlights: [
-      "Batch routing across multiple hubs",
-      "Cold-chain options for pharma",
-      "API integration with your OMS / WMS",
-    ],
-    pricing: "Dynamic Scale — quote based on volume & zones",
-    cta: "Request Service",
-    image: deliveryHeroImage,
-  },
-  recon: {
-    title: "Aerial Recon",
-    summary:
-      "Asset protection, environmental monitoring, and perimeter security.",
-    details:
-      "AI-driven thermal imaging and computer vision classify anomalies and raise alerts in your command dashboard. Ideal for infrastructure, renewables, and large campuses. Flight plans are filed automatically where regulations allow.",
-    tags: ["Thermal", "CV / AI", "Perimeter"],
-    highlights: [
-      "24/7 patrol cycles",
-      "Thermal heat-mapping exports",
-      "Instant threat alerts to SOC",
-    ],
-    pricing: "From project-based retainers",
-    cta: "Get Quote",
-  },
-  logistics: {
-    title: "Critical Logistics",
-    summary:
-      "Priority emergency response for organ transport, medical supplies, and disaster relief.",
-    details:
-      "Pre-cleared pilots and aircraft stand ready in major metros. Dispatch coordinates with hospitals and NGOs; encrypted chain-of-custody for sensitive payloads. Remote zones supported via relay staging.",
-    tags: ["Emergency", "Medical", "Disaster"],
-    highlights: [
-      "Median dispatch under 12 minutes (metro)",
-      "Organ transport SOPs",
-      "Disaster corridor prioritization",
-    ],
-    pricing: "Priority tier — incident-based billing",
-    cta: "Dispatch Now",
-  },
-};
-
-type DetailModal =
-  | { kind: "drone"; item: DroneItem }
-  | { kind: "service"; id: ServiceModalId };
 
 export function MarketplaceView() {
   const [payloadKg, setPayloadKg] = useState(250);
@@ -159,7 +70,9 @@ export function MarketplaceView() {
   const [urban, setUrban] = useState(false);
   const [rangeKey, setRangeKey] =
     useState<(typeof rangeOptions)[number]>("50 - 200");
-  const [detailModal, setDetailModal] = useState<DetailModal | null>(null);
+  const [detailModal, setDetailModal] = useState<{
+    item: DroneItem;
+  } | null>(null);
 
   const closeModal = useCallback(() => setDetailModal(null), []);
 
@@ -178,32 +91,28 @@ export function MarketplaceView() {
   }, [detailModal, closeModal]);
 
   return (
-    <div className="telemetry-grid min-h-screen bg-[#F8FAFC] text-[#0F172A]">
-      <StandardAppHeader activeHref="/marketplace" />
-
-      <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-8 sm:pt-8">
-        <header className="mb-10 sm:mb-12">
+    <div className="telemetry-grid flex min-h-0 flex-1 flex-col bg-[#F8FAFC] text-[#0F172A]">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-16 pt-6 sm:px-8 sm:pb-20 sm:pt-8">
+        <header className="mb-8 border-b border-slate-200/80 pb-8 sm:mb-10 sm:pb-10">
           <Link
             href="/"
-            className="mb-3 inline-flex w-fit items-center gap-2 pl-1 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 sm:mb-4 sm:pl-2 -ml-4 sm:-ml-8 lg:-ml-12"
+            className="mb-5 inline-flex w-fit items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
           >
             <ArrowLeft className="size-4 shrink-0" aria-hidden />
             Back to home
           </Link>
-          <div className="pl-0.5 sm:pl-2 lg:pl-4 -ml-5 sm:-ml-10 lg:-ml-12">
-            <h1
-              className={cn(
-                "text-4xl font-bold uppercase leading-none tracking-tight text-slate-900 sm:text-5xl"
-              )}
-            >
-              Marketplace
-            </h1>
-          </div>
+          <h1
+            className={cn(
+              "text-center text-3xl font-bold uppercase tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
+            )}
+          >
+            Marketplace
+          </h1>
         </header>
 
-        <div className="flex flex-col gap-8 lg:flex-row">
-          <aside className="w-full shrink-0 space-y-6 lg:w-72">
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-10 lg:flex-row lg:gap-12">
+          <aside className="w-full shrink-0 lg:w-72 lg:max-w-[18rem]">
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm ring-1 ring-slate-900/[0.04] lg:sticky lg:top-24 lg:self-start">
               <h3
                 className={cn(
                   "mb-6 text-xs font-bold uppercase tracking-widest text-blue-700"
@@ -222,6 +131,7 @@ export function MarketplaceView() {
                     max={500}
                     value={payloadKg}
                     onChange={(e) => setPayloadKg(Number(e.target.value))}
+                    aria-label="Payload capacity in kilograms"
                     className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-slate-100 accent-[#007AFF]"
                   />
                   <div className="flex justify-between font-mono text-[10px] text-slate-500">
@@ -294,20 +204,6 @@ export function MarketplaceView() {
                 </div>
               </div>
             </div>
-
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-6">
-              <p className="text-xs font-semibold leading-relaxed text-blue-700">
-                Enterprise custom fleet solutions available for verified logistics
-                pilots.
-              </p>
-              <button
-                type="button"
-                className="mt-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-blue-700 transition-transform hover:translate-x-1"
-              >
-                View Pilot HQ
-                <ArrowRight className="size-4" />
-              </button>
-            </div>
           </aside>
 
           <div className="min-w-0 flex-1">
@@ -317,16 +213,16 @@ export function MarketplaceView() {
                   key={drone.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => setDetailModal({ kind: "drone", item: drone })}
+                  onClick={() => setDetailModal({ item: drone })}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setDetailModal({ kind: "drone", item: drone });
+                      setDetailModal({ item: drone });
                     }
                   }}
-                  className="group cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white transition-all duration-300 hover:border-blue-300 hover:shadow-xl"
+                  className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.03] transition-all duration-300 hover:border-blue-200 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/45 focus-visible:ring-offset-2"
                 >
-                  <div className="relative h-48 overflow-hidden">
+                  <div className="relative h-48 overflow-hidden bg-slate-100">
                     <Image
                       src={drone.image}
                       alt=""
@@ -414,264 +310,6 @@ export function MarketplaceView() {
                 </article>
               ))}
             </div>
-
-            {/* Specialized Services */}
-            <div className="mt-16 sm:mt-20">
-              <h2
-                className={cn(
-                  "mb-8 text-3xl font-bold tracking-tight text-slate-900 uppercase"
-                )}
-              >
-                Specialized Services
-              </h2>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                <div
-                  className="group relative min-h-[360px] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md md:col-span-2"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() =>
-                    setDetailModal({ kind: "service", id: "delivery" })
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setDetailModal({ kind: "service", id: "delivery" });
-                    }
-                  }}
-                >
-                  <div className="absolute inset-0">
-                    <Image
-                      src={deliveryHeroImage}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 66vw"
-                    />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent" />
-                  <div className="relative flex h-full min-h-[360px] flex-col justify-end p-8 sm:p-10">
-                    <div className="mb-4 flex items-center gap-3">
-                      <Truck className="size-9 shrink-0 text-blue-700" />
-                      <h3
-                        className={cn(
-                          "text-2xl font-bold uppercase tracking-tight text-slate-900 sm:text-3xl"
-                        )}
-                      >
-                        Autonomous Delivery
-                      </h3>
-                    </div>
-                    <p className="mb-6 max-w-lg text-sm text-slate-600">
-                      Fully automated last-mile logistics for e-commerce, pharma,
-                      and retail. Integrated with national airspace management for
-                      99.9% uptime.
-                    </p>
-                    <div className="mb-8 flex flex-wrap gap-4">
-                      {["Real-time Tracking", "Secure Lockers", "Zero-Emission"].map(
-                        (tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-md border border-slate-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-500"
-                          >
-                            {tag}
-                          </span>
-                        )
-                      )}
-                    </div>
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                          Pricing
-                        </span>
-                        <span
-                          className={cn(
-                            "text-xl font-bold text-blue-700"
-                          )}
-                        >
-                          Dynamic Scale
-                        </span>
-                      </div>
-                      <Button
-                        type="button"
-                        className={cn(
-                          "h-auto rounded-lg bg-blue-700 px-8 py-3 text-xs font-bold uppercase tracking-widest text-white shadow-lg shadow-blue-200 hover:bg-blue-600"
-                        )}
-                      >
-                        Request Service
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="flex h-full cursor-pointer flex-col rounded-xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:border-blue-400"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() =>
-                    setDetailModal({ kind: "service", id: "recon" })
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setDetailModal({ kind: "service", id: "recon" });
-                    }
-                  }}
-                >
-                  <div className="mb-6 flex size-14 items-center justify-center rounded-xl bg-blue-50">
-                    <Eye className="size-8 text-blue-700" />
-                  </div>
-                  <h3
-                    className={cn(
-                      "mb-4 text-xl font-bold uppercase tracking-tight text-slate-900"
-                    )}
-                  >
-                    Aerial Recon
-                  </h3>
-                  <p className="mb-6 text-xs leading-relaxed text-slate-500">
-                    Asset protection, environmental monitoring, and perimeter
-                    security using AI-driven thermal imaging and computer vision.
-                  </p>
-                  <ul className="mb-8 flex-1 space-y-3">
-                    {[
-                      "24/7 Patrol Cycles",
-                      "Thermal Heat-mapping",
-                      "Instant Threat Alerts",
-                    ].map((line) => (
-                      <li
-                        key={line}
-                        className="flex items-center gap-3 text-xs font-medium text-slate-600"
-                      >
-                        <CheckCircle2 className="size-4 shrink-0 text-blue-600" />
-                        {line}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className={cn(
-                      "h-auto w-full rounded-lg border-2 border-blue-100 py-3 text-[10px] font-bold uppercase tracking-widest text-blue-700 hover:bg-blue-50"
-                    )}
-                  >
-                    Get Quote
-                  </Button>
-                </div>
-
-                <div
-                  className="flex h-full cursor-pointer flex-col rounded-xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:border-blue-400"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() =>
-                    setDetailModal({ kind: "service", id: "logistics" })
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setDetailModal({ kind: "service", id: "logistics" });
-                    }
-                  }}
-                >
-                  <div className="mb-6 flex size-14 items-center justify-center rounded-xl bg-blue-50">
-                    <BriefcaseMedical className="size-8 text-blue-700" />
-                  </div>
-                  <h3
-                    className={cn(
-                      "mb-4 text-xl font-bold uppercase tracking-tight text-slate-900"
-                    )}
-                  >
-                    Critical Logistics
-                  </h3>
-                  <p className="mb-6 text-xs leading-relaxed text-slate-500">
-                    Priority emergency response for organ transport, medical
-                    supplies, and disaster relief support in remote zones.
-                  </p>
-                  <div className="mb-8 rounded-lg border border-slate-100 bg-slate-50 p-4">
-                    <span className="mb-1 block text-[9px] font-bold uppercase tracking-widest text-slate-400">
-                      Response Time
-                    </span>
-                    <span
-                      className={cn(
-                        "text-2xl font-bold text-blue-700"
-                      )}
-                    >
-                      &lt; 12 Minutes
-                    </span>
-                  </div>
-                  <Button
-                    type="button"
-                    className={cn(
-                      "h-auto w-full rounded-lg bg-slate-900 px-8 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-slate-800"
-                    )}
-                  >
-                    Dispatch Now
-                  </Button>
-                </div>
-
-                <div className="flex flex-col items-stretch justify-between gap-8 rounded-xl border border-slate-200 bg-white p-8 shadow-sm md:col-span-2 md:flex-row md:items-center md:p-10">
-                  <div className="flex flex-wrap gap-10 sm:gap-12">
-                    <div>
-                      <span
-                        className={cn(
-                          "text-4xl font-bold text-slate-900"
-                        )}
-                      >
-                        15.2k
-                      </span>
-                      <span className="mt-1 block text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                        Daily Flights
-                      </span>
-                    </div>
-                    <div>
-                      <span
-                        className={cn(
-                          "text-4xl font-bold text-slate-900"
-                        )}
-                      >
-                        99.98%
-                      </span>
-                      <span className="mt-1 block text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                        Safety Rate
-                      </span>
-                    </div>
-                    <div>
-                      <span
-                        className={cn(
-                          "text-4xl font-bold text-slate-900"
-                        )}
-                      >
-                        1.2m
-                      </span>
-                      <span className="mt-1 block text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                        KM Flown
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-6">
-                    <div className="flex -space-x-3">
-                      {pilotAvatars.map((src, i) => (
-                        <div
-                          key={i}
-                          className="relative size-10 overflow-hidden rounded-full border-4 border-white shadow-sm"
-                        >
-                          <Image
-                            src={src}
-                            alt=""
-                            width={40}
-                            height={40}
-                            className="size-full object-cover"
-                          />
-                        </div>
-                      ))}
-                      <div className="flex size-10 items-center justify-center rounded-full border-4 border-white bg-slate-100 text-[10px] font-bold text-slate-500 shadow-sm">
-                        +12
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                      New Pilots Online
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </main>
@@ -699,9 +337,8 @@ export function MarketplaceView() {
               <X className="size-5" />
             </button>
 
-            {detailModal.kind === "drone" ? (
-              <>
-                <div className="relative h-48 w-full shrink-0 bg-slate-100">
+            <>
+              <div className="relative h-48 w-full shrink-0 bg-slate-100">
                   <Image
                     src={detailModal.item.image}
                     alt=""
@@ -731,7 +368,7 @@ export function MarketplaceView() {
                     </span>
                   </div>
                 </div>
-                <div className="min-h-0 flex-1 overflow-y-auto p-6 pt-8">
+              <div className="min-h-0 flex-1 overflow-y-auto p-6 pt-8">
                   <h2
                     id="marketplace-detail-title"
                     className={cn(
@@ -746,7 +383,7 @@ export function MarketplaceView() {
                   <p className="mt-4 text-sm leading-relaxed text-slate-600">
                     {detailModal.item.description}
                   </p>
-                  <div className="mt-6 grid grid-cols-2 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="mt-6 grid grid-cols-2 gap-4 rounded-xl border border-slate-100 bg-slate-50/90 p-4">
                     <div>
                       <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-400">
                         Payload
@@ -798,138 +435,11 @@ export function MarketplaceView() {
                       Close
                     </Button>
                   </div>
-                </div>
-              </>
-            ) : (
-              <>
-                {serviceModalContent[detailModal.id].image ? (
-                  <div className="relative h-40 w-full shrink-0 bg-slate-100">
-                    <Image
-                      src={serviceModalContent[detailModal.id].image!}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      sizes="512px"
-                    />
-                  </div>
-                ) : null}
-                <div className="min-h-0 flex-1 overflow-y-auto p-6 pt-8">
-                  <h2
-                    id="marketplace-detail-title"
-                    className={cn(
-                      "pr-10 text-xl font-bold uppercase tracking-tight text-slate-900"
-                    )}
-                  >
-                    {serviceModalContent[detailModal.id].title}
-                  </h2>
-                  <p className="mt-2 text-sm font-medium text-slate-600">
-                    {serviceModalContent[detailModal.id].summary}
-                  </p>
-                  <p className="mt-4 text-sm leading-relaxed text-slate-600">
-                    {serviceModalContent[detailModal.id].details}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {serviceModalContent[detailModal.id].tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-600"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <ul className="mt-6 space-y-2">
-                    {serviceModalContent[detailModal.id].highlights.map(
-                      (line) => (
-                        <li
-                          key={line}
-                          className="flex items-start gap-2 text-sm text-slate-700"
-                        >
-                          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-blue-600" />
-                          {line}
-                        </li>
-                      )
-                    )}
-                  </ul>
-                  <p className="mt-6 rounded-lg border border-blue-100 bg-blue-50/80 px-4 py-3 text-sm font-semibold text-blue-900">
-                    {serviceModalContent[detailModal.id].pricing}
-                  </p>
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <Button
-                      type="button"
-                      className={cn(
-                        "rounded-lg bg-blue-700 px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-blue-600"
-                      )}
-                      onClick={closeModal}
-                    >
-                      {serviceModalContent[detailModal.id].cta}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={closeModal}
-                    >
-                      Close
-                    </Button>
-                  </div>
-                </div>
-              </>
-            )}
+              </div>
+            </>
           </div>
         </div>
       ) : null}
-
-      <footer
-        className="w-full border-t border-slate-200/90 bg-[#f8f9fa] py-6 sm:py-8"
-        role="contentinfo"
-      >
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 sm:px-6 lg:px-8 md:grid-cols-3 md:items-center md:gap-6 lg:gap-10">
-          <div className="text-center md:text-left">
-            <p className="text-sm font-bold uppercase tracking-tight text-black">
-              AEROLAMINAR
-            </p>
-          </div>
-          <div className="min-w-0 text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 sm:text-[11px] sm:tracking-widest">
-              Company
-            </p>
-            <ul className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 sm:flex-nowrap sm:gap-x-3 md:gap-x-4">
-              {marketplaceFooterCompanyLinks.map((link) => (
-                <li key={link.label} className="shrink-0">
-                  <a
-                    href={link.href}
-                    className="whitespace-nowrap text-[10px] leading-tight text-[#4a5568] transition hover:text-slate-900 sm:text-[11px] md:text-xs"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex w-full flex-col items-center gap-2">
-            <div className="flex justify-center gap-2">
-              <a
-                href="https://twitter.com"
-                className="inline-flex size-8 items-center justify-center rounded-full border border-gray-200 bg-white text-[#4a5568] shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-                aria-label="X (Twitter)"
-              >
-                <X className="size-3.5" strokeWidth={2} aria-hidden />
-              </a>
-              <a
-                href="#"
-                className="inline-flex size-8 items-center justify-center rounded-full border border-gray-200 bg-white text-[#4a5568] shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-                aria-label="Website"
-              >
-                <Globe className="size-3.5" strokeWidth={2} aria-hidden />
-              </a>
-            </div>
-            <p className="w-full max-w-full text-right text-[10px] leading-snug text-[#4a5568] sm:text-[11px]">
-              © {new Date().getFullYear()} AEROLAMINAR Logistics. All rights
-              reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

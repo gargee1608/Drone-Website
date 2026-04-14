@@ -27,14 +27,14 @@ export function Hero() {
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
             <Link
               href="/pilot-registration"
-              className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border-2 border-blue-600 bg-blue-600 px-6 text-sm font-semibold whitespace-nowrap text-white shadow-none transition hover:border-blue-700 hover:bg-blue-700 hover:text-white dark:border-blue-500 dark:bg-blue-600 dark:hover:border-blue-400 dark:hover:bg-blue-500"
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border-2 border-blue-600 bg-blue-600 px-6 text-sm font-semibold whitespace-nowrap text-white shadow-none transition hover:border-blue-700 hover:bg-blue-700 hover:text-white"
             >
               Register a Pilot
             </Link>
             <Button
               variant="outline"
               size="lg"
-              className="h-10 rounded-full border-2 border-blue-600 bg-transparent px-6 text-sm font-semibold text-blue-700 shadow-none transition hover:bg-blue-50/70 hover:text-blue-900 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
+              className="h-10 rounded-full border-2 border-blue-600 bg-transparent px-6 text-sm font-semibold text-blue-700 shadow-none transition hover:bg-blue-50/70 hover:text-blue-900"
             >
               Post a Project
             </Button>

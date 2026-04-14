@@ -2,10 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Globe, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { StandardAppHeader } from "@/components/layout/standard-app-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -63,8 +62,8 @@ const services = [
       "Custom quote for multi-day deployments",
     ] as const,
     tags: "Search & rescue, Disaster relief",
-    priceLabel: "Pricing",
-    price: "Custom Quote",
+    priceLabel: "Starts At",
+    price: "$499",
     badge: null,
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuBSWCM4cEtwdoXkkGe27sqZ4pT_pVQ719L-gb6AsbS8nGX_j5SdQ49naZ2PS-9vFHGmK2wWgFmLugsc_UVG8E0cmfOwptbSGgAh5VIO0l2pE-gSsVt-NZ3BZIqF7rHz9K_R7Bv-n63tNRNlw5kvKNUrhOmuUqxEJFYJk3jFF5C0HBFYmystP2r2MxamGcjS8NAR7fxoY9JyPqAcBiIRHJDAmvgRFesSiD4WYQO-HV2OG2WLtj1ueKjz71s16PD2t6g2hN32QMB6KwYc",
@@ -92,13 +91,6 @@ const services = [
   },
 ] as const;
 
-const servicesFooterCompanyLinks = [
-  { href: "#", label: "Privacy Policy" },
-  { href: "#", label: "Terms of Service" },
-  { href: "#", label: "API Docs" },
-  { href: "#", label: "Contact Support" },
-] as const;
-
 export function ServicesView() {
   const [detailService, setDetailService] = useState<
     (typeof services)[number] | null
@@ -119,10 +111,8 @@ export function ServicesView() {
   }, [detailService]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f8f9fa] text-[#191c1d] antialiased">
-      <StandardAppHeader activeHref="/services" />
-
-      <main className="mx-auto max-w-screen-2xl px-6 pb-20 pt-4 sm:pt-5">
+    <div className="flex min-h-0 flex-1 flex-col bg-[#f8f9fa] text-[#191c1d] antialiased">
+      <main className="mx-auto w-full max-w-screen-2xl flex-1 px-6 pb-20 pt-4 sm:pt-5">
         <Link
           href="/"
           className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
@@ -130,20 +120,14 @@ export function ServicesView() {
           <ArrowLeft className="size-4" aria-hidden />
           Back to home
         </Link>
-        <section className="mb-12">
-          <div className="mb-8 max-w-3xl">
-            <h1
-              className={cn(
-                "mb-2 text-4xl font-bold tracking-tight text-[#191c1d] sm:text-5xl"
-              )}
-            >
-              Our Services
-            </h1>
-            <p className="text-lg text-[#414755]">
-              Explore specialized drone-powered solutions designed for the next
-              generation of logistics and aerial intelligence.
-            </p>
-          </div>
+        <section className="mb-12 text-center">
+          <h1
+            className={cn(
+              "mb-8 text-4xl font-bold tracking-tight text-[#191c1d] sm:text-5xl"
+            )}
+          >
+            Our Services
+          </h1>
         </section>
 
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -233,9 +217,9 @@ export function ServicesView() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="service-detail-title"
-            className="relative z-10 flex max-h-[min(85vh,640px)] w-full max-w-md flex-col overflow-hidden rounded-xl border border-white/20 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+            className="relative z-10 flex max-h-[min(85vh,640px)] w-full max-w-md flex-col overflow-hidden rounded-xl border border-white/20 bg-white shadow-2xl"
           >
-            <div className="relative h-40 w-full shrink-0 bg-slate-100 dark:bg-slate-800 sm:h-44">
+            <div className="relative h-40 w-full shrink-0 bg-slate-100 sm:h-44">
               <div className="absolute inset-2.5 sm:inset-3">
                 <div className="relative h-full w-full">
                   <Image
@@ -250,7 +234,7 @@ export function ServicesView() {
               <button
                 type="button"
                 onClick={() => setDetailService(null)}
-                className="absolute right-2 top-2 inline-flex size-8 items-center justify-center rounded-full bg-white/95 text-[#191c1d] shadow-md transition hover:bg-white dark:bg-slate-900/95 dark:text-white sm:right-2.5 sm:top-2.5"
+                className="absolute right-2 top-2 inline-flex size-8 items-center justify-center rounded-full bg-white/95 text-[#191c1d] shadow-md transition hover:bg-white sm:right-2.5 sm:top-2.5"
                 aria-label="Close"
               >
                 <X className="size-4" />
@@ -260,39 +244,39 @@ export function ServicesView() {
               <h2
                 id="service-detail-title"
                 className={cn(
-                  "mb-2 text-xl font-bold text-[#191c1d] dark:text-white sm:text-2xl"
+                  "mb-2 text-xl font-bold text-[#191c1d] sm:text-2xl"
                 )}
               >
                 {detailService.title}
               </h2>
-              <p className="mb-4 text-sm leading-relaxed text-[#414755] dark:text-slate-300">
+              <p className="mb-4 text-sm leading-relaxed text-[#414755]">
                 {detailService.description}
               </p>
-              <p className="mb-4 text-sm leading-relaxed text-[#414755] dark:text-slate-300">
+              <p className="mb-4 text-sm leading-relaxed text-[#414755]">
                 {detailService.details}
               </p>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#717786] dark:text-slate-400">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#717786]">
                 Highlights
               </p>
               <ul className="mb-6 space-y-2">
                 {detailService.highlights.map((line) => (
                   <li
                     key={line}
-                    className="flex gap-2 text-sm text-[#414755] dark:text-slate-300"
+                    className="flex gap-2 text-sm text-[#414755]"
                   >
                     <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#006195]" />
                     <span>{line}</span>
                   </li>
                 ))}
               </ul>
-              <div className="flex flex-wrap items-baseline gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
-                <span className="text-xs font-medium uppercase tracking-tighter text-[#717786] dark:text-slate-400">
+              <div className="flex flex-wrap items-baseline gap-2 border-t border-slate-200 pt-4">
+                <span className="text-xs font-medium uppercase tracking-tighter text-[#717786]">
                   {detailService.priceLabel}
                 </span>
-                <span className="text-xl font-bold text-[#191c1d] dark:text-white">
+                <span className="text-xl font-bold text-[#191c1d]">
                   {detailService.price}
                 </span>
-                <span className="ml-auto text-xs text-[#717786] dark:text-slate-400">
+                <span className="ml-auto text-xs text-[#717786]">
                   {detailService.tags}
                 </span>
               </div>
@@ -309,58 +293,6 @@ export function ServicesView() {
           </div>
         </div>
       ) : null}
-
-      <footer
-        className="mt-auto w-full border-t border-slate-200/90 bg-[#f8f9fa] py-6 sm:py-8"
-        role="contentinfo"
-      >
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 sm:px-6 lg:px-8 md:grid-cols-3 md:items-center md:gap-6 lg:gap-10">
-          <div className="text-center md:text-left">
-            <p className="text-sm font-bold uppercase tracking-tight text-black">
-              AEROLAMINAR
-            </p>
-          </div>
-          <div className="min-w-0 text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 sm:text-[11px] sm:tracking-widest">
-              Company
-            </p>
-            <ul className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 sm:flex-nowrap sm:gap-x-3 md:gap-x-4">
-              {servicesFooterCompanyLinks.map((link) => (
-                <li key={link.label} className="shrink-0">
-                  <a
-                    href={link.href}
-                    className="whitespace-nowrap text-[10px] leading-tight text-[#4a5568] transition hover:text-slate-900 sm:text-[11px] md:text-xs"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex w-full flex-col items-center gap-2">
-            <div className="flex justify-center gap-2">
-              <a
-                href="https://twitter.com"
-                className="inline-flex size-8 items-center justify-center rounded-full border border-gray-200 bg-white text-[#4a5568] shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-                aria-label="X (Twitter)"
-              >
-                <X className="size-3.5" strokeWidth={2} aria-hidden />
-              </a>
-              <a
-                href="#"
-                className="inline-flex size-8 items-center justify-center rounded-full border border-gray-200 bg-white text-[#4a5568] shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-                aria-label="Website"
-              >
-                <Globe className="size-3.5" strokeWidth={2} aria-hidden />
-              </a>
-            </div>
-            <p className="w-full max-w-full text-right text-[10px] leading-snug text-[#4a5568] sm:text-[11px]">
-              © {new Date().getFullYear()} AEROLAMINAR Logistics. All rights
-              reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

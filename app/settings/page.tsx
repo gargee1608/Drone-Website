@@ -1,9 +1,9 @@
 import { SettingsDashboard } from "@/components/settings/settings-dashboard";
 
 export const metadata = {
-  title: "System Settings — AEROLAMINAR",
+  title: "Account Settings — AEROLAMINAR",
   description:
-    "Configure your command center parameters and security protocols.",
+    "Account security, appearance, and environment settings for AEROLAMINAR.",
 };
 
 export default function SettingsPage() {

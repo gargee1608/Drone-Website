@@ -1,9 +1,9 @@
 import { CommandCenterView } from "@/components/dashboard/command-center-view";
 
 export const metadata = {
-  title: "AEROLAMINAR | Command Center",
+  title: "AEROLAMINAR | Dashboard",
   description:
-    "AEROLAMINAR command center — fleet telemetry, registrations, and operations.",
+    "AEROLAMINAR admin dashboard — fleet telemetry, registrations, and operations.",
 };
 
 export default function DashboardPage() {

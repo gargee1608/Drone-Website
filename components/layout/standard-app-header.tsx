@@ -24,7 +24,7 @@ function LoginProfileIcon({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "relative inline-flex size-10 shrink-0 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700",
+        "relative inline-flex size-10 shrink-0 overflow-hidden rounded-full bg-slate-100",
         className
       )}
       aria-hidden
@@ -68,18 +68,20 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
           </button>
           <Link
             href="/"
-            className="flex min-w-0 shrink-0 items-center gap-2.5 sm:gap-3"
+            className="font-heading flex min-w-0 shrink-0 items-center gap-2.5 sm:gap-3.5"
           >
-            <Image
-              src="/aerolaminar-header-logo.png"
-              alt=""
-              width={40}
-              height={40}
-              className="size-9 shrink-0 object-contain sm:size-10"
-              priority
-              aria-hidden
-            />
-            <span className="truncate text-lg font-bold uppercase tracking-tight text-black sm:text-xl">
+            <span className="relative flex size-12 shrink-0 translate-y-0.5 items-center justify-center sm:size-14">
+              <Image
+                src="/aerolaminar-header-logo.png"
+                alt=""
+                width={56}
+                height={56}
+                className="size-full object-contain object-center"
+                priority
+                aria-hidden
+              />
+            </span>
+            <span className="truncate text-lg font-bold uppercase leading-none tracking-tight text-black sm:text-xl">
               AEROLAMINAR
             </span>
           </Link>
@@ -131,7 +133,7 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
               placeholder="Search"
               title="Search mission ID or drone"
               aria-label="Search mission ID or drone"
-              className="w-full min-w-0 rounded-full border-0 bg-[#e8eaed] py-2.5 pl-10 pr-4 text-sm text-[#191c1d] shadow-inner shadow-slate-900/5 outline-none ring-0 transition placeholder:text-slate-500 focus:bg-[#e3e5e8] focus:ring-2 focus:ring-slate-300/60 sm:pl-11 sm:pr-5"
+              className="w-full min-w-0 rounded-full border-0 bg-[#e8eaed] py-1.5 pl-10 pr-4 text-sm leading-normal text-[#191c1d] shadow-inner shadow-slate-900/5 outline-none ring-0 transition placeholder:text-slate-500 focus:bg-[#e3e5e8] focus:ring-2 focus:ring-slate-300/60 sm:pl-11 sm:pr-5"
             />
           </div>
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -42,16 +42,8 @@ export function SignUpView() {
     confirm?: string;
   }>({});
 
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, []);
-
   return (
-    <div className="relative flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#f8f9fa] text-[#191c1d]">
+    <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-[#f8f9fa] text-[#191c1d]">
       <div className="absolute inset-0 z-0 min-h-full w-full">
         <Image
           src={bgImageUrl}
@@ -74,32 +66,8 @@ export function SignUpView() {
       <div className="pointer-events-none fixed top-[20%] -left-[10%] -z-10 h-[40%] w-[40%] rounded-full bg-[#0058bc]/5 blur-[120px]" />
       <div className="pointer-events-none fixed right-[-5%] bottom-[10%] -z-10 h-[30%] w-[30%] rounded-full bg-[#006195]/5 blur-[100px]" />
 
-      <header className="relative z-50 flex w-full shrink-0 items-center py-2.5 pl-2 pr-3 sm:py-3 sm:pl-3 sm:pr-6">
-        <Link
-          href="/"
-          className="flex shrink-0 items-center gap-2.5 transition-opacity hover:opacity-90"
-        >
-          <Image
-            src="/aerolaminar-logo.png"
-            alt=""
-            width={48}
-            height={48}
-            className="h-9 w-9 shrink-0 translate-y-px object-contain object-center sm:h-10 sm:w-10"
-            priority
-            aria-hidden
-          />
-          <span
-            className={cn(
-              "text-lg font-bold leading-tight tracking-tight text-black sm:text-xl"
-            )}
-          >
-            AEROLAMINAR
-          </span>
-        </Link>
-      </header>
-
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 sm:py-4 [&::-webkit-scrollbar]:hidden">
-        <div className="login-glass-card relative w-full max-w-[340px] overflow-hidden rounded-xl p-5 shadow-lg shadow-[#4d5b7f]/8 sm:max-w-[400px] sm:p-6">
+      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-visible px-4 py-8 pb-12 sm:px-6 sm:py-10 sm:pb-16">
+        <div className="login-glass-card relative w-full max-w-[340px] rounded-xl p-5 shadow-lg shadow-[#4d5b7f]/8 sm:max-w-[400px] sm:p-6">
           <div
             className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 rounded-t-xl bg-gradient-to-r from-[#0058bc] via-[#0070eb] to-[#006195] shadow-[0_2px_10px_rgba(0,88,188,0.35)]"
             aria-hidden
@@ -290,32 +258,6 @@ export function SignUpView() {
           </div>
         </div>
       </main>
-
-      <footer className="relative z-50 flex shrink-0 flex-col items-center justify-center gap-2 border-t border-slate-200/60 bg-[#f8f9fa]/90 px-3 py-2.5 backdrop-blur-sm sm:flex-row sm:gap-6 sm:py-3">
-        <span className="text-center text-[11px] tracking-wide text-slate-500 sm:text-xs">
-          © 2024 AEROLAMINAR. All rights reserved.
-        </span>
-        <div className="flex flex-wrap justify-center gap-3 sm:gap-5">
-          <a
-            href="#"
-            className="text-[11px] tracking-wide text-slate-500 underline opacity-80 transition-all hover:text-blue-400 hover:opacity-100 sm:text-xs"
-          >
-            Privacy Policy
-          </a>
-          <a
-            href="#"
-            className="text-[11px] tracking-wide text-slate-500 underline opacity-80 transition-all hover:text-blue-400 hover:opacity-100 sm:text-xs"
-          >
-            Terms of Service
-          </a>
-          <a
-            href="#"
-            className="text-[11px] tracking-wide text-slate-500 underline opacity-80 transition-all hover:text-blue-400 hover:opacity-100 sm:text-xs"
-          >
-            Compliance
-          </a>
-        </div>
-      </footer>
     </div>
   );
 }
