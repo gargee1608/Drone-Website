@@ -80,11 +80,11 @@ export function SiteHeader({
   const hasRegisteredPilot = useHasRegisteredPilot();
   const {
     sidebarExpanded: userSidebarExpanded,
-    expandSidebar: expandUserSidebar,
+    setSidebarExpanded: setUserSidebarExpanded,
   } = useUserDashboardNav();
   const {
     sidebarExpanded: adminSidebarExpanded,
-    expandSidebar: expandAdminSidebar,
+    setSidebarExpanded: setAdminSidebarExpanded,
   } = useAdminDashboardNav();
 
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
@@ -92,46 +92,91 @@ export function SiteHeader({
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
     (pathname?.startsWith("/dashboard/") ?? false);
+  const isSettingsPage = pathname?.startsWith("/settings") ?? false;
 
-  const showUserDashboardExpandInHeader =
-    isUserDashboard && !userSidebarExpanded;
-  const showAdminDashboardExpandInHeader =
-    isAdminDashboard && !adminSidebarExpanded;
+  const showUserDashboardSidebarToggle = isUserDashboard;
+  const showAdminDashboardSidebarToggle = isAdminDashboard;
+  const showSettingsSidebarToggle = isSettingsPage;
 
   const showDashboardSettings = isUserDashboard || isAdminDashboard;
+  const settingsHref = isUserDashboard
+    ? "/settings?from=user"
+    : isAdminDashboard
+      ? "/settings?from=admin"
+      : "/settings";
+
+  const whiteHeaderChrome =
+    isSettingsPage || isAdminDashboard || isUserDashboard;
+
+  /** Hide Register a Pilot / Registered Pilot on admin & user dashboards only. */
+  const showPilotRegistrationCtas =
+    !isAdminDashboard && !isUserDashboard;
 
   const navLinkClass = (href: string, options?: { services?: boolean }) => {
     const active = options?.services
       ? pathname.startsWith("/services")
       : pathname === href || pathname.startsWith(`${href}/`);
     return cn(
-      "shrink-0 transition-colors hover:text-foreground",
-      active && "border-b-2 border-[#0058bc] pb-0.5 font-semibold text-[#0058bc]"
+      "site-header-marketing-link shrink-0 text-foreground transition-colors hover:text-foreground/85",
+      active && "border-b-2 border-[#0058bc] pb-0.5 font-semibold text-foreground"
     );
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/90 bg-white/95 backdrop-blur-md">
+    <header
+      className={cn(
+        "sticky top-0 z-50 border-b backdrop-blur-md",
+        whiteHeaderChrome
+          ? "border-slate-200 bg-white"
+          : "border-border bg-background/95"
+      )}
+    >
       <div className="flex w-full min-w-0 items-center gap-2 py-3 pl-2 pr-2 sm:gap-3 sm:pl-3 sm:pr-3 lg:gap-4 lg:pl-4 lg:pr-5">
         <div className="ml-1 flex min-w-0 shrink-0 items-center gap-1.5 sm:ml-2 sm:gap-2 lg:ml-3">
-          {showAdminDashboardExpandInHeader ? (
+          {showSettingsSidebarToggle ? (
+            <button
+              type="button"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#0058bc] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new Event("settings-nav-toggle"));
+                }
+              }}
+              aria-label="Toggle settings navigation"
+            >
+              <Menu className="size-5" strokeWidth={2.25} aria-hidden />
+            </button>
+          ) : null}
+          {showAdminDashboardSidebarToggle ? (
             <button
               type="button"
               className="hidden lg:inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#0058bc] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35"
-              onClick={expandAdminSidebar}
-              aria-label="Expand command center sidebar"
+              onClick={() =>
+                setAdminSidebarExpanded(!adminSidebarExpanded)
+              }
+              aria-label={
+                adminSidebarExpanded
+                  ? "Collapse command center sidebar"
+                  : "Expand command center sidebar"
+              }
               aria-expanded={adminSidebarExpanded}
               aria-controls="command-center-nav"
             >
               <SidebarMenuGlyph />
             </button>
           ) : null}
-          {showUserDashboardExpandInHeader ? (
+          {showUserDashboardSidebarToggle ? (
             <button
               type="button"
               className="hidden lg:inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#0058bc] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35"
-              onClick={expandUserSidebar}
-              aria-label="Expand user dashboard sidebar"
+              onClick={() =>
+                setUserSidebarExpanded(!userSidebarExpanded)
+              }
+              aria-label={
+                userSidebarExpanded
+                  ? "Collapse user dashboard sidebar"
+                  : "Expand user dashboard sidebar"
+              }
               aria-expanded={userSidebarExpanded}
               aria-controls="user-dashboard-sidebar"
             >
@@ -140,18 +185,18 @@ export function SiteHeader({
           ) : null}
           <Link
             href="/"
-            className="flex shrink-0 items-center gap-2.5 font-heading text-sm font-bold tracking-tight text-black transition-opacity hover:opacity-90 sm:text-base"
+            className="flex shrink-0 items-center gap-1 font-heading text-base font-bold tracking-tight text-black transition-opacity hover:opacity-90 sm:text-lg lg:text-xl"
           >
             <Image
               src="/aerolaminar-logo.png"
               alt=""
-              width={48}
-              height={48}
-              className="h-9 w-9 shrink-0 translate-y-px object-contain object-center sm:h-10 sm:w-10 sm:translate-y-0.5"
+              width={72}
+              height={72}
+              className="h-12 w-12 shrink-0 translate-y-px object-contain object-center sm:h-14 sm:w-14 sm:translate-y-0.5 lg:h-16 lg:w-16"
               priority
               aria-hidden
             />
-            <span className="leading-tight">AEROLAMINAR</span>
+            <span className="leading-tight">Drone Hire</span>
           </Link>
         </div>
 
@@ -168,9 +213,10 @@ export function SiteHeader({
           ) : null}
           <nav
             className={cn(
-              "hidden min-w-0 items-center gap-3 text-sm font-medium text-muted-foreground md:flex",
+              "site-header-primary-nav hidden min-w-0 items-center gap-3 text-sm font-medium text-[#191c1d] md:flex",
               "lg:gap-5"
             )}
+            aria-label="Marketplace, onboarding, and services"
           >
             {nav.map((item) =>
               item.href === "/services" ? (
@@ -198,7 +244,7 @@ export function SiteHeader({
             )}
           </nav>
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            {ctaHref ? (
+            {showPilotRegistrationCtas && ctaHref ? (
               ctaHref === "/pilot-registration" ? (
                 <div className="hidden items-center gap-2 sm:flex">
                   <Link
@@ -233,15 +279,15 @@ export function SiteHeader({
                   {ctaLabel}
                 </Link>
               )
-            ) : (
+            ) : showPilotRegistrationCtas && !ctaHref ? (
               <Button className={ctaButtonClassName}>{ctaLabel}</Button>
-            )}
+            ) : null}
           </div>
           {/* Settings (dashboards only) + login + menu */}
           <div className="flex shrink-0 items-center gap-0.5 border-l border-border/50 pl-2 sm:gap-1 sm:pl-3 md:pl-4">
             {showDashboardSettings ? (
               <Link
-                href="/settings"
+                href={settingsHref}
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon" }),
                   "text-muted-foreground hover:text-foreground"
@@ -279,17 +325,26 @@ export function SiteHeader({
       <div
         id="mobile-nav"
         className={cn(
-          "border-t border-border/60 bg-background/95 px-3 py-4 sm:px-4 md:hidden",
+          "border-t px-3 py-4 sm:px-4 md:hidden",
+          whiteHeaderChrome
+            ? "border-slate-200/80 bg-white"
+            : "border-border/60 bg-background/95",
           open ? "block" : "hidden"
         )}
       >
-        <nav className="flex flex-col gap-3 text-sm font-medium text-muted-foreground">
+        <nav
+          className="site-header-primary-nav flex flex-col gap-3 text-sm font-medium text-[#191c1d]"
+          aria-label="Marketplace, onboarding, and services"
+        >
           {nav.map((item) =>
             item.href === "/services" ? (
               <div key={item.href} className="flex flex-col gap-1">
                 <Link
                   href="/services"
-                  className="rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
+                  className={cn(
+                    navLinkClass("/services", { services: true }),
+                    "rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-[#191c1d]"
+                  )}
                   onClick={() => setOpen(false)}
                 >
                   {item.label}
@@ -347,7 +402,10 @@ export function SiteHeader({
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
+                className={cn(
+                  navLinkClass(item.href),
+                  "rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-[#191c1d]"
+                )}
                 onClick={() => setOpen(false)}
               >
                 {item.label}
@@ -356,7 +414,7 @@ export function SiteHeader({
               <a
                 key={item.href}
                 href={item.href}
-                className="rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
+                className="site-header-marketing-link rounded-lg px-2 py-2 text-[#191c1d] transition-colors hover:bg-muted hover:text-[#191c1d]"
                 onClick={() => setOpen(false)}
               >
                 {item.label}
@@ -365,7 +423,7 @@ export function SiteHeader({
           )}
           {showDashboardSettings ? (
             <Link
-              href="/settings"
+              href={settingsHref}
               className="rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
               onClick={() => setOpen(false)}
             >
@@ -381,7 +439,7 @@ export function SiteHeader({
             <LoginProfileIcon className="size-10 sm:size-11" />
           </Link>
         </nav>
-        {ctaHref ? (
+        {showPilotRegistrationCtas && ctaHref ? (
           ctaHref === "/pilot-registration" ? (
             <div className="flex flex-col">
               <Link
@@ -422,14 +480,14 @@ export function SiteHeader({
               {ctaLabel}
             </Link>
           )
-        ) : (
+        ) : showPilotRegistrationCtas && !ctaHref ? (
           <Button
             className={mobileCtaClassName}
             onClick={() => setOpen(false)}
           >
             {ctaLabel}
           </Button>
-        )}
+        ) : null}
       </div>
     </header>
   );

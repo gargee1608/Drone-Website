@@ -80,7 +80,7 @@ export function ServiceListingMegaMenu({
       <Link
         href="/services"
         className={cn(
-          "inline-flex items-center gap-1 transition-colors hover:text-foreground",
+          "site-header-marketing-link inline-flex items-center gap-1 text-[#191c1d] transition-colors hover:opacity-90",
           triggerClassName
         )}
       >

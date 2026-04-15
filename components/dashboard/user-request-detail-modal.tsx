@@ -145,6 +145,13 @@ export function UserRequestDetailModal({
                   {formatRequestSubmitted(payload.request.createdAt)}
                 </DetailField>
               </div>
+              {payload.request.requestSource === "marketplace_inquiry" ? (
+                <div className="sm:col-span-2">
+                  <DetailField label="Request category">
+                    Additional Inquire (Marketplace)
+                  </DetailField>
+                </div>
+              ) : null}
               <div className="sm:col-span-2">
                 <DetailField label="Reason or title">
                   {payload.request.reasonOrTitle.trim() || "—"}

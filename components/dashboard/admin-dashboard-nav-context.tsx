@@ -19,7 +19,7 @@ const AdminDashboardNavContext =
   createContext<AdminDashboardNavContextValue | null>(null);
 
 export function AdminDashboardNavProvider({ children }: { children: ReactNode }) {
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   const expandSidebar = useCallback(() => setSidebarExpanded(true), []);
 

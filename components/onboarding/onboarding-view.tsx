@@ -68,7 +68,7 @@ export function OnboardingView() {
   const isLast = stepIndex === totalSteps - 1;
 
   return (
-    <div className="telemetry-grid-dots selection:bg-blue-100 selection:text-[#007AFF] flex min-h-0 flex-1 flex-col bg-[#F8FAFC] text-[#0F172A]">
+    <div className="selection:bg-blue-100 selection:text-[#007AFF] dark:selection:bg-blue-950 dark:selection:text-blue-200 flex min-h-0 flex-1 flex-col bg-background text-foreground">
       <div className="shrink-0 pl-3 pt-2 sm:pl-4 sm:pt-4 lg:pl-5">
         <Link
           href="/"
@@ -82,22 +82,20 @@ export function OnboardingView() {
       <div className="mx-auto w-full max-w-7xl flex-1 px-4 pb-20 sm:px-6 lg:px-8">
         {/* Step timeline — point-to-point: Mission → Payload → Route → Summary */}
         <div className="mx-auto mb-10 w-full">
-          <div className="mb-6 grid grid-cols-[auto_1fr_auto] items-start gap-x-2 sm:gap-x-4">
-            <div className="min-w-0 self-start pt-1 text-left">
+          <div className="mb-6 flex items-start justify-between gap-4 sm:gap-6">
+            <div className="min-w-0 text-left">
+              <h1 className="font-heading text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
+                Onboarding Wizards
+              </h1>
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600">
                 Step {String(stepIndex + 1).padStart(2, "0")} of{" "}
                 {String(totalSteps).padStart(2, "0")}
               </span>
-            </div>
-            <div className="min-w-0 text-center">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                Onboarding Wizard
-              </h1>
               {current.description ? (
                 <p className="mt-1 text-sm text-slate-500">{current.description}</p>
               ) : null}
             </div>
-            <div className="min-w-0 self-start pt-1 text-right">
+            <div className="shrink-0 pt-1 text-right">
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
                 Progress
               </span>
@@ -432,10 +430,8 @@ export function OnboardingView() {
                   disabled={isFirst}
                   onClick={() => setStepIndex((n) => Math.max(0, n - 1))}
                   className={cn(
-                    "text-xs font-bold uppercase tracking-widest transition-colors",
-                    isFirst
-                      ? "cursor-not-allowed text-slate-300"
-                      : "text-slate-400 hover:text-slate-900"
+                    "text-xs font-bold uppercase tracking-widest text-black transition-colors",
+                    isFirst && "cursor-not-allowed"
                   )}
                 >
                   Previous step

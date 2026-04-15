@@ -12,28 +12,35 @@ const company = [
 export type SiteFooterProps = {
   /** Sits inside a dashboard column (no global left inset for fixed sidebar). */
   variant?: "default" | "embedded";
+  className?: string;
 };
 
 /** Slim footer — full width, no horizontal overflow; default variant uses admin sidebar inset (DashboardLayout). */
-export function SiteFooter({ variant = "default" }: SiteFooterProps) {
+export function SiteFooter({
+  variant = "default",
+  className,
+}: SiteFooterProps) {
   const embedded = variant === "embedded";
 
   return (
     <footer
       className={cn(
-        "relative z-20 w-full min-w-0 shrink-0 overflow-x-hidden border-t border-slate-200/70 bg-[#F8F9FA]",
+        "relative z-20 w-full min-w-0 shrink-0 overflow-x-hidden bg-background",
+        /* Embedded variant draws its own top rule; default uses the global separator above this footer. */
+        embedded && "border-t border-border",
         !embedded &&
-          "pl-[var(--admin-sidebar-footer-inset,0px)] transition-[padding-left] duration-200 ease-out"
+          "pl-[var(--admin-sidebar-footer-inset,0px)] transition-[padding-left] duration-200 ease-out",
+        className
       )}
       role="contentinfo"
     >
-      <div className="mx-auto box-border flex w-full min-w-0 max-w-[1200px] flex-col items-center justify-between gap-4 px-4 pt-2.5 sm:flex-row sm:gap-6 sm:px-6 sm:pt-3 md:items-center md:gap-6 md:pt-3.5 lg:gap-8 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
-        <p className="w-full min-w-0 shrink text-center font-heading text-sm font-bold uppercase leading-snug tracking-tight text-black sm:w-auto sm:text-left">
+      <div className="mx-auto box-border flex w-full min-w-0 max-w-[1200px] flex-col items-center justify-between gap-4 px-4 pt-0.5 sm:flex-row sm:gap-6 sm:px-6 sm:pt-1 md:items-center md:gap-6 md:pt-1.5 lg:gap-8 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
+        <p className="w-full min-w-0 shrink text-center font-heading text-sm font-bold uppercase leading-snug tracking-tight text-foreground sm:w-auto sm:text-left">
           AEROLAMINAR
         </p>
 
         <div className="flex w-full min-w-0 flex-1 flex-col items-center gap-1 sm:w-auto sm:gap-0.5 md:items-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#64748B]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Company
           </p>
           <nav aria-label="Company" className="w-full min-w-0">
@@ -42,7 +49,7 @@ export function SiteFooter({ variant = "default" }: SiteFooterProps) {
                 <li key={link.label} className="min-w-0">
                   <a
                     href={link.href}
-                    className="inline-block text-center text-[13px] font-normal leading-snug text-[#4A5568] transition-colors hover:text-[#0058bc] sm:text-left"
+                    className="inline-block text-center text-[13px] font-normal leading-snug text-muted-foreground transition-colors hover:text-[#0058bc] sm:text-left"
                   >
                     {link.label}
                   </a>
@@ -56,20 +63,20 @@ export function SiteFooter({ variant = "default" }: SiteFooterProps) {
           <div className="flex shrink-0 gap-2">
             <a
               href="https://twitter.com"
-              className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-[#4A5568] transition hover:border-slate-400 hover:text-[#1e293b]"
+              className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:border-border hover:text-foreground"
               aria-label="X"
             >
               <X className="size-3" strokeWidth={2} />
             </a>
             <a
               href="#"
-              className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-[#4A5568] transition hover:border-slate-400 hover:text-[#1e293b]"
+              className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:border-border hover:text-foreground"
               aria-label="Website"
             >
               <Globe className="size-3" strokeWidth={2} />
             </a>
           </div>
-          <p className="w-full min-w-0 max-w-[18rem] text-balance text-center text-[11px] leading-snug text-[#4A5568] sm:max-w-[min(100%,20rem)] sm:text-right sm:text-xs">
+          <p className="w-full min-w-0 max-w-[18rem] text-balance text-center text-[11px] leading-snug text-muted-foreground sm:max-w-[min(100%,20rem)] sm:text-right sm:text-xs">
             © {new Date().getFullYear()} AEROLAMINAR Logistics. All rights
             reserved.
           </p>

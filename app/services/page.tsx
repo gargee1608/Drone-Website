@@ -1,7 +1,7 @@
 import { ServicesView } from "@/components/services/services-view";
 
 export const metadata = {
-  title: "Our Services — AEROLAMINAR",
+  title: "Our Services — Drone Hire",
   description:
     "Explore specialized drone-powered solutions for logistics and aerial intelligence.",
 };

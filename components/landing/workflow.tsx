@@ -28,7 +28,7 @@ export function Workflow() {
   return (
     <section
       id="onboarding"
-      className="border-b border-border/40 bg-gradient-to-b from-slate-50/80 to-white py-14 sm:py-20"
+      className="border-b border-border/40 bg-white py-14 sm:py-20"
     >
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8 text-center sm:mb-10">

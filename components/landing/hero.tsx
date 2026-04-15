@@ -7,14 +7,10 @@ export function Hero() {
   return (
     <section
       id="marketplace"
-      className="relative overflow-hidden border-b border-border/40 bg-gradient-to-br from-slate-50 via-white to-blue-50/90 pt-12 pb-6 sm:pt-14 sm:pb-8 lg:pt-16 lg:pb-8"
+      className="relative overflow-hidden border-b border-border/40 bg-white pt-10 pb-6 sm:pt-12 sm:pb-8 lg:pt-14 lg:pb-8"
     >
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(37,99,235,0.12),transparent)]"
-        aria-hidden
-      />
       <div className="relative mx-auto grid max-w-5xl gap-8 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.32fr)] lg:items-center lg:gap-10 lg:px-8">
-        <div className="space-y-6">
+        <div className="-translate-y-2 space-y-6 sm:-translate-y-3 lg:-translate-y-4">
           <div className="space-y-2">
             <h1 className="font-heading text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-[2.25rem] lg:leading-[1.2]">
               India’s Drone Pilot Marketplace

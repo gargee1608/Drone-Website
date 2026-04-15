@@ -2,7 +2,7 @@ import { CreateMissionRequestForm } from "@/components/user-dashboard/create-mis
 import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-shell";
 
 export const metadata = {
-  title: "AEROLAMINAR | Create request",
+  title: "Drone Hire | Create request",
   description: "Create a new drone logistics mission request.",
 };
 

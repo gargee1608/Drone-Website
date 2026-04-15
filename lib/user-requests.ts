@@ -15,6 +15,8 @@ export type UserMissionRequest = {
   payloadWeightKg: string;
   requestType: string;
   requestPriority: string;
+  /** Set when the row came from Marketplace “Add to inquiry”. */
+  requestSource?: "marketplace_inquiry";
   adminStatus: UserMissionAdminStatus;
 };
 
@@ -79,6 +81,10 @@ export function loadUserRequests(): UserMissionRequest[] {
       payloadWeightKg: r.payloadWeightKg as string,
       requestType: r.requestType as string,
       requestPriority: r.requestPriority as string,
+      requestSource:
+        r.requestSource === "marketplace_inquiry"
+          ? "marketplace_inquiry"
+          : undefined,
       adminStatus: normalizeUserMissionAdminStatus(
         typeof r.adminStatus === "string" ? r.adminStatus : undefined
       ),
@@ -235,17 +241,27 @@ export function mapUserRequestToAdminRow(
     barColor = "#006195";
   }
 
-  const title =
+  const baseTitle =
     req.reasonOrTitle.trim() ||
     (req.requestType ? `${req.requestType} request` : "Mission request");
+
+  const title =
+    req.requestSource === "marketplace_inquiry"
+      ? `Additional Inquire · ${baseTitle}`
+      : baseTitle;
 
   const payloadLabel = req.requestType
     ? `${req.requestType} cargo`
     : req.reasonOrTitle.trim() || "General cargo";
 
-  const desc = `Payload: ${payloadLabel} (${req.payloadWeightKg || "0"}kg) | Target: ${
-    req.dropLocation.trim() || "—"
-  }`;
+  const desc =
+    req.requestSource === "marketplace_inquiry"
+      ? `Marketplace inquiry | ${req.reasonOrTitle.trim() || "—"} · ${
+          req.payloadWeightKg || "0"
+        } kg | Target: ${req.dropLocation.trim() || "TBC"}`
+      : `Payload: ${payloadLabel} (${req.payloadWeightKg || "0"}kg) | Target: ${
+          req.dropLocation.trim() || "—"
+        }`;
 
   return {
     key: req.id,

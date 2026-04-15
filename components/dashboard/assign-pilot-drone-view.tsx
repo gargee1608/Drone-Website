@@ -452,7 +452,7 @@ export function AssignPilotDroneView() {
       <section className="flex flex-col gap-4 border-b border-slate-200/80 pb-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-blue-900 sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
               Assign Pilot &amp; Drone
             </h1>
           </div>
@@ -460,7 +460,7 @@ export function AssignPilotDroneView() {
             <button
               type="button"
               disabled={noUserRequests}
-              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#0058bc] to-[#0070eb] px-8 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center rounded-full border-2 border-[#0058bc] bg-white px-8 py-2.5 text-sm font-bold text-[#0058bc] shadow-sm transition hover:bg-[#0058bc]/5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => {
                 if (!noUserRequests) setAssignedDialogOpen(true);
               }}
@@ -479,7 +479,7 @@ export function AssignPilotDroneView() {
         <div className="p-6 pl-7 sm:p-8">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-blue-900">
+              <h2 className="text-lg font-bold text-[#191c1d]">
                 Request Details
               </h2>
             </div>
@@ -526,7 +526,7 @@ export function AssignPilotDroneView() {
       </div>
 
       <div className="rounded-2xl border border-[#c1c6d7]/40 bg-white p-6 shadow-sm sm:p-8">
-        <h2 className="mb-4 text-lg font-bold text-blue-900">Mission</h2>
+        <h2 className="mb-4 text-lg font-bold text-[#191c1d]">Mission</h2>
         {latestCompleted ? (
           <ul className="space-y-3">
             <li
@@ -540,11 +540,11 @@ export function AssignPilotDroneView() {
                   {latestCompleted.customer}
                 </p>
                 <p className="mt-0.5 text-xs text-slate-600 sm:text-sm">
-                  <span className="font-medium text-blue-900">
+                  <span className="font-medium text-[#191c1d]">
                     {latestCompleted.pilotName}
                   </span>
                   <span className="text-slate-400"> &amp; </span>
-                  <span className="font-medium text-blue-900">
+                  <span className="font-medium text-[#191c1d]">
                     {latestCompleted.droneModel}
                   </span>
                 </p>
@@ -569,7 +569,7 @@ export function AssignPilotDroneView() {
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-stretch lg:gap-8">
-        <section className="flex h-full min-h-0 w-full min-w-0 flex-col rounded-2xl border-2 border-[#c1c6d7] bg-[#f3f4f5] p-6 shadow-sm sm:p-8">
+        <section className="flex h-full min-h-0 w-full min-w-0 flex-col rounded-2xl border-2 border-[#c1c6d7] bg-white p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex shrink-0 items-center gap-3">
             <span
               className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#0058bc]/10 text-[#0058bc]"
@@ -578,7 +578,7 @@ export function AssignPilotDroneView() {
               <User className="size-5" strokeWidth={2} />
             </span>
             <div className="min-w-0">
-              <h2 className="text-xl font-bold text-blue-900">Select Pilot</h2>
+              <h2 className="text-xl font-bold text-[#191c1d]">Select Pilot</h2>
               <p className="mt-0.5 text-[13px] font-medium text-slate-600">
                 Tap a pilot to select
               </p>
@@ -605,7 +605,7 @@ export function AssignPilotDroneView() {
                       "relative flex w-full shrink-0 flex-col rounded-2xl border-2 bg-white p-4 text-left shadow-sm transition hover:shadow-md sm:p-5",
                       selected
                         ? "border-[#0058bc] ring-4 ring-[#0058bc]/5"
-                        : "border-transparent hover:border-[#0058bc]/25"
+                        : "border-[#c1c6d7] hover:border-[#0058bc]/35"
                     )}
                   >
                     <div className="flex gap-3 sm:gap-4">
@@ -622,7 +622,7 @@ export function AssignPilotDroneView() {
                       </span>
                       <div className="min-w-0 flex-1 space-y-2">
                         <div className="flex items-start justify-between gap-2">
-                          <h3 className="text-left text-base font-bold leading-snug text-blue-900">
+                          <h3 className="text-left text-base font-bold leading-snug text-[#191c1d]">
                             {pilot.name}
                           </h3>
                           <span className="shrink-0 rounded-md bg-[#d8e2ff]/70 px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#0058bc]">
@@ -674,7 +674,7 @@ export function AssignPilotDroneView() {
           </div>
         </section>
 
-        <section className="flex h-full min-h-0 w-full min-w-0 flex-col rounded-2xl border-2 border-[#c1c6d7] bg-[#f3f4f5] p-6 shadow-sm sm:p-8">
+        <section className="flex h-full min-h-0 w-full min-w-0 flex-col rounded-2xl border-2 border-[#c1c6d7] bg-white p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex shrink-0 items-center gap-3">
             <span
               className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#0058bc]/10 text-[#0058bc]"
@@ -683,7 +683,7 @@ export function AssignPilotDroneView() {
               <Drone className="size-5" strokeWidth={2} />
             </span>
             <div className="min-w-0">
-              <h2 className="text-xl font-bold text-blue-900">Select Drone</h2>
+              <h2 className="text-xl font-bold text-[#191c1d]">Select Drone</h2>
               <p className="mt-0.5 text-[13px] font-medium text-slate-600">
                 Tap an aircraft to select
               </p>
@@ -710,7 +710,7 @@ export function AssignPilotDroneView() {
                       "relative flex w-full shrink-0 flex-col rounded-2xl border-2 bg-white p-4 text-left shadow-sm transition hover:shadow-md sm:p-5",
                       selected
                         ? "border-[#0058bc] ring-4 ring-[#0058bc]/5"
-                        : "border-transparent hover:border-[#0058bc]/25"
+                        : "border-[#c1c6d7] hover:border-[#0058bc]/35"
                     )}
                   >
                     <div className="flex gap-3 sm:gap-4">
@@ -737,7 +737,7 @@ export function AssignPilotDroneView() {
                       </span>
                       <div className="min-w-0 flex-1 space-y-2">
                         <div className="flex items-start justify-between gap-2">
-                          <h3 className="text-left text-base font-bold leading-snug text-blue-900">
+                          <h3 className="text-left text-base font-bold leading-snug text-[#191c1d]">
                             {drone.model}
                           </h3>
                           <span className="shrink-0 rounded-md bg-[#d8e2ff]/70 px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#0058bc]">
@@ -814,7 +814,7 @@ export function AssignPilotDroneView() {
                 </span>
                 <h2
                   id="assign-mission-dialog-title"
-                  className="text-lg font-bold tracking-tight text-blue-900 sm:text-xl"
+                  className="text-lg font-bold tracking-tight text-[#191c1d] sm:text-xl"
                 >
                   Assign Mission
                 </h2>
@@ -844,7 +844,7 @@ export function AssignPilotDroneView() {
                   <p className="text-xs font-medium text-slate-500 sm:text-sm">
                     Pilot Name
                   </p>
-                  <p className="mt-1.5 text-sm font-semibold text-blue-900 sm:text-base">
+                  <p className="mt-1.5 text-sm font-semibold text-[#191c1d] sm:text-base">
                     {selectedPilot.name}
                   </p>
                 </div>
@@ -852,7 +852,7 @@ export function AssignPilotDroneView() {
                   <p className="text-xs font-medium text-slate-500 sm:text-sm">
                     Drone
                   </p>
-                  <p className="mt-1.5 text-sm font-semibold text-blue-900 sm:text-base">
+                  <p className="mt-1.5 text-sm font-semibold text-[#191c1d] sm:text-base">
                     {selectedDrone.model}
                   </p>
                 </div>

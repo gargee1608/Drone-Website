@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -14,9 +13,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
-
-const bgImageUrl =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDkixcfsboUXaEfIaZmoujti7hfSba0B2AfWeflMndcGb2jOOgnw2QOBKTr9fWIegCpdkKJ1FZrznUkySsDuOLxMm7WnBNIc00w63GQI7-vEvhg2Fnu9MOvs4XHMTrpd_MdIYc_3efAvdWdCnePjx3yK7AwsMGTJR8SKL0DspUpBGp2dYRKZ-YY0FPxfIL2EJ3FozIFsKIATIPNiH8uSvJ2X01BdpxCZVaLKNUGF9mjNylsaLhinsE4lDjNsxa681VxlwN6AUcy_2L9";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -96,29 +92,7 @@ export function LoginView() {
   }, [mode, userAuthMethod, otpSent]);
 
   return (
-    <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-[#f8f9fa] text-[#191c1d]">
-      <div className="absolute inset-0 z-0 min-h-full w-full">
-        <Image
-          src={bgImageUrl}
-          alt=""
-          fill
-          className="object-cover opacity-20"
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#f8f9fa]/80 via-[#f3f4f5]/90 to-[#f8f9fa]" />
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, #0058bc 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }}
-        />
-      </div>
-
-      <div className="pointer-events-none fixed top-[20%] -left-[10%] -z-10 h-[40%] w-[40%] rounded-full bg-[#0058bc]/5 blur-[120px]" />
-      <div className="pointer-events-none fixed right-[-5%] bottom-[10%] -z-10 h-[30%] w-[30%] rounded-full bg-[#006195]/5 blur-[100px]" />
-
+    <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-background text-foreground">
       <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 py-8 pb-12 sm:px-6 sm:py-10 sm:pb-16">
         <div className="login-glass-card relative w-full max-w-[min(100%,340px)] overflow-hidden rounded-xl p-3.5 shadow-lg shadow-[#4d5b7f]/12 sm:max-w-[400px] sm:p-4">
           <div

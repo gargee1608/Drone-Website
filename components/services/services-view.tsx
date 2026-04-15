@@ -111,21 +111,20 @@ export function ServicesView() {
   }, [detailService]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#f8f9fa] text-[#191c1d] antialiased">
-      <main className="mx-auto w-full max-w-screen-2xl flex-1 px-6 pb-20 pt-4 sm:pt-5">
+    <div className="flex min-h-0 flex-1 flex-col bg-background text-foreground antialiased">
+      <div className="shrink-0 pl-3 pt-2 sm:pl-4 sm:pt-4 lg:pl-5">
         <Link
           href="/"
-          className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
+          className="mb-8 inline-flex w-fit items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
         >
-          <ArrowLeft className="size-4" aria-hidden />
+          <ArrowLeft className="size-4 shrink-0" aria-hidden />
           Back to home
         </Link>
-        <section className="mb-12 text-center">
-          <h1
-            className={cn(
-              "mb-8 text-4xl font-bold tracking-tight text-[#191c1d] sm:text-5xl"
-            )}
-          >
+      </div>
+
+      <main className="mx-auto w-full max-w-screen-2xl flex-1 px-4 pb-20 sm:px-6 lg:px-8">
+        <section className="mb-12 text-left">
+          <h1 className="mb-8 font-heading text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
             Our Services
           </h1>
         </section>

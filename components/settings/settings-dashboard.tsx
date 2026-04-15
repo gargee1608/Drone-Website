@@ -1,20 +1,32 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   CheckCircle2,
+  LayoutDashboard,
   Lock,
   LogOut,
-  Menu,
   Moon,
   RefreshCw,
-  Shield,
-  X,
+  UserRound,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+// import { useAppTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
+import {
+  parsePilotProfileSnapshot,
+  PILOT_PROFILE_STORAGE_KEY,
+  PILOT_PROFILE_UPDATED_EVENT,
+} from "@/lib/pilot-profile-snapshot";
+
+const FOOTER_SIDEBAR_INSET_VAR = "--admin-sidebar-footer-inset";
+
+const profileInputClassName =
+  "h-10 rounded-lg border-slate-200 bg-white text-sm text-[#191c1d]";
 
 function Switch({
   checked,
@@ -30,13 +42,13 @@ function Switch({
       aria-checked={checked}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative inline-flex h-7 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0058bc]/40 focus-visible:ring-offset-2",
-        checked ? "bg-[#0058bc]" : "bg-slate-300"
+        "relative inline-flex h-7 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0058bc]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        checked ? "bg-[#0058bc]" : "bg-slate-300 dark:bg-slate-600"
       )}
     >
       <span
         className={cn(
-          "pointer-events-none block size-6 rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform",
+          "pointer-events-none block size-6 rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform dark:bg-slate-100",
           checked ? "translate-x-[1.15rem]" : "translate-x-0.5"
         )}
       />
@@ -45,9 +57,13 @@ function Switch({
 }
 
 export function SettingsDashboard() {
-  const [mobileSettingsNavOpen, setMobileSettingsNavOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  /* Dark mode: global theme disabled — toggles only update local UI. Uncomment useAppTheme + ThemeProvider to re-enable. */
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  // const { theme, setTheme } = useAppTheme();
+  const [mobileSettingsNavOpen, setMobileSettingsNavOpen] = useState(false);
+  /** Desktop: when true the fixed sidebar is hidden (starts closed on load). */
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const pathname = usePathname();
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -56,6 +72,18 @@ export function SettingsDashboard() {
     null
   );
   const [passwordDialogSuccess, setPasswordDialogSuccess] = useState(false);
+  const [dashboardHref, setDashboardHref] = useState("/dashboard");
+
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [profileFullName, setProfileFullName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+  const [profileCity, setProfileCity] = useState("");
+  const [profileState, setProfileState] = useState("");
+  const [profileDialogError, setProfileDialogError] = useState<string | null>(
+    null
+  );
+  const [profileDialogSuccess, setProfileDialogSuccess] = useState(false);
 
   const closeChangePassword = useCallback(() => {
     setChangePasswordOpen(false);
@@ -64,6 +92,35 @@ export function SettingsDashboard() {
     setConfirmPassword("");
     setPasswordDialogError(null);
     setPasswordDialogSuccess(false);
+  }, []);
+
+  const openProfileDialog = useCallback(() => {
+    setProfileFullName("");
+    setProfileEmail("");
+    setProfilePhone("");
+    setProfileCity("");
+    setProfileState("");
+    setProfileDialogError(null);
+    setProfileDialogSuccess(false);
+    setProfileDialogOpen(true);
+  }, []);
+
+  const closeProfileDialog = useCallback(() => {
+    setProfileDialogOpen(false);
+    setProfileDialogError(null);
+    setProfileDialogSuccess(false);
+  }, []);
+
+  const toggleSettingsNav = useCallback(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(min-width: 1024px)").matches
+    ) {
+      setSidebarCollapsed((c) => !c);
+      setMobileSettingsNavOpen(false);
+    } else {
+      setMobileSettingsNavOpen((o) => !o);
+    }
   }, []);
 
   useEffect(() => {
@@ -83,39 +140,68 @@ export function SettingsDashboard() {
     return () => window.removeEventListener("keydown", onKey);
   }, [changePasswordOpen, closeChangePassword]);
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#f1f5f9] text-slate-900">
-      <div className="flex items-center gap-2 border-b border-[#e8eaef] bg-[#f8f9fa] px-4 py-2.5 lg:hidden">
-        <button
-          type="button"
-          className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-[#eceff1]"
-          onClick={() => {
-            if (
-              typeof window !== "undefined" &&
-              window.matchMedia("(min-width: 1024px)").matches
-            ) {
-              setSidebarCollapsed((c) => !c);
-              setMobileSettingsNavOpen(false);
-            } else {
-              setMobileSettingsNavOpen((o) => !o);
-            }
-          }}
-          aria-label={
-            mobileSettingsNavOpen
-              ? "Close settings menu"
-              : "Open settings menu"
-          }
-          aria-expanded={mobileSettingsNavOpen}
-        >
-          {mobileSettingsNavOpen ? (
-            <X className="size-5" strokeWidth={2.25} aria-hidden />
-          ) : (
-            <Menu className="size-5" strokeWidth={2.25} aria-hidden />
-          )}
-        </button>
-        <span className="text-sm font-bold text-slate-900">Settings</span>
-      </div>
+  useEffect(() => {
+    if (!profileDialogSuccess) return;
+    const t = window.setTimeout(() => {
+      closeProfileDialog();
+    }, 2200);
+    return () => window.clearTimeout(t);
+  }, [profileDialogSuccess, closeProfileDialog]);
 
+  useEffect(() => {
+    if (!profileDialogOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeProfileDialog();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [profileDialogOpen, closeProfileDialog]);
+
+  useEffect(() => {
+    const onSettingsNavToggle = () => {
+      toggleSettingsNav();
+    };
+    window.addEventListener("settings-nav-toggle", onSettingsNavToggle);
+    return () =>
+      window.removeEventListener("settings-nav-toggle", onSettingsNavToggle);
+  }, [toggleSettingsNav]);
+
+  useEffect(() => {
+    const from = new URLSearchParams(window.location.search).get("from");
+    setDashboardHref(from === "user" ? "/user-dashboard" : "/dashboard");
+  }, []);
+
+  useEffect(() => {
+    if (!pathname?.startsWith("/settings")) return;
+    setSidebarCollapsed(true);
+    setMobileSettingsNavOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const updateFooterInset = () => {
+      const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+      const isXl = window.matchMedia("(min-width: 1280px)").matches;
+      const inset =
+        isDesktop && !sidebarCollapsed
+          ? isXl
+            ? "16rem"
+            : "228px"
+          : "0px";
+      document.documentElement.style.setProperty(
+        FOOTER_SIDEBAR_INSET_VAR,
+        inset
+      );
+    };
+    updateFooterInset();
+    window.addEventListener("resize", updateFooterInset);
+    return () => {
+      window.removeEventListener("resize", updateFooterInset);
+      document.documentElement.style.removeProperty(FOOTER_SIDEBAR_INSET_VAR);
+    };
+  }, [sidebarCollapsed]);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col bg-white text-[#191c1d]">
       {mobileSettingsNavOpen ? (
         <div
           className="fixed inset-x-0 bottom-0 top-16 z-30 lg:hidden"
@@ -129,19 +215,37 @@ export function SettingsDashboard() {
             aria-label="Close menu"
             onClick={() => setMobileSettingsNavOpen(false)}
           />
-          <nav className="absolute left-0 right-0 top-0 z-40 max-h-[min(70vh,calc(100dvh-5rem))] overflow-y-auto border-b border-[#e8eaef] bg-[#f8f9fa] px-4 py-4 shadow-lg">
-            <div className="flex w-full items-center gap-3 rounded-xl bg-[#0058bc]/12 px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-[#0058bc] shadow-sm ring-1 ring-[#0058bc]/15">
-              <Shield className="size-[18px] shrink-0 text-[#0058bc]" />
-              Profile
-            </div>
-            <button
-              type="button"
-              className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-600 transition-colors hover:bg-[#eceff1]"
-              onClick={() => setMobileSettingsNavOpen(false)}
-            >
-              <LogOut className="size-[18px] text-slate-400" />
-              Logout
-            </button>
+          <nav className="absolute left-0 right-0 top-0 z-40 max-h-[min(70vh,calc(100dvh-5rem))] overflow-y-auto border-b border-slate-200 bg-white px-4 py-4 shadow-lg">
+            <ul className="flex flex-col gap-0.5" role="list">
+              <li>
+                <Link
+                  href={dashboardHref}
+                  className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100 active:bg-slate-100"
+                  onClick={() => setMobileSettingsNavOpen(false)}
+                >
+                  <LayoutDashboard
+                    className="size-[1.125rem] shrink-0 opacity-90"
+                    aria-hidden
+                    strokeWidth={2}
+                  />
+                  <span className="min-w-0 leading-snug">Dashboard</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/login"
+                  className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100 active:bg-slate-100"
+                  onClick={() => setMobileSettingsNavOpen(false)}
+                >
+                  <LogOut
+                    className="size-[1.125rem] shrink-0"
+                    aria-hidden
+                    strokeWidth={2}
+                  />
+                  <span>Log Out</span>
+                </Link>
+              </li>
+            </ul>
           </nav>
         </div>
       ) : null}
@@ -149,62 +253,72 @@ export function SettingsDashboard() {
       <div className="flex min-h-0 flex-1">
         <aside
           className={cn(
-            "hidden w-[228px] shrink-0 flex-col border-r border-slate-200/80 bg-white shadow-[inset_-1px_0_0_rgba(15,23,42,0.04)] lg:flex xl:w-64",
+            "hidden w-[228px] shrink-0 flex-col border-r border-slate-200 bg-white shadow-[inset_-1px_0_0_rgba(15,23,42,0.04)] lg:fixed lg:bottom-0 lg:left-0 lg:top-16 lg:z-40 lg:flex xl:w-64",
             sidebarCollapsed && "lg:hidden"
           )}
         >
-          <nav className="flex flex-1 flex-col gap-1 p-3 pt-5" aria-label="Settings sections">
-            <div className="flex w-full items-center gap-3 rounded-xl bg-[#0058bc]/12 px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-[#0058bc] shadow-sm ring-1 ring-[#0058bc]/15">
-              <Shield className="size-[18px] shrink-0 text-[#0058bc]" />
-              Profile
-            </div>
+          <nav
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-slate-200 px-2 py-3 lg:pt-4"
+            aria-label="Settings sections"
+          >
+            <ul className="flex flex-col gap-0.5" role="list">
+              <li>
+                <Link
+                  href={dashboardHref}
+                  className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100 active:bg-slate-100"
+                >
+                  <LayoutDashboard
+                    className="size-[1.125rem] shrink-0 opacity-90"
+                    aria-hidden
+                    strokeWidth={2}
+                  />
+                  <span className="min-w-0 leading-snug">Dashboard</span>
+                </Link>
+              </li>
+            </ul>
           </nav>
-          <div className="border-t border-slate-100 p-3">
-            <button
-              type="button"
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-600 transition-colors hover:bg-slate-50"
+          <div
+            className={cn(
+              "relative z-10 mt-auto shrink-0 border-t border-slate-200 bg-white px-2 pt-3",
+              "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
+            )}
+          >
+            <Link
+              href="/login"
+              className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100 active:bg-slate-100"
             >
-              <LogOut className="size-[18px] text-slate-400" />
-              Logout
-            </button>
+              <LogOut className="size-[1.125rem] shrink-0" aria-hidden strokeWidth={2} />
+              <span>Log Out</span>
+            </Link>
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 flex-col transition-[margin] duration-200 ease-out",
+            !sidebarCollapsed && "lg:ml-[228px] xl:ml-64"
+          )}
+        >
           <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
             <div className="mx-auto w-full max-w-6xl">
               <header className="mb-8 flex items-center gap-3 sm:mb-10">
-                <button
-                  type="button"
-                  className="hidden rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-200/60 lg:inline-flex"
-                  onClick={() => {
-                    setSidebarCollapsed((c) => !c);
-                    setMobileSettingsNavOpen(false);
-                  }}
-                  aria-label={
-                    sidebarCollapsed ? "Expand settings sidebar" : "Collapse settings sidebar"
-                  }
-                  aria-expanded={!sidebarCollapsed}
-                >
-                  <Menu className="size-5" strokeWidth={2.25} aria-hidden />
-                </button>
-                <h1 className="font-heading text-3xl font-bold tracking-tight text-slate-900 sm:text-[2rem] sm:leading-tight">
+                <h1 className="font-heading text-3xl font-bold tracking-tight text-[#191c1d] sm:text-[2rem] sm:leading-tight">
                   Settings
                 </h1>
               </header>
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {/* Change Password */}
-                <section className="flex flex-col rounded-xl border-2 border-sky-100 bg-white p-5 shadow-sm sm:p-6">
+                <section className="flex flex-col rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                   <div className="mb-4 flex items-start gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-sky-100">
                       <Lock className="size-5 text-[#0058bc]" aria-hidden />
                     </span>
                     <div className="min-w-0 text-left">
-                      <h2 className="text-base font-bold text-slate-900">
+                      <h2 className="text-base font-bold text-[#191c1d]">
                         Change Password
                       </h2>
-                      <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
+                      <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
                         Update your account password for better security
                       </p>
                     </div>
@@ -226,7 +340,7 @@ export function SettingsDashboard() {
                 </section>
 
                 {/* Reset Profile */}
-                <section className="flex flex-col rounded-xl border-2 border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
+                <section className="flex flex-col rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                   <div className="mb-4 flex items-start gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-100">
                       <RefreshCw
@@ -235,11 +349,11 @@ export function SettingsDashboard() {
                       />
                     </span>
                     <div className="min-w-0 text-left">
-                      <h2 className="text-base font-bold text-slate-900">
+                      <h2 className="text-base font-bold text-[#191c1d]">
                         Reset Profile Information
                       </h2>
-                      <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
-                        Restore your profile details to default settings
+                      <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+                        Open the editor to update your saved profile details
                       </p>
                     </div>
                   </div>
@@ -248,6 +362,7 @@ export function SettingsDashboard() {
                       type="button"
                       variant="outline"
                       className="h-10 w-full rounded-lg border-emerald-600 bg-white text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+                      onClick={openProfileDialog}
                     >
                       Reset Profile
                     </Button>
@@ -255,23 +370,23 @@ export function SettingsDashboard() {
                 </section>
 
                 {/* Appearance */}
-                <section className="flex flex-col rounded-xl border-2 border-violet-100 bg-white p-5 shadow-sm sm:p-6 md:col-span-2 xl:col-span-1">
+                <section className="flex flex-col rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm sm:p-6 md:col-span-2 xl:col-span-1">
                   <div className="mb-5 flex items-start gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-violet-100">
                       <Moon className="size-5 text-violet-600" aria-hidden />
                     </span>
                     <div className="min-w-0 text-left">
-                      <h2 className="text-base font-bold text-slate-900">
+                      <h2 className="text-base font-bold text-[#191c1d]">
                         Appearance
                       </h2>
-                      <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
-                        Switch between light and dark mode
+                      <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+                        Switch between light and dark mode for the whole app.
                       </p>
                     </div>
                   </div>
-                  <div className="mt-auto space-y-4 border-t border-slate-100 pt-4">
+                  <div className="mt-auto space-y-4 border-t border-slate-200 pt-4">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-slate-800">
+                      <span className="text-sm font-medium text-[#191c1d]">
                         Light Mode
                       </span>
                       <Switch
@@ -282,7 +397,7 @@ export function SettingsDashboard() {
                       />
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-slate-800">
+                      <span className="text-sm font-medium text-[#191c1d]">
                         Dark Mode
                       </span>
                       <Switch
@@ -294,6 +409,7 @@ export function SettingsDashboard() {
                     </div>
                   </div>
                 </section>
+
               </div>
             </div>
           </main>
@@ -315,10 +431,10 @@ export function SettingsDashboard() {
             onClick={closeChangePassword}
           />
           <div
-            className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border-2 border-[#c1c6d7] bg-white shadow-xl ring-1 ring-black/5"
+            className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border-2 border-slate-200 bg-white shadow-xl ring-1 ring-black/5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-b border-slate-200/80 bg-slate-50/50 px-6 py-5 sm:px-8">
+            <div className="border-b border-slate-200 bg-slate-50 px-6 py-5 sm:px-8">
               <div className="flex items-center gap-3">
                 <span
                   className="flex size-11 shrink-0 items-center justify-center rounded-full bg-sky-100"
@@ -329,13 +445,13 @@ export function SettingsDashboard() {
                 <div>
                   <h2
                     id="change-password-dialog-title"
-                    className="text-lg font-bold tracking-tight text-slate-900"
+                    className="text-lg font-bold tracking-tight text-[#191c1d]"
                   >
                     Change password
                   </h2>
                   <p
                     id="change-password-dialog-desc"
-                    className="mt-0.5 text-sm text-slate-500"
+                    className="mt-0.5 text-sm text-slate-600"
                   >
                     Enter your current password, then choose a new one.
                   </p>
@@ -388,7 +504,7 @@ export function SettingsDashboard() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="current-password"
-                    className="text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                    className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
                   >
                     Current password
                   </label>
@@ -402,13 +518,13 @@ export function SettingsDashboard() {
                       setCurrentPassword(e.target.value);
                       setPasswordDialogError(null);
                     }}
-                    className="h-10 rounded-lg border-slate-200 bg-slate-50 text-sm"
+                    className="h-10 rounded-lg border-slate-200 bg-white text-sm text-[#191c1d]"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label
                     htmlFor="new-password"
-                    className="text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                    className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
                   >
                     New password
                   </label>
@@ -422,13 +538,13 @@ export function SettingsDashboard() {
                       setNewPassword(e.target.value);
                       setPasswordDialogError(null);
                     }}
-                    className="h-10 rounded-lg border-slate-200 bg-slate-50 text-sm"
+                    className="h-10 rounded-lg border-slate-200 bg-white text-sm text-[#191c1d]"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label
                     htmlFor="confirm-password"
-                    className="text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                    className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
                   >
                     Confirm password
                   </label>
@@ -442,15 +558,15 @@ export function SettingsDashboard() {
                       setConfirmPassword(e.target.value);
                       setPasswordDialogError(null);
                     }}
-                    className="h-10 rounded-lg border-slate-200 bg-slate-50 text-sm"
+                    className="h-10 rounded-lg border-slate-200 bg-white text-sm text-[#191c1d]"
                   />
                 </div>
               </div>
-              <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-slate-200/80 pt-5">
+              <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-5">
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-lg border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+                  className="rounded-lg border-2 border-slate-300 bg-white text-[#191c1d] hover:bg-slate-50"
                   onClick={closeChangePassword}
                   disabled={passwordDialogSuccess}
                 >
@@ -458,11 +574,253 @@ export function SettingsDashboard() {
                 </Button>
                 <Button
                   type="submit"
-                  className="rounded-lg bg-[#0058bc] text-white hover:bg-[#004a9e]"
+                  variant="outline"
+                  className="rounded-lg border-2 border-[#0058bc] bg-white text-[#0058bc] shadow-none hover:bg-sky-50 hover:text-[#0058bc]"
                   disabled={passwordDialogSuccess}
                 >
                   Update password
                 </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {profileDialogOpen ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="profile-dialog-title"
+          aria-describedby="profile-dialog-desc"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-[#191c1d]/35 backdrop-blur-[2px]"
+            aria-label="Close dialog"
+            onClick={closeProfileDialog}
+          />
+          <div
+            className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border-2 border-slate-200 bg-white shadow-xl ring-1 ring-black/5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-6 py-5 sm:px-8">
+              <div className="flex items-center gap-3">
+                <span
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-100"
+                  aria-hidden
+                >
+                  <UserRound className="size-5 text-emerald-600" />
+                </span>
+                <div>
+                  <h2
+                    id="profile-dialog-title"
+                    className="text-lg font-bold tracking-tight text-[#191c1d]"
+                  >
+                    Profile details
+                  </h2>
+                  <p
+                    id="profile-dialog-desc"
+                    className="mt-0.5 text-sm text-slate-600"
+                  >
+                    Enter your details below. Other pilot data (skills, drones,
+                    license, hours, bio) is unchanged unless you edit it in pilot
+                    registration.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <form
+              className="flex min-h-0 flex-1 flex-col"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const name = profileFullName.trim();
+                if (!name) {
+                  setProfileDialogError("Please enter your full name.");
+                  setProfileDialogSuccess(false);
+                  return;
+                }
+                const existing = parsePilotProfileSnapshot(
+                  localStorage.getItem(PILOT_PROFILE_STORAGE_KEY)
+                );
+                const next = {
+                  fullName: name,
+                  email: profileEmail.trim() || undefined,
+                  phone: profilePhone.trim() || undefined,
+                  city: profileCity.trim(),
+                  state: profileState.trim(),
+                  aadhaar: existing?.aadhaar,
+                  flightHours: existing?.flightHours ?? 0,
+                  bio: existing?.bio ?? "",
+                  skills: existing?.skills ?? [],
+                  drones: existing?.drones ?? [],
+                  dgca: existing?.dgca ?? "",
+                };
+                const json = JSON.stringify(next);
+                try {
+                  localStorage.setItem(PILOT_PROFILE_STORAGE_KEY, json);
+                  sessionStorage.setItem(PILOT_PROFILE_STORAGE_KEY, json);
+                } catch {
+                  setProfileDialogError("Could not save. Try again.");
+                  setProfileDialogSuccess(false);
+                  return;
+                }
+                window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
+                setProfileDialogError(null);
+                setProfileDialogSuccess(true);
+              }}
+            >
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 sm:px-8 sm:py-6">
+                {profileDialogSuccess ? (
+                  <div
+                    className="mb-4 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <CheckCircle2
+                      className="size-5 shrink-0 text-emerald-600"
+                      aria-hidden
+                    />
+                    <p className="text-sm font-semibold">Profile saved</p>
+                  </div>
+                ) : null}
+                {profileDialogError ? (
+                  <p
+                    className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800"
+                    role="alert"
+                  >
+                    {profileDialogError}
+                  </p>
+                ) : null}
+                <div
+                  className={cn(
+                    "space-y-4",
+                    profileDialogSuccess && "pointer-events-none opacity-50"
+                  )}
+                >
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="profile-full-name"
+                      className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                    >
+                      Full name
+                    </label>
+                    <Input
+                      id="profile-full-name"
+                      name="profile-full-name"
+                      autoComplete="name"
+                      value={profileFullName}
+                      onChange={(e) => {
+                        setProfileFullName(e.target.value);
+                        setProfileDialogError(null);
+                      }}
+                      className={profileInputClassName}
+                    />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="profile-email"
+                        className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                      >
+                        Email
+                      </label>
+                      <Input
+                        id="profile-email"
+                        name="profile-email"
+                        type="email"
+                        autoComplete="email"
+                        value={profileEmail}
+                        onChange={(e) => {
+                          setProfileEmail(e.target.value);
+                          setProfileDialogError(null);
+                        }}
+                        className={profileInputClassName}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="profile-phone"
+                        className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                      >
+                        Phone
+                      </label>
+                      <Input
+                        id="profile-phone"
+                        name="profile-phone"
+                        type="tel"
+                        autoComplete="tel"
+                        value={profilePhone}
+                        onChange={(e) => {
+                          setProfilePhone(e.target.value);
+                          setProfileDialogError(null);
+                        }}
+                        className={profileInputClassName}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="profile-city"
+                        className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                      >
+                        City
+                      </label>
+                      <Input
+                        id="profile-city"
+                        name="profile-city"
+                        autoComplete="address-level2"
+                        value={profileCity}
+                        onChange={(e) => {
+                          setProfileCity(e.target.value);
+                          setProfileDialogError(null);
+                        }}
+                        className={profileInputClassName}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="profile-state"
+                        className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                      >
+                        State
+                      </label>
+                      <Input
+                        id="profile-state"
+                        name="profile-state"
+                        autoComplete="address-level1"
+                        value={profileState}
+                        onChange={(e) => {
+                          setProfileState(e.target.value);
+                          setProfileDialogError(null);
+                        }}
+                        className={profileInputClassName}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="shrink-0 border-t border-slate-200 bg-white px-6 py-4 sm:px-8">
+                <div className="flex flex-wrap items-center justify-end gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-lg border-2 border-slate-300 bg-white text-[#191c1d] hover:bg-slate-50"
+                    onClick={closeProfileDialog}
+                    disabled={profileDialogSuccess}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    className="rounded-lg border-2 border-emerald-600 bg-white text-emerald-700 shadow-none hover:bg-emerald-50 hover:text-emerald-800"
+                    disabled={profileDialogSuccess}
+                  >
+                    Save profile
+                  </Button>
+                </div>
               </div>
             </form>
           </div>

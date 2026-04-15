@@ -330,6 +330,10 @@ export function DashboardHomeContent() {
 
   return (
     <>
+      <h1 className="text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
+        Admin Dashboard
+      </h1>
+
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           title="Total Pilots"

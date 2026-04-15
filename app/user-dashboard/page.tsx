@@ -1,7 +1,7 @@
 import { UserDashboardView } from "@/components/user-dashboard/user-dashboard-view";
 
 export const metadata = {
-  title: "AEROLAMINAR | User Dashboard",
+  title: "Drone Hire | User Dashboard",
   description:
     "Mission inquiry, wallet, live map, active tracking, and mission logs.",
 };

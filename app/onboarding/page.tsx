@@ -1,7 +1,7 @@
 import { OnboardingView } from "@/components/onboarding/onboarding-view";
 
 export const metadata = {
-  title: "Onboarding — AEROLAMINAR",
+  title: "Onboarding — Drone Hire",
   description:
     "Flight logistics configuration and operational parameters for AEROLAMINAR missions.",
 };
