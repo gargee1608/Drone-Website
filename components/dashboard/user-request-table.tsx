@@ -6,6 +6,7 @@ import {
   Eye,
   Map,
   Package,
+  ShoppingBag,
   Stethoscope,
   X,
 } from "lucide-react";
@@ -23,6 +24,15 @@ export function parsePayloadAndTarget(desc: string): {
   payload: string;
   target: string;
 } {
+  const marketplace = desc.match(
+    /^Marketplace inquiry \| .+? · ([\d.]+)\s*kg \| Target:\s*(.+)$/i
+  );
+  if (marketplace) {
+    return {
+      payload: `${marketplace[1]} kg`,
+      target: marketplace[2].trim(),
+    };
+  }
   const m = desc.match(/Payload:\s*([^|]+?)\s*\|\s*Target:\s*(.+)/i);
   if (m) {
     return { payload: m[1].trim(), target: m[2].trim() };
@@ -48,6 +58,9 @@ export function tableRequestId(m: UserRequestAdminRow): string {
 
 export function requirementTypeIcon(title: string) {
   const t = title.toLowerCase();
+  if (t.includes("additional inquire")) {
+    return ShoppingBag;
+  }
   if (t.includes("medical")) {
     return Stethoscope;
   }

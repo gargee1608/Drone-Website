@@ -83,7 +83,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   }, [sidebarExpanded, sidebarOpen]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#f8f9fa] text-[#191c1d] antialiased">
+    <div className="flex min-h-0 flex-1 flex-col bg-white text-[#191c1d] antialiased">
       {sidebarOpen && (
         <button
           type="button"
@@ -96,7 +96,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       <aside
         id="command-center-nav"
         className={cn(
-          "fixed bottom-0 left-0 top-16 z-50 flex h-[calc(100vh-4rem)] min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-[#c1c6d7]/30 bg-[#f3f4f5]",
+          "fixed bottom-0 left-0 top-16 z-50 flex h-[calc(100dvh-4rem)] min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-border bg-card lg:border-r-0",
           "transform transition-[transform,width] duration-200 ease-out will-change-transform",
           sidebarExpanded ? "lg:w-64" : "lg:w-0 lg:max-w-0 lg:overflow-hidden lg:border-0 lg:p-0",
           "-translate-x-full lg:translate-x-0",
@@ -104,10 +104,10 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         )}
         aria-label="Primary navigation"
       >
-        <div className="flex shrink-0 items-center border-b border-[#c1c6d7]/25 px-2 py-3">
+        <div className="flex shrink-0 items-center px-2 py-3 lg:hidden">
           <button
             type="button"
-            className="flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-[#e7e8e9] hover:text-[#0058bc] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35"
+            className="flex size-10 shrink-0 items-center justify-center rounded-lg text-[#191c1d] transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35"
             onClick={onSidebarMenuButtonClick}
             aria-expanded={sidebarOpen}
             aria-controls="command-center-nav"
@@ -119,7 +119,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <nav
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 lg:pt-4"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-slate-200 px-2 py-3 lg:pt-4"
             aria-label="Primary"
           >
             <ul className="flex flex-col gap-0.5" role="list">
@@ -139,11 +139,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                         }
                       }}
                       className={cn(
-                        "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
+                        "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
                         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35",
                         isActive
-                          ? "bg-white text-[#0058bc] shadow-sm ring-1 ring-[#c1c6d7]/40"
-                          : "text-[#4d5b7f] hover:bg-[#e7e8e9]/80 active:bg-[#e7e8e9]"
+                          ? "bg-slate-100 text-[#191c1d] shadow-sm ring-1 ring-slate-200"
+                          : "text-[#191c1d] hover:bg-slate-100/90 active:bg-slate-100"
                       )}
                     >
                       <Icon
@@ -159,11 +159,13 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             </ul>
           </nav>
 
-          <div className="shrink-0 border-t border-[#c1c6d7]/25 bg-[#f3f4f5]/80 px-2 py-3">
-            <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-widest text-[#717786]">
-              Account
-            </p>
-            <nav aria-label="Account actions">
+          <div
+            className={cn(
+              "relative z-10 mt-auto shrink-0 border-t border-slate-200 bg-white px-2 pt-3",
+              "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
+            )}
+          >
+            <nav aria-label="Sign out">
               <ul className="flex flex-col gap-0.5" role="list">
                 {navFooter.map(({ href, label, icon: Icon }) => (
                   <li key={href}>
@@ -178,8 +180,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                         }
                       }}
                       className={cn(
-                        "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-[#4d5b7f] transition-colors",
-                        "hover:bg-[#e7e8e9]/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35 active:bg-[#e7e8e9]"
+                        "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors",
+                        "hover:bg-slate-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35 active:bg-slate-100"
                       )}
                     >
                       <Icon
@@ -197,16 +199,24 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
+      {/* Full-height vertical rule at sidebar edge (continues over the global footer in the viewport). */}
+      {sidebarExpanded ? (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed left-64 top-16 z-[35] hidden h-[calc(100dvh-4rem)] w-px bg-slate-200 lg:block"
+        />
+      ) : null}
+
       <main
         className={cn(
           "flex min-h-0 flex-1 flex-col transition-[margin] duration-200 ease-out",
           sidebarExpanded ? "lg:ml-64" : "lg:ml-0"
         )}
       >
-        <div className="flex items-center border-b border-[#c1c6d7]/25 bg-[#f8f9fa] px-4 py-2.5 lg:hidden">
+        <div className="flex items-center border-b border-slate-200 bg-white px-4 py-2.5 lg:hidden">
           <button
             type="button"
-            className="rounded-lg p-2 text-[#4d5b7f] transition-colors hover:bg-[#e7e8e9] hover:text-[#0058bc]"
+            className="rounded-lg p-2 text-[#191c1d] transition-colors hover:bg-slate-100"
             onClick={toggleSidebar}
             aria-expanded={sidebarOpen}
             aria-controls="command-center-nav"
@@ -216,7 +226,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col space-y-10 bg-[#f8f9fa] p-4 pb-24 pt-4 sm:p-8 sm:pb-24">
+        <div className="flex flex-1 flex-col space-y-10 bg-white p-4 pb-2 pt-4 sm:p-8 sm:pb-3">
           {children}
         </div>
       </main>

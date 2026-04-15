@@ -44,7 +44,7 @@ export function IndustryUseCases() {
   return (
     <section
       id="industry-use-cases"
-      className="border-b border-border/40 bg-slate-50 py-14 sm:py-20"
+      className="border-b border-border/40 bg-background py-14 sm:py-20"
     >
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <h2 className="mb-8 text-center font-heading text-2xl font-bold tracking-tight text-foreground sm:mb-10 sm:text-3xl">
@@ -54,7 +54,7 @@ export function IndustryUseCases() {
           {cases.map(({ icon: Icon, title, description }) => (
             <div
               key={title}
-              className="rounded-lg border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-900/5 transition hover:-translate-y-0.5 hover:shadow-md sm:p-5"
+              className="rounded-lg border border-border bg-card p-4 shadow-sm ring-1 ring-slate-900/5 transition hover:-translate-y-0.5 hover:shadow-md dark:ring-white/10 sm:p-5"
             >
               <div className="mb-3 text-blue-600">
                 <Icon className="size-6" strokeWidth={1.5} aria-hidden />

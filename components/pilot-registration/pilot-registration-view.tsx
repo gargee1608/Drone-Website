@@ -291,7 +291,7 @@ export function PilotRegistrationView() {
   }, [resetEntireRegistrationForm]);
 
   return (
-    <div className="relative min-h-dvh bg-white text-slate-900">
+    <div className="relative min-h-dvh bg-background text-foreground">
       <Link
         href="/"
         className="fixed left-4 top-4 z-10 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 sm:left-6 sm:top-6"

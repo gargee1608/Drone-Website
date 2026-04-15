@@ -134,10 +134,6 @@ export function UserRequestsView() {
     null
   );
   const [userRequestRefresh, setUserRequestRefresh] = useState(0);
-  /** Empty on first paint so SSR + hydration match; filled from `localStorage` after mount. */
-  const [storedAdminRows, setStoredAdminRows] = useState<UserRequestAdminRow[]>(
-    []
-  );
   /** Same as above — never read `localStorage` during render (avoids hydration mismatch). */
   const [storedRequestsSnapshot, setStoredRequestsSnapshot] = useState<
     UserMissionRequest[]
@@ -146,7 +142,6 @@ export function UserRequestsView() {
   useEffect(() => {
     const data = loadUserRequests();
     setStoredRequestsSnapshot(data);
-    setStoredAdminRows(data.map(mapUserRequestToAdminRow));
   }, [userRequestRefresh]);
 
   useEffect(() => {
@@ -187,18 +182,28 @@ export function UserRequestsView() {
       window.removeEventListener(USER_REQUESTS_UPDATED_EVENT, onUpdate);
   }, []);
 
-  const tableRows = useMemo(
-    () => [
-      ...storedAdminRows,
-      ...REQUESTS.map((r) =>
-        staticRequestToAdminRow(
-          r,
-          demoAdminByKey[`demo-${r.title}`] ?? "pending"
-        )
-      ),
-    ],
-    [storedAdminRows, demoAdminByKey]
-  );
+  const { primaryTableRows, additionalInquireTableRows } = useMemo(() => {
+    const primaryStored: UserRequestAdminRow[] = [];
+    const additionalStored: UserRequestAdminRow[] = [];
+    for (const req of storedRequestsSnapshot) {
+      const row = mapUserRequestToAdminRow(req);
+      if (req.requestSource === "marketplace_inquiry") {
+        additionalStored.push(row);
+      } else {
+        primaryStored.push(row);
+      }
+    }
+    const demoRows = REQUESTS.map((r) =>
+      staticRequestToAdminRow(
+        r,
+        demoAdminByKey[`demo-${r.title}`] ?? "pending"
+      )
+    );
+    return {
+      primaryTableRows: [...primaryStored, ...demoRows],
+      additionalInquireTableRows: additionalStored,
+    };
+  }, [storedRequestsSnapshot, demoAdminByKey]);
 
   const stats = useMemo(() => {
     let demoPending = 0;
@@ -266,7 +271,7 @@ export function UserRequestsView() {
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      <h1 className="text-lg font-bold tracking-tight text-[#191c1d] sm:text-xl">
+      <h1 className="text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
         User Request
       </h1>
 
@@ -304,15 +309,30 @@ export function UserRequestsView() {
         />
       </section>
 
-      <div className="mt-6 sm:mt-8">
-        <UserRequestTable
-          rows={tableRows}
-          showTitle={false}
-          showTotalSubtitle
-          onViewDetails={openRequestDetails}
-          onAcceptRow={handleAcceptRow}
-          onRejectRow={handleRejectRow}
-        />
+      <div className="mt-6 space-y-8 sm:mt-8 sm:space-y-10">
+        <section aria-label="Mission and user requests">
+          <UserRequestTable
+            title="User requests"
+            rows={primaryTableRows}
+            showTitle
+            showTotalSubtitle
+            onViewDetails={openRequestDetails}
+            onAcceptRow={handleAcceptRow}
+            onRejectRow={handleRejectRow}
+          />
+        </section>
+
+        <section aria-label="Marketplace additional inquires">
+          <UserRequestTable
+            title="Additional Inquires"
+            rows={additionalInquireTableRows}
+            showTitle
+            showTotalSubtitle
+            onViewDetails={openRequestDetails}
+            onAcceptRow={handleAcceptRow}
+            onRejectRow={handleRejectRow}
+          />
+        </section>
       </div>
 
       <UserRequestDetailModal

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { PilotRegistrationView } from "@/components/pilot-registration/pilot-registration-view";
 
 export const metadata: Metadata = {
-  title: "Pilot Registration — AEROLAMINAR",
+  title: "Pilot Registration — Drone Hire",
   description:
     "Join India's drone pilot network — register as a verified pilot.",
 };

@@ -52,7 +52,7 @@ export function PilotProfileView() {
 
   if (!ready || !data) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-white text-xs text-slate-600">
+      <div className="flex min-h-dvh items-center justify-center bg-background text-xs text-muted-foreground">
         Loading…
       </div>
     );
@@ -64,7 +64,7 @@ export function PilotProfileView() {
   const showDgcaBadge = Boolean(data.dgca.trim());
 
   return (
-    <div className="relative min-h-dvh bg-white text-slate-900">
+    <div className="relative min-h-dvh bg-background text-foreground">
       <Link
         href="/"
         className="fixed left-4 top-4 z-10 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-900 sm:left-6 sm:top-6"

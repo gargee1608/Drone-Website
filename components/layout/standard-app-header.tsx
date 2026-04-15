@@ -82,12 +82,12 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
               />
             </span>
             <span className="truncate text-lg font-bold uppercase leading-none tracking-tight text-black sm:text-xl">
-              AEROLAMINAR
+              Drone Hire
             </span>
           </Link>
           <nav
             className={cn(
-              "hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex",
+              "site-header-primary-nav hidden items-center gap-6 text-sm font-medium text-[#191c1d] md:flex",
               "lg:gap-8"
             )}
             aria-label="Primary"
@@ -97,9 +97,9 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
                 <ServiceListingMegaMenu
                   key={item.label}
                   triggerClassName={cn(
-                    "text-slate-600 hover:text-[#191c1d]",
+                    "site-header-marketing-link text-[#191c1d] hover:opacity-90",
                     activeHref === "/services" &&
-                      "border-b-2 border-[#0058bc] pb-0.5 font-semibold text-[#0058bc]"
+                      "border-b-2 border-[#0058bc] pb-0.5 font-semibold text-[#191c1d]"
                   )}
                 />
               ) : (
@@ -107,9 +107,10 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
                   key={item.label}
                   href={item.href}
                   className={cn(
+                    "site-header-marketing-link",
                     item.href === activeHref
-                      ? "border-b-2 border-[#0058bc] pb-0.5 font-semibold text-[#0058bc]"
-                      : "transition-colors hover:text-[#191c1d]"
+                      ? "border-b-2 border-[#0058bc] pb-0.5 font-semibold text-[#191c1d]"
+                      : "text-[#191c1d] transition-colors hover:opacity-90"
                   )}
                 >
                   {item.label}
@@ -183,9 +184,9 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
                     <div className="py-2">
                       <ServiceListingMegaMenu
                         triggerClassName={cn(
-                          "text-slate-700",
+                          "site-header-marketing-link text-[#191c1d]",
                           activeHref === "/services" &&
-                            "font-semibold text-[#0058bc]"
+                            "font-semibold text-[#191c1d]"
                         )}
                       />
                     </div>
@@ -193,10 +194,8 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
                     <Link
                       href={item.href}
                       className={cn(
-                        "block rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-[#eceff1]",
-                        item.href === activeHref
-                          ? "text-[#0058bc]"
-                          : "text-slate-800"
+                        "site-header-marketing-link block rounded-lg px-3 py-2.5 text-sm font-semibold text-[#191c1d] hover:bg-[#eceff1]",
+                        item.href === activeHref && "ring-1 ring-[#0058bc]/25"
                       )}
                       onClick={() => setMobileNavOpen(false)}
                     >

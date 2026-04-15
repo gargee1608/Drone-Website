@@ -50,6 +50,7 @@
 }
 
 :root {
+  color-scheme: light;
   /* Brand: blue #2563EB, ink #0F172A, surfaces #F1F5F9 */
   --background: oklch(0.995 0.003 247);
   --foreground: oklch(0.208 0.042 265.8);
@@ -86,6 +87,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -131,6 +133,13 @@
   }
 }
 
+@layer components {
+  /* Site header marketing links — follow theme foreground (light/dark) */
+  .site-header-marketing-link {
+    color: var(--foreground) !important;
+  }
+}
+
 @layer utilities {
   .telemetry-grid {
     background-image: radial-gradient(
@@ -143,6 +152,13 @@
   .telemetry-grid-dots {
     background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
     background-size: 32px 32px;
+  }
+
+  /* Marketplace mock — frosted product cards */
+  .glass-card-marketplace {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
   }
 
   .onboarding-slider {
