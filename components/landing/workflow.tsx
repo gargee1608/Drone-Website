@@ -1,64 +1,77 @@
-import { Package, Plane, Rocket } from "lucide-react";
+import { Handshake, Plane, UserPlus } from "lucide-react";
 
 const steps = [
   {
     n: "01",
-    title: "Request",
-    description:
-      "Create your pilot profile & add your drones.",
-    icon: Package,
+    title: "Register",
+    description: "Create your pilot profile & add your drones.",
+    icon: UserPlus,
   },
   {
     n: "02",
     title: "Get Matched",
-    description:
-      "Industries find and hire you for projects.",
-    icon: Rocket,
+    description: "Industries find and hire you for projects.",
+    icon: Handshake,
   },
   {
     n: "03",
     title: "Fly & Earn",
-    description:
-      "Complete missions and get paid securely.",
+    description: "Complete missions and get paid securely.",
     icon: Plane,
   },
 ] as const;
+
+const iconRingClass =
+  "border-blue-200/80 shadow-[0_1px_2px_rgba(37,99,235,0.08)]";
+const iconColorClass = "text-blue-600";
 
 export function Workflow() {
   return (
     <section
       id="onboarding"
-      className="border-b border-border/40 bg-white py-14 sm:py-20"
+      className="overflow-hidden bg-white px-4 py-24 sm:px-8 sm:py-32"
     >
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 text-center sm:mb-10">
-          <h2 className="font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            How It Works?
-          </h2>
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-16 flex flex-col items-center text-center md:mb-24">
+          <div className="max-w-2xl">
+            <h2 className="font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-[0.4em] text-[#009aa1] uppercase">
+              The Workflow
+            </h2>
+            <p className="mt-4 font-[family-name:var(--font-landing-headline)] text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+              How It Works?
+            </p>
+          </div>
         </div>
 
-        <div className="relative mx-auto">
-          <ol className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-5 lg:gap-6">
-            {steps.map((step) => (
-              <li
-                key={step.n}
-                className="flex flex-col items-center text-center"
+        <div className="relative grid grid-cols-1 gap-14 md:grid-cols-3 md:gap-6">
+          <div
+            className="pointer-events-none absolute top-16 left-[8%] right-[8%] hidden h-px bg-slate-200 md:block"
+            aria-hidden
+          />
+          {steps.map((step) => (
+            <div
+              key={step.n}
+              className="relative z-10 flex flex-col items-center text-center"
+            >
+              <div
+                className={`relative mb-10 flex size-32 items-center justify-center rounded-full border-2 bg-white ${iconRingClass}`}
               >
-                <div className="relative z-10 flex size-14 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-white shadow-md shadow-blue-500/5 ring-1 ring-border/40 transition hover:border-blue-200 hover:shadow-lg hover:shadow-blue-500/10 sm:size-[3.75rem]">
-                  <step.icon className="size-6 text-blue-600" aria-hidden />
-                </div>
-                <span className="mt-2.5 inline-flex min-w-[2rem] items-center justify-center rounded-full border border-border bg-white px-2 py-0.5 text-[11px] font-bold text-foreground shadow-sm sm:text-xs">
+                <step.icon
+                  className={`size-14 ${iconColorClass}`}
+                  strokeWidth={1.5}
+                />
+                <div className="absolute -top-1 -right-1 flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white font-[family-name:var(--font-landing-headline)] text-xs font-bold text-slate-700 shadow-sm">
                   {step.n}
-                </span>
-                <h3 className="mt-3 font-heading text-base font-semibold leading-snug text-foreground">
-                  {step.title}
-                </h3>
-                <p className="mt-1.5 max-w-[16rem] text-[13px] leading-relaxed text-muted-foreground sm:max-w-xs sm:text-sm">
-                  {step.description}
-                </p>
-              </li>
-            ))}
-          </ol>
+                </div>
+              </div>
+              <h4 className="mb-3 font-[family-name:var(--font-landing-headline)] text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
+                {step.title}
+              </h4>
+              <p className="max-w-[260px] text-base leading-relaxed text-slate-500 sm:text-lg">
+                {step.description}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

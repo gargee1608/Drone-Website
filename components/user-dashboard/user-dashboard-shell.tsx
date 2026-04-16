@@ -15,7 +15,6 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
-import { SiteFooter } from "@/components/nav/site-footer";
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
 import { cn } from "@/lib/utils";
 
@@ -106,7 +105,7 @@ export function UserDashboardShell({
   const { sidebarExpanded, setSidebarExpanded } = useUserDashboardNav();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-white text-[#191c1d]">
+    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-white pt-22 text-[#191c1d] sm:pt-24">
       <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-2 lg:hidden">
         <button
           type="button"
@@ -159,7 +158,7 @@ export function UserDashboardShell({
         <aside
           id="user-dashboard-sidebar"
           className={cn(
-            "hidden flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[inset_-1px_0_0_rgba(15,23,42,0.02)] transition-[width] duration-300 ease-out lg:border-r-0 lg:shadow-none lg:fixed lg:bottom-0 lg:left-0 lg:top-16 lg:z-40 lg:flex",
+            "hidden flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[inset_-1px_0_0_rgba(15,23,42,0.02)] transition-[width] duration-300 ease-out lg:border-r-0 lg:shadow-none lg:fixed lg:bottom-0 lg:left-0 lg:top-22 lg:z-40 lg:flex",
             sidebarExpanded ? "lg:w-60" : "lg:w-0 lg:border-0 lg:p-0"
           )}
           aria-hidden={!sidebarExpanded}
@@ -224,10 +223,6 @@ export function UserDashboardShell({
               )}
             </div>
           </main>
-          <SiteFooter
-            variant="embedded"
-            className="border-slate-200 bg-white"
-          />
         </div>
       </div>
 

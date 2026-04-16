@@ -9,6 +9,7 @@ import {
   LogOut,
   Moon,
   RefreshCw,
+  Settings,
   UserRound,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -61,8 +62,8 @@ export function SettingsDashboard() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   // const { theme, setTheme } = useAppTheme();
   const [mobileSettingsNavOpen, setMobileSettingsNavOpen] = useState(false);
-  /** Desktop: when true the fixed sidebar is hidden (starts closed on load). */
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  /** Desktop: when true the fixed sidebar is hidden. Default open so the sidebar is visible. */
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const pathname = usePathname();
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -73,6 +74,7 @@ export function SettingsDashboard() {
   );
   const [passwordDialogSuccess, setPasswordDialogSuccess] = useState(false);
   const [dashboardHref, setDashboardHref] = useState("/dashboard");
+  const [settingsNavHref, setSettingsNavHref] = useState("/settings");
 
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileFullName, setProfileFullName] = useState("");
@@ -169,11 +171,17 @@ export function SettingsDashboard() {
   useEffect(() => {
     const from = new URLSearchParams(window.location.search).get("from");
     setDashboardHref(from === "user" ? "/user-dashboard" : "/dashboard");
+    setSettingsNavHref(
+      from === "user"
+        ? "/settings?from=user"
+        : from === "admin"
+          ? "/settings?from=admin"
+          : "/settings"
+    );
   }, []);
 
   useEffect(() => {
     if (!pathname?.startsWith("/settings")) return;
-    setSidebarCollapsed(true);
     setMobileSettingsNavOpen(false);
   }, [pathname]);
 
@@ -201,10 +209,10 @@ export function SettingsDashboard() {
   }, [sidebarCollapsed]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-white text-[#191c1d]">
+    <div className="flex min-h-0 flex-1 flex-col bg-white pt-22 text-[#191c1d] antialiased sm:pt-24">
       {mobileSettingsNavOpen ? (
         <div
-          className="fixed inset-x-0 bottom-0 top-16 z-30 lg:hidden"
+          className="fixed inset-x-0 bottom-0 top-22 z-30 lg:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Settings sections"
@@ -215,12 +223,15 @@ export function SettingsDashboard() {
             aria-label="Close menu"
             onClick={() => setMobileSettingsNavOpen(false)}
           />
-          <nav className="absolute left-0 right-0 top-0 z-40 max-h-[min(70vh,calc(100dvh-5rem))] overflow-y-auto border-b border-slate-200 bg-white px-4 py-4 shadow-lg">
+          <nav className="absolute left-0 right-0 top-0 z-40 max-h-[min(70vh,calc(100dvh-5.5rem))] overflow-y-auto border-b border-slate-200 bg-slate-50/95 px-4 py-4 shadow-lg">
+            <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              Navigation
+            </p>
             <ul className="flex flex-col gap-0.5" role="list">
               <li>
                 <Link
                   href={dashboardHref}
-                  className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100 active:bg-slate-100"
+                  className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100/90 active:bg-slate-100"
                   onClick={() => setMobileSettingsNavOpen(false)}
                 >
                   <LayoutDashboard
@@ -233,8 +244,28 @@ export function SettingsDashboard() {
               </li>
               <li>
                 <Link
+                  href={settingsNavHref}
+                  className={cn(
+                    "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                    pathname?.startsWith("/settings")
+                      ? "bg-white font-medium text-[#191c1d] shadow-sm ring-1 ring-slate-200/90"
+                      : "font-normal text-[#191c1d] hover:bg-slate-100/90 active:bg-slate-100"
+                  )}
+                  onClick={() => setMobileSettingsNavOpen(false)}
+                  aria-current="page"
+                >
+                  <Settings
+                    className="size-[1.125rem] shrink-0 opacity-90"
+                    aria-hidden
+                    strokeWidth={2}
+                  />
+                  <span className="min-w-0 leading-snug">Settings</span>
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/login"
-                  className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100 active:bg-slate-100"
+                  className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100/90 active:bg-slate-100"
                   onClick={() => setMobileSettingsNavOpen(false)}
                 >
                   <LogOut
@@ -253,43 +284,83 @@ export function SettingsDashboard() {
       <div className="flex min-h-0 flex-1">
         <aside
           className={cn(
-            "hidden w-[228px] shrink-0 flex-col border-r border-slate-200 bg-white shadow-[inset_-1px_0_0_rgba(15,23,42,0.04)] lg:fixed lg:bottom-0 lg:left-0 lg:top-16 lg:z-40 lg:flex xl:w-64",
+            "hidden min-h-0 w-[228px] shrink-0 flex-col border-r border-slate-200 bg-slate-50/95 shadow-sm lg:fixed lg:bottom-0 lg:left-0 lg:top-22 lg:z-50 lg:flex xl:w-64",
             sidebarCollapsed && "lg:hidden"
           )}
+          aria-label="Settings navigation"
         >
-          <nav
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-slate-200 px-2 py-3 lg:pt-4"
-            aria-label="Settings sections"
-          >
-            <ul className="flex flex-col gap-0.5" role="list">
-              <li>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <nav
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-slate-200 px-2 py-3 lg:border-t-0 lg:pt-4"
+              aria-label="Settings sections"
+            >
+              <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Navigation
+              </p>
+              <ul className="flex flex-col gap-0.5" role="list">
+                <li>
+                  <Link
+                    href={dashboardHref}
+                    className={cn(
+                      "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
+                      "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#009aa1]/35",
+                      "text-[#191c1d] hover:bg-slate-100/90 active:bg-slate-100"
+                    )}
+                  >
+                    <LayoutDashboard
+                      className="size-[1.125rem] shrink-0 opacity-90"
+                      aria-hidden
+                      strokeWidth={2}
+                    />
+                    <span className="min-w-0 leading-snug">Dashboard</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href={settingsNavHref}
+                    className={cn(
+                      "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                      "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#009aa1]/35",
+                      pathname?.startsWith("/settings")
+                        ? "bg-white font-medium text-[#191c1d] shadow-sm ring-1 ring-slate-200/90"
+                        : "font-normal text-[#191c1d] hover:bg-slate-100/90 active:bg-slate-100"
+                    )}
+                    aria-current="page"
+                  >
+                    <Settings
+                      className="size-[1.125rem] shrink-0 opacity-90"
+                      aria-hidden
+                      strokeWidth={2}
+                    />
+                    <span className="min-w-0 leading-snug">Settings</span>
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+
+            <div
+              className={cn(
+                "relative z-10 mt-auto shrink-0 border-t border-slate-200 bg-white/90 px-2 pt-3",
+                "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
+              )}
+            >
+              <nav aria-label="Account">
                 <Link
-                  href={dashboardHref}
-                  className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100 active:bg-slate-100"
+                  href="/login"
+                  className={cn(
+                    "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors",
+                    "hover:bg-slate-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#009aa1]/35 active:bg-slate-100"
+                  )}
                 >
-                  <LayoutDashboard
-                    className="size-[1.125rem] shrink-0 opacity-90"
+                  <LogOut
+                    className="size-[1.125rem] shrink-0"
                     aria-hidden
                     strokeWidth={2}
                   />
-                  <span className="min-w-0 leading-snug">Dashboard</span>
+                  <span>Log Out</span>
                 </Link>
-              </li>
-            </ul>
-          </nav>
-          <div
-            className={cn(
-              "relative z-10 mt-auto shrink-0 border-t border-slate-200 bg-white px-2 pt-3",
-              "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
-            )}
-          >
-            <Link
-              href="/login"
-              className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100 active:bg-slate-100"
-            >
-              <LogOut className="size-[1.125rem] shrink-0" aria-hidden strokeWidth={2} />
-              <span>Log Out</span>
-            </Link>
+              </nav>
+            </div>
           </div>
         </aside>
 

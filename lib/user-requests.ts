@@ -118,6 +118,44 @@ export function saveUserRequests(requests: UserMissionRequest[]): void {
   localStorage.setItem(USER_REQUESTS_STORAGE_KEY, JSON.stringify(requests));
 }
 
+/**
+ * Keeps one marketplace inquiry per product title (`reasonOrTitle`), preferring the newest
+ * `createdAt`. Other rows are dropped (same array order preserved for survivors).
+ */
+export function dedupeMarketplaceInquiries(
+  requests: UserMissionRequest[]
+): UserMissionRequest[] {
+  const bestByTitle = new Map<string, UserMissionRequest>();
+  for (const r of requests) {
+    if (r.requestSource !== "marketplace_inquiry") continue;
+    const key = r.reasonOrTitle.trim().toLowerCase();
+    const cur = bestByTitle.get(key);
+    if (
+      !cur ||
+      new Date(r.createdAt).getTime() > new Date(cur.createdAt).getTime()
+    ) {
+      bestByTitle.set(key, r);
+    }
+  }
+  const keptIds = new Set(
+    [...bestByTitle.values()].map((r) => r.id)
+  );
+  return requests.filter((r) => {
+    if (r.requestSource !== "marketplace_inquiry") return true;
+    return keptIds.has(r.id);
+  });
+}
+
+/** Persists deduped marketplace rows if anything was removed. */
+export function pruneDuplicateMarketplaceInquiries(): void {
+  if (typeof window === "undefined") return;
+  const all = loadUserRequests();
+  const next = dedupeMarketplaceInquiries(all);
+  if (next.length === all.length) return;
+  saveUserRequests(next);
+  window.dispatchEvent(new Event(USER_REQUESTS_UPDATED_EVENT));
+}
+
 /** Removes a stored mission request (e.g. after admin reject or accept clearing the queue). */
 export function removeUserRequestById(id: string): void {
   const all = loadUserRequests();
@@ -155,7 +193,18 @@ export function appendUserRequest(
     adminStatus: "pending",
   };
   const all = loadUserRequests();
-  saveUserRequests([entry, ...all]);
+  let rest = all;
+  if (payload.requestSource === "marketplace_inquiry") {
+    const key = payload.reasonOrTitle.trim().toLowerCase();
+    rest = all.filter(
+      (r) =>
+        !(
+          r.requestSource === "marketplace_inquiry" &&
+          r.reasonOrTitle.trim().toLowerCase() === key
+        )
+    );
+  }
+  saveUserRequests([entry, ...rest]);
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(USER_REQUESTS_UPDATED_EVENT));
   }
@@ -218,6 +267,8 @@ export type UserRequestAdminRow = {
   desc: string;
   /** Present for real stored submissions (not demo rows). */
   adminStatus?: UserMissionAdminStatus;
+  /** Marketplace “Additional Inquire” rows only. */
+  requestSource?: "marketplace_inquiry";
 };
 
 export function mapUserRequestToAdminRow(
@@ -271,5 +322,6 @@ export function mapUserRequestToAdminRow(
     barColor,
     desc,
     adminStatus: req.adminStatus,
+    requestSource: req.requestSource,
   };
 }

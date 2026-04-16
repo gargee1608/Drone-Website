@@ -9,8 +9,8 @@ import { ArrowRight, Bell, Menu, Settings, X } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useHasRegisteredPilot } from "@/hooks/use-has-registered-pilot";
 import {
-  serviceMegaColumns,
   ServiceListingMegaMenu,
+  serviceMegaMenuItems,
 } from "@/components/nav/service-listing-mega-menu";
 import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav-context";
 import { SidebarMenuGlyph } from "@/components/nav/sidebar-menu-glyph";
@@ -18,9 +18,11 @@ import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-
 import { cn } from "@/lib/utils";
 
 const nav = [
+  { href: "/", label: "Home" },
   { href: "/marketplace", label: "Marketplace" },
-  { href: "/onboarding", label: "Onboarding Wizards" },
-  { href: "/services", label: "Service Listing" },
+  { href: "/services", label: "Services" },
+  { href: "/blogs", label: "Blogs" },
+  { href: "/contact", label: "Contact Us" },
 ] as const;
 
 function LoginProfileIcon({ className }: { className?: string }) {
@@ -216,7 +218,7 @@ export function SiteHeader({
               "site-header-primary-nav hidden min-w-0 items-center gap-3 text-sm font-medium text-[#191c1d] md:flex",
               "lg:gap-5"
             )}
-            aria-label="Marketplace, onboarding, and services"
+            aria-label="Home, marketplace, and services"
           >
             {nav.map((item) =>
               item.href === "/services" ? (
@@ -334,7 +336,7 @@ export function SiteHeader({
       >
         <nav
           className="site-header-primary-nav flex flex-col gap-3 text-sm font-medium text-[#191c1d]"
-          aria-label="Marketplace, onboarding, and services"
+          aria-label="Home, marketplace, and services"
         >
           {nav.map((item) =>
             item.href === "/services" ? (
@@ -351,36 +353,20 @@ export function SiteHeader({
                 </Link>
                 <div className="ml-2 overflow-hidden rounded-xl border border-border/80 bg-card text-sm shadow-md">
                   <div className="divide-y divide-border/60">
-                    {serviceMegaColumns.map((col) => (
-                      <div key={col.heading} className="p-3">
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-blue-600">
-                          {col.heading}
-                        </p>
-                        <div className="flex flex-col gap-2">
-                          {col.items.map(
-                            ({ href, title, description, Icon }) => (
-                              <Link
-                                key={href}
-                                href={href}
-                                className="flex gap-2 rounded-lg p-2 transition-colors hover:bg-muted"
-                                onClick={() => setOpen(false)}
-                              >
-                                <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-blue-500/10 text-blue-600">
-                                  <Icon className="size-4" aria-hidden />
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="text-sm font-medium text-foreground">
-                                    {title}
-                                  </div>
-                                  <p className="text-xs leading-snug text-muted-foreground">
-                                    {description}
-                                  </p>
-                                </div>
-                              </Link>
-                            )
-                          )}
+                    {serviceMegaMenuItems.map(({ href, title, description }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        className="block px-3 py-3 transition-colors first:pt-2.5 hover:bg-muted"
+                        onClick={() => setOpen(false)}
+                      >
+                        <div className="text-sm font-medium text-foreground">
+                          {title}
                         </div>
-                      </div>
+                        <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+                          {description}
+                        </p>
+                      </Link>
                     ))}
                     <div className="flex justify-end border-t border-border/60 bg-muted/20 py-2 pl-2 pr-3">
                       <Link

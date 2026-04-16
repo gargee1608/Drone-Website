@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -291,29 +290,22 @@ export function PilotRegistrationView() {
   }, [resetEntireRegistrationForm]);
 
   return (
-    <div className="relative min-h-dvh bg-background text-foreground">
-      <Link
-        href="/"
-        className="fixed left-4 top-4 z-10 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 sm:left-6 sm:top-6"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        Back to home
-      </Link>
+    <div className="relative min-h-dvh bg-background pt-22 text-foreground sm:pt-24">
+      <div className="mx-auto max-w-3xl px-4 pb-16 pt-5 sm:px-6 sm:pt-8">
+        <div className="overflow-hidden rounded-2xl border-2 border-slate-200 bg-white shadow-md ring-1 ring-slate-900/5">
+          <div className="border-b border-slate-200 bg-slate-50/60 px-5 py-6 text-center sm:px-8 sm:py-7">
+            <h1 className="font-heading text-2xl font-bold tracking-tight text-blue-950 sm:text-3xl">
+              Pilot Registration
+            </h1>
+            <p className="mt-2 text-sm text-slate-600 sm:text-base">
+              Join India&apos;s drone pilot network
+            </p>
+          </div>
 
-      <div className="mx-auto max-w-lg px-4 pb-16 pt-8 sm:max-w-2xl sm:px-6 sm:pt-12">
-        <div className="text-center">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-blue-950 sm:text-3xl">
-            Pilot Registration
-          </h1>
-          <p className="mt-2 text-sm text-slate-500 sm:text-base">
-            Join India&apos;s drone pilot network
-          </p>
-        </div>
-
-        <nav
-          className="mt-8 flex items-center justify-between gap-0 sm:gap-1"
-          aria-label="Registration progress"
-        >
+          <nav
+            className="flex items-center justify-between gap-0 border-b border-slate-200 bg-white px-3 py-5 sm:gap-1 sm:px-6 sm:py-6"
+            aria-label="Registration progress"
+          >
           {STEPS.map((s, i) => (
             <div key={s.id} className="flex min-w-0 flex-1 items-center">
               <div className="flex w-full min-w-0 flex-col items-center gap-2">
@@ -350,11 +342,12 @@ export function PilotRegistrationView() {
               ) : null}
             </div>
           ))}
-        </nav>
+          </nav>
 
+          <div className="bg-white px-5 py-6 sm:px-8 sm:py-8">
         {step === 1 ? (
           <form
-            className="mt-10 space-y-5"
+            className="space-y-5"
             autoComplete="off"
             onSubmit={(e) => {
               e.preventDefault();
@@ -521,7 +514,7 @@ export function PilotRegistrationView() {
           </form>
         ) : step === 2 ? (
           <form
-            className="mt-10 space-y-6"
+            className="space-y-6"
             autoComplete="off"
             onSubmit={(e) => {
               e.preventDefault();
@@ -647,7 +640,7 @@ export function PilotRegistrationView() {
             </div>
           </form>
         ) : step === 3 ? (
-          <div className="mt-10 space-y-6">
+          <div className="space-y-6">
             {drones.length > 0 ? (
               <div className="space-y-2">
                 <h3 className="text-sm font-bold text-slate-900">Your Drones</h3>
@@ -867,7 +860,7 @@ export function PilotRegistrationView() {
             </div>
           </div>
         ) : (
-          <div className="mt-10 space-y-4">
+          <div className="space-y-4">
             <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <h2 className="mb-3 text-base font-bold text-slate-900">
                 Personal Info
@@ -1003,6 +996,8 @@ export function PilotRegistrationView() {
             </div>
           </div>
         )}
+        </div>
+        </div>
       </div>
     </div>
   );

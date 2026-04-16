@@ -24,6 +24,8 @@ import {
 import {
   loadUserRequests,
   mapUserRequestToAdminRow,
+  normalizeUserMissionAdminStatus,
+  pruneDuplicateMarketplaceInquiries,
   updateUserRequestAdminStatus,
   USER_REQUESTS_UPDATED_EVENT,
   type UserMissionAdminStatus,
@@ -140,6 +142,7 @@ export function UserRequestsView() {
   >([]);
 
   useEffect(() => {
+    pruneDuplicateMarketplaceInquiries();
     const data = loadUserRequests();
     setStoredRequestsSnapshot(data);
   }, [userRequestRefresh]);
@@ -205,31 +208,30 @@ export function UserRequestsView() {
     };
   }, [storedRequestsSnapshot, demoAdminByKey]);
 
+  /**
+   * Accepted / Rejected / Pending = exact counts from the two tables below:
+   * `User requests` (stored missions + demo rows) + `Additional Inquires` (marketplace).
+   */
   const stats = useMemo(() => {
-    let demoPending = 0;
-    let demoAccepted = 0;
-    let demoRejected = 0;
-    for (const r of REQUESTS) {
-      const s = demoAdminByKey[`demo-${r.title}`] ?? "pending";
-      if (s === "pending") demoPending += 1;
-      else if (s === "accepted") demoAccepted += 1;
-      else demoRejected += 1;
-    }
-    let storedPending = 0;
-    let storedAccepted = 0;
-    let storedRejected = 0;
-    for (const r of storedRequestsSnapshot) {
-      if (r.adminStatus === "pending") storedPending += 1;
-      else if (r.adminStatus === "accepted") storedAccepted += 1;
-      else storedRejected += 1;
+    const rows = [...primaryTableRows, ...additionalInquireTableRows];
+    let pending = 0;
+    let accepted = 0;
+    let rejected = 0;
+    for (const row of rows) {
+      const s = normalizeUserMissionAdminStatus(
+        typeof row.adminStatus === "string" ? row.adminStatus : undefined
+      );
+      if (s === "accepted") accepted += 1;
+      else if (s === "rejected") rejected += 1;
+      else pending += 1;
     }
     return {
-      total: REQUESTS.length + storedRequestsSnapshot.length,
-      pending: demoPending + storedPending,
-      accepted: demoAccepted + storedAccepted,
-      rejected: demoRejected + storedRejected,
+      total: rows.length,
+      pending,
+      accepted,
+      rejected,
     };
-  }, [storedRequestsSnapshot, demoAdminByKey]);
+  }, [primaryTableRows, additionalInquireTableRows]);
 
   const openRequestDetails = (row: UserRequestAdminRow) => {
     const p = resolveUserRequestDetail(row);
@@ -251,7 +253,9 @@ export function UserRequestsView() {
     setDetailModal((prev) =>
       prev && detailPayloadMatchesRow(prev, row) ? null : prev
     );
-    router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
+    if (row.requestSource !== "marketplace_inquiry") {
+      router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
+    }
   };
 
   const handleRejectRow = (row: UserRequestAdminRow) => {
@@ -274,10 +278,16 @@ export function UserRequestsView() {
       <h1 className="text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
         User Request
       </h1>
+      <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-slate-600 sm:text-sm">
+        Summary figures count every request in{" "}
+        <span className="font-semibold text-[#191c1d]">User requests</span> and{" "}
+        <span className="font-semibold text-[#191c1d]">Additional Inquires</span>{" "}
+        below.
+      </p>
 
       <section
         className="mt-6 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4"
-        aria-label="Request summary"
+        aria-label="Request summary: User requests and Additional Inquires combined"
       >
         <UserRequestStatCard
           label="Total requests"
