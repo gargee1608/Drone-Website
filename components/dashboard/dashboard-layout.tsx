@@ -1,7 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { ClipboardList, LayoutDashboard, LogOut, Plane } from "lucide-react";
+import {
+  BadgeCheck,
+  CheckCircle2,
+  CircleUser,
+  ClipboardList,
+  LayoutDashboard,
+  LogOut,
+  Plane,
+  Settings,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -19,13 +28,33 @@ const navMain = [
   },
   {
     href: "/dashboard/assign",
-    label: "Assign Pilot or Drone",
+    label: "Assign To",
     icon: Plane,
   },
   {
     href: "/dashboard/user-requests",
     label: "User Request",
     icon: ClipboardList,
+  },
+  {
+    href: "/dashboard/completed-deliveries",
+    label: "Completed Deliveries",
+    icon: CheckCircle2,
+  },
+  {
+    href: "/dashboard/pilot-status",
+    label: "Pilot Status",
+    icon: BadgeCheck,
+  },
+  {
+    href: "/pilot-profile",
+    label: "Profile",
+    icon: CircleUser,
+  },
+  {
+    href: "/settings",
+    label: "Settings",
+    icon: Settings,
   },
 ] as const;
 
@@ -83,11 +112,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   }, [sidebarExpanded, sidebarOpen]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-white text-[#191c1d] antialiased">
+    <div className="flex min-h-0 flex-1 flex-col bg-white pt-22 text-[#191c1d] antialiased sm:pt-24">
       {sidebarOpen && (
         <button
           type="button"
-          className="fixed inset-x-0 bottom-0 top-16 z-40 bg-[#191c1d]/40 lg:hidden"
+          className="fixed inset-x-0 bottom-0 top-22 z-40 bg-[#191c1d]/40 lg:hidden"
           aria-label="Close navigation"
           onClick={closeSidebar}
         />
@@ -96,7 +125,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       <aside
         id="command-center-nav"
         className={cn(
-          "fixed bottom-0 left-0 top-16 z-50 flex h-[calc(100dvh-4rem)] min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-border bg-card lg:border-r-0",
+          "fixed bottom-0 left-0 top-22 z-50 flex min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-border bg-card lg:border-r-0",
           "transform transition-[transform,width] duration-200 ease-out will-change-transform",
           sidebarExpanded ? "lg:w-64" : "lg:w-0 lg:max-w-0 lg:overflow-hidden lg:border-0 lg:p-0",
           "-translate-x-full lg:translate-x-0",
@@ -203,7 +232,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       {sidebarExpanded ? (
         <div
           aria-hidden
-          className="pointer-events-none fixed left-64 top-16 z-[35] hidden h-[calc(100dvh-4rem)] w-px bg-slate-200 lg:block"
+          className="pointer-events-none fixed bottom-0 left-64 top-22 z-[35] hidden w-px bg-slate-200 lg:block"
         />
       ) : null}
 

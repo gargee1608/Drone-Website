@@ -346,7 +346,7 @@ export function UserRequestTable({
                       </button>
                       <button
                         type="button"
-                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200/90 disabled:opacity-50"
+                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200/90 disabled:pointer-events-none disabled:opacity-50"
                         aria-label="View details"
                         disabled={!onViewDetails}
                         onClick={() => onViewDetails?.(m)}

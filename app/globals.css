@@ -126,7 +126,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-white text-foreground;
   }
   html {
     @apply font-sans;
@@ -152,6 +152,56 @@
   .telemetry-grid-dots {
     background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
     background-size: 32px 32px;
+  }
+
+  /* Services page (AETHER COMMAND mock) */
+  .services-telemetry-grid {
+    background-image: radial-gradient(
+      rgba(8, 145, 178, 0.08) 1px,
+      transparent 1px
+    );
+    background-size: 32px 32px;
+  }
+
+  .services-glass-panel {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.7);
+  }
+
+  .services-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .services-no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .blogs-hud-grid {
+    background-image: radial-gradient(
+      rgba(0, 106, 110, 0.05) 1px,
+      transparent 1px
+    );
+    background-size: 32px 32px;
+  }
+
+  /* Contact page — matches reference HUD grid (40px) */
+  .contact-hud-grid {
+    background-image: radial-gradient(
+      circle at 2px 2px,
+      rgba(0, 106, 110, 0.05) 1px,
+      transparent 0
+    );
+    background-size: 40px 40px;
+  }
+
+  .blogs-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .blogs-no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
   /* Marketplace mock — frosted product cards */
@@ -206,6 +256,29 @@
     -webkit-backdrop-filter: blur(12px);
   }
 
+  /* Login (Æther terminal) — dot grid + glass card */
+  .login-hud-grid {
+    background-color: #f8fafc;
+    background-image: radial-gradient(
+      circle,
+      rgba(0, 106, 110, 0.08) 1px,
+      transparent 1px
+    );
+    background-size: 32px 32px;
+  }
+
+  .login-terminal-glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  /* Login — single scroll container, no layout jump when scrollbar appears */
+  .login-scroll-stable {
+    scrollbar-gutter: stable;
+    overscroll-behavior-y: contain;
+  }
+
   /* Command Center (dashboard) — matches AEROLAMINAR mock */
   .cc-glass-card {
     background: rgba(255, 255, 255, 0.7);
@@ -244,5 +317,46 @@
       transform: scale(3);
       opacity: 0;
     }
+  }
+
+  .landing-telemetry-line {
+    background: linear-gradient(90deg, transparent, #009aa1, transparent);
+    height: 1px;
+    opacity: 0.2;
+  }
+
+  /* Between landing sections — soft horizontal rule */
+  .landing-section-rule {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(203 213 225 / 0.85) 15%,
+      rgb(203 213 225 / 0.85) 85%,
+      transparent
+    );
+  }
+
+  .landing-glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* Marketplace — subtle dot grid on white */
+  .marketplace-page-bg {
+    background-color: #ffffff;
+    background-image: radial-gradient(
+      circle at 2px 2px,
+      rgba(15, 23, 42, 0.03) 1px,
+      transparent 0
+    );
+    background-size: 40px 40px;
+  }
+
+  .marketplace-glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
   }
 }
