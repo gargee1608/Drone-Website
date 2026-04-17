@@ -44,7 +44,7 @@ function adminStatusBadgeClass(status: UserMissionRequest["adminStatus"]) {
     case "rejected":
       return "bg-red-50 text-red-900 ring-1 ring-red-200/80";
     default:
-      return "bg-[#d8e2ff] text-[#001a41]";
+      return "bg-[#008B8B]/14 text-[#0a3030]";
   }
 }
 
@@ -90,7 +90,7 @@ export function MyRequestsView() {
               >
                 <div className="border-b border-[#edeeef] bg-[#f3f4f5]/80 px-5 py-4 sm:px-6">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-mono text-xs font-semibold text-[#0058bc]">
+                    <span className="font-mono text-xs font-semibold text-[#008B8B]">
                       {userRequestQueueDisplayId(req.id)}
                     </span>
                     <span className="text-[11px] font-medium uppercase tracking-wider text-[#414755]">

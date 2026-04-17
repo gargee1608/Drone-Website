@@ -1,20 +1,11 @@
 import Link from "next/link";
-import { Globe, X } from "lucide-react";
+import { Globe, Plane, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-const company = [
-  { href: "#", label: "Privacy Policy" },
-  { href: "#", label: "Terms of Service" },
-  { href: "#", label: "API Docs" },
-  { href: "#", label: "Contact Support" },
-] as const;
-
 const marketingResources = [
-  { href: "/marketplace", label: "Company" },
   { href: "/services", label: "Services" },
   { href: "#", label: "Support" },
-  { href: "#", label: "Terms" },
 ] as const;
 
 const marketingConnect = [
@@ -48,9 +39,19 @@ export function SiteFooter({
       >
         <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.15fr_1fr_1fr] lg:gap-12 lg:px-8">
           <div className="space-y-3">
-            <p className="font-heading text-lg font-bold tracking-tight text-foreground">
-              AEROLAMINAR
-            </p>
+            <Link
+              href="/"
+              className="inline-flex w-fit items-center gap-2.5 text-left transition-opacity hover:opacity-90"
+            >
+              <Plane
+                className="size-8 shrink-0 text-[#008B8B] sm:size-9"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+              <span className="font-heading text-lg font-bold tracking-tight text-foreground">
+                Drone Hire
+              </span>
+            </Link>
             <p className="max-w-sm text-sm leading-relaxed text-slate-600">
               Leading the autonomous revolution. Delivering the future, one
               coordinate at a time.
@@ -95,8 +96,7 @@ export function SiteFooter({
         </div>
         <div className="mx-auto mt-10 flex max-w-6xl flex-col items-center justify-between gap-4 border-t border-border/50 px-4 pt-8 sm:flex-row sm:px-6 lg:px-8">
           <p className="text-center text-[11px] text-muted-foreground sm:text-left sm:text-xs">
-            © {new Date().getFullYear()} Aerolaminar Drone Logistics. All rights
-            reserved.
+            © {new Date().getFullYear()} Drone Hire. All rights reserved.
           </p>
           <div className="flex shrink-0 gap-2">
             <a
@@ -130,30 +130,18 @@ export function SiteFooter({
       )}
       role="contentinfo"
     >
-      <div className="mx-auto box-border flex w-full min-w-0 max-w-[1200px] flex-col items-center justify-between gap-4 px-4 pt-0.5 sm:flex-row sm:gap-6 sm:px-6 sm:pt-1 md:items-center md:gap-6 md:pt-1.5 lg:gap-8 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
-        <p className="w-full min-w-0 shrink text-center font-heading text-sm font-bold uppercase leading-snug tracking-tight text-foreground sm:w-auto sm:text-left">
-          AEROLAMINAR
-        </p>
-
-        <div className="flex w-full min-w-0 flex-1 flex-col items-center gap-1 sm:w-auto sm:gap-0.5 md:items-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Company
-          </p>
-          <nav aria-label="Company" className="w-full min-w-0">
-            <ul className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:justify-center sm:gap-x-3 md:gap-x-4">
-              {company.map((link) => (
-                <li key={link.label} className="min-w-0">
-                  <a
-                    href={link.href}
-                    className="inline-block text-center text-[13px] font-normal leading-snug text-muted-foreground transition-colors hover:text-[#0058bc] sm:text-left"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
+      <div className="mx-auto box-border flex w-full min-w-0 max-w-[1200px] flex-col items-center justify-between gap-4 px-4 pt-0 sm:flex-row sm:gap-6 sm:px-6 md:items-center md:gap-6 lg:gap-8 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
+        <Link
+          href="/"
+          className="inline-flex w-full min-w-0 shrink-0 items-center justify-center gap-2 font-heading text-sm font-bold tracking-tight text-foreground transition-opacity hover:opacity-90 sm:w-auto sm:justify-start"
+        >
+          <Plane
+            className="size-6 shrink-0 text-[#008B8B]"
+            strokeWidth={1.75}
+            aria-hidden
+          />
+          <span>Drone Hire</span>
+        </Link>
 
         <div className="flex w-full min-w-0 shrink-0 flex-col items-center gap-1.5 sm:w-auto sm:items-end">
           <div className="flex shrink-0 gap-2">
@@ -173,8 +161,7 @@ export function SiteFooter({
             </a>
           </div>
           <p className="w-full min-w-0 max-w-[18rem] text-balance text-center text-[11px] leading-snug text-muted-foreground sm:max-w-[min(100%,20rem)] sm:text-right sm:text-xs">
-            © {new Date().getFullYear()} AEROLAMINAR Logistics. All rights
-            reserved.
+            © {new Date().getFullYear()} Drone Hire. All rights reserved.
           </p>
         </div>
       </div>

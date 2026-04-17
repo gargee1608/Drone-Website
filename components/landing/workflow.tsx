@@ -22,8 +22,8 @@ const steps = [
 ] as const;
 
 const iconRingClass =
-  "border-blue-200/80 shadow-[0_1px_2px_rgba(37,99,235,0.08)]";
-const iconColorClass = "text-blue-600";
+  "border-[#008B8B]/35 shadow-[0_1px_2px_rgba(0,139,139,0.12)]";
+const iconColorClass = "text-[#008B8B]";
 
 export function Workflow() {
   return (
@@ -34,7 +34,7 @@ export function Workflow() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-16 flex flex-col items-center text-center md:mb-24">
           <div className="max-w-2xl">
-            <h2 className="font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-[0.4em] text-[#009aa1] uppercase">
+            <h2 className="font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-[0.4em] text-[#008B8B] uppercase">
               The Workflow
             </h2>
             <p className="mt-4 font-[family-name:var(--font-landing-headline)] text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">

@@ -43,8 +43,8 @@ export function QuickActionsCardGrid({
               : "min-h-[4.25rem] border-[#c1c6d7]/15 p-3.5 shadow-sm",
             prominent &&
               index === 0 &&
-              "border-[#0058bc]/30 ring-1 ring-[#0058bc]/15",
-            "hover:border-[#0058bc]/35 hover:bg-[#f5f8ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/40"
+              "border-[#008B8B]/30 ring-1 ring-[#008B8B]/15",
+            "hover:border-[#008B8B]/35 hover:bg-[#f5f8ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/40"
           )}
         >
           <span

@@ -60,7 +60,7 @@ export function Features() {
             >
               <div className="mb-4 flex size-14 shrink-0 items-center justify-center rounded-lg border border-slate-100 bg-slate-50 transition-transform duration-300 group-hover:scale-[1.03]">
                 <Icon
-                  className="size-9 text-blue-600"
+                  className="size-9 text-[#008B8B]"
                   strokeWidth={1.5}
                   aria-hidden
                 />

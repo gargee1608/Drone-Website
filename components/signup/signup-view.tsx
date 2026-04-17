@@ -43,14 +43,14 @@ export function SignUpView() {
       <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-visible px-4 py-8 pb-12 sm:px-6 sm:py-10 sm:pb-16">
         <div className="login-glass-card relative w-full max-w-[340px] rounded-xl p-5 shadow-lg shadow-[#4d5b7f]/8 sm:max-w-[400px] sm:p-6">
           <div
-            className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 rounded-t-xl bg-gradient-to-r from-[#0058bc] via-[#0070eb] to-[#006195] shadow-[0_2px_10px_rgba(0,88,188,0.35)]"
+            className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 rounded-t-xl bg-gradient-to-r from-[#008B8B] via-[#006b6b] to-[#006195] shadow-[0_2px_10px_rgba(0,88,188,0.35)]"
             aria-hidden
           />
 
           <div className="mb-4 pt-0.5 text-center sm:mb-5">
             <div className="mb-2.5 flex justify-center sm:mb-3">
-              <div className="flex size-11 items-center justify-center rounded-lg border border-[#0058bc]/20 bg-[#0058bc]/10 shadow-sm sm:size-12">
-                <User className="size-6 text-[#0058bc] sm:size-7" strokeWidth={1.75} />
+              <div className="flex size-11 items-center justify-center rounded-lg border border-[#008B8B]/20 bg-[#008B8B]/10 shadow-sm sm:size-12">
+                <User className="size-6 text-[#008B8B] sm:size-7" strokeWidth={1.75} />
               </div>
             </div>
             <h1
@@ -105,7 +105,7 @@ export function SignUpView() {
                     "w-full rounded-md border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-all focus:ring-2 sm:py-2.5 sm:pl-10",
                     errors.email
                       ? "ring-2 ring-red-500/80 focus:ring-red-500/50"
-                      : "focus:ring-[#0058bc]/20"
+                      : "focus:ring-[#008B8B]/20"
                   )}
                 />
               </div>
@@ -149,7 +149,7 @@ export function SignUpView() {
                     "w-full rounded-md border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-all focus:ring-2 sm:py-2.5 sm:pl-10",
                     errors.password
                       ? "ring-2 ring-red-500/80 focus:ring-red-500/50"
-                      : "focus:ring-[#0058bc]/20"
+                      : "focus:ring-[#008B8B]/20"
                   )}
                 />
               </div>
@@ -193,7 +193,7 @@ export function SignUpView() {
                     "w-full rounded-md border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-all focus:ring-2 sm:py-2.5 sm:pl-10",
                     errors.confirm
                       ? "ring-2 ring-red-500/80 focus:ring-red-500/50"
-                      : "focus:ring-[#0058bc]/20"
+                      : "focus:ring-[#008B8B]/20"
                   )}
                 />
               </div>
@@ -211,7 +211,7 @@ export function SignUpView() {
             <button
               type="submit"
               className={cn(
-                "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#0058bc] to-[#0070eb] py-2.5 px-3 text-sm font-bold text-white shadow-md shadow-[#0058bc]/20 transition-all hover:shadow-[#0058bc]/35 active:scale-[0.99] sm:py-3"
+                "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#008B8B] to-[#006b6b] py-2.5 px-3 text-sm font-bold text-white shadow-md shadow-[#008B8B]/20 transition-all hover:shadow-[#008B8B]/35 active:scale-[0.99] sm:py-3"
               )}
             >
               Create account
@@ -224,7 +224,7 @@ export function SignUpView() {
               Already have an account?{" "}
               <Link
                 href="/login"
-                className="ml-1 font-bold text-[#0058bc] hover:underline"
+                className="ml-1 font-bold text-[#008B8B] hover:underline"
               >
                 Sign In
               </Link>

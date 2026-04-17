@@ -118,8 +118,8 @@ function staticRequestToAdminRow(
     key: `demo-${r.title}`,
     title: r.title,
     badge: "ROUTINE",
-    badgeClass: "bg-[#d8e2ff] text-[#001a41]",
-    barColor: "#0058bc",
+    badgeClass: "bg-[#008B8B]/14 text-[#0a3030]",
+    barColor: "#008B8B",
     desc,
     adminStatus,
   };
@@ -293,8 +293,8 @@ export function UserRequestsView() {
           label="Total requests"
           value={stats.total}
           icon={ClipboardList}
-          iconClassName="text-[#0058bc]"
-          iconWrapClassName="bg-[#0058bc]/10"
+          iconClassName="text-[#008B8B]"
+          iconWrapClassName="bg-[#008B8B]/10"
         />
         <UserRequestStatCard
           label="Pending"

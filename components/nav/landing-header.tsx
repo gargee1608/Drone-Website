@@ -24,10 +24,18 @@ export function LandingHeader() {
     pathname?.startsWith("/blogs/") ||
     pathname === "/contact";
   const hideLoginIcon = pathname === "/pilot-registration";
+  const hideNotificationsAndSettings =
+    pathname === "/marketplace" ||
+    (pathname?.startsWith("/marketplace/") ?? false) ||
+    pathname === "/services" ||
+    (pathname?.startsWith("/services/") ?? false) ||
+    pathname === "/blogs" ||
+    (pathname?.startsWith("/blogs/") ?? false) ||
+    pathname === "/contact";
 
   const linkClass = (href: string) =>
     cn(
-      "transition-colors hover:text-[#0d6200]",
+      "transition-colors hover:text-[#008B8B]",
       (pathname === href || pathname?.startsWith(`${href}/`)) &&
         "font-semibold text-slate-900"
     );
@@ -38,7 +46,7 @@ export function LandingHeader() {
         <div className="flex min-w-0 items-center gap-8 lg:gap-12">
           <Link
             href="/"
-            className="font-[family-name:var(--font-landing-display)] text-lg font-bold tracking-tighter text-[#009aa1] uppercase shrink-0"
+            className="font-[family-name:var(--font-landing-display)] text-lg font-bold tracking-tighter text-[#008B8B] uppercase shrink-0"
           >
             Drone Hire
           </Link>
@@ -84,31 +92,35 @@ export function LandingHeader() {
             <Link
               href="/pilot-registration"
               className={cn(
-                "hidden h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008C8C] bg-transparent px-5 text-xs font-bold tracking-wider text-[#008C8C] uppercase transition hover:border-[#007070] hover:text-[#007070] hover:bg-transparent sm:inline-flex",
+                "hidden h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-5 text-xs font-bold tracking-wider text-[#008B8B] uppercase transition hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent sm:inline-flex",
                 "font-[family-name:var(--font-landing-display)]",
                 hideRegisterPilotCta && "sm:hidden"
               )}
             >
               Register a Pilot
             </Link>
-            <button
-              type="button"
-              className="rounded-md p-1.5 text-slate-500 transition-colors hover:text-[#009aa1]"
-              aria-label="Notifications"
-            >
-              <Bell className="size-5" />
-            </button>
-            <Link
-              href="/settings"
-              className="rounded-md p-1.5 text-slate-500 transition-colors hover:text-[#009aa1]"
-              aria-label="Settings"
-            >
-              <Settings className="size-5" />
-            </Link>
+            {!hideNotificationsAndSettings ? (
+              <>
+                <button
+                  type="button"
+                  className="rounded-md p-1.5 text-slate-500 transition-colors hover:text-[#008B8B]"
+                  aria-label="Notifications"
+                >
+                  <Bell className="size-5" />
+                </button>
+                <Link
+                  href="/settings"
+                  className="rounded-md p-1.5 text-slate-500 transition-colors hover:text-[#008B8B]"
+                  aria-label="Settings"
+                >
+                  <Settings className="size-5" />
+                </Link>
+              </>
+            ) : null}
             {!hideLoginIcon ? (
               <Link
                 href="/login"
-                className="rounded-md p-1.5 text-slate-500 transition-colors hover:text-[#009aa1]"
+                className="rounded-md p-1.5 text-slate-500 transition-colors hover:text-[#008B8B]"
                 aria-label="Login"
               >
                 <User className="size-5" />
@@ -164,7 +176,7 @@ export function LandingHeader() {
           ))}
           <Link
             href="/services"
-            className="rounded-lg py-2 text-[#009aa1] font-semibold"
+            className="rounded-lg py-2 text-[#008B8B] font-semibold"
             onClick={() => setOpen(false)}
           >
             View all services
@@ -193,7 +205,7 @@ export function LandingHeader() {
           {!hideRegisterPilotCta ? (
             <Link
               href="/pilot-registration"
-              className="mt-2 rounded-md border-2 border-[#008C8C] bg-transparent py-3 text-center text-xs font-bold tracking-wider text-[#008C8C] uppercase hover:border-[#007070] hover:text-[#007070] hover:bg-transparent"
+              className="mt-2 rounded-md border-2 border-[#008B8B] bg-transparent py-3 text-center text-xs font-bold tracking-wider text-[#008B8B] uppercase hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent"
               onClick={() => setOpen(false)}
             >
               Register a Pilot

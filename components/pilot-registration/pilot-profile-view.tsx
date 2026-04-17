@@ -34,7 +34,13 @@ function maskAadhaar(digits: string | undefined) {
   return `****${clean.slice(-4)}`;
 }
 
-export function PilotProfileView() {
+export type PilotProfileViewVariant = "standalone" | "dashboard";
+
+export function PilotProfileView({
+  variant = "standalone",
+}: {
+  variant?: PilotProfileViewVariant;
+} = {}) {
   const router = useRouter();
   const [data, setData] = useState<PilotProfileSnapshot | null>(null);
   const [ready, setReady] = useState(false);
@@ -43,14 +49,54 @@ export function PilotProfileView() {
     const snap = readSnapshot();
     setData(snap);
     setReady(true);
-    if (!snap) {
+    if (variant === "standalone" && !snap) {
       router.replace("/");
-    } else {
+    } else if (snap) {
       window.scrollTo(0, 0);
     }
-  }, [router]);
+  }, [router, variant]);
 
-  if (!ready || !data) {
+  if (!ready) {
+    return (
+      <div
+        className={
+          variant === "dashboard"
+            ? "flex min-h-[12rem] items-center justify-center text-xs text-muted-foreground"
+            : "flex min-h-dvh items-center justify-center bg-background text-xs text-muted-foreground"
+        }
+      >
+        Loading…
+      </div>
+    );
+  }
+
+  if (!data) {
+    if (variant === "dashboard") {
+      return (
+        <div className="relative pb-8 pt-1 text-foreground">
+          <Link
+            href="/dashboard"
+            className="mb-6 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-900"
+          >
+            <ArrowLeft className="size-3.5" aria-hidden />
+            Back to dashboard
+          </Link>
+          <div className="mx-auto max-w-5xl">
+            <h1 className="text-xl font-bold text-[#191c1d]">Profile</h1>
+            <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-600">
+              No pilot profile is saved in this browser yet. Complete pilot
+              registration to see details here.
+            </p>
+            <Link
+              href="/pilot-registration"
+              className="mt-5 inline-flex items-center justify-center rounded-full border-2 border-[#008B8B] bg-white px-5 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/5"
+            >
+              Register a pilot
+            </Link>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background text-xs text-muted-foreground">
         Loading…
@@ -63,20 +109,37 @@ export function PilotProfileView() {
     [data.city.trim(), data.state].filter(Boolean).join(", ") || "—";
   const showDgcaBadge = Boolean(data.dgca.trim());
 
+  const backHref = variant === "dashboard" ? "/dashboard" : "/";
+  const backLabel =
+    variant === "dashboard" ? "Back to dashboard" : "Back to home";
+  const backLinkClass =
+    variant === "dashboard"
+      ? "mb-6 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-900"
+      : "fixed left-4 top-4 z-10 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-900 sm:left-6 sm:top-6";
+
   return (
-    <div className="relative min-h-dvh bg-background text-foreground">
-      <Link
-        href="/"
-        className="fixed left-4 top-4 z-10 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-900 sm:left-6 sm:top-6"
-      >
+    <div
+      className={
+        variant === "dashboard"
+          ? "relative text-foreground"
+          : "relative min-h-dvh bg-background text-foreground"
+      }
+    >
+      <Link href={backHref} className={backLinkClass}>
         <ArrowLeft className="size-3.5" aria-hidden />
-        Back to home
+        {backLabel}
       </Link>
 
-      <div className="mx-auto max-w-5xl px-3 pb-12 pt-9 sm:px-5 sm:pt-11">
+      <div
+        className={
+          variant === "dashboard"
+            ? "mx-auto max-w-5xl px-0 pb-8 pt-0 sm:px-0"
+            : "mx-auto max-w-5xl px-3 pb-12 pt-9 sm:px-5 sm:pt-11"
+        }
+      >
         <header className="flex flex-col items-center text-center">
           <div
-            className="flex size-20 items-center justify-center rounded-full bg-blue-600 text-2xl font-bold text-white shadow-md"
+            className="flex size-20 items-center justify-center rounded-full bg-[#008B8B] text-2xl font-bold text-white shadow-md"
             aria-hidden
           >
             {initial}
@@ -122,71 +185,71 @@ export function PilotProfileView() {
           <section className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
             <h2 className="mb-2 text-sm font-bold text-slate-900">About</h2>
             <dl className="space-y-2 border-b border-slate-100 pb-3 text-xs">
-                <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
-                  <dt className="shrink-0 font-medium text-slate-500">Email</dt>
-                  <dd className="min-w-0 break-all text-slate-800 sm:text-right sm:flex-1">
-                    {data.email?.trim() ? (
-                      <a
-                        href={`mailto:${data.email.trim()}`}
-                        className="text-blue-600 underline-offset-2 hover:underline"
-                      >
-                        {data.email.trim()}
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </dd>
-                </div>
-                <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
-                  <dt className="shrink-0 font-medium text-slate-500">Phone</dt>
-                  <dd className="min-w-0 break-all text-slate-800 sm:text-right sm:flex-1">
-                    {data.phone?.trim() ? (
-                      <a
-                        href={`tel:${data.phone.replace(/\s/g, "")}`}
-                        className="text-blue-600 underline-offset-2 hover:underline"
-                      >
-                        {data.phone.trim()}
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </dd>
-                </div>
-                <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
-                  <dt className="shrink-0 font-medium text-slate-500">City</dt>
-                  <dd className="min-w-0 text-slate-800 sm:text-right sm:flex-1">
-                    {data.city.trim() || "—"}
-                  </dd>
-                </div>
-                <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
-                  <dt className="shrink-0 font-medium text-slate-500">State</dt>
-                  <dd className="min-w-0 text-slate-800 sm:text-right sm:flex-1">
-                    {data.state.trim() || "—"}
-                  </dd>
-                </div>
-                <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
-                  <dt className="shrink-0 font-medium text-slate-500">Aadhaar</dt>
-                  <dd className="font-mono text-xs text-slate-800 sm:text-right sm:flex-1">
-                    {maskAadhaar(data.aadhaar)}
-                  </dd>
-                </div>
-                <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
-                  <dt className="shrink-0 font-medium text-slate-500">
-                    DGCA license
-                  </dt>
-                  <dd className="min-w-0 break-all font-mono text-xs text-slate-800 sm:text-right sm:flex-1">
-                    {data.dgca.trim() || "—"}
-                  </dd>
-                </div>
-              </dl>
-              <div className="pt-3">
-                <h3 className="mb-1.5 text-xs font-semibold text-slate-800">
-                  Brief bio
-                </h3>
-                <p className="min-w-0 whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-600">
-                  {data.bio.trim() || "—"}
-                </p>
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                <dt className="shrink-0 font-medium text-slate-500">Email</dt>
+                <dd className="min-w-0 break-all text-slate-800 sm:text-right sm:flex-1">
+                  {data.email?.trim() ? (
+                    <a
+                      href={`mailto:${data.email.trim()}`}
+                      className="text-[#008B8B] underline-offset-2 hover:underline"
+                    >
+                      {data.email.trim()}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </dd>
               </div>
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                <dt className="shrink-0 font-medium text-slate-500">Phone</dt>
+                <dd className="min-w-0 break-all text-slate-800 sm:text-right sm:flex-1">
+                  {data.phone?.trim() ? (
+                    <a
+                      href={`tel:${data.phone.replace(/\s/g, "")}`}
+                      className="text-[#008B8B] underline-offset-2 hover:underline"
+                    >
+                      {data.phone.trim()}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </dd>
+              </div>
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                <dt className="shrink-0 font-medium text-slate-500">City</dt>
+                <dd className="min-w-0 text-slate-800 sm:text-right sm:flex-1">
+                  {data.city.trim() || "—"}
+                </dd>
+              </div>
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                <dt className="shrink-0 font-medium text-slate-500">State</dt>
+                <dd className="min-w-0 text-slate-800 sm:text-right sm:flex-1">
+                  {data.state.trim() || "—"}
+                </dd>
+              </div>
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                <dt className="shrink-0 font-medium text-slate-500">Aadhaar</dt>
+                <dd className="font-mono text-xs text-slate-800 sm:text-right sm:flex-1">
+                  {maskAadhaar(data.aadhaar)}
+                </dd>
+              </div>
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                <dt className="shrink-0 font-medium text-slate-500">
+                  DGCA license
+                </dt>
+                <dd className="min-w-0 break-all font-mono text-xs text-slate-800 sm:text-right sm:flex-1">
+                  {data.dgca.trim() || "—"}
+                </dd>
+              </div>
+            </dl>
+            <div className="pt-3">
+              <h3 className="mb-1.5 text-xs font-semibold text-slate-800">
+                Brief bio
+              </h3>
+              <p className="min-w-0 whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-600">
+                {data.bio.trim() || "—"}
+              </p>
+            </div>
           </section>
 
           <div className="flex flex-col gap-3 sm:gap-4">
@@ -197,7 +260,7 @@ export function PilotProfileView() {
                   data.skills.map((s) => (
                     <span
                       key={s}
-                      className="rounded-full bg-blue-500 px-2.5 py-1 text-[11px] font-semibold text-white"
+                      className="rounded-full bg-[#008B8B] px-2.5 py-1 text-[11px] font-semibold text-white"
                     >
                       {s}
                     </span>

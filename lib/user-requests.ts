@@ -284,8 +284,8 @@ export function mapUserRequestToAdminRow(
     barColor = "#ba1a1a";
   } else if (p === "standard") {
     badge = "ROUTINE";
-    badgeClass = "bg-[#d8e2ff] text-[#001a41]";
-    barColor = "#0058bc";
+    badgeClass = "bg-[#008B8B]/14 text-[#0a3030]";
+    barColor = "#008B8B";
   } else {
     badge = "NORMAL";
     badgeClass = "bg-[#cde5ff] text-[#001d32]";
