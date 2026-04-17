@@ -10,6 +10,7 @@ import {
   createAdminServiceId,
   loadAdminServices,
   saveAdminServices,
+  type AdminService,
 } from "@/lib/admin-services";
 import { cn } from "@/lib/utils";
 
