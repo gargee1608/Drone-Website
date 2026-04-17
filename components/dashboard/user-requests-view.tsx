@@ -24,6 +24,8 @@ import {
 import {
   loadUserRequests,
   mapUserRequestToAdminRow,
+  normalizeUserMissionAdminStatus,
+  pruneDuplicateMarketplaceInquiries,
   updateUserRequestAdminStatus,
   USER_REQUESTS_UPDATED_EVENT,
   type UserMissionAdminStatus,
@@ -116,8 +118,8 @@ function staticRequestToAdminRow(
     key: `demo-${r.title}`,
     title: r.title,
     badge: "ROUTINE",
-    badgeClass: "bg-[#d8e2ff] text-[#001a41]",
-    barColor: "#0058bc",
+    badgeClass: "bg-[#008B8B]/14 text-[#0a3030]",
+    barColor: "#008B8B",
     desc,
     adminStatus,
   };
@@ -134,19 +136,15 @@ export function UserRequestsView() {
     null
   );
   const [userRequestRefresh, setUserRequestRefresh] = useState(0);
-  /** Empty on first paint so SSR + hydration match; filled from `localStorage` after mount. */
-  const [storedAdminRows, setStoredAdminRows] = useState<UserRequestAdminRow[]>(
-    []
-  );
   /** Same as above — never read `localStorage` during render (avoids hydration mismatch). */
   const [storedRequestsSnapshot, setStoredRequestsSnapshot] = useState<
     UserMissionRequest[]
   >([]);
 
   useEffect(() => {
+    pruneDuplicateMarketplaceInquiries();
     const data = loadUserRequests();
     setStoredRequestsSnapshot(data);
-    setStoredAdminRows(data.map(mapUserRequestToAdminRow));
   }, [userRequestRefresh]);
 
   useEffect(() => {
@@ -187,44 +185,53 @@ export function UserRequestsView() {
       window.removeEventListener(USER_REQUESTS_UPDATED_EVENT, onUpdate);
   }, []);
 
-  const tableRows = useMemo(
-    () => [
-      ...storedAdminRows,
-      ...REQUESTS.map((r) =>
-        staticRequestToAdminRow(
-          r,
-          demoAdminByKey[`demo-${r.title}`] ?? "pending"
-        )
-      ),
-    ],
-    [storedAdminRows, demoAdminByKey]
-  );
-
-  const stats = useMemo(() => {
-    let demoPending = 0;
-    let demoAccepted = 0;
-    let demoRejected = 0;
-    for (const r of REQUESTS) {
-      const s = demoAdminByKey[`demo-${r.title}`] ?? "pending";
-      if (s === "pending") demoPending += 1;
-      else if (s === "accepted") demoAccepted += 1;
-      else demoRejected += 1;
+  const { primaryTableRows, additionalInquireTableRows } = useMemo(() => {
+    const primaryStored: UserRequestAdminRow[] = [];
+    const additionalStored: UserRequestAdminRow[] = [];
+    for (const req of storedRequestsSnapshot) {
+      const row = mapUserRequestToAdminRow(req);
+      if (req.requestSource === "marketplace_inquiry") {
+        additionalStored.push(row);
+      } else {
+        primaryStored.push(row);
+      }
     }
-    let storedPending = 0;
-    let storedAccepted = 0;
-    let storedRejected = 0;
-    for (const r of storedRequestsSnapshot) {
-      if (r.adminStatus === "pending") storedPending += 1;
-      else if (r.adminStatus === "accepted") storedAccepted += 1;
-      else storedRejected += 1;
-    }
+    const demoRows = REQUESTS.map((r) =>
+      staticRequestToAdminRow(
+        r,
+        demoAdminByKey[`demo-${r.title}`] ?? "pending"
+      )
+    );
     return {
-      total: REQUESTS.length + storedRequestsSnapshot.length,
-      pending: demoPending + storedPending,
-      accepted: demoAccepted + storedAccepted,
-      rejected: demoRejected + storedRejected,
+      primaryTableRows: [...primaryStored, ...demoRows],
+      additionalInquireTableRows: additionalStored,
     };
   }, [storedRequestsSnapshot, demoAdminByKey]);
+
+  /**
+   * Accepted / Rejected / Pending = exact counts from the two tables below:
+   * `User requests` (stored missions + demo rows) + `Additional Inquires` (marketplace).
+   */
+  const stats = useMemo(() => {
+    const rows = [...primaryTableRows, ...additionalInquireTableRows];
+    let pending = 0;
+    let accepted = 0;
+    let rejected = 0;
+    for (const row of rows) {
+      const s = normalizeUserMissionAdminStatus(
+        typeof row.adminStatus === "string" ? row.adminStatus : undefined
+      );
+      if (s === "accepted") accepted += 1;
+      else if (s === "rejected") rejected += 1;
+      else pending += 1;
+    }
+    return {
+      total: rows.length,
+      pending,
+      accepted,
+      rejected,
+    };
+  }, [primaryTableRows, additionalInquireTableRows]);
 
   const openRequestDetails = (row: UserRequestAdminRow) => {
     const p = resolveUserRequestDetail(row);
@@ -246,7 +253,9 @@ export function UserRequestsView() {
     setDetailModal((prev) =>
       prev && detailPayloadMatchesRow(prev, row) ? null : prev
     );
-    router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
+    if (row.requestSource !== "marketplace_inquiry") {
+      router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
+    }
   };
 
   const handleRejectRow = (row: UserRequestAdminRow) => {
@@ -266,20 +275,26 @@ export function UserRequestsView() {
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      <h1 className="text-lg font-bold tracking-tight text-[#191c1d] sm:text-xl">
+      <h1 className="text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
         User Request
       </h1>
+      <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-slate-600 sm:text-sm">
+        Summary figures count every request in{" "}
+        <span className="font-semibold text-[#191c1d]">User requests</span> and{" "}
+        <span className="font-semibold text-[#191c1d]">Additional Inquires</span>{" "}
+        below.
+      </p>
 
       <section
         className="mt-6 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4"
-        aria-label="Request summary"
+        aria-label="Request summary: User requests and Additional Inquires combined"
       >
         <UserRequestStatCard
           label="Total requests"
           value={stats.total}
           icon={ClipboardList}
-          iconClassName="text-[#0058bc]"
-          iconWrapClassName="bg-[#0058bc]/10"
+          iconClassName="text-[#008B8B]"
+          iconWrapClassName="bg-[#008B8B]/10"
         />
         <UserRequestStatCard
           label="Pending"
@@ -304,15 +319,30 @@ export function UserRequestsView() {
         />
       </section>
 
-      <div className="mt-6 sm:mt-8">
-        <UserRequestTable
-          rows={tableRows}
-          showTitle={false}
-          showTotalSubtitle
-          onViewDetails={openRequestDetails}
-          onAcceptRow={handleAcceptRow}
-          onRejectRow={handleRejectRow}
-        />
+      <div className="mt-6 space-y-8 sm:mt-8 sm:space-y-10">
+        <section aria-label="Mission and user requests">
+          <UserRequestTable
+            title="User requests"
+            rows={primaryTableRows}
+            showTitle
+            showTotalSubtitle
+            onViewDetails={openRequestDetails}
+            onAcceptRow={handleAcceptRow}
+            onRejectRow={handleRejectRow}
+          />
+        </section>
+
+        <section aria-label="Marketplace additional inquires">
+          <UserRequestTable
+            title="Additional Inquires"
+            rows={additionalInquireTableRows}
+            showTitle
+            showTotalSubtitle
+            onViewDetails={openRequestDetails}
+            onAcceptRow={handleAcceptRow}
+            onRejectRow={handleRejectRow}
+          />
+        </section>
       </div>
 
       <UserRequestDetailModal

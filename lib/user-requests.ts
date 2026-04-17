@@ -15,6 +15,8 @@ export type UserMissionRequest = {
   payloadWeightKg: string;
   requestType: string;
   requestPriority: string;
+  /** Set when the row came from Marketplace “Add to inquiry”. */
+  requestSource?: "marketplace_inquiry";
   adminStatus: UserMissionAdminStatus;
 };
 
@@ -79,6 +81,10 @@ export function loadUserRequests(): UserMissionRequest[] {
       payloadWeightKg: r.payloadWeightKg as string,
       requestType: r.requestType as string,
       requestPriority: r.requestPriority as string,
+      requestSource:
+        r.requestSource === "marketplace_inquiry"
+          ? "marketplace_inquiry"
+          : undefined,
       adminStatus: normalizeUserMissionAdminStatus(
         typeof r.adminStatus === "string" ? r.adminStatus : undefined
       ),
@@ -110,6 +116,44 @@ export function userRequestQueueDisplayId(id: string): string {
 export function saveUserRequests(requests: UserMissionRequest[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(USER_REQUESTS_STORAGE_KEY, JSON.stringify(requests));
+}
+
+/**
+ * Keeps one marketplace inquiry per product title (`reasonOrTitle`), preferring the newest
+ * `createdAt`. Other rows are dropped (same array order preserved for survivors).
+ */
+export function dedupeMarketplaceInquiries(
+  requests: UserMissionRequest[]
+): UserMissionRequest[] {
+  const bestByTitle = new Map<string, UserMissionRequest>();
+  for (const r of requests) {
+    if (r.requestSource !== "marketplace_inquiry") continue;
+    const key = r.reasonOrTitle.trim().toLowerCase();
+    const cur = bestByTitle.get(key);
+    if (
+      !cur ||
+      new Date(r.createdAt).getTime() > new Date(cur.createdAt).getTime()
+    ) {
+      bestByTitle.set(key, r);
+    }
+  }
+  const keptIds = new Set(
+    [...bestByTitle.values()].map((r) => r.id)
+  );
+  return requests.filter((r) => {
+    if (r.requestSource !== "marketplace_inquiry") return true;
+    return keptIds.has(r.id);
+  });
+}
+
+/** Persists deduped marketplace rows if anything was removed. */
+export function pruneDuplicateMarketplaceInquiries(): void {
+  if (typeof window === "undefined") return;
+  const all = loadUserRequests();
+  const next = dedupeMarketplaceInquiries(all);
+  if (next.length === all.length) return;
+  saveUserRequests(next);
+  window.dispatchEvent(new Event(USER_REQUESTS_UPDATED_EVENT));
 }
 
 /** Removes a stored mission request (e.g. after admin reject or accept clearing the queue). */
@@ -149,7 +193,18 @@ export function appendUserRequest(
     adminStatus: "pending",
   };
   const all = loadUserRequests();
-  saveUserRequests([entry, ...all]);
+  let rest = all;
+  if (payload.requestSource === "marketplace_inquiry") {
+    const key = payload.reasonOrTitle.trim().toLowerCase();
+    rest = all.filter(
+      (r) =>
+        !(
+          r.requestSource === "marketplace_inquiry" &&
+          r.reasonOrTitle.trim().toLowerCase() === key
+        )
+    );
+  }
+  saveUserRequests([entry, ...rest]);
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(USER_REQUESTS_UPDATED_EVENT));
   }
@@ -212,6 +267,8 @@ export type UserRequestAdminRow = {
   desc: string;
   /** Present for real stored submissions (not demo rows). */
   adminStatus?: UserMissionAdminStatus;
+  /** Marketplace “Additional Inquire” rows only. */
+  requestSource?: "marketplace_inquiry";
 };
 
 export function mapUserRequestToAdminRow(
@@ -227,25 +284,35 @@ export function mapUserRequestToAdminRow(
     barColor = "#ba1a1a";
   } else if (p === "standard") {
     badge = "ROUTINE";
-    badgeClass = "bg-[#d8e2ff] text-[#001a41]";
-    barColor = "#0058bc";
+    badgeClass = "bg-[#008B8B]/14 text-[#0a3030]";
+    barColor = "#008B8B";
   } else {
     badge = "NORMAL";
     badgeClass = "bg-[#cde5ff] text-[#001d32]";
     barColor = "#006195";
   }
 
-  const title =
+  const baseTitle =
     req.reasonOrTitle.trim() ||
     (req.requestType ? `${req.requestType} request` : "Mission request");
+
+  const title =
+    req.requestSource === "marketplace_inquiry"
+      ? `Additional Inquire · ${baseTitle}`
+      : baseTitle;
 
   const payloadLabel = req.requestType
     ? `${req.requestType} cargo`
     : req.reasonOrTitle.trim() || "General cargo";
 
-  const desc = `Payload: ${payloadLabel} (${req.payloadWeightKg || "0"}kg) | Target: ${
-    req.dropLocation.trim() || "—"
-  }`;
+  const desc =
+    req.requestSource === "marketplace_inquiry"
+      ? `Marketplace inquiry | ${req.reasonOrTitle.trim() || "—"} · ${
+          req.payloadWeightKg || "0"
+        } kg | Target: ${req.dropLocation.trim() || "TBC"}`
+      : `Payload: ${payloadLabel} (${req.payloadWeightKg || "0"}kg) | Target: ${
+          req.dropLocation.trim() || "—"
+        }`;
 
   return {
     key: req.id,
@@ -255,5 +322,6 @@ export function mapUserRequestToAdminRow(
     barColor,
     desc,
     adminStatus: req.adminStatus,
+    requestSource: req.requestSource,
   };
 }

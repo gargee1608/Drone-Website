@@ -1,8 +1,10 @@
+import { Suspense } from "react";
+
 import { CreateMissionRequestForm } from "@/components/user-dashboard/create-mission-request-form";
 import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-shell";
 
 export const metadata = {
-  title: "AEROLAMINAR | Create request",
+  title: "Drone Hire | Create request",
   description: "Create a new drone logistics mission request.",
 };
 
@@ -16,7 +18,9 @@ export default function UserDashboardCreateRequestPage() {
         <p className="mb-4 text-xs leading-relaxed text-[#4d5b7f]">
           Initiate a drone logistics mission. Submitted requests appear under My Request.
         </p>
-        <CreateMissionRequestForm />
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-slate-200/60" />}>
+          <CreateMissionRequestForm />
+        </Suspense>
       </div>
     </UserDashboardShell>
   );

@@ -1,25 +1,21 @@
 import { Features } from "@/components/landing/features";
-import { Footer } from "@/components/landing/footer";
-import { Header } from "@/components/landing/header";
 import { Hero } from "@/components/landing/hero";
-import { IndustryUseCases } from "@/components/landing/industry-use-cases";
+import { landingFontClassName } from "@/components/landing/landing-fonts";
+import { LandingSectionDivider } from "@/components/landing/landing-section-divider";
 import { Workflow } from "@/components/landing/workflow";
 
 export default function Home() {
   return (
-    <>
-      <Header
-        ctaLabel="Register a Pilot"
-        ctaHref="/pilot-registration"
-        showNotifications={false}
-      />
-      <main className="flex-1">
+    <div
+      className={`${landingFontClassName} min-h-dvh bg-white font-[family-name:var(--font-landing-body)] text-slate-900 antialiased`}
+    >
+      <main className="overflow-x-hidden bg-white pt-24">
         <Hero />
-        <Features />
+        <LandingSectionDivider />
         <Workflow />
-        <IndustryUseCases />
+        <LandingSectionDivider />
+        <Features />
       </main>
-      <Footer />
-    </>
+    </div>
   );
 }

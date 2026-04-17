@@ -1,79 +1,67 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import {
-  Bell,
-  ClipboardList,
-  Globe,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  Plane,
-  Search,
-  Settings,
-  User,
-  X,
-} from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
-import { Input } from "@/components/ui/input";
+import {
+  commandCenterNavFooter as navFooter,
+  commandCenterNavItemIsActive as navItemIsActive,
+  commandCenterNavMain as navMain,
+} from "@/components/dashboard/command-center-sidebar-nav";
+import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav-context";
+import { SidebarMenuGlyph } from "@/components/nav/sidebar-menu-glyph";
 import { cn } from "@/lib/utils";
-
-const cc = {
-  onSecondaryContainer: "#4d5b7f",
-} as const;
-
-const navMain = [
-  {
-    href: "/dashboard",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    href: "/dashboard/assign",
-    label: "Assign Pilot or Drone",
-    icon: Plane,
-  },
-  {
-    href: "/dashboard/user-requests",
-    label: "User Request",
-    icon: ClipboardList,
-  },
-] as const;
-
-const navFooter = [
-  { href: "/login", label: "Log Out", icon: LogOut },
-] as const;
-
-const footerCompanyLinks = [
-  { href: "#", label: "Privacy Policy" },
-  { href: "#", label: "Terms of Service" },
-  { href: "#", label: "API Docs" },
-  { href: "#", label: "Contact Support" },
-] as const;
-
-function navItemIsActive(pathname: string, href: string): boolean {
-  if (href === "/dashboard") {
-    return pathname === "/dashboard" || pathname === "/dashboard/";
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+const FOOTER_SIDEBAR_INSET_VAR = "--admin-sidebar-footer-inset";
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { sidebarExpanded, setSidebarExpanded } = useAdminDashboardNav();
 
   const closeSidebar = () => setSidebarOpen(false);
   const toggleSidebar = () => setSidebarOpen((open) => !open);
 
+  const onSidebarMenuButtonClick = () => {
+    const wide = globalThis.matchMedia?.("(min-width: 1024px)")?.matches;
+    if (wide) {
+      setSidebarExpanded(false);
+    } else {
+      toggleSidebar();
+    }
+  };
+
+  useEffect(() => {
+    const updateFooterInset = () => {
+      const mq = globalThis.matchMedia?.("(min-width: 1024px)");
+      const wide = mq?.matches ?? false;
+      let inset = "0px";
+      if (wide) {
+        inset = sidebarExpanded ? "16rem" : "0px";
+      } else if (sidebarOpen) {
+        inset = "min(16rem, 85vw)";
+      }
+      document.documentElement.style.setProperty(
+        FOOTER_SIDEBAR_INSET_VAR,
+        inset
+      );
+    };
+
+    updateFooterInset();
+    const mq = globalThis.matchMedia?.("(min-width: 1024px)");
+    mq?.addEventListener("change", updateFooterInset);
+    return () => {
+      mq?.removeEventListener("change", updateFooterInset);
+      document.documentElement.style.removeProperty(FOOTER_SIDEBAR_INSET_VAR);
+    };
+  }, [sidebarExpanded, sidebarOpen]);
+
   return (
-    <div className="flex min-h-screen flex-col bg-[#f8f9fa] text-[#191c1d] antialiased">
+    <div className="flex min-h-0 flex-1 flex-col bg-white pt-20 text-[#191c1d] antialiased sm:pt-22">
       {sidebarOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-[#191c1d]/40 lg:hidden"
+          className="fixed inset-x-0 bottom-0 top-20 z-40 bg-[#191c1d]/40 lg:hidden"
           aria-label="Close navigation"
           onClick={closeSidebar}
         />
@@ -82,32 +70,30 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       <aside
         id="command-center-nav"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-full min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-[#c1c6d7]/30 bg-[#f3f4f5]",
-          "transform transition-transform duration-200 ease-out will-change-transform",
-          "lg:w-64",
-          "-translate-x-full",
+          "fixed bottom-0 left-0 top-20 z-50 flex h-[calc(100dvh-5rem)] max-h-[calc(100dvh-5rem)] min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-border bg-card lg:border-r-0",
+          "transform transition-[transform,width] duration-200 ease-out will-change-transform",
+          sidebarExpanded ? "lg:w-64" : "lg:w-0 lg:max-w-0 lg:overflow-hidden lg:border-0 lg:p-0",
+          "-translate-x-full lg:translate-x-0",
           sidebarOpen && "translate-x-0"
         )}
-        aria-label="Command center sidebar"
+        aria-label="Primary navigation"
       >
-        <div className="flex shrink-0 items-center border-b border-[#c1c6d7]/25 px-2 py-3">
+        <div className="flex shrink-0 items-center px-2 py-2 lg:hidden">
           <button
             type="button"
-            className="flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-[#e7e8e9] hover:text-[#0058bc] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35"
-            onClick={toggleSidebar}
+            className="flex size-10 shrink-0 items-center justify-center rounded-lg text-[#191c1d] transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35"
+            onClick={onSidebarMenuButtonClick}
             aria-expanded={sidebarOpen}
             aria-controls="command-center-nav"
-            aria-label={
-              sidebarOpen ? "Collapse navigation" : "Expand navigation"
-            }
+            aria-label="Sidebar menu"
           >
-            <Menu className="size-[18px]" aria-hidden strokeWidth={2} />
+            <SidebarMenuGlyph />
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
           <nav
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3"
+            className="min-h-0 overflow-y-auto overscroll-contain border-t border-slate-200 px-2 py-2 lg:border-t-0 lg:pb-2 lg:pt-0"
             aria-label="Primary"
           >
             <ul className="flex flex-col gap-0.5" role="list">
@@ -127,11 +113,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                         }
                       }}
                       className={cn(
-                        "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
-                        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35",
+                        "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
+                        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35",
                         isActive
-                          ? "bg-white text-[#0058bc] shadow-sm ring-1 ring-[#c1c6d7]/40"
-                          : "text-[#4d5b7f] hover:bg-[#e7e8e9]/80 active:bg-[#e7e8e9]"
+                          ? "bg-slate-100 text-[#191c1d] shadow-sm ring-1 ring-slate-200"
+                          : "text-[#191c1d] hover:bg-slate-100/90 active:bg-slate-100"
                       )}
                     >
                       <Icon
@@ -147,11 +133,13 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             </ul>
           </nav>
 
-          <div className="shrink-0 border-t border-[#c1c6d7]/25 bg-[#f3f4f5]/80 px-2 py-3">
-            <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-widest text-[#717786]">
-              Account
-            </p>
-            <nav aria-label="Account actions">
+          <div
+            className={cn(
+              "relative z-10 w-full shrink-0 border-t border-slate-200 bg-card px-2 pt-2",
+              "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
+            )}
+          >
+            <nav aria-label="Logout">
               <ul className="flex flex-col gap-0.5" role="list">
                 {navFooter.map(({ href, label, icon: Icon }) => (
                   <li key={href}>
@@ -166,8 +154,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                         }
                       }}
                       className={cn(
-                        "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-[#4d5b7f] transition-colors",
-                        "hover:bg-[#e7e8e9]/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35 active:bg-[#e7e8e9]"
+                        "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors",
+                        "hover:bg-slate-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 active:bg-slate-100"
                       )}
                     >
                       <Icon
@@ -185,148 +173,36 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
+      {/* Full-height vertical rule at sidebar edge (continues over the global footer in the viewport). */}
+      {sidebarExpanded ? (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed bottom-0 left-64 top-20 z-[35] hidden w-px bg-slate-200 lg:block"
+        />
+      ) : null}
+
       <main
         className={cn(
           "flex min-h-0 flex-1 flex-col transition-[margin] duration-200 ease-out",
-          sidebarOpen && "lg:ml-64"
+          sidebarExpanded ? "lg:ml-64" : "lg:ml-0"
         )}
       >
-        <header
-          className="sticky top-0 z-50 flex w-full min-w-0 items-center justify-between gap-3 border-b border-[#c1c6d7]/20 bg-[#f8f9fa]/95 px-4 py-3 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950 sm:gap-4 sm:px-6 lg:px-8"
-        >
-          <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
-            {!sidebarOpen && (
-              <button
-                type="button"
-                className="shrink-0 rounded-xl p-1.5 text-[#4d5b7f] transition-colors hover:bg-[#e7e8e9] hover:text-[#0058bc] dark:text-slate-300"
-                onClick={toggleSidebar}
-                aria-expanded={sidebarOpen}
-                aria-controls="command-center-nav"
-                aria-label="Open navigation menu"
-              >
-                <Menu className="size-4" aria-hidden strokeWidth={2} />
-              </button>
-            )}
-            <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-              <Image
-                src="/aerolaminar-logo.png"
-                alt=""
-                width={64}
-                height={64}
-                className="h-11 w-auto shrink-0 translate-y-1 object-contain sm:h-12 sm:translate-y-1.5 md:h-14 md:translate-y-1.5"
-                priority
-                aria-hidden
-              />
-              <span
-                className={cn(
-                  "shrink-0 text-lg font-bold leading-none tracking-tighter text-black dark:text-white sm:text-xl"
-                )}
-              >
-                AEROLAMINAR
-              </span>
-            </div>
-          </div>
-
-          <div className="flex min-w-0 max-w-[min(100%,calc(100%-8rem))] flex-1 items-center justify-end gap-2 sm:gap-3 md:gap-4">
-            <div className="group relative hidden min-w-0 sm:block sm:w-full sm:max-w-[14rem] md:max-w-xs lg:max-w-sm">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2"
-                style={{ color: cc.onSecondaryContainer }}
-                aria-hidden
-              />
-              <Input
-                type="search"
-                placeholder="Search"
-                className="h-8 w-full rounded-xl border-0 bg-[#e1e3e4] pl-9 pr-3 text-xs transition-shadow focus-visible:ring-2 focus-visible:ring-[#0058bc]/20"
-                aria-label="Search"
-              />
-            </div>
-            <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-              <button
-                type="button"
-                className="p-2 transition-colors hover:text-[#0058bc]"
-                style={{ color: cc.onSecondaryContainer }}
-                aria-label="Notifications"
-              >
-                <Bell className="size-5" />
-              </button>
-              <Link
-                href="/settings"
-                className="p-2 transition-colors hover:text-[#0058bc]"
-                style={{ color: cc.onSecondaryContainer }}
-                aria-label="Settings"
-              >
-                <Settings className="size-5" />
-              </Link>
-            </div>
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#c1c6d7]/30 bg-[#e7e8e9]"
-              aria-label="Account"
-            >
-              <User
-                className="size-[18px]"
-                strokeWidth={2}
-                style={{ color: cc.onSecondaryContainer }}
-                aria-hidden
-              />
-            </div>
-          </div>
-        </header>
-
-        <div className="flex flex-1 flex-col space-y-10 p-4 pb-24 sm:p-8 sm:pb-24">
-          {children}
+        <div className="flex items-center border-b border-slate-200 bg-white px-4 py-2.5 lg:hidden">
+          <button
+            type="button"
+            className="rounded-lg p-2 text-[#191c1d] transition-colors hover:bg-slate-100"
+            onClick={toggleSidebar}
+            aria-expanded={sidebarOpen}
+            aria-controls="command-center-nav"
+            aria-label="Open navigation menu"
+          >
+            <SidebarMenuGlyph className="w-5" />
+          </button>
         </div>
 
-        <footer
-          className="mt-auto w-full border-t border-slate-200/90 bg-[#f8f9fa] py-4 sm:py-5"
-          role="contentinfo"
-        >
-          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 sm:px-6 lg:px-8 md:grid-cols-3 md:items-center md:gap-6 lg:gap-10">
-            <div className="text-center md:text-left">
-              <p className="text-sm font-bold tracking-tight text-black">
-                AEROLAMINAR
-              </p>
-            </div>
-            <div className="min-w-0 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-900 sm:text-[11px] sm:tracking-widest">
-                Company
-              </p>
-              <ul className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 sm:flex-nowrap sm:gap-x-3 md:gap-x-4">
-                {footerCompanyLinks.map((link) => (
-                  <li key={link.label} className="shrink-0">
-                    <a
-                      href={link.href}
-                      className="whitespace-nowrap text-[10px] leading-tight text-slate-600 transition hover:text-slate-900 sm:text-[11px] md:text-xs"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="flex flex-col items-center gap-2 text-center">
-              <div className="flex w-full justify-center gap-2">
-                <a
-                  href="https://twitter.com"
-                  className="inline-flex size-8 items-center justify-center rounded-full border border-gray-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-                  aria-label="X (Twitter)"
-                >
-                  <X className="size-3.5" strokeWidth={2} aria-hidden />
-                </a>
-                <a
-                  href="#"
-                  className="inline-flex size-8 items-center justify-center rounded-full border border-gray-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-                  aria-label="Website"
-                >
-                  <Globe className="size-3.5" strokeWidth={2} aria-hidden />
-                </a>
-              </div>
-              <p className="whitespace-nowrap text-center text-[10px] leading-snug text-slate-600 sm:text-[11px]">
-                © {new Date().getFullYear()} AEROLAMINAR Logistics. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </footer>
+        <div className="flex flex-1 flex-col space-y-10 bg-white px-3 pb-2 pt-0 sm:px-5 sm:pb-2">
+          {children}
+        </div>
       </main>
     </div>
   );

@@ -8,8 +8,8 @@ import { DetailField } from "@/components/dashboard/user-request-detail-modal";
 import { cn } from "@/lib/utils";
 
 const cc = {
-  primary: "#0058bc",
-  primaryContainer: "#0070eb",
+  primary: "#008B8B",
+  primaryContainer: "#006b6b",
   onSurface: "#191c1d",
   secondaryLabel: "#4d5b7f",
   surface: "#f8f9fa",
@@ -22,8 +22,8 @@ const cc = {
   errorContainer: "#ffdad6",
   tertiary: "#006195",
   tertiaryContainer: "#147ab8",
-  primaryFixed: "#d8e2ff",
-  onPrimaryFixed: "#001a41",
+  primaryFixed: "#cfe8e8",
+  onPrimaryFixed: "#0a3030",
   tertiaryFixed: "#cde5ff",
   onTertiaryFixed: "#001d32",
   onSecondaryContainer: "#4d5b7f",
@@ -40,7 +40,7 @@ const PENDING_PILOT_REGISTRATIONS = [
       {
         k: "License Type",
         v: "Commercial Class B",
-        vClass: "text-[#0058bc]",
+        vClass: "text-[#008B8B]",
       },
       { k: "Flight Experience", v: "524 Hours" },
       { k: "Region", v: "Sector 7G North" },
@@ -54,7 +54,7 @@ const PENDING_PILOT_REGISTRATIONS = [
       {
         k: "License Type",
         v: "Cargo Heavy Duty",
-        vClass: "text-[#0058bc]",
+        vClass: "text-[#008B8B]",
       },
       { k: "Flight Experience", v: "1,210 Hours" },
       { k: "Region", v: "Global Logistics Hub" },
@@ -68,7 +68,7 @@ const PENDING_PILOT_REGISTRATIONS = [
       {
         k: "License Type",
         v: "Commercial Class A",
-        vClass: "text-[#0058bc]",
+        vClass: "text-[#008B8B]",
       },
       { k: "Flight Experience", v: "890 Hours" },
       { k: "Region", v: "Eastern Corridor" },
@@ -330,20 +330,24 @@ export function DashboardHomeContent() {
 
   return (
     <>
+      <h1 className="text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
+        Admin Dashboard
+      </h1>
+
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           title="Total Pilots"
           value="1,284"
           icon={Users}
-          iconClassName="text-[#0058bc]"
-          iconBg="bg-[#0058bc]/5"
+          iconClassName="text-[#008B8B]"
+          iconBg="bg-[#008B8B]/5"
         />
         <KpiCard
           title="Total Drones"
           value="4,512"
           icon={Plane}
-          iconClassName="text-[#0058bc]"
-          iconBg="bg-[#0058bc]/5"
+          iconClassName="text-[#008B8B]"
+          iconBg="bg-[#008B8B]/5"
         />
         <KpiCard
           title="Pilot registration pending"
@@ -450,7 +454,7 @@ function PendingRegistrationsSection({
             className={cn(
               "rounded-lg text-xs font-semibold",
               pilotRegView === "pending"
-                ? "bg-[#0058bc] text-white shadow-lg shadow-[#0058bc]/20 hover:bg-[#0070eb]"
+                ? "bg-[#008B8B] text-white shadow-lg shadow-[#008B8B]/20 hover:bg-[#006b6b]"
                 : "bg-[#e7e8e9] hover:bg-[#c1c6d7]/30"
             )}
             style={
@@ -469,7 +473,7 @@ function PendingRegistrationsSection({
             className={cn(
               "rounded-lg text-xs font-semibold",
               pilotRegView === "approved"
-                ? "bg-[#0058bc] text-white shadow-lg shadow-[#0058bc]/20 hover:bg-[#0070eb]"
+                ? "bg-[#008B8B] text-white shadow-lg shadow-[#008B8B]/20 hover:bg-[#006b6b]"
                 : "bg-[#e7e8e9] hover:bg-[#c1c6d7]/30"
             )}
             style={
@@ -588,7 +592,7 @@ function PendingPilotCard({
           type="button"
           size="sm"
           variant="outline"
-          className="w-full rounded-lg border-[#0058bc] text-xs font-bold text-[#0058bc] hover:bg-[#0058bc] hover:text-white"
+          className="w-full rounded-lg border-[#008B8B] text-xs font-bold text-[#008B8B] hover:bg-[#008B8B] hover:text-white"
           onClick={onViewProfile}
         >
           View profile
@@ -598,7 +602,7 @@ function PendingPilotCard({
           <Button
             type="button"
             size="sm"
-            className="bg-[#0058bc] text-xs font-bold text-white hover:bg-[#0070eb]"
+            className="bg-[#008B8B] text-xs font-bold text-white hover:bg-[#006b6b]"
             onClick={onAccept}
           >
             Accept

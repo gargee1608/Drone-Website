@@ -24,7 +24,7 @@ function LoginProfileIcon({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "relative inline-flex size-10 shrink-0 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700",
+        "relative inline-flex size-10 shrink-0 overflow-hidden rounded-full bg-slate-100",
         className
       )}
       aria-hidden
@@ -68,24 +68,26 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
           </button>
           <Link
             href="/"
-            className="flex min-w-0 shrink-0 items-center gap-2.5 sm:gap-3"
+            className="font-heading flex min-w-0 shrink-0 items-center gap-2.5 sm:gap-3.5"
           >
-            <Image
-              src="/aerolaminar-header-logo.png"
-              alt=""
-              width={40}
-              height={40}
-              className="size-9 shrink-0 object-contain sm:size-10"
-              priority
-              aria-hidden
-            />
-            <span className="truncate text-lg font-bold uppercase tracking-tight text-black sm:text-xl">
-              AEROLAMINAR
+            <span className="relative flex size-12 shrink-0 translate-y-0.5 items-center justify-center sm:size-14">
+              <Image
+                src="/aerolaminar-header-logo.png"
+                alt=""
+                width={56}
+                height={56}
+                className="size-full object-contain object-center"
+                priority
+                aria-hidden
+              />
+            </span>
+            <span className="truncate text-lg font-bold uppercase leading-none tracking-tight text-black sm:text-xl">
+              Drone Hire
             </span>
           </Link>
           <nav
             className={cn(
-              "hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex",
+              "site-header-primary-nav hidden items-center gap-6 text-sm font-medium text-[#191c1d] md:flex",
               "lg:gap-8"
             )}
             aria-label="Primary"
@@ -95,9 +97,9 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
                 <ServiceListingMegaMenu
                   key={item.label}
                   triggerClassName={cn(
-                    "text-slate-600 hover:text-[#191c1d]",
+                    "site-header-marketing-link text-[#191c1d] hover:opacity-90",
                     activeHref === "/services" &&
-                      "border-b-2 border-[#0058bc] pb-0.5 font-semibold text-[#0058bc]"
+                      "border-b-2 border-[#008B8B] pb-0.5 font-semibold text-[#191c1d]"
                   )}
                 />
               ) : (
@@ -105,9 +107,10 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
                   key={item.label}
                   href={item.href}
                   className={cn(
+                    "site-header-marketing-link",
                     item.href === activeHref
-                      ? "border-b-2 border-[#0058bc] pb-0.5 font-semibold text-[#0058bc]"
-                      : "transition-colors hover:text-[#191c1d]"
+                      ? "border-b-2 border-[#008B8B] pb-0.5 font-semibold text-[#191c1d]"
+                      : "text-[#191c1d] transition-colors hover:opacity-90"
                   )}
                 >
                   {item.label}
@@ -131,7 +134,7 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
               placeholder="Search"
               title="Search mission ID or drone"
               aria-label="Search mission ID or drone"
-              className="w-full min-w-0 rounded-full border-0 bg-[#e8eaed] py-2.5 pl-10 pr-4 text-sm text-[#191c1d] shadow-inner shadow-slate-900/5 outline-none ring-0 transition placeholder:text-slate-500 focus:bg-[#e3e5e8] focus:ring-2 focus:ring-slate-300/60 sm:pl-11 sm:pr-5"
+              className="w-full min-w-0 rounded-full border-0 bg-[#e8eaed] py-1.5 pl-10 pr-4 text-sm leading-normal text-[#191c1d] shadow-inner shadow-slate-900/5 outline-none ring-0 transition placeholder:text-slate-500 focus:bg-[#e3e5e8] focus:ring-2 focus:ring-slate-300/60 sm:pl-11 sm:pr-5"
             />
           </div>
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
@@ -181,9 +184,9 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
                     <div className="py-2">
                       <ServiceListingMegaMenu
                         triggerClassName={cn(
-                          "text-slate-700",
+                          "site-header-marketing-link text-[#191c1d]",
                           activeHref === "/services" &&
-                            "font-semibold text-[#0058bc]"
+                            "font-semibold text-[#191c1d]"
                         )}
                       />
                     </div>
@@ -191,10 +194,8 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
                     <Link
                       href={item.href}
                       className={cn(
-                        "block rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-[#eceff1]",
-                        item.href === activeHref
-                          ? "text-[#0058bc]"
-                          : "text-slate-800"
+                        "site-header-marketing-link block rounded-lg px-3 py-2.5 text-sm font-semibold text-[#191c1d] hover:bg-[#eceff1]",
+                        item.href === activeHref && "ring-1 ring-[#008B8B]/25"
                       )}
                       onClick={() => setMobileNavOpen(false)}
                     >

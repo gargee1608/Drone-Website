@@ -1,14 +1,29 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { appendUserRequest } from "@/lib/user-requests";
 import { cn } from "@/lib/utils";
 
 export function CreateMissionRequestForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const reasonPrefilled = useRef(false);
   const [reasonOrTitle, setReasonOrTitle] = useState("");
+
+  useEffect(() => {
+    if (reasonPrefilled.current) return;
+    const raw = searchParams.get("reason");
+    if (raw?.trim()) {
+      try {
+        setReasonOrTitle(decodeURIComponent(raw.trim()));
+      } catch {
+        setReasonOrTitle(raw.trim());
+      }
+      reasonPrefilled.current = true;
+    }
+  }, [searchParams]);
   const [pickupLocation, setPickupLocation] = useState("");
   const [dropLocation, setDropLocation] = useState("");
   const [payloadWeightKg, setPayloadWeightKg] = useState("0.0");
@@ -45,7 +60,7 @@ export function CreateMissionRequestForm() {
           value={reasonOrTitle}
           onChange={(e) => setReasonOrTitle(e.target.value)}
           placeholder="Short title or reason for this request"
-          className="w-full rounded-lg border border-[#c1c6d7] bg-transparent px-3 py-2.5 text-xs text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#0058bc] focus:ring-2 focus:ring-[#0058bc]/25"
+          className="w-full rounded-lg border border-[#c1c6d7] bg-transparent px-3 py-2.5 text-xs text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
         />
       </div>
       <div className="space-y-1.5">
@@ -57,7 +72,7 @@ export function CreateMissionRequestForm() {
           value={pickupLocation}
           onChange={(e) => setPickupLocation(e.target.value)}
           placeholder="Enter hangar or coordinates"
-          className="w-full rounded-lg border border-[#c1c6d7] bg-transparent px-3 py-2.5 text-xs text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#0058bc] focus:ring-2 focus:ring-[#0058bc]/25"
+          className="w-full rounded-lg border border-[#c1c6d7] bg-transparent px-3 py-2.5 text-xs text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
         />
       </div>
       <div className="space-y-1.5">
@@ -69,7 +84,7 @@ export function CreateMissionRequestForm() {
           value={dropLocation}
           onChange={(e) => setDropLocation(e.target.value)}
           placeholder="Enter destination"
-          className="w-full rounded-lg border border-[#c1c6d7] bg-transparent px-3 py-2.5 text-xs text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#0058bc] focus:ring-2 focus:ring-[#0058bc]/25"
+          className="w-full rounded-lg border border-[#c1c6d7] bg-transparent px-3 py-2.5 text-xs text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
         />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -86,7 +101,7 @@ export function CreateMissionRequestForm() {
               value={payloadWeightKg}
               onChange={(e) => setPayloadWeightKg(e.target.value)}
               placeholder="0.0"
-              className="w-full rounded-lg border border-[#c1c6d7] bg-transparent py-2.5 pl-3 pr-12 text-xs text-[#191c1d] outline-none transition focus:border-[#0058bc] focus:ring-2 focus:ring-[#0058bc]/25"
+              className="w-full rounded-lg border border-[#c1c6d7] bg-transparent py-2.5 pl-3 pr-12 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[#4d5b7f]">
               kg
@@ -101,7 +116,7 @@ export function CreateMissionRequestForm() {
             value={requestType}
             onChange={(e) => setRequestType(e.target.value)}
             className={cn(
-              "w-full appearance-none rounded-lg border border-[#c1c6d7] bg-transparent bg-[length:0.875rem] bg-[right_0.75rem_center] bg-no-repeat py-2.5 pl-3 pr-9 text-xs outline-none transition focus:border-[#0058bc] focus:ring-2 focus:ring-[#0058bc]/25",
+              "w-full appearance-none rounded-lg border border-[#c1c6d7] bg-transparent bg-[length:0.875rem] bg-[right_0.75rem_center] bg-no-repeat py-2.5 pl-3 pr-9 text-xs outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25",
               requestType === ""
                 ? "text-[#717786]"
                 : "text-[#191c1d]"
@@ -127,7 +142,7 @@ export function CreateMissionRequestForm() {
           value={requestPriority}
           onChange={(e) => setRequestPriority(e.target.value)}
           className={cn(
-            "w-full appearance-none rounded-lg border border-[#c1c6d7] bg-transparent bg-[length:0.875rem] bg-[right_0.75rem_center] bg-no-repeat py-2.5 pl-3 pr-9 text-xs outline-none transition focus:border-[#0058bc] focus:ring-2 focus:ring-[#0058bc]/25",
+            "w-full appearance-none rounded-lg border border-[#c1c6d7] bg-transparent bg-[length:0.875rem] bg-[right_0.75rem_center] bg-no-repeat py-2.5 pl-3 pr-9 text-xs outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25",
             requestPriority === ""
               ? "text-[#717786]"
               : "text-[#191c1d]"
@@ -147,7 +162,7 @@ export function CreateMissionRequestForm() {
         <button
           type="submit"
           className={cn(
-            "w-full rounded-lg bg-gradient-to-r from-[#0058bc] to-[#0070eb] py-3 text-sm font-bold tracking-wide text-white shadow-md shadow-[#0058bc]/20 transition hover:opacity-[0.98] active:scale-[0.99]"
+            "w-full rounded-lg bg-gradient-to-r from-[#008B8B] to-[#006b6b] py-3 text-sm font-bold tracking-wide text-white shadow-md shadow-[#008B8B]/20 transition hover:opacity-[0.98] active:scale-[0.99]"
           )}
         >
           Submit the Request

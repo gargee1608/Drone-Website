@@ -1,9 +1,9 @@
 import { ServicesView } from "@/components/services/services-view";
 
 export const metadata = {
-  title: "Our Services — AEROLAMINAR",
+  title: "AERO LAMINAR | Drone Services",
   description:
-    "Explore specialized drone-powered solutions for logistics and aerial intelligence.",
+    "Smart drone services designed for efficiency, precision, and reliability.",
 };
 
 export default function ServicesPage() {

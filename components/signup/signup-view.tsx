@@ -1,15 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
-
-const bgImageUrl =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDkixcfsboUXaEfIaZmoujti7hfSba0B2AfWeflMndcGb2jOOgnw2QOBKTr9fWIegCpdkKJ1FZrznUkySsDuOLxMm7WnBNIc00w63GQI7-vEvhg2Fnu9MOvs4XHMTrpd_MdIYc_3efAvdWdCnePjx3yK7AwsMGTJR8SKL0DspUpBGp2dYRKZ-YY0FPxfIL2EJ3FozIFsKIATIPNiH8uSvJ2X01BdpxCZVaLKNUGF9mjNylsaLhinsE4lDjNsxa681VxlwN6AUcy_2L9";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -42,73 +38,19 @@ export function SignUpView() {
     confirm?: string;
   }>({});
 
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, []);
-
   return (
-    <div className="relative flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#f8f9fa] text-[#191c1d]">
-      <div className="absolute inset-0 z-0 min-h-full w-full">
-        <Image
-          src={bgImageUrl}
-          alt=""
-          fill
-          className="object-cover opacity-20"
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#f8f9fa]/80 via-[#f3f4f5]/90 to-[#f8f9fa]" />
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, #0058bc 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }}
-        />
-      </div>
-
-      <div className="pointer-events-none fixed top-[20%] -left-[10%] -z-10 h-[40%] w-[40%] rounded-full bg-[#0058bc]/5 blur-[120px]" />
-      <div className="pointer-events-none fixed right-[-5%] bottom-[10%] -z-10 h-[30%] w-[30%] rounded-full bg-[#006195]/5 blur-[100px]" />
-
-      <header className="relative z-50 flex w-full shrink-0 items-center py-2.5 pl-2 pr-3 sm:py-3 sm:pl-3 sm:pr-6">
-        <Link
-          href="/"
-          className="flex shrink-0 items-center gap-2.5 transition-opacity hover:opacity-90"
-        >
-          <Image
-            src="/aerolaminar-logo.png"
-            alt=""
-            width={48}
-            height={48}
-            className="h-9 w-9 shrink-0 translate-y-px object-contain object-center sm:h-10 sm:w-10"
-            priority
-            aria-hidden
-          />
-          <span
-            className={cn(
-              "text-lg font-bold leading-tight tracking-tight text-black sm:text-xl"
-            )}
-          >
-            AEROLAMINAR
-          </span>
-        </Link>
-      </header>
-
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 sm:py-4 [&::-webkit-scrollbar]:hidden">
-        <div className="login-glass-card relative w-full max-w-[340px] overflow-hidden rounded-xl p-5 shadow-lg shadow-[#4d5b7f]/8 sm:max-w-[400px] sm:p-6">
+    <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-background text-foreground">
+      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-visible px-4 py-8 pb-12 sm:px-6 sm:py-10 sm:pb-16">
+        <div className="login-glass-card relative w-full max-w-[340px] rounded-xl p-5 shadow-lg shadow-[#4d5b7f]/8 sm:max-w-[400px] sm:p-6">
           <div
-            className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 rounded-t-xl bg-gradient-to-r from-[#0058bc] via-[#0070eb] to-[#006195] shadow-[0_2px_10px_rgba(0,88,188,0.35)]"
+            className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 rounded-t-xl bg-gradient-to-r from-[#008B8B] via-[#006b6b] to-[#006195] shadow-[0_2px_10px_rgba(0,88,188,0.35)]"
             aria-hidden
           />
 
           <div className="mb-4 pt-0.5 text-center sm:mb-5">
             <div className="mb-2.5 flex justify-center sm:mb-3">
-              <div className="flex size-11 items-center justify-center rounded-lg border border-[#0058bc]/20 bg-[#0058bc]/10 shadow-sm sm:size-12">
-                <User className="size-6 text-[#0058bc] sm:size-7" strokeWidth={1.75} />
+              <div className="flex size-11 items-center justify-center rounded-lg border border-[#008B8B]/20 bg-[#008B8B]/10 shadow-sm sm:size-12">
+                <User className="size-6 text-[#008B8B] sm:size-7" strokeWidth={1.75} />
               </div>
             </div>
             <h1
@@ -163,7 +105,7 @@ export function SignUpView() {
                     "w-full rounded-md border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-all focus:ring-2 sm:py-2.5 sm:pl-10",
                     errors.email
                       ? "ring-2 ring-red-500/80 focus:ring-red-500/50"
-                      : "focus:ring-[#0058bc]/20"
+                      : "focus:ring-[#008B8B]/20"
                   )}
                 />
               </div>
@@ -207,7 +149,7 @@ export function SignUpView() {
                     "w-full rounded-md border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-all focus:ring-2 sm:py-2.5 sm:pl-10",
                     errors.password
                       ? "ring-2 ring-red-500/80 focus:ring-red-500/50"
-                      : "focus:ring-[#0058bc]/20"
+                      : "focus:ring-[#008B8B]/20"
                   )}
                 />
               </div>
@@ -251,7 +193,7 @@ export function SignUpView() {
                     "w-full rounded-md border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-all focus:ring-2 sm:py-2.5 sm:pl-10",
                     errors.confirm
                       ? "ring-2 ring-red-500/80 focus:ring-red-500/50"
-                      : "focus:ring-[#0058bc]/20"
+                      : "focus:ring-[#008B8B]/20"
                   )}
                 />
               </div>
@@ -269,7 +211,7 @@ export function SignUpView() {
             <button
               type="submit"
               className={cn(
-                "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#0058bc] to-[#0070eb] py-2.5 px-3 text-sm font-bold text-white shadow-md shadow-[#0058bc]/20 transition-all hover:shadow-[#0058bc]/35 active:scale-[0.99] sm:py-3"
+                "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#008B8B] to-[#006b6b] py-2.5 px-3 text-sm font-bold text-white shadow-md shadow-[#008B8B]/20 transition-all hover:shadow-[#008B8B]/35 active:scale-[0.99] sm:py-3"
               )}
             >
               Create account
@@ -282,7 +224,7 @@ export function SignUpView() {
               Already have an account?{" "}
               <Link
                 href="/login"
-                className="ml-1 font-bold text-[#0058bc] hover:underline"
+                className="ml-1 font-bold text-[#008B8B] hover:underline"
               >
                 Sign In
               </Link>
@@ -290,32 +232,6 @@ export function SignUpView() {
           </div>
         </div>
       </main>
-
-      <footer className="relative z-50 flex shrink-0 flex-col items-center justify-center gap-2 border-t border-slate-200/60 bg-[#f8f9fa]/90 px-3 py-2.5 backdrop-blur-sm sm:flex-row sm:gap-6 sm:py-3">
-        <span className="text-center text-[11px] tracking-wide text-slate-500 sm:text-xs">
-          © 2024 AEROLAMINAR. All rights reserved.
-        </span>
-        <div className="flex flex-wrap justify-center gap-3 sm:gap-5">
-          <a
-            href="#"
-            className="text-[11px] tracking-wide text-slate-500 underline opacity-80 transition-all hover:text-blue-400 hover:opacity-100 sm:text-xs"
-          >
-            Privacy Policy
-          </a>
-          <a
-            href="#"
-            className="text-[11px] tracking-wide text-slate-500 underline opacity-80 transition-all hover:text-blue-400 hover:opacity-100 sm:text-xs"
-          >
-            Terms of Service
-          </a>
-          <a
-            href="#"
-            className="text-[11px] tracking-wide text-slate-500 underline opacity-80 transition-all hover:text-blue-400 hover:opacity-100 sm:text-xs"
-          >
-            Compliance
-          </a>
-        </div>
-      </footer>
     </div>
   );
 }
