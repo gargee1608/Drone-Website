@@ -12,7 +12,14 @@ export function ConditionalSiteFooter() {
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
     (pathname?.startsWith("/dashboard/") ?? false);
-  const whiteFooterChrome = isAdminDashboard;
+  const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
+  const isSettings =
+    pathname === "/settings" ||
+    pathname === "/settings/" ||
+    (pathname?.startsWith("/settings/") ?? false);
+  const isDashboardShellFooter =
+    isAdminDashboard || isUserDashboard || isSettings;
+  const whiteFooterChrome = isDashboardShellFooter;
   const isLandingChrome =
     pathname === "/" ||
     pathname === "" ||
@@ -26,27 +33,28 @@ export function ConditionalSiteFooter() {
     pathname?.startsWith("/blogs/") ||
     pathname === "/contact" ||
     pathname?.startsWith("/contact/") ||
-    pathname === "/settings" ||
-    pathname?.startsWith("/settings/") ||
     pathname === "/dashboard" ||
-    pathname?.startsWith("/dashboard/") ||
-    pathname?.startsWith("/user-dashboard");
+    pathname?.startsWith("/dashboard/");
+
+  if (isDashboardShellFooter) {
+    return (
+      <>
+        <div className="h-px w-full shrink-0 bg-slate-200" aria-hidden />
+        <SiteFooter className="bg-white" />
+      </>
+    );
+  }
 
   if (isLandingChrome) {
-    const isSettingsShell = pathname?.startsWith("/settings") ?? false;
-    const isDashboardShell =
-      pathname?.startsWith("/dashboard") ||
-      pathname?.startsWith("/user-dashboard");
-    const sidebarShell = isSettingsShell || isDashboardShell;
+    const sidebarShell = pathname?.startsWith("/dashboard");
 
     const landingFooterClass = sidebarShell
       ? cn(
-          "px-0",
-          "pl-[max(1rem,calc(var(--admin-sidebar-footer-inset,0px)+1rem))] pr-4",
-          "sm:pl-[max(1.5rem,calc(var(--admin-sidebar-footer-inset,0px)+1.5rem))] sm:pr-6",
-          isSettingsShell
-            ? "lg:pl-[calc(var(--admin-sidebar-footer-inset,0px)+2.5rem)] lg:pr-10"
-            : "lg:pl-[calc(var(--admin-sidebar-footer-inset,0px)+2rem)] lg:pr-8"
+          "z-30",
+          "px-4 sm:px-6 lg:px-8",
+          "lg:ml-[var(--admin-sidebar-footer-inset,0px)]",
+          "lg:w-[calc(100%-var(--admin-sidebar-footer-inset,0px))]",
+          "lg:transition-[margin-left,width] lg:duration-200 lg:ease-out"
         )
       : "px-4 sm:px-8";
 

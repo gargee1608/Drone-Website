@@ -99,7 +99,7 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
                   triggerClassName={cn(
                     "site-header-marketing-link text-[#191c1d] hover:opacity-90",
                     activeHref === "/services" &&
-                      "border-b-2 border-[#0058bc] pb-0.5 font-semibold text-[#191c1d]"
+                      "border-b-2 border-[#008B8B] pb-0.5 font-semibold text-[#191c1d]"
                   )}
                 />
               ) : (
@@ -109,7 +109,7 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
                   className={cn(
                     "site-header-marketing-link",
                     item.href === activeHref
-                      ? "border-b-2 border-[#0058bc] pb-0.5 font-semibold text-[#191c1d]"
+                      ? "border-b-2 border-[#008B8B] pb-0.5 font-semibold text-[#191c1d]"
                       : "text-[#191c1d] transition-colors hover:opacity-90"
                   )}
                 >
@@ -195,7 +195,7 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
                       href={item.href}
                       className={cn(
                         "site-header-marketing-link block rounded-lg px-3 py-2.5 text-sm font-semibold text-[#191c1d] hover:bg-[#eceff1]",
-                        item.href === activeHref && "ring-1 ring-[#0058bc]/25"
+                        item.href === activeHref && "ring-1 ring-[#008B8B]/25"
                       )}
                       onClick={() => setMobileNavOpen(false)}
                     >

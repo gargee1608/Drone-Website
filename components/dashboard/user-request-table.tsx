@@ -245,7 +245,7 @@ export function UserRequestTable({
                   key={m.key}
                   className={cn(
                     "border-b border-slate-200 transition-colors last:border-0 hover:bg-slate-50/90",
-                    highlightRow && "bg-sky-50/70 hover:bg-sky-50/90"
+                    highlightRow && "bg-[#008B8B]/8 hover:bg-[#008B8B]/12"
                   )}
                 >
                   <td className="min-w-0 px-2 py-2.5 align-top sm:px-3 sm:py-3">
@@ -260,11 +260,11 @@ export function UserRequestTable({
                     {onViewDetails ? (
                       <button
                         type="button"
-                        className="flex min-w-0 w-full cursor-pointer items-start gap-1.5 rounded-md text-left outline-none transition-colors hover:bg-slate-100/90 focus-visible:ring-2 focus-visible:ring-[#0058bc]/40 sm:gap-2"
+                        className="flex min-w-0 w-full cursor-pointer items-start gap-1.5 rounded-md text-left outline-none transition-colors hover:bg-slate-100/90 focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 sm:gap-2"
                         aria-label={`View request details: ${m.title}`}
                         onClick={() => onViewDetails(m)}
                       >
-                        <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-[#0058bc]/8 text-[#0058bc]">
+                        <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
                           <ReqIcon className="size-3 shrink-0" aria-hidden />
                         </span>
                         <span className="min-w-0 break-words font-medium leading-tight text-[#191c1d] underline-offset-2 hover:underline">
@@ -273,7 +273,7 @@ export function UserRequestTable({
                       </button>
                     ) : (
                       <div className="flex min-w-0 items-start gap-1.5 sm:gap-2">
-                        <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-[#0058bc]/8 text-[#0058bc]">
+                        <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
                           <ReqIcon className="size-3 shrink-0" aria-hidden />
                         </span>
                         <span className="min-w-0 break-words font-medium leading-tight text-[#191c1d]">
@@ -328,7 +328,7 @@ export function UserRequestTable({
                     <div className="flex items-center justify-center gap-2 sm:gap-2.5">
                       <button
                         type="button"
-                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-sky-100 text-[#0058bc] transition-colors hover:bg-sky-200/90 disabled:pointer-events-none disabled:opacity-40"
+                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/15 text-[#008B8B] transition-colors hover:bg-[#008B8B]/25 disabled:pointer-events-none disabled:opacity-40"
                         aria-label={`Accept request ${tableRequestId(m)}`}
                         disabled={!onAcceptRow || reviewComplete}
                         onClick={() => onAcceptRow?.(m)}

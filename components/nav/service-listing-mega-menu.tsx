@@ -5,31 +5,31 @@ import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-/** Flat list — links match anchors on /services */
+/** Flat list — each service opens its detail page */
 export const serviceMegaMenuItems = [
   {
-    href: "/services#delivery",
-    title: "Delivery Services",
+    href: "/services/medical-logistics",
+    title: "Medical Logistics",
     description:
-      "Last-mile logistics and medical supply transport for urban and remote areas.",
+      "Time-sensitive medical cargo including specimens, organs, and pharmaceuticals.",
   },
   {
-    href: "/services#emergency",
-    title: "Emergency Logistics",
+    href: "/services/precision-surveillance",
+    title: "Precision Surveillance",
     description:
-      "Rapid response for search & rescue, disasters, and critical cargo.",
+      "4K thermal and multi-spectral monitoring for industrial sites.",
   },
   {
-    href: "/services#surveillance",
-    title: "Surveillance & Monitoring",
+    href: "/services/emergency-response",
+    title: "Emergency Response",
     description:
-      "Real-time aerial oversight with thermal and HD imaging.",
+      "Rapid deployment for disasters, SAR, and critical relay missions.",
   },
   {
-    href: "/services#infrastructure",
-    title: "Infrastructure Inspection",
+    href: "/services/infrastructure",
+    title: "Infrastructure",
     description:
-      "High-resolution asset surveys for turbines, lines, and sites.",
+      "LiDAR scanning and structural reporting for facilities and assets.",
   },
 ] as const;
 
@@ -46,7 +46,7 @@ export function ServiceListingMegaMenu({
 }: ServiceListingMegaMenuProps) {
   const triggerBase =
     variant === "landing"
-      ? "inline-flex items-center gap-1 text-sm font-medium text-slate-600 transition-colors duration-300 hover:text-[#0d6200]"
+      ? "inline-flex items-center gap-1 text-sm font-medium text-slate-600 transition-colors duration-300 hover:text-[#008B8B]"
       : "site-header-marketing-link inline-flex items-center gap-1 text-[#191c1d] transition-colors hover:opacity-90";
 
   return (
@@ -73,7 +73,7 @@ export function ServiceListingMegaMenu({
                 key={href}
                 href={href}
                 role="menuitem"
-                className="group/item block rounded-lg px-3 py-2.5 text-sm font-semibold leading-snug text-[#008C8C] outline-none transition-colors first:pt-2 last:pb-2 hover:bg-[#008C8C]/10 hover:text-[#007070] focus-visible:ring-2 focus-visible:ring-[#008C8C]/30 dark:text-[#008C8C] dark:hover:bg-[#008C8C]/15 dark:hover:text-[#00a8a8]"
+                className="group/item block rounded-lg px-3 py-2.5 text-sm font-semibold leading-snug text-[#008B8B] outline-none transition-colors first:pt-2 last:pb-2 hover:bg-[#008B8B]/10 hover:text-[#006b6b] focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:text-[#008B8B] dark:hover:bg-[#008B8B]/15 dark:hover:text-[#00a8a8]"
               >
                 {title}
               </Link>

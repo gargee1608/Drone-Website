@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Bell, Menu, Search, Settings, User, X } from "lucide-react";
+import { Bell, Menu, Plane, Search, Settings, User, X } from "lucide-react";
 
 import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav-context";
 import {
@@ -15,8 +15,12 @@ import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+const landingOutlineButtonClassName =
+  "inline-flex h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-4 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase transition hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent";
+
 export function LandingHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const isAdminDashboard =
     pathname === "/dashboard" ||
@@ -25,6 +29,13 @@ export function LandingHeader() {
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
   const isSettingsPage =
     pathname === "/settings" || (pathname?.startsWith("/settings/") ?? false);
+  const showUserDashboardSidebar = isUserDashboard || isSettingsPage;
+  const compactAppHeader =
+    isAdminDashboard || isUserDashboard || isSettingsPage;
+  const isHomePage = pathname === "/" || pathname === "";
+  const isPilotRegistration =
+    pathname === "/pilot-registration" ||
+    (pathname?.startsWith("/pilot-registration/") ?? false);
   const {
     sidebarExpanded: adminSidebarExpanded,
     setSidebarExpanded: setAdminSidebarExpanded,
@@ -34,21 +45,33 @@ export function LandingHeader() {
     setSidebarExpanded: setUserSidebarExpanded,
   } = useUserDashboardNav();
 
+  const isMarketingAuthPage =
+    pathname === "/marketplace" ||
+    (pathname?.startsWith("/marketplace/") ?? false) ||
+    pathname === "/services" ||
+    (pathname?.startsWith("/services/") ?? false) ||
+    pathname === "/blogs" ||
+    (pathname?.startsWith("/blogs/") ?? false) ||
+    pathname === "/contact";
   const hideRegisterPilotCta =
     pathname === "/login" ||
     pathname === "/pilot-registration" ||
-    pathname === "/marketplace" ||
-    pathname?.startsWith("/marketplace/") ||
-    pathname === "/services" ||
-    pathname?.startsWith("/services/") ||
-    pathname === "/blogs" ||
-    pathname?.startsWith("/blogs/") ||
-    pathname === "/contact" ||
     pathname === "/settings" ||
     pathname?.startsWith("/settings/") ||
     isAdminDashboard ||
     isUserDashboard;
-  const hideLoginIcon = pathname === "/pilot-registration";
+  const showHeaderLoginButton = isHomePage || isMarketingAuthPage;
+  const hideLoginIcon =
+    pathname === "/pilot-registration" || showHeaderLoginButton;
+
+  const hideNotificationsAndSettings =
+    pathname === "/marketplace" ||
+    (pathname?.startsWith("/marketplace/") ?? false) ||
+    pathname === "/services" ||
+    (pathname?.startsWith("/services/") ?? false) ||
+    pathname === "/blogs" ||
+    (pathname?.startsWith("/blogs/") ?? false) ||
+    pathname === "/contact";
 
   const settingsHref = isUserDashboard
     ? "/settings?from=user"
@@ -58,7 +81,7 @@ export function LandingHeader() {
 
   const linkClass = (href: string) =>
     cn(
-      "text-sm font-medium text-slate-600 transition-colors duration-300 hover:text-[#0d6200]",
+      "text-sm font-medium text-slate-600 transition-colors duration-300 hover:text-[#008B8B]",
       (pathname === href || pathname?.startsWith(`${href}/`)) &&
         "font-semibold text-slate-900"
     );
@@ -66,29 +89,20 @@ export function LandingHeader() {
   return (
     <header className="fixed top-0 z-50 w-full border-b border-slate-100 bg-white">
       <nav
-        className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8"
+        className={cn(
+          "mx-auto flex max-w-[1600px] flex-wrap items-center justify-between px-4 sm:px-6 lg:px-8",
+          compactAppHeader
+            ? "gap-3 py-2.5 sm:py-3"
+            : "gap-4 py-4"
+        )}
         aria-label="Primary"
       >
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4 sm:gap-8 lg:gap-12">
           <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
-            {isSettingsPage ? (
-              <button
-                type="button"
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#009aa1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#009aa1]/35"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(new Event("settings-nav-toggle"));
-                  }
-                }}
-                aria-label="Toggle settings sidebar"
-              >
-                <Menu className="size-5" strokeWidth={2.25} aria-hidden />
-              </button>
-            ) : null}
             {isAdminDashboard ? (
               <button
                 type="button"
-                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#009aa1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#009aa1]/35 lg:inline-flex"
+                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 lg:inline-flex"
                 onClick={() =>
                   setAdminSidebarExpanded(!adminSidebarExpanded)
                 }
@@ -103,17 +117,17 @@ export function LandingHeader() {
                 <SidebarMenuGlyph />
               </button>
             ) : null}
-            {isUserDashboard ? (
+            {showUserDashboardSidebar ? (
               <button
                 type="button"
-                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#009aa1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#009aa1]/35 lg:inline-flex"
+                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 lg:inline-flex"
                 onClick={() =>
                   setUserSidebarExpanded(!userSidebarExpanded)
                 }
                 aria-label={
                   userSidebarExpanded
-                    ? "Collapse user dashboard sidebar"
-                    : "Expand user dashboard sidebar"
+                    ? "Collapse sidebar"
+                    : "Expand sidebar"
                 }
                 aria-expanded={userSidebarExpanded}
                 aria-controls="user-dashboard-sidebar"
@@ -123,9 +137,14 @@ export function LandingHeader() {
             ) : null}
             <Link
               href="/"
-              className="font-[family-name:var(--font-landing-headline)] text-lg font-bold tracking-tighter text-[#009aa1] uppercase sm:text-xl"
+              className="inline-flex min-w-0 items-center gap-2 font-[family-name:var(--font-landing-headline)] text-lg font-bold tracking-tighter text-[#008B8B] uppercase sm:gap-2.5 sm:text-xl"
             >
-              Drone Hire
+              <Plane
+                className="size-6 shrink-0 text-[#008B8B] sm:size-7"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+              <span>Drone Hire</span>
             </Link>
           </div>
           {!isAdminDashboard ? (
@@ -187,37 +206,53 @@ export function LandingHeader() {
             <Link
               href="/pilot-registration"
               className={cn(
-                "hidden h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008C8C] bg-transparent px-4 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008C8C] uppercase transition hover:border-[#007070] hover:text-[#007070] hover:bg-transparent sm:inline-flex",
+                "hidden sm:inline-flex",
+                landingOutlineButtonClassName,
                 hideRegisterPilotCta && "sm:hidden"
               )}
             >
               Register a Pilot
             </Link>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="text-slate-500 hover:text-[#009aa1]"
-              aria-label="Notifications"
-            >
-              <Bell className="size-5" />
-            </Button>
-            <Link
-              href={settingsHref}
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "icon" }),
-                "text-slate-500 hover:text-[#009aa1]"
-              )}
-              aria-label="Settings"
-            >
-              <Settings className="size-5" />
-            </Link>
-            {!hideLoginIcon ? (
+            {showHeaderLoginButton ? (
+              <button
+                type="button"
+                onClick={() => router.replace("/login")}
+                className={cn("hidden sm:inline-flex", landingOutlineButtonClassName)}
+              >
+                Login
+              </button>
+            ) : null}
+            {!isHomePage &&
+            !isPilotRegistration &&
+            !hideNotificationsAndSettings ? (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-slate-500 hover:text-[#008B8B]"
+                  aria-label="Notifications"
+                >
+                  <Bell className="size-5" />
+                </Button>
+                <Link
+                  href={settingsHref}
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "icon" }),
+                    "text-slate-500 hover:text-[#008B8B]"
+                  )}
+                  aria-label="Settings"
+                >
+                  <Settings className="size-5" />
+                </Link>
+              </>
+            ) : null}
+            {!hideLoginIcon && !isHomePage ? (
               <Link
                 href="/login"
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon" }),
-                  "shrink-0 text-slate-500 hover:text-[#009aa1]"
+                  "shrink-0 text-slate-500 hover:text-[#008B8B]"
                 )}
                 aria-label="Login"
               >
@@ -274,7 +309,7 @@ export function LandingHeader() {
             ))}
             <Link
               href="/services"
-              className="rounded-lg px-3 py-2 text-sm font-semibold text-[#009aa1] hover:bg-slate-50"
+              className="rounded-lg px-3 py-2 text-sm font-semibold text-[#008B8B] hover:bg-slate-50"
               onClick={() => setOpen(false)}
             >
               View all services
@@ -320,10 +355,25 @@ export function LandingHeader() {
             Login
           </Link>
         )}
+        {isHomePage ? (
+          <button
+            type="button"
+            className="mt-4 flex h-11 w-full items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent"
+            onClick={() => {
+              router.replace("/login");
+              setOpen(false);
+            }}
+          >
+            Login
+          </button>
+        ) : null}
         {!hideRegisterPilotCta ? (
           <Link
             href="/pilot-registration"
-            className="mt-4 flex h-11 w-full items-center justify-center rounded-md border-2 border-[#008C8C] bg-transparent font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008C8C] uppercase hover:border-[#007070] hover:text-[#007070] hover:bg-transparent"
+            className={cn(
+              "flex h-11 w-full items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent",
+              isHomePage ? "mt-2" : "mt-4"
+            )}
             onClick={() => setOpen(false)}
           >
             Register a Pilot

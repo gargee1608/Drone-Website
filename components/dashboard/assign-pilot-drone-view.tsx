@@ -6,8 +6,6 @@ import {
   Drone,
   Eye,
   MapPin,
-  Package,
-  Plane,
   User,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -351,14 +349,14 @@ export function AssignPilotDroneView() {
           key={req.id}
           className={cn(
             "rounded-xl border bg-white/90 p-4 shadow-sm sm:p-5",
-            isNext && "border-[#0058bc] ring-2 ring-[#0058bc]/15",
+            isNext && "border-[#008B8B] ring-2 ring-[#008B8B]/15",
             !isNext && "border-slate-200/90",
             isAssigned && !isNext && "opacity-[0.92]"
           )}
         >
           {!isAssigned && isNext ? (
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-[#0058bc] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+              <span className="rounded-full bg-[#008B8B] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
                 Next to assign
               </span>
             </div>
@@ -390,7 +388,7 @@ export function AssignPilotDroneView() {
             </div>
             <div className="flex gap-3 rounded-xl bg-slate-50/80 px-4 py-3 sm:col-span-2 lg:col-span-1">
               <MapPin
-                className="mt-0.5 size-5 shrink-0 text-[#0058bc]"
+                className="mt-0.5 size-5 shrink-0 text-[#008B8B]"
                 aria-hidden
               />
               <div className="min-w-0">
@@ -460,7 +458,7 @@ export function AssignPilotDroneView() {
             <button
               type="button"
               disabled={noUserRequests}
-              className="inline-flex items-center justify-center rounded-full border-2 border-[#0058bc] bg-white px-8 py-2.5 text-sm font-bold text-[#0058bc] shadow-sm transition hover:bg-[#0058bc]/5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center rounded-full border-2 border-[#008B8B] bg-white px-8 py-2.5 text-sm font-bold text-[#008B8B] shadow-sm transition hover:bg-[#008B8B]/5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => {
                 if (!noUserRequests) setAssignedDialogOpen(true);
               }}
@@ -473,7 +471,7 @@ export function AssignPilotDroneView() {
 
       <div className="relative overflow-hidden rounded-2xl border border-[#c1c6d7]/20 bg-white shadow-sm">
         <div
-          className="absolute left-0 top-0 h-full w-1 bg-[#0058bc]"
+          className="absolute left-0 top-0 h-full w-1 bg-[#008B8B]"
           aria-hidden
         />
         <div className="p-6 pl-7 sm:p-8">
@@ -488,7 +486,7 @@ export function AssignPilotDroneView() {
                 No requests
               </span>
             ) : queueFullyAssigned ? null : (
-              <span className="rounded-full bg-[#d8e2ff] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#001a41]">
+              <span className="rounded-full bg-[#008B8B]/14 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#0a3030]">
                 {pendingRequests.length} pending / {assignQueue.length}
               </span>
             )}
@@ -503,7 +501,7 @@ export function AssignPilotDroneView() {
               from{" "}
               <Link
                 href="/dashboard/user-requests"
-                className="font-semibold text-[#0058bc] underline-offset-2 hover:underline"
+                className="font-semibold text-[#008B8B] underline-offset-2 hover:underline"
               >
                 User Request
               </Link>{" "}
@@ -515,7 +513,7 @@ export function AssignPilotDroneView() {
               No accepted requests yet. Review submissions on the{" "}
               <Link
                 href="/dashboard/user-requests"
-                className="font-semibold text-[#0058bc] underline-offset-2 hover:underline"
+                className="font-semibold text-[#008B8B] underline-offset-2 hover:underline"
               >
                 User Request
               </Link>{" "}
@@ -551,7 +549,7 @@ export function AssignPilotDroneView() {
               </div>
               <button
                 type="button"
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border-2 border-[#0058bc] bg-white px-4 py-2 text-sm font-bold text-[#0058bc] transition hover:bg-[#0058bc] hover:text-white"
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border-2 border-[#008B8B] bg-white px-4 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B] hover:text-white"
                 onClick={() => setHistoryDetailIndex(latestCompletedIndex)}
               >
                 <Eye className="size-4" aria-hidden />
@@ -568,11 +566,11 @@ export function AssignPilotDroneView() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-stretch lg:gap-8">
-        <section className="flex h-full min-h-0 w-full min-w-0 flex-col rounded-2xl border-2 border-[#c1c6d7] bg-white p-6 shadow-sm sm:p-8">
+      <div className="flex w-full min-w-0 flex-col gap-8">
+        <section className="flex min-h-0 w-full min-w-0 flex-col rounded-2xl border-2 border-[#c1c6d7] bg-white p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex shrink-0 items-center gap-3">
             <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#0058bc]/10 text-[#0058bc]"
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#008B8B]/10 text-[#008B8B]"
               aria-hidden
             >
               <User className="size-5" strokeWidth={2} />
@@ -580,7 +578,7 @@ export function AssignPilotDroneView() {
             <div className="min-w-0">
               <h2 className="text-xl font-bold text-[#191c1d]">Select Pilot</h2>
               <p className="mt-0.5 text-[13px] font-medium text-slate-600">
-                Tap a pilot to select
+                Click a row to select
               </p>
             </div>
           </div>
@@ -591,93 +589,103 @@ export function AssignPilotDroneView() {
             aria-label="Available pilots"
             aria-multiselectable={false}
           >
-            <div className="flex flex-col gap-4 pb-1">
-              {pilots.map((pilot) => {
-                const selected = selectedPilotId === pilot.id;
-                return (
-                  <button
-                    key={pilot.id}
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    onClick={() => setSelectedPilotId(pilot.id)}
-                    className={cn(
-                      "relative flex w-full shrink-0 flex-col rounded-2xl border-2 bg-white p-4 text-left shadow-sm transition hover:shadow-md sm:p-5",
-                      selected
-                        ? "border-[#0058bc] ring-4 ring-[#0058bc]/5"
-                        : "border-[#c1c6d7] hover:border-[#0058bc]/35"
-                    )}
-                  >
-                    <div className="flex gap-3 sm:gap-4">
-                      <span
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/90">
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Pilot
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Level
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Tags
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Pilot ID
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Sector
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Clearance
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Hours
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {pilots.map((pilot) => {
+                    const selected = selectedPilotId === pilot.id;
+                    return (
+                      <tr
+                        key={pilot.id}
+                        role="option"
+                        tabIndex={0}
+                        aria-selected={selected}
+                        onClick={() => setSelectedPilotId(pilot.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedPilotId(pilot.id);
+                          }
+                        }}
                         className={cn(
-                          "flex size-12 shrink-0 items-center justify-center rounded-xl ring-2 sm:size-14",
+                          "cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35",
                           selected
-                            ? "bg-sky-50 text-[#0058bc] ring-sky-100"
-                            : "bg-slate-100 text-[#0058bc] ring-slate-50"
+                            ? "bg-[#008B8B]/10 ring-1 ring-inset ring-[#008B8B]/25"
+                            : "hover:bg-slate-50"
                         )}
-                        aria-hidden
                       >
-                        <User className="size-6 sm:size-7" strokeWidth={2} />
-                      </span>
-                      <div className="min-w-0 flex-1 space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="text-left text-base font-bold leading-snug text-[#191c1d]">
-                            {pilot.name}
-                          </h3>
-                          <span className="shrink-0 rounded-md bg-[#d8e2ff]/70 px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#0058bc]">
-                            Lvl {pilot.level}
+                        <td className="px-3 py-3 font-semibold text-[#191c1d]">
+                          {pilot.name}
+                        </td>
+                        <td className="px-3 py-3 tabular-nums text-[#191c1d]">
+                          {pilot.level}
+                        </td>
+                        <td className="max-w-[10rem] px-3 py-3 text-xs text-slate-600">
+                          {pilot.tags.join(", ")}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-slate-700">
+                          {pilot.pilotId}
+                        </td>
+                        <td className="max-w-[9rem] px-3 py-3 text-xs text-slate-600">
+                          {pilot.sector}
+                        </td>
+                        <td className="max-w-[11rem] px-3 py-3 text-xs text-slate-600">
+                          {pilot.clearance}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-600">
+                          {pilot.hours}
+                        </td>
+                        <td className="px-3 py-3">
+                          <span
+                            className={cn(
+                              "text-xs font-bold",
+                              selected ? "text-[#008B8B]" : "text-[#008B8B]/75"
+                            )}
+                          >
+                            {selected ? "Selected" : "Select"}
                           </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {pilot.tags.map((t) => (
-                            <span
-                              key={t}
-                              className={cn(
-                                "rounded-md px-2 py-0.5 text-[10px] font-semibold",
-                                t === "Available"
-                                  ? "bg-emerald-50 text-emerald-700"
-                                  : "bg-slate-100 text-slate-600"
-                              )}
-                            >
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="mt-2 space-y-1.5 border-t border-dashed border-slate-200 pt-2">
-                          <DetailRow label="Pilot ID" value={pilot.pilotId} />
-                          <DetailRow label="Sector" value={pilot.sector} />
-                          <DetailRow
-                            label="Clearance"
-                            value={pilot.clearance}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-[11px] sm:text-xs">
-                      <span className="font-medium text-slate-500">
-                        {pilot.hours}
-                      </span>
-                      <span
-                        className={cn(
-                          "font-bold",
-                          selected ? "text-[#0058bc]" : "text-[#0058bc]/80"
-                        )}
-                      >
-                        {selected ? "Selected" : "Select"}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
 
-        <section className="flex h-full min-h-0 w-full min-w-0 flex-col rounded-2xl border-2 border-[#c1c6d7] bg-white p-6 shadow-sm sm:p-8">
+        <section className="flex min-h-0 w-full min-w-0 flex-col rounded-2xl border-2 border-[#c1c6d7] bg-white p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex shrink-0 items-center gap-3">
             <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#0058bc]/10 text-[#0058bc]"
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#008B8B]/10 text-[#008B8B]"
               aria-hidden
             >
               <Drone className="size-5" strokeWidth={2} />
@@ -685,7 +693,7 @@ export function AssignPilotDroneView() {
             <div className="min-w-0">
               <h2 className="text-xl font-bold text-[#191c1d]">Select Drone</h2>
               <p className="mt-0.5 text-[13px] font-medium text-slate-600">
-                Tap an aircraft to select
+                Click a row to select
               </p>
             </div>
           </div>
@@ -696,91 +704,95 @@ export function AssignPilotDroneView() {
             aria-label="Available drones"
             aria-multiselectable={false}
           >
-            <div className="flex flex-col gap-4 pb-1">
-              {drones.map((drone) => {
-                const selected = selectedDroneId === drone.id;
-                return (
-                  <button
-                    key={drone.id}
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    onClick={() => setSelectedDroneId(drone.id)}
-                    className={cn(
-                      "relative flex w-full shrink-0 flex-col rounded-2xl border-2 bg-white p-4 text-left shadow-sm transition hover:shadow-md sm:p-5",
-                      selected
-                        ? "border-[#0058bc] ring-4 ring-[#0058bc]/5"
-                        : "border-[#c1c6d7] hover:border-[#0058bc]/35"
-                    )}
-                  >
-                    <div className="flex gap-3 sm:gap-4">
-                      <span
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full min-w-[800px] border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/90">
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Model
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      S/N
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Battery
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Cargo
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Range / flight
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Last inspection
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Firmware
+                    </th>
+                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {drones.map((drone) => {
+                    const selected = selectedDroneId === drone.id;
+                    return (
+                      <tr
+                        key={drone.id}
+                        role="option"
+                        tabIndex={0}
+                        aria-selected={selected}
+                        onClick={() => setSelectedDroneId(drone.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedDroneId(drone.id);
+                          }
+                        }}
                         className={cn(
-                          "flex size-12 shrink-0 items-center justify-center rounded-xl ring-2 sm:size-14",
+                          "cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35",
                           selected
-                            ? "bg-sky-50 text-[#0058bc] ring-sky-100"
-                            : "bg-slate-100 text-[#0058bc] ring-slate-50"
-                        )}
-                        aria-hidden
-                      >
-                        {drone.icon === "plane" ? (
-                          <Plane
-                            className="size-6 text-[#0058bc] sm:size-7"
-                            aria-hidden
-                          />
-                        ) : (
-                          <Package
-                            className="size-6 text-[#0058bc] sm:size-7"
-                            aria-hidden
-                          />
-                        )}
-                      </span>
-                      <div className="min-w-0 flex-1 space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="text-left text-base font-bold leading-snug text-[#191c1d]">
-                            {drone.model}
-                          </h3>
-                          <span className="shrink-0 rounded-md bg-[#d8e2ff]/70 px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#0058bc]">
-                            {drone.battery}%
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                            Ready
-                          </span>
-                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                            Cargo: {drone.cargo}
-                          </span>
-                        </div>
-                        <div className="mt-2 space-y-1.5 border-t border-dashed border-slate-200 pt-2">
-                          <DetailRow
-                            label="Range / flight"
-                            value={`${drone.maxRange} · ${drone.estFlight}`}
-                          />
-                          <DetailRow
-                            label="Last inspection"
-                            value={drone.lastInspection}
-                          />
-                          <DetailRow label="Firmware" value={drone.firmware} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-[11px] sm:text-xs">
-                      <span className="font-medium text-slate-500">
-                        Battery Status
-                      </span>
-                      <span
-                        className={cn(
-                          "font-bold",
-                          selected ? "text-[#0058bc]" : "text-[#0058bc]/80"
+                            ? "bg-[#008B8B]/10 ring-1 ring-inset ring-[#008B8B]/25"
+                            : "hover:bg-slate-50"
                         )}
                       >
-                        {selected ? "Selected" : "Select"}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+                        <td className="px-3 py-3 font-semibold text-[#191c1d]">
+                          {drone.model}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-slate-700">
+                          {drone.sn}
+                        </td>
+                        <td className="px-3 py-3 tabular-nums text-[#191c1d]">
+                          {drone.battery}%
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-600">
+                          {drone.cargo}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-600">
+                          {drone.maxRange} · {drone.estFlight}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-600">
+                          {drone.lastInspection}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-slate-600">
+                          {drone.firmware}
+                        </td>
+                        <td className="px-3 py-3">
+                          <span
+                            className={cn(
+                              "text-xs font-bold",
+                              selected ? "text-[#008B8B]" : "text-[#008B8B]/75"
+                            )}
+                          >
+                            {selected ? "Selected" : "Select"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
@@ -861,7 +873,7 @@ export function AssignPilotDroneView() {
             <div className="flex flex-wrap items-center justify-center gap-3 border-t border-slate-200/80 bg-slate-50/50 px-6 py-4 sm:gap-4 sm:px-10 sm:py-5">
               <button
                 type="button"
-                className="inline-flex min-w-[6rem] items-center justify-center rounded-full border-2 border-[#0058bc] bg-white px-5 py-2 text-sm font-bold text-[#0058bc] transition hover:bg-[#0058bc]/5 active:scale-[0.98] sm:min-w-[6.5rem] sm:px-6"
+                className="inline-flex min-w-[6rem] items-center justify-center rounded-full border-2 border-[#008B8B] bg-white px-5 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/5 active:scale-[0.98] sm:min-w-[6.5rem] sm:px-6"
                 onClick={confirmAssignment}
               >
                 OK
@@ -956,7 +968,7 @@ export function AssignPilotDroneView() {
             <div className="mt-6 flex justify-center">
               <button
                 type="button"
-                className="inline-flex min-w-[7rem] items-center justify-center rounded-full border-2 border-[#0058bc] bg-white px-6 py-2.5 text-sm font-bold text-[#0058bc] transition hover:bg-[#0058bc]/5 sm:min-w-[7rem] sm:px-7 sm:text-base"
+                className="inline-flex min-w-[7rem] items-center justify-center rounded-full border-2 border-[#008B8B] bg-white px-6 py-2.5 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/5 sm:min-w-[7rem] sm:px-7 sm:text-base"
                 onClick={() => setHistoryDetailIndex(null)}
               >
                 Close

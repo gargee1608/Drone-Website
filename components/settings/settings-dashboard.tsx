@@ -1,15 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   CheckCircle2,
-  LayoutDashboard,
   Lock,
-  LogOut,
   Moon,
   RefreshCw,
-  Settings,
   UserRound,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -23,8 +18,6 @@ import {
   PILOT_PROFILE_STORAGE_KEY,
   PILOT_PROFILE_UPDATED_EVENT,
 } from "@/lib/pilot-profile-snapshot";
-
-const FOOTER_SIDEBAR_INSET_VAR = "--admin-sidebar-footer-inset";
 
 const profileInputClassName =
   "h-10 rounded-lg border-slate-200 bg-white text-sm text-[#191c1d]";
@@ -43,8 +36,8 @@ function Switch({
       aria-checked={checked}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative inline-flex h-7 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0058bc]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        checked ? "bg-[#0058bc]" : "bg-slate-300 dark:bg-slate-600"
+        "relative inline-flex h-7 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        checked ? "bg-[#008B8B]" : "bg-slate-300 dark:bg-slate-600"
       )}
     >
       <span
@@ -61,10 +54,6 @@ export function SettingsDashboard() {
   /* Dark mode: global theme disabled — toggles only update local UI. Uncomment useAppTheme + ThemeProvider to re-enable. */
   const [theme, setTheme] = useState<"light" | "dark">("light");
   // const { theme, setTheme } = useAppTheme();
-  const [mobileSettingsNavOpen, setMobileSettingsNavOpen] = useState(false);
-  /** Desktop: when true the fixed sidebar is hidden. Default open so the sidebar is visible. */
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const pathname = usePathname();
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -73,8 +62,6 @@ export function SettingsDashboard() {
     null
   );
   const [passwordDialogSuccess, setPasswordDialogSuccess] = useState(false);
-  const [dashboardHref, setDashboardHref] = useState("/dashboard");
-  const [settingsNavHref, setSettingsNavHref] = useState("/settings");
 
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileFullName, setProfileFullName] = useState("");
@@ -113,18 +100,6 @@ export function SettingsDashboard() {
     setProfileDialogSuccess(false);
   }, []);
 
-  const toggleSettingsNav = useCallback(() => {
-    if (
-      typeof window !== "undefined" &&
-      window.matchMedia("(min-width: 1024px)").matches
-    ) {
-      setSidebarCollapsed((c) => !c);
-      setMobileSettingsNavOpen(false);
-    } else {
-      setMobileSettingsNavOpen((o) => !o);
-    }
-  }, []);
-
   useEffect(() => {
     if (!passwordDialogSuccess) return;
     const t = window.setTimeout(() => {
@@ -159,231 +134,15 @@ export function SettingsDashboard() {
     return () => window.removeEventListener("keydown", onKey);
   }, [profileDialogOpen, closeProfileDialog]);
 
-  useEffect(() => {
-    const onSettingsNavToggle = () => {
-      toggleSettingsNav();
-    };
-    window.addEventListener("settings-nav-toggle", onSettingsNavToggle);
-    return () =>
-      window.removeEventListener("settings-nav-toggle", onSettingsNavToggle);
-  }, [toggleSettingsNav]);
-
-  useEffect(() => {
-    const from = new URLSearchParams(window.location.search).get("from");
-    setDashboardHref(from === "user" ? "/user-dashboard" : "/dashboard");
-    setSettingsNavHref(
-      from === "user"
-        ? "/settings?from=user"
-        : from === "admin"
-          ? "/settings?from=admin"
-          : "/settings"
-    );
-  }, []);
-
-  useEffect(() => {
-    if (!pathname?.startsWith("/settings")) return;
-    setMobileSettingsNavOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    const updateFooterInset = () => {
-      const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
-      const isXl = window.matchMedia("(min-width: 1280px)").matches;
-      const inset =
-        isDesktop && !sidebarCollapsed
-          ? isXl
-            ? "16rem"
-            : "228px"
-          : "0px";
-      document.documentElement.style.setProperty(
-        FOOTER_SIDEBAR_INSET_VAR,
-        inset
-      );
-    };
-    updateFooterInset();
-    window.addEventListener("resize", updateFooterInset);
-    return () => {
-      window.removeEventListener("resize", updateFooterInset);
-      document.documentElement.style.removeProperty(FOOTER_SIDEBAR_INSET_VAR);
-    };
-  }, [sidebarCollapsed]);
-
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-white pt-22 text-[#191c1d] antialiased sm:pt-24">
-      {mobileSettingsNavOpen ? (
-        <div
-          className="fixed inset-x-0 bottom-0 top-22 z-30 lg:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Settings sections"
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/30"
-            aria-label="Close menu"
-            onClick={() => setMobileSettingsNavOpen(false)}
-          />
-          <nav className="absolute left-0 right-0 top-0 z-40 max-h-[min(70vh,calc(100dvh-5.5rem))] overflow-y-auto border-b border-slate-200 bg-slate-50/95 px-4 py-4 shadow-lg">
-            <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-              Navigation
-            </p>
-            <ul className="flex flex-col gap-0.5" role="list">
-              <li>
-                <Link
-                  href={dashboardHref}
-                  className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100/90 active:bg-slate-100"
-                  onClick={() => setMobileSettingsNavOpen(false)}
-                >
-                  <LayoutDashboard
-                    className="size-[1.125rem] shrink-0 opacity-90"
-                    aria-hidden
-                    strokeWidth={2}
-                  />
-                  <span className="min-w-0 leading-snug">Dashboard</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={settingsNavHref}
-                  className={cn(
-                    "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                    pathname?.startsWith("/settings")
-                      ? "bg-white font-medium text-[#191c1d] shadow-sm ring-1 ring-slate-200/90"
-                      : "font-normal text-[#191c1d] hover:bg-slate-100/90 active:bg-slate-100"
-                  )}
-                  onClick={() => setMobileSettingsNavOpen(false)}
-                  aria-current="page"
-                >
-                  <Settings
-                    className="size-[1.125rem] shrink-0 opacity-90"
-                    aria-hidden
-                    strokeWidth={2}
-                  />
-                  <span className="min-w-0 leading-snug">Settings</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/login"
-                  className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100/90 active:bg-slate-100"
-                  onClick={() => setMobileSettingsNavOpen(false)}
-                >
-                  <LogOut
-                    className="size-[1.125rem] shrink-0"
-                    aria-hidden
-                    strokeWidth={2}
-                  />
-                  <span>Log Out</span>
-                </Link>
-              </li>
-            </ul>
-          </nav>
-        </div>
-      ) : null}
-
-      <div className="flex min-h-0 flex-1">
-        <aside
-          className={cn(
-            "hidden min-h-0 w-[228px] shrink-0 flex-col border-r border-slate-200 bg-slate-50/95 shadow-sm lg:fixed lg:bottom-0 lg:left-0 lg:top-22 lg:z-50 lg:flex xl:w-64",
-            sidebarCollapsed && "lg:hidden"
-          )}
-          aria-label="Settings navigation"
-        >
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <nav
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-slate-200 px-2 py-3 lg:border-t-0 lg:pt-4"
-              aria-label="Settings sections"
-            >
-              <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                Navigation
-              </p>
-              <ul className="flex flex-col gap-0.5" role="list">
-                <li>
-                  <Link
-                    href={dashboardHref}
-                    className={cn(
-                      "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
-                      "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#009aa1]/35",
-                      "text-[#191c1d] hover:bg-slate-100/90 active:bg-slate-100"
-                    )}
-                  >
-                    <LayoutDashboard
-                      className="size-[1.125rem] shrink-0 opacity-90"
-                      aria-hidden
-                      strokeWidth={2}
-                    />
-                    <span className="min-w-0 leading-snug">Dashboard</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href={settingsNavHref}
-                    className={cn(
-                      "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                      "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#009aa1]/35",
-                      pathname?.startsWith("/settings")
-                        ? "bg-white font-medium text-[#191c1d] shadow-sm ring-1 ring-slate-200/90"
-                        : "font-normal text-[#191c1d] hover:bg-slate-100/90 active:bg-slate-100"
-                    )}
-                    aria-current="page"
-                  >
-                    <Settings
-                      className="size-[1.125rem] shrink-0 opacity-90"
-                      aria-hidden
-                      strokeWidth={2}
-                    />
-                    <span className="min-w-0 leading-snug">Settings</span>
-                  </Link>
-                </li>
-              </ul>
-            </nav>
-
-            <div
-              className={cn(
-                "relative z-10 mt-auto shrink-0 border-t border-slate-200 bg-white/90 px-2 pt-3",
-                "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
-              )}
-            >
-              <nav aria-label="Account">
-                <Link
-                  href="/login"
-                  className={cn(
-                    "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-[#191c1d] transition-colors",
-                    "hover:bg-slate-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#009aa1]/35 active:bg-slate-100"
-                  )}
-                >
-                  <LogOut
-                    className="size-[1.125rem] shrink-0"
-                    aria-hidden
-                    strokeWidth={2}
-                  />
-                  <span>Log Out</span>
-                </Link>
-              </nav>
-            </div>
-          </div>
-        </aside>
-
-        <div
-          className={cn(
-            "flex min-w-0 flex-1 flex-col transition-[margin] duration-200 ease-out",
-            !sidebarCollapsed && "lg:ml-[228px] xl:ml-64"
-          )}
-        >
-          <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
-            <div className="mx-auto w-full max-w-6xl">
-              <header className="mb-8 flex items-center gap-3 sm:mb-10">
-                <h1 className="font-heading text-3xl font-bold tracking-tight text-[#191c1d] sm:text-[2rem] sm:leading-tight">
-                  Settings
-                </h1>
-              </header>
-
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+    <>
+      <div className="mx-auto w-full max-w-6xl antialiased">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {/* Change Password */}
                 <section className="flex flex-col rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                   <div className="mb-4 flex items-start gap-3">
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-sky-100">
-                      <Lock className="size-5 text-[#0058bc]" aria-hidden />
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
+                      <Lock className="size-5 text-[#008B8B]" aria-hidden />
                     </span>
                     <div className="min-w-0 text-left">
                       <h2 className="text-base font-bold text-[#191c1d]">
@@ -398,7 +157,7 @@ export function SettingsDashboard() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-10 w-full rounded-lg border-[#0058bc] bg-white text-sm font-semibold text-[#0058bc] hover:bg-sky-50"
+                      className="h-10 w-full rounded-lg border-[#008B8B] bg-white text-sm font-semibold text-[#008B8B] hover:bg-[#008B8B]/8"
                       onClick={() => {
                         setPasswordDialogError(null);
                         setPasswordDialogSuccess(false);
@@ -481,9 +240,6 @@ export function SettingsDashboard() {
                   </div>
                 </section>
 
-              </div>
-            </div>
-          </main>
         </div>
       </div>
 
@@ -508,10 +264,10 @@ export function SettingsDashboard() {
             <div className="border-b border-slate-200 bg-slate-50 px-6 py-5 sm:px-8">
               <div className="flex items-center gap-3">
                 <span
-                  className="flex size-11 shrink-0 items-center justify-center rounded-full bg-sky-100"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12"
                   aria-hidden
                 >
-                  <Lock className="size-5 text-[#0058bc]" />
+                  <Lock className="size-5 text-[#008B8B]" />
                 </span>
                 <div>
                   <h2
@@ -646,7 +402,7 @@ export function SettingsDashboard() {
                 <Button
                   type="submit"
                   variant="outline"
-                  className="rounded-lg border-2 border-[#0058bc] bg-white text-[#0058bc] shadow-none hover:bg-sky-50 hover:text-[#0058bc]"
+                  className="rounded-lg border-2 border-[#008B8B] bg-white text-[#008B8B] shadow-none hover:bg-[#008B8B]/8 hover:text-[#008B8B]"
                   disabled={passwordDialogSuccess}
                 >
                   Update password
@@ -897,6 +653,6 @@ export function SettingsDashboard() {
           </div>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

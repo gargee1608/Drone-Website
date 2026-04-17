@@ -4,12 +4,9 @@ import Image from "next/image";
 import {
   AtSign,
   Clock,
-  Handshake,
-  Info,
   MapPin,
-  PlaneTakeoff,
 } from "lucide-react";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { cn } from "@/lib/utils";
@@ -24,56 +21,41 @@ const HERO_DRONE_SRC =
 const MAP_BG_SRC =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuAYin33I4RLGs36bM7VeBou6cWwS1NmSh9VJfVDjsnKe_UrmI9iOzGvwPffhjT6VfPeCmabuegMyJoTglDofzLWjM1eF1VqN8xebyYC5rWuF9acKu5la7Zf8dzGqnnRa9J25PbTZGsBakr4yaWVNDU0zSIPyiDmeOGRTTcZ0h7Phh0OkhmhQw-VyxAp7d6iuwU15aeg2c6qx-eUKpQmcmMMnQNjaGdLKxIkRL2lou3kYKuJpvsgXhNc4ZXAk_uUjmCKXmkBLlVt5PQm";
 
-type InquiryTab = "service" | "partnership" | "general";
-
-const inquiryTabs: {
-  id: InquiryTab;
-  label: string;
-  icon: typeof PlaneTakeoff;
-}[] = [
-  { id: "service", label: "Service Request", icon: PlaneTakeoff },
-  { id: "partnership", label: "Partnership", icon: Handshake },
-  { id: "general", label: "General Inquiry", icon: Info },
-];
-
 export function ContactView() {
-  const [inquiry, setInquiry] = useState<InquiryTab>("service");
+  const [submitted, setSubmitted] = useState(false);
+
+  function handleInquirySubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitted(true);
+    event.currentTarget.reset();
+  }
 
   return (
     <div
       className={cn(
         landingFontClassName,
-        "relative flex min-h-0 flex-1 flex-col bg-white pt-22 font-[family-name:var(--font-landing-body)] text-[#141a20] selection:bg-[#006a6e]/10 antialiased sm:pt-24"
+        "relative flex min-h-0 flex-1 flex-col bg-white pt-20 font-[family-name:var(--font-landing-body)] text-[#141a20] selection:bg-[#006a6e]/10 antialiased sm:pt-22"
       )}
     >
       {/* Hero */}
-      <section className="contact-hud-grid relative flex min-h-[min(614px,90vh)] items-center overflow-hidden">
-        <div
-          className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-transparent via-white to-white"
-          aria-hidden
-        />
-        <div className="relative z-20 container mx-auto flex flex-col items-center gap-12 px-8 md:flex-row">
-          <div className="w-full md:w-1/2">
-            <h1 className="mb-6 font-[family-name:var(--font-landing-headline)] text-5xl font-bold leading-none tracking-tighter text-[#1a2027] sm:text-6xl md:text-7xl">
+      <section className="contact-hud-grid relative py-8 sm:py-10 lg:py-12">
+        <div className="container mx-auto grid items-center gap-8 px-6 md:grid-cols-2 md:gap-10 lg:px-8">
+          <div className="w-full">
+            <h1 className="mb-4 font-[family-name:var(--font-landing-headline)] text-4xl font-bold leading-[1.02] tracking-tighter text-[#1a2027] sm:text-5xl md:text-6xl">
               Get in <span className="text-[#006a6e]">Touch</span> with Us
             </h1>
-            <p className="max-w-lg text-xl font-light leading-relaxed text-[#43484e]">
+            <p className="max-w-xl text-base leading-relaxed text-[#43484e] sm:text-lg">
               Have questions or need drone services? We&apos;re here to help.
               Reach out to our flight operations team for technical support or
               partnerships.
             </p>
           </div>
-          <div className="relative h-[320px] w-full sm:h-[380px] md:h-[400px] md:w-1/2">
-            <div
-              className="absolute inset-0 rounded-full blur-[100px]"
-              style={{ backgroundColor: `${primary}14` }}
-              aria-hidden
-            />
+          <div className="relative h-[260px] w-full rounded-xl bg-white sm:h-[320px] md:h-[360px]">
             <Image
               src={HERO_DRONE_SRC}
               alt="Professional delivery drone"
               fill
-              className="relative z-10 object-contain drop-shadow-[0_20px_50px_rgba(0,106,110,0.15)]"
+              className="relative z-10 object-contain drop-shadow-[0_16px_36px_rgba(15,23,42,0.08)]"
               sizes="(max-width: 768px) 100vw, 50vw"
               priority
             />
@@ -81,53 +63,107 @@ export function ContactView() {
         </div>
       </section>
 
-      {/* Inquiry category tabs */}
-      <section className="relative z-30 -mt-24 mb-20 px-8">
-        <div className="container mx-auto">
-          <div
-            className="inline-flex max-w-full flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
-            role="tablist"
-            aria-label="Inquiry type"
-          >
-            {inquiryTabs.map(({ id, label, icon: Icon }) => {
-              const active = inquiry === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setInquiry(id)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-6 py-4 font-[family-name:var(--font-landing-headline)] text-sm font-semibold transition-all sm:px-8",
-                    active
-                      ? "text-white shadow-sm"
-                      : "text-[#43484e] hover:bg-slate-100"
-                  )}
-                  style={
-                    active
-                      ? { backgroundColor: primary }
-                      : undefined
-                  }
-                >
-                  <Icon className="size-5 shrink-0" strokeWidth={2} aria-hidden />
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      {/* Inquiry + contact details side-by-side */}
+      <section className="container mx-auto mb-20 px-6 pt-2 sm:mb-24 lg:px-8">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6">
+            <h2 className="mb-2 font-[family-name:var(--font-landing-headline)] text-xl font-bold tracking-tight text-[#1a2027] sm:text-2xl">
+              Send an Inquiry
+            </h2>
+            <p className="mb-6 text-sm text-[#43484e] sm:text-base">
+              Fill in your details and our team will get back to you shortly.
+            </p>
 
-      {/* Contact Info */}
-      <section className="container mx-auto mb-28 px-8">
-        <div className="mx-auto flex max-w-3xl flex-col gap-6">
-          <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6">
-            <div
-              className="pointer-events-none absolute -right-16 -top-16 size-40 blur-3xl"
-              style={{ backgroundColor: `${primary}14` }}
-              aria-hidden
-            />
+            <form className="space-y-4" onSubmit={handleInquirySubmit}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
+                    Full name
+                  </span>
+                  <input
+                    type="text"
+                    name="fullName"
+                    required
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-[#1a2027] outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
+                    placeholder="Jane Doe"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
+                    Email
+                  </span>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-[#1a2027] outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
+                    placeholder="you@company.com"
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
+                    Phone (optional)
+                  </span>
+                  <input
+                    type="tel"
+                    name="phone"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-[#1a2027] outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
+                    placeholder="+1 (555) 000-0000"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
+                    Company (optional)
+                  </span>
+                  <input
+                    type="text"
+                    name="company"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-[#1a2027] outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
+                    placeholder="Company name"
+                  />
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
+                  Message
+                </span>
+                <textarea
+                  name="message"
+                  required
+                  rows={5}
+                  className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-[#1a2027] outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
+                  placeholder="Tell us about your inquiry..."
+                />
+              </label>
+
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-lg px-5 py-2.5 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-white uppercase transition hover:opacity-90 sm:ml-auto"
+                  style={{ backgroundColor: primary }}
+                >
+                  Submit inquiry
+                </button>
+              </div>
+
+              {submitted ? (
+                <p
+                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+                  role="status"
+                >
+                  Thanks! We received your inquiry and will contact you soon.
+                </p>
+              ) : null}
+            </form>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6">
             <h2 className="mb-6 flex items-center gap-2.5 font-[family-name:var(--font-landing-headline)] text-xl font-bold tracking-tight text-[#1a2027] sm:text-2xl">
               <span
                 className="h-6 w-1 shrink-0 rounded-full sm:h-7"
@@ -136,7 +172,7 @@ export function ContactView() {
               />
               Contact Info
             </h2>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 gap-8">
               <div className="flex items-start gap-3">
                 <span
                   className="inline-flex shrink-0 rounded-md p-2"
@@ -202,7 +238,7 @@ export function ContactView() {
       </section>
 
       {/* Map — centered, narrower than full viewport, slightly shorter than before */}
-      <section className="w-full px-4 pb-10 pt-2 sm:px-6 lg:px-8">
+      <section className="w-full px-4 pb-10 pt-0 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-5xl">
           <div className="relative h-[300px] w-full overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-100 shadow-sm sm:h-[340px] lg:h-[380px]">
             <div

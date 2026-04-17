@@ -100,7 +100,7 @@ function RecentActivityPanel({ requests }: { requests: UserMissionRequest[] }) {
           </p>
           <Link
             href="/user-dashboard/create-request"
-            className="mt-4 text-xs font-semibold text-[#0058bc] underline-offset-2 hover:underline"
+            className="mt-4 text-xs font-semibold text-[#008B8B] underline-offset-2 hover:underline"
           >
             Create a request
           </Link>
@@ -117,7 +117,7 @@ function RecentActivityPanel({ requests }: { requests: UserMissionRequest[] }) {
         </h3>
         <Link
           href="/user-dashboard/my-requests"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-[#0058bc] transition hover:text-[#004099]"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-[#008B8B] transition hover:text-[#006060]"
         >
           View all
           <ArrowRight className="size-3.5" aria-hidden />
@@ -131,7 +131,7 @@ function RecentActivityPanel({ requests }: { requests: UserMissionRequest[] }) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-[#191c1d]">
-                <span className="font-mono text-[#0058bc]">
+                <span className="font-mono text-[#008B8B]">
                   {userRequestQueueDisplayId(req.id)}
                 </span>
                 {req.reasonOrTitle ? (
@@ -191,10 +191,10 @@ export function UserDashboardView() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
           <div className="flex flex-col gap-4 rounded-xl border border-[#c1c6d7]/15 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="rounded-lg bg-[#d8e2ff] p-2 text-[#0058bc]">
+              <span className="rounded-lg bg-[#008B8B]/14 p-2 text-[#008B8B]">
                 <Rocket className="size-6" />
               </span>
-              <span className="rounded-full bg-[#d8e2ff] px-2 py-1 text-xs font-bold text-[#001a41]">
+              <span className="rounded-full bg-[#008B8B]/14 px-2 py-1 text-xs font-bold text-[#0a3030]">
                 +12%
               </span>
             </div>

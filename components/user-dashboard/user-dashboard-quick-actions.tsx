@@ -13,14 +13,14 @@ const userDashboardQuickActions: readonly QuickActionCardItem[] = [
     title: "Create New Request",
     subtitle: "Initiate a drone logistics mission",
     icon: Plus,
-    iconWrap: "bg-[#0058bc] text-white",
+    iconWrap: "bg-[#008B8B] text-white",
   },
   {
     href: "/user-dashboard/my-requests",
     title: "View My Requests",
     subtitle:"Manage your active and past orders",
     icon: List,
-    iconWrap: "bg-[#d8e2ff] text-[#0058bc]",
+    iconWrap: "bg-[#008B8B]/14 text-[#008B8B]",
   },
 ];
 

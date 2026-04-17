@@ -1,13 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import {
   ArrowUpRight,
   BadgeCheck,
   Bookmark,
   CheckCircle2,
-  Rocket,
   Star,
   X,
 } from "lucide-react";
@@ -237,9 +235,9 @@ export function MarketplaceView() {
       <main className="min-w-0 w-full flex-1 bg-white p-6 sm:p-10 lg:p-12">
           {/* Marketplace header */}
           <header className="relative mb-12 lg:mb-16">
-            <div className="pointer-events-none absolute -top-12 -left-12 h-64 w-64 rounded-full bg-[#009aa1]/5 blur-[80px]" />
+            <div className="pointer-events-none absolute -top-12 -left-12 h-64 w-64 rounded-full bg-[#008B8B]/5 blur-[80px]" />
             <div className="relative z-10">
-              <h1 className="mb-4 font-[family-name:var(--font-landing-headline)] text-4xl font-bold tracking-tighter text-slate-900 md:text-6xl lg:text-7xl">
+              <h1 className="mb-4 font-[family-name:var(--font-landing-headline)] text-3xl font-bold tracking-tighter text-slate-900 md:text-4xl lg:text-5xl">
                 Marketplace
               </h1>
               <p className="max-w-xl font-[family-name:var(--font-landing-body)] text-lg text-slate-500">
@@ -249,22 +247,22 @@ export function MarketplaceView() {
           </header>
 
           {/* Featured */}
-          <section className="mb-16 lg:mb-24">
-            <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl transition-all duration-500 hover:border-[#009aa1]/30">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#009aa1]/5 to-transparent opacity-50" />
-              <div className="relative flex flex-col items-center gap-12 p-8 lg:flex-row lg:gap-16 lg:p-12">
+          <section className="mb-14 lg:mb-20">
+            <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl transition-all duration-500 hover:border-[#008B8B]/30">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#008B8B]/5 to-transparent opacity-50" />
+              <div className="relative flex flex-col items-center gap-10 p-6 lg:flex-row lg:gap-12 lg:p-9">
                 <div className="w-full lg:w-5/12">
-                  <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-[#0d6200]/10 px-3 py-1 text-[10px] font-bold tracking-[0.2em] text-[#0d6200] uppercase">
+                  <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#008B8B]/10 px-3 py-1 text-[10px] font-bold tracking-[0.2em] text-[#008B8B] uppercase">
                     <BadgeCheck className="size-3.5 shrink-0" aria-hidden />
                     Optimal Deployment Match
                   </div>
-                  <h2 className="mb-6 font-[family-name:var(--font-landing-headline)] text-3xl font-bold tracking-tight text-slate-900 md:text-4xl lg:text-5xl">
+                  <h2 className="mb-5 font-[family-name:var(--font-landing-headline)] text-3xl font-bold tracking-tight text-slate-900 md:text-4xl lg:text-5xl">
                     {spotlightDrone.name}
                   </h2>
-                  <p className="mb-10 font-[family-name:var(--font-landing-body)] text-lg leading-relaxed text-slate-600">
+                  <p className="mb-8 font-[family-name:var(--font-landing-body)] text-lg leading-relaxed text-slate-600">
                     {spotlightDrone.description}
                   </p>
-                  <div className="mb-12 grid grid-cols-2 gap-8">
+                  <div className="mb-10 grid grid-cols-2 gap-6">
                     <div>
                       <span className="mb-2 block text-[10px] font-bold tracking-[0.2em] text-slate-400 uppercase">
                         Max Range
@@ -277,7 +275,7 @@ export function MarketplaceView() {
                       </span>
                       <div className="relative mt-2 h-px w-full bg-slate-100">
                         <div
-                          className="absolute top-0 left-0 h-full bg-[#009aa1]/30"
+                          className="absolute top-0 left-0 h-full bg-[#008B8B]/30"
                           style={{ width: `${spotlightRangeBarPct}%` }}
                         />
                       </div>
@@ -294,7 +292,7 @@ export function MarketplaceView() {
                       </span>
                       <div className="relative mt-2 h-px w-full bg-slate-100">
                         <div
-                          className="absolute top-0 left-0 h-full bg-[#0d6200]/30"
+                          className="absolute top-0 left-0 h-full bg-[#008B8B]/30"
                           style={{ width: `${spotlightPayloadBarPct}%` }}
                         />
                       </div>
@@ -309,21 +307,26 @@ export function MarketplaceView() {
                           inquirySuccess: false,
                         })
                       }
-                      className="bg-[#009aa1] px-10 py-4 font-[family-name:var(--font-landing-headline)] text-xs font-black tracking-widest text-white uppercase shadow-[0_10px_30px_rgba(0,154,161,0.2)] transition hover:scale-105"
+                      className="bg-[#008B8B] px-10 py-4 font-[family-name:var(--font-landing-headline)] text-xs font-black tracking-widest text-white uppercase shadow-[0_10px_30px_rgba(0,139,139,0.2)] transition hover:scale-105"
                     >
                       Add to Cart 
                     </button>
                   </div>
                 </div>
-                <div className="relative w-full lg:w-7/12">
-                  <div className="pointer-events-none absolute -inset-10 animate-pulse rounded-full bg-[#009aa1]/10 opacity-20 blur-[100px]" />
-                  <div className="relative z-10 aspect-[4/3] w-full">
+                <div className="relative flex w-full justify-end lg:w-7/12">
+                  <div className="pointer-events-none absolute -inset-10 animate-pulse rounded-full bg-[#008B8B]/10 opacity-20 blur-[100px]" />
+                  <div className="relative z-10 aspect-[4/3] w-full max-w-[min(100%,340px)] sm:max-w-[min(100%,320px)] lg:w-[58%] lg:max-w-none">
                     <Image
                       key={spotlightDrone.id}
                       src={spotlightDrone.image}
                       alt={spotlightDrone.name}
                       fill
-                      className="object-contain object-center drop-shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-transform duration-700 group-hover:scale-105"
+                      className={cn(
+                        "drop-shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-transform duration-700",
+                        spotlightDrone.id === "stratosphere-x1"
+                          ? "object-contain object-right-bottom scale-[0.9] origin-bottom-right group-hover:scale-[0.93]"
+                          : "object-contain object-center group-hover:scale-105"
+                      )}
                       sizes="(max-width: 1024px) 100vw, 58vw"
                       priority
                     />
@@ -334,8 +337,8 @@ export function MarketplaceView() {
           </section>
 
           {/* Fleet grid */}
-          <section className="pb-16">
-            <div className="grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-3">
+          <section className="pb-14">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
               {filteredSortedFleet.map((drone) => (
                 <article
                   key={drone.id}
@@ -351,12 +354,12 @@ export function MarketplaceView() {
                   aria-pressed={spotlightId === drone.id}
                   aria-label={`Select ${drone.name} for optimal deployment match`}
                   className={cn(
-                    "marketplace-glass-card group cursor-pointer rounded-xl p-6 text-left transition-all duration-300 hover:-translate-y-2 hover:shadow-xl",
+                    "marketplace-glass-card group cursor-pointer rounded-md p-3.5 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg",
                     spotlightId === drone.id &&
-                      "ring-2 ring-[#009aa1] ring-offset-2 ring-offset-white"
+                      "ring-2 ring-[#008B8B] ring-offset-1 ring-offset-white"
                   )}
                 >
-                  <div className="relative mb-8 aspect-[4/3] overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
+                  <div className="relative mx-auto mb-4 aspect-[3/2] w-[92%] max-w-full overflow-hidden rounded border border-slate-100 bg-slate-50">
                     <Image
                       src={drone.image}
                       alt={drone.name}
@@ -364,16 +367,16 @@ export function MarketplaceView() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                       sizes="(max-width:768px) 100vw, 33vw"
                     />
-                    <div className="absolute top-4 left-4 flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1.5 backdrop-blur-md">
+                    <div className="absolute top-2 left-2 flex items-center gap-1 rounded border border-slate-200 bg-white/90 px-2 py-0.5 backdrop-blur-md">
                       <span
                         className={cn(
-                          "h-1.5 w-1.5 rounded-full",
+                          "h-1 w-1 rounded-full",
                           drone.fleetStatus === "in-transit"
-                            ? "animate-pulse bg-[#009aa1]"
-                            : "bg-[#0d6200]"
+                            ? "animate-pulse bg-[#008B8B]"
+                            : "bg-[#008B8B]"
                         )}
                       />
-                      <span className="text-[9px] font-black tracking-widest text-slate-900 uppercase">
+                      <span className="text-[9px] font-black tracking-wider text-slate-900 uppercase">
                         {drone.fleetStatus === "in-transit"
                           ? "In-Transit"
                           : "Active"}
@@ -385,29 +388,29 @@ export function MarketplaceView() {
                         e.stopPropagation();
                         toggleBookmark(drone.id);
                       }}
-                      className="absolute top-4 right-4 rounded-md border border-slate-200 bg-white/90 p-2 text-slate-400 backdrop-blur-md transition-colors hover:text-red-500"
+                      className="absolute top-2 right-2 rounded border border-slate-200 bg-white/90 p-1 text-slate-400 backdrop-blur-md transition-colors hover:text-red-500"
                       aria-label="Bookmark"
                     >
                       <Bookmark
                         className={cn(
-                          "size-4",
+                          "size-3",
                           bookmarked.has(drone.id) && "fill-red-500 text-red-500"
                         )}
                       />
                     </button>
                   </div>
-                  <div className="mb-6 flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-[family-name:var(--font-landing-headline)] text-xl font-bold tracking-tight text-slate-900 transition-colors group-hover:text-[#009aa1]">
+                  <div className="mb-3.5 flex items-start justify-between gap-1.5">
+                    <div className="min-w-0">
+                      <h3 className="font-[family-name:var(--font-landing-headline)] text-lg font-bold leading-snug tracking-tight text-slate-900 transition-colors group-hover:text-[#008B8B]">
                         {drone.name}
                       </h3>
-                      <p className="mt-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+                      <p className="mt-0.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                         {drone.category}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1">
+                    <div className="flex shrink-0 items-center gap-0.5 rounded border border-slate-200 bg-slate-50 px-2 py-0.5">
                       <Star
-                        className="size-3 fill-[#009aa1] text-[#009aa1]"
+                        className="size-3 fill-[#008B8B] text-[#008B8B]"
                         aria-hidden
                       />
                       <span className="font-[family-name:var(--font-landing-headline)] text-[10px] font-bold text-slate-900">
@@ -415,7 +418,7 @@ export function MarketplaceView() {
                       </span>
                     </div>
                   </div>
-                  <div className="mb-8 grid grid-cols-3 gap-4">
+                  <div className="mb-4 grid grid-cols-3 gap-2">
                     {(
                       [
                         ["Payload", drone.payload.replace(" KG", "kg")],
@@ -425,24 +428,24 @@ export function MarketplaceView() {
                     ).map(([label, val]) => (
                       <div
                         key={label}
-                        className="rounded-md border border-slate-100 bg-slate-50/50 py-3 text-center"
+                        className="rounded border border-slate-100 bg-slate-50/50 px-0.5 py-2 text-center"
                       >
-                        <span className="mb-1 block text-[8px] font-bold tracking-widest text-slate-400 uppercase">
+                        <span className="mb-0.5 block text-[8px] font-bold tracking-wider text-slate-400 uppercase">
                           {label}
                         </span>
-                        <span className="font-[family-name:var(--font-landing-headline)] text-xs font-bold">
+                        <span className="font-[family-name:var(--font-landing-headline)] text-xs font-bold leading-tight">
                           {val}
                         </span>
                       </div>
                     ))}
                   </div>
-                  <div className="landing-telemetry-line mb-6" />
-                  <div className="flex items-center justify-between">
-                    <div>
+                  <div className="landing-telemetry-line mb-3.5" />
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
                       <span className="mb-0.5 block text-[9px] font-bold tracking-widest text-slate-400 uppercase">
                         Rate
                       </span>
-                      <span className="font-[family-name:var(--font-landing-headline)] text-lg font-bold text-slate-900">
+                      <span className="font-[family-name:var(--font-landing-headline)] text-base font-bold text-slate-900">
                         {drone.rateLabel.split("/")[0]}{" "}
                         <span className="text-[10px] font-normal text-slate-500">
                           /hr
@@ -455,10 +458,10 @@ export function MarketplaceView() {
                         e.stopPropagation();
                         setDetailModal({ item: drone, inquirySuccess: false });
                       }}
-                      className="bg-slate-900 p-3 text-white transition hover:bg-[#009aa1]"
+                      className="shrink-0 bg-slate-900 p-2 text-white transition hover:bg-[#008B8B]"
                       aria-label="View details"
                     >
-                      <ArrowUpRight className="size-4" aria-hidden />
+                      <ArrowUpRight className="size-3" aria-hidden />
                     </button>
                   </div>
                 </article>
@@ -466,19 +469,6 @@ export function MarketplaceView() {
             </div>
           </section>
         </main>
-
-      {/* FAB */}
-      <Link
-        href="/user-dashboard"
-        className="group fixed bottom-10 right-10 z-[100] flex size-16 items-center justify-center rounded-md border border-slate-700 bg-slate-900 shadow-[0_20px_40px_rgba(0,0,0,0.3)] transition active:scale-95"
-        aria-label="Open Command Center"
-        title="Open Command Center"
-      >
-        <span className="pointer-events-none absolute right-[calc(100%+0.75rem)] whitespace-nowrap rounded-md border border-slate-700 bg-slate-900 py-3 px-6 font-[family-name:var(--font-landing-headline)] text-[10px] font-bold tracking-[0.2em] text-white uppercase opacity-0 transition-opacity group-hover:opacity-100">
-          Open Command Center
-        </span>
-        <Rocket className="size-8 text-white" strokeWidth={1.25} aria-hidden />
-      </Link>
 
       {detailModal ? (
         <div className="fixed inset-0 z-[200] flex items-end justify-center p-4 sm:items-center">
@@ -519,7 +509,7 @@ export function MarketplaceView() {
               >
                 {detailModal.item.name}
               </h2>
-              <p className="mt-2 font-mono text-lg font-bold text-[#009aa1]">
+              <p className="mt-2 font-mono text-lg font-bold text-[#008B8B]">
                 {detailModal.item.price}{" "}
                 <span className="text-sm font-normal text-slate-500">
                   ({detailModal.item.rateLabel} indicative)
@@ -547,7 +537,7 @@ export function MarketplaceView() {
                 </div>
                 <div className="col-span-2 flex items-center gap-2 border-t border-slate-200 pt-4">
                   <Star
-                    className="size-4 fill-[#009aa1] text-[#009aa1]"
+                    className="size-4 fill-[#008B8B] text-[#008B8B]"
                     aria-hidden
                   />
                   <span className="text-sm font-bold text-slate-900">
@@ -579,7 +569,7 @@ export function MarketplaceView() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="rounded-lg border-2 border-[#009aa1] !bg-transparent px-6 py-2.5 text-xs font-bold tracking-widest text-[#009aa1] shadow-none hover:!bg-transparent hover:text-[#007070] dark:!bg-transparent dark:hover:!bg-transparent"
+                    className="rounded-lg border-2 border-[#008B8B] !bg-transparent px-6 py-2.5 text-xs font-bold tracking-widest text-[#008B8B] shadow-none hover:!bg-transparent hover:text-[#006b6b] dark:!bg-transparent dark:hover:!bg-transparent"
                     onClick={() => addProductToInquiry(detailModal.item)}
                   >
                     Add to inquiry

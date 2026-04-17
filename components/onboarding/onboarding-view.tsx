@@ -68,7 +68,7 @@ export function OnboardingView() {
   const isLast = stepIndex === totalSteps - 1;
 
   return (
-    <div className="selection:bg-blue-100 selection:text-[#007AFF] dark:selection:bg-blue-950 dark:selection:text-blue-200 flex min-h-0 flex-1 flex-col bg-background text-foreground">
+    <div className="selection:bg-[#008B8B]/15 selection:text-[#006060] dark:selection:bg-[#008B8B]/25 dark:selection:text-[#e0f2f2] flex min-h-0 flex-1 flex-col bg-background text-foreground">
       <div className="shrink-0 pl-3 pt-2 sm:pl-4 sm:pt-4 lg:pl-5">
         <Link
           href="/"
@@ -87,7 +87,7 @@ export function OnboardingView() {
               <h1 className="font-heading text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
                 Onboarding Wizards
               </h1>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#008B8B]">
                 Step {String(stepIndex + 1).padStart(2, "0")} of{" "}
                 {String(totalSteps).padStart(2, "0")}
               </span>
@@ -99,7 +99,7 @@ export function OnboardingView() {
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
                 Progress
               </span>
-              <div className="text-xl font-bold text-blue-600">{progressPct}%</div>
+              <div className="text-xl font-bold text-[#008B8B]">{progressPct}%</div>
             </div>
           </div>
 
@@ -121,7 +121,7 @@ export function OnboardingView() {
                       <div
                         className={cn(
                           "h-0.5 min-w-[0.75rem] flex-1 self-center rounded-full transition-colors",
-                          i <= stepIndex ? "bg-blue-600" : "bg-slate-200"
+                          i <= stepIndex ? "bg-[#008B8B]" : "bg-slate-200"
                         )}
                         aria-hidden
                       />
@@ -131,9 +131,9 @@ export function OnboardingView() {
                         className={cn(
                           "flex size-9 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors",
                           done &&
-                            "border-blue-600 bg-blue-600 text-white shadow-md shadow-blue-600/25",
+                            "border-[#008B8B] bg-[#008B8B] text-white shadow-md shadow-[#008B8B]/25",
                           active &&
-                            "border-blue-600 bg-white text-blue-600 ring-4 ring-blue-100",
+                            "border-[#008B8B] bg-white text-[#008B8B] ring-4 ring-[#008B8B]/15",
                           upcoming && "border-slate-200 bg-slate-50 text-slate-400"
                         )}
                       >
@@ -146,7 +146,7 @@ export function OnboardingView() {
                       <p
                         className={cn(
                           "mt-2 text-[10px] font-bold uppercase tracking-widest",
-                          active ? "text-blue-600" : "text-slate-400"
+                          active ? "text-[#008B8B]" : "text-slate-400"
                         )}
                       >
                         {String(i + 1).padStart(2, "0")}
@@ -179,9 +179,9 @@ export function OnboardingView() {
                       className={cn(
                         "flex size-9 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors",
                         done &&
-                          "border-blue-600 bg-blue-600 text-white shadow-md shadow-blue-600/25",
+                          "border-[#008B8B] bg-[#008B8B] text-white shadow-md shadow-[#008B8B]/25",
                         active &&
-                          "border-blue-600 bg-white text-blue-600 ring-4 ring-blue-100",
+                          "border-[#008B8B] bg-white text-[#008B8B] ring-4 ring-[#008B8B]/15",
                         upcoming && "border-slate-200 bg-slate-50 text-slate-400"
                       )}
                     >
@@ -195,7 +195,7 @@ export function OnboardingView() {
                       <p
                         className={cn(
                           "text-[10px] font-bold uppercase tracking-widest",
-                          active ? "text-blue-600" : "text-slate-400"
+                          active ? "text-[#008B8B]" : "text-slate-400"
                         )}
                       >
                         {String(i + 1).padStart(2, "0")} · {s.title}
@@ -213,7 +213,7 @@ export function OnboardingView() {
                 key={STEPS[i].key}
                 className={cn(
                   "h-full min-h-[4px] flex-1 rounded-full transition-colors duration-300",
-                  i <= stepIndex ? "bg-blue-600" : "bg-slate-200"
+                  i <= stepIndex ? "bg-[#008B8B]" : "bg-slate-200"
                 )}
               />
             ))}
@@ -226,7 +226,7 @@ export function OnboardingView() {
             aria-labelledby="onboarding-step-title"
           >
             <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-[0.05]">
-              <LineChart className="size-16 text-blue-700" aria-hidden />
+              <LineChart className="size-16 text-[#006060]" aria-hidden />
             </div>
 
             <div className="mb-8 border-b border-slate-100 pb-6">
@@ -247,7 +247,7 @@ export function OnboardingView() {
                   <div>
                     <label
                       htmlFor="mission-name"
-                      className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-blue-600"
+                      className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-[#008B8B]"
                     >
                       Mission name
                     </label>
@@ -256,14 +256,14 @@ export function OnboardingView() {
                       type="text"
                       value={missionName}
                       onChange={(e) => setMissionName(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm outline-none transition-all focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/20"
                       placeholder="e.g. Medical supply — Downtown hub"
                     />
                   </div>
                   <div>
                     <label
                       htmlFor="priority"
-                      className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-blue-600"
+                      className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-[#008B8B]"
                     >
                       Priority level
                     </label>
@@ -276,7 +276,7 @@ export function OnboardingView() {
                             e.target.value as (typeof priorityOptions)[number]["value"]
                           )
                         }
-                        className="w-full appearance-none rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full appearance-none rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm outline-none transition-all focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/20"
                       >
                         {priorityOptions.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -297,7 +297,7 @@ export function OnboardingView() {
                 <div className="space-y-8">
                   <div>
                     <label
-                      className="mb-6 block text-[10px] font-bold uppercase tracking-widest text-blue-600"
+                      className="mb-6 block text-[10px] font-bold uppercase tracking-widest text-[#008B8B]"
                       htmlFor="weight-slider"
                     >
                       Package weight
@@ -308,7 +308,7 @@ export function OnboardingView() {
                           <span className="text-sm font-semibold text-slate-700">
                             Cargo load
                           </span>
-                          <span className="text-sm font-bold text-blue-600">
+                          <span className="text-sm font-bold text-[#008B8B]">
                             {packageKg.toFixed(1)} KG
                           </span>
                         </div>
@@ -322,7 +322,7 @@ export function OnboardingView() {
                           onChange={(e) =>
                             setPackageKg(Number.parseFloat(e.target.value))
                           }
-                          className="onboarding-slider h-1.5 w-full cursor-pointer rounded-lg bg-slate-100 accent-blue-600"
+                          className="onboarding-slider h-1.5 w-full cursor-pointer rounded-lg bg-slate-100 accent-[#008B8B]"
                         />
                         <div className="mt-2 flex justify-between text-[10px] font-bold uppercase text-slate-400">
                           <span>Light (0kg)</span>
@@ -337,7 +337,7 @@ export function OnboardingView() {
               {stepIndex === 2 && (
                 <div className="space-y-8">
                   <div>
-                    <label className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-blue-600">
+                    <label className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-[#008B8B]">
                       Travel distance
                     </label>
                     <div className="relative">
@@ -345,7 +345,7 @@ export function OnboardingView() {
                         readOnly
                         type="text"
                         value="45.2 KM"
-                        className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm outline-none transition-all focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/20"
                         aria-label="Estimated travel distance"
                       />
                       <Navigation2
@@ -355,7 +355,7 @@ export function OnboardingView() {
                     </div>
                   </div>
                   <div>
-                    <label className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-blue-600">
+                    <label className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-[#008B8B]">
                       Route preview
                     </label>
                     <div className="group relative aspect-video overflow-hidden rounded-xl border border-slate-200">
@@ -368,7 +368,7 @@ export function OnboardingView() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-white/60 to-transparent" />
                       <div className="absolute bottom-4 left-4 flex gap-2">
-                        <div className="rounded border border-slate-200 bg-white/90 px-3 py-1 text-[10px] font-bold uppercase text-blue-700 shadow-sm backdrop-blur-md">
+                        <div className="rounded border border-slate-200 bg-white/90 px-3 py-1 text-[10px] font-bold uppercase text-[#006060] shadow-sm backdrop-blur-md">
                           Vector optimized
                         </div>
                         <div className="rounded border border-slate-200 bg-white/90 px-3 py-1 text-[10px] font-bold uppercase text-emerald-600 shadow-sm backdrop-blur-md">
@@ -376,7 +376,7 @@ export function OnboardingView() {
                         </div>
                       </div>
                       <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-                        <MapPin className="size-10 text-blue-600" aria-hidden />
+                        <MapPin className="size-10 text-[#008B8B]" aria-hidden />
                         <span className="mt-2 rounded border border-slate-100 bg-white p-1.5 text-[10px] font-bold uppercase tracking-tighter text-slate-800 shadow-lg">
                           Target: Sector 7G
                         </span>
@@ -410,7 +410,7 @@ export function OnboardingView() {
                     </li>
                     <li className="flex justify-between gap-4 border-b border-slate-200/80 pb-3">
                       <span className="text-slate-500">Payload</span>
-                      <span className="font-semibold text-blue-600">
+                      <span className="font-semibold text-[#008B8B]">
                         {packageKg.toFixed(1)} kg
                       </span>
                     </li>
@@ -439,7 +439,7 @@ export function OnboardingView() {
                 {!isLast ? (
                   <button
                     type="submit"
-                    className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-8 py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-700 hover:shadow-blue-500/30 sm:px-10"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-[#008B8B] px-8 py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-[#008B8B]/20 transition-all hover:bg-[#006b6b] hover:shadow-[#008B8B]/30 sm:px-10"
                   >
                     Next step
                     <ArrowRight className="size-4" aria-hidden />
@@ -447,7 +447,7 @@ export function OnboardingView() {
                 ) : (
                   <button
                     type="button"
-                    className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-8 py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-700 hover:shadow-blue-500/30 sm:px-10"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-[#008B8B] px-8 py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-[#008B8B]/20 transition-all hover:bg-[#006b6b] hover:shadow-[#008B8B]/30 sm:px-10"
                   >
                     Confirm mission
                     <Check className="size-4" aria-hidden />

@@ -99,7 +99,7 @@ export function LoginView() {
             <div className="mb-1.5 flex justify-center sm:mb-2">
               <div className="flex size-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 shadow-sm sm:size-11">
                 <User
-                  className="size-[22px] text-[#0058bc] sm:size-6"
+                  className="size-[22px] text-[#008B8B] sm:size-6"
                   strokeWidth={1.75}
                 />
               </div>
@@ -425,7 +425,7 @@ export function LoginView() {
                   <div className="flex justify-end px-1">
                     <a
                       href="#"
-                      className="text-[11px] font-semibold text-[#0058bc] transition-colors hover:text-[#0070eb] sm:text-xs"
+                      className="text-[11px] font-semibold text-[#008B8B] transition-colors hover:text-[#006b6b] sm:text-xs"
                     >
                       Forgot?
                     </a>
@@ -438,7 +438,7 @@ export function LoginView() {
                     type="checkbox"
                     checked={remember}
                     onChange={(e) => setRemember(e.target.checked)}
-                    className="size-4 rounded border border-slate-300 bg-white text-[#0058bc] focus:outline-none focus:ring-0 sm:size-[18px]"
+                    className="size-4 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-0 sm:size-[18px]"
                   />
                   <label
                     htmlFor="login-remember"
@@ -453,7 +453,7 @@ export function LoginView() {
             <button
               type="submit"
               className={cn(
-                "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#0058bc] to-[#0070eb] py-2 px-3 text-sm font-bold text-white shadow-md shadow-[#0058bc]/20 transition-all hover:shadow-[#0058bc]/35 active:scale-[0.99] sm:py-2.5"
+                "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#008B8B] to-[#006b6b] py-2 px-3 text-sm font-bold text-white shadow-md shadow-[#008B8B]/20 transition-all hover:shadow-[#008B8B]/35 active:scale-[0.99] sm:py-2.5"
               )}
             >
               {mode === "admin"
@@ -468,7 +468,7 @@ export function LoginView() {
               Don&apos;t have an account?{" "}
               <Link
                 href="/signup"
-                className="ml-1 font-bold text-[#0058bc] hover:underline"
+                className="ml-1 font-bold text-[#008B8B] hover:underline"
               >
                 Sign Up
               </Link>

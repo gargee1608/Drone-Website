@@ -9,28 +9,63 @@ import {
   Map,
   Menu,
   Plus,
+  Settings,
   UserRound,
   X,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
 import { cn } from "@/lib/utils";
 
+/** Same CSS var as admin `DashboardLayout` so `SiteFooter` aligns with the sidebar. */
+const FOOTER_SIDEBAR_INSET_VAR = "--admin-sidebar-footer-inset";
+
+const MY_REQUESTS_HREF = "/user-dashboard/my-requests";
+
 const sidebarNav = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/user-dashboard" },
-  { label: "My Request", icon: ClipboardList, href: "/user-dashboard/my-requests" },
+  { label: "My Request", icon: ClipboardList, href: MY_REQUESTS_HREF },
+  { label: "Settings", icon: Settings, href: "/settings?from=user" },
 ] as const;
+
+function userShellNavHrefPath(href: string): string {
+  const q = href.indexOf("?");
+  return q === -1 ? href : href.slice(0, q);
+}
+
+function userShellNavItemIsActive(pathname: string | null, href: string) {
+  if (!pathname) return false;
+  const base = userShellNavHrefPath(href);
+  if (base === "/user-dashboard") {
+    return pathname === "/user-dashboard" || pathname === "/user-dashboard/";
+  }
+  if (base === "/settings") {
+    return (
+      pathname === "/settings" ||
+      pathname === "/settings/" ||
+      pathname.startsWith("/settings/")
+    );
+  }
+  return pathname === base;
+}
 
 function SidebarNavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const isSettingsRoute =
+    pathname === "/settings" ||
+    pathname === "/settings/" ||
+    (pathname?.startsWith("/settings/") ?? false);
+  const navItems = isSettingsRoute
+    ? sidebarNav.filter((item) => item.href !== MY_REQUESTS_HREF)
+    : sidebarNav;
 
   return (
     <nav className="flex flex-col gap-2">
-      {sidebarNav.map((item) => {
+      {navItems.map((item) => {
         const Icon = item.icon;
-        const isActive = pathname === item.href;
+        const isActive = userShellNavItemIsActive(pathname, item.href);
         return (
           <Link
             key={item.label}
@@ -104,9 +139,30 @@ export function UserDashboardShell({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { sidebarExpanded, setSidebarExpanded } = useUserDashboardNav();
 
+  useEffect(() => {
+    const updateFooterInset = () => {
+      const mq = globalThis.matchMedia?.("(min-width: 1024px)");
+      const wide = mq?.matches ?? false;
+      const inset =
+        wide && sidebarExpanded ? "15rem" : "0px";
+      document.documentElement.style.setProperty(
+        FOOTER_SIDEBAR_INSET_VAR,
+        inset
+      );
+    };
+
+    updateFooterInset();
+    const mq = globalThis.matchMedia?.("(min-width: 1024px)");
+    mq?.addEventListener("change", updateFooterInset);
+    return () => {
+      mq?.removeEventListener("change", updateFooterInset);
+      document.documentElement.style.removeProperty(FOOTER_SIDEBAR_INSET_VAR);
+    };
+  }, [sidebarExpanded]);
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-white pt-22 text-[#191c1d] sm:pt-24">
-      <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-2 lg:hidden">
+    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-white pt-20 text-[#191c1d] sm:pt-22">
+      <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-1.5 lg:hidden">
         <button
           type="button"
           className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-[#eceff1]"
@@ -158,16 +214,16 @@ export function UserDashboardShell({
         <aside
           id="user-dashboard-sidebar"
           className={cn(
-            "hidden flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[inset_-1px_0_0_rgba(15,23,42,0.02)] transition-[width] duration-300 ease-out lg:border-r-0 lg:shadow-none lg:fixed lg:bottom-0 lg:left-0 lg:top-22 lg:z-40 lg:flex",
+            "hidden flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[inset_-1px_0_0_rgba(15,23,42,0.02)] transition-[width] duration-300 ease-out lg:border-r-0 lg:shadow-none lg:fixed lg:bottom-0 lg:left-0 lg:top-20 lg:z-40 lg:flex",
             sidebarExpanded ? "lg:w-60" : "lg:w-0 lg:border-0 lg:p-0"
           )}
           aria-hidden={!sidebarExpanded}
         >
           {sidebarExpanded ? (
-            <div className="shrink-0 px-2 py-3 lg:hidden">
+            <div className="shrink-0 px-2 py-2 lg:hidden">
               <button
                 type="button"
-                className="flex size-10 shrink-0 items-center justify-center rounded-lg text-[#191c1d] transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35"
+                className="flex size-10 shrink-0 items-center justify-center rounded-lg text-[#191c1d] transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35"
                 onClick={() => setSidebarExpanded(false)}
                 aria-label="Collapse sidebar"
                 aria-expanded={sidebarExpanded}
@@ -177,7 +233,7 @@ export function UserDashboardShell({
               </button>
             </div>
           ) : null}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3.5 pt-3">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pt-2 lg:px-3 lg:pb-3 lg:pt-0">
             <SidebarNavLinks />
           </div>
           {sidebarExpanded ? (
@@ -189,16 +245,22 @@ export function UserDashboardShell({
           ) : null}
         </aside>
 
-        {/* Main column + footer (footer only as wide as content, not under sidebar) */}
+        {/* Full-height vertical rule at sidebar edge (aligns with global footer; matches admin dashboard). */}
+        {sidebarExpanded ? (
+          <div
+            aria-hidden
+            className="pointer-events-none fixed bottom-0 left-60 top-20 z-[35] hidden w-px bg-slate-200 lg:block"
+          />
+        ) : null}
+
+        {/* Main column (global footer sits below viewport; inset matches sidebar width) */}
         <div
           className={cn(
             "flex min-h-0 min-w-0 flex-1 flex-col transition-[margin] duration-300 ease-out",
-            sidebarExpanded
-              ? "lg:ml-60 lg:border-l lg:border-slate-200"
-              : "lg:ml-0"
+            sidebarExpanded ? "lg:ml-60" : "lg:ml-0"
           )}
         >
-          <main className="mx-auto w-full max-w-[1280px] flex-1 p-5 sm:p-6 lg:p-8">
+          <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4 lg:px-6 lg:pb-6 lg:pt-0">
             <div className="mb-8 sm:mb-10">
               <div className="flex items-center gap-3">
                 <h1
@@ -230,9 +292,9 @@ export function UserDashboardShell({
         className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-slate-200 bg-white px-6 py-4 backdrop-blur-sm md:hidden"
         aria-label="Quick navigation"
       >
-        <LayoutDashboard className="size-6 text-[#0058bc]" />
+        <LayoutDashboard className="size-6 text-[#008B8B]" />
         <Map className="size-6 text-[#414755]" />
-        <div className="-mt-10 rounded-full bg-[#0058bc] p-3 shadow-lg shadow-[#0058bc]/30">
+        <div className="-mt-10 rounded-full bg-[#008B8B] p-3 shadow-lg shadow-[#008B8B]/30">
           <Plus className="size-6 text-white" strokeWidth={2.5} />
         </div>
         <History className="size-6 text-[#414755]" />

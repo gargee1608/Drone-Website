@@ -55,22 +55,22 @@ export type SiteHeaderProps = {
 };
 
 const ctaButtonClassName =
-  "hidden h-9 shrink-0 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-4 text-xs font-semibold tracking-wide text-white shadow-md shadow-blue-500/25 transition hover:from-blue-600/90 hover:to-indigo-600/90 sm:inline-flex";
+  "hidden h-9 shrink-0 rounded-full bg-gradient-to-r from-[#008B8B] to-[#006b6b] px-4 text-xs font-semibold tracking-wide text-white shadow-md shadow-[#008B8B]/25 transition hover:from-[#008B8B]/90 hover:to-[#006b6b]/90 sm:inline-flex";
 
 const headerPilotRegisterClassName =
-  "inline-flex h-9 shrink-0 items-center justify-center rounded-full border-2 border-blue-600 bg-blue-600 px-4 text-xs font-semibold tracking-wide text-white shadow-none transition hover:border-blue-700 hover:bg-blue-700 hover:text-white";
+  "inline-flex h-9 shrink-0 items-center justify-center rounded-full border-2 border-[#008B8B] bg-[#008B8B] px-4 text-xs font-semibold tracking-wide text-white shadow-none transition hover:border-[#006b6b] hover:bg-[#006b6b] hover:text-white";
 
 const headerRegisteredPilotClassName =
-  "inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-full border-2 border-blue-600 bg-transparent px-3 text-xs font-semibold tracking-wide text-blue-700 shadow-none transition hover:bg-blue-50/70 hover:text-blue-900";
+  "inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-full border-2 border-[#008B8B] bg-transparent px-3 text-xs font-semibold tracking-wide text-[#008B8B] shadow-none transition hover:bg-[#008B8B]/10 hover:text-[#006b6b]";
 
 const mobileCtaClassName =
-  "mt-4 w-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 font-semibold tracking-wide text-white shadow-md shadow-blue-500/25";
+  "mt-4 w-full rounded-full bg-gradient-to-r from-[#008B8B] to-[#006b6b] font-semibold tracking-wide text-white shadow-md shadow-[#008B8B]/25";
 
 const mobilePilotRegisterClassName =
-  "mt-4 w-full rounded-full border-2 border-blue-600 bg-blue-600 font-semibold tracking-wide text-white shadow-none transition hover:border-blue-700 hover:bg-blue-700 hover:text-white";
+  "mt-4 w-full rounded-full border-2 border-[#008B8B] bg-[#008B8B] font-semibold tracking-wide text-white shadow-none transition hover:border-[#006b6b] hover:bg-[#006b6b] hover:text-white";
 
 const mobileRegisteredPilotClassName =
-  "mt-2 w-full rounded-full border-2 border-blue-600 bg-transparent font-semibold tracking-wide text-blue-700 shadow-none transition hover:bg-blue-50/70 hover:text-blue-900";
+  "mt-2 w-full rounded-full border-2 border-[#008B8B] bg-transparent font-semibold tracking-wide text-[#008B8B] shadow-none transition hover:bg-[#008B8B]/10 hover:text-[#006b6b]";
 
 export function SiteHeader({
   ctaLabel = "Register a Pilot",
@@ -98,7 +98,6 @@ export function SiteHeader({
 
   const showUserDashboardSidebarToggle = isUserDashboard;
   const showAdminDashboardSidebarToggle = isAdminDashboard;
-  const showSettingsSidebarToggle = isSettingsPage;
 
   const showDashboardSettings = isUserDashboard || isAdminDashboard;
   const settingsHref = isUserDashboard
@@ -120,7 +119,7 @@ export function SiteHeader({
       : pathname === href || pathname.startsWith(`${href}/`);
     return cn(
       "site-header-marketing-link shrink-0 text-foreground transition-colors hover:text-foreground/85",
-      active && "border-b-2 border-[#0058bc] pb-0.5 font-semibold text-foreground"
+      active && "border-b-2 border-[#008B8B] pb-0.5 font-semibold text-foreground"
     );
   };
 
@@ -135,24 +134,10 @@ export function SiteHeader({
     >
       <div className="flex w-full min-w-0 items-center gap-2 py-3 pl-2 pr-2 sm:gap-3 sm:pl-3 sm:pr-3 lg:gap-4 lg:pl-4 lg:pr-5">
         <div className="ml-1 flex min-w-0 shrink-0 items-center gap-1.5 sm:ml-2 sm:gap-2 lg:ml-3">
-          {showSettingsSidebarToggle ? (
-            <button
-              type="button"
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#0058bc] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35"
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  window.dispatchEvent(new Event("settings-nav-toggle"));
-                }
-              }}
-              aria-label="Toggle settings navigation"
-            >
-              <Menu className="size-5" strokeWidth={2.25} aria-hidden />
-            </button>
-          ) : null}
           {showAdminDashboardSidebarToggle ? (
             <button
               type="button"
-              className="hidden lg:inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#0058bc] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35"
+              className="hidden lg:inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35"
               onClick={() =>
                 setAdminSidebarExpanded(!adminSidebarExpanded)
               }
@@ -170,7 +155,7 @@ export function SiteHeader({
           {showUserDashboardSidebarToggle ? (
             <button
               type="button"
-              className="hidden lg:inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#0058bc] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0058bc]/35"
+              className="hidden lg:inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35"
               onClick={() =>
                 setUserSidebarExpanded(!userSidebarExpanded)
               }
@@ -373,7 +358,7 @@ export function SiteHeader({
                         href="/services"
                         className={cn(
                           buttonVariants({ size: "sm" }),
-                          "inline-flex w-auto shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-4 text-sm text-white"
+                          "inline-flex w-auto shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#008B8B] to-[#006b6b] px-4 text-sm text-white"
                         )}
                         onClick={() => setOpen(false)}
                       >

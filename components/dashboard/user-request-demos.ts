@@ -24,8 +24,8 @@ export const USER_REQUEST_DEMO_MISSIONS = [
   {
     title: "Agricultural Mapping",
     badge: "ROUTINE",
-    badgeClass: "bg-[#d8e2ff] text-[#001a41]",
-    barColor: "#0058bc",
+    badgeClass: "bg-[#008B8B]/14 text-[#0a3030]",
+    barColor: "#008B8B",
     desc: "Payload: Multispectral Camera (1.5kg) | Target: Highland Farms",
   },
 ] as const;

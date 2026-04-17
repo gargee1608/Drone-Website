@@ -291,19 +291,19 @@ export function PilotRegistrationView() {
 
   return (
     <div className="relative min-h-dvh bg-background pt-22 text-foreground sm:pt-24">
-      <div className="mx-auto max-w-3xl px-4 pb-16 pt-5 sm:px-6 sm:pt-8">
-        <div className="overflow-hidden rounded-2xl border-2 border-slate-200 bg-white shadow-md ring-1 ring-slate-900/5">
-          <div className="border-b border-slate-200 bg-slate-50/60 px-5 py-6 text-center sm:px-8 sm:py-7">
-            <h1 className="font-heading text-2xl font-bold tracking-tight text-blue-950 sm:text-3xl">
+      <div className="mx-auto max-w-2xl px-4 pb-12 pt-4 sm:px-5 sm:pb-14 sm:pt-6">
+        <div className="overflow-hidden rounded-xl border-2 border-slate-200 bg-white shadow-md ring-1 ring-slate-900/5">
+          <div className="border-b border-slate-200 bg-slate-50/60 px-4 py-4 text-center sm:px-6 sm:py-5">
+            <h1 className="font-heading text-xl font-bold tracking-tight text-[#0a3d3d] sm:text-2xl">
               Pilot Registration
             </h1>
-            <p className="mt-2 text-sm text-slate-600 sm:text-base">
+            <p className="mt-1.5 text-xs text-slate-600 sm:text-sm">
               Join India&apos;s drone pilot network
             </p>
           </div>
 
           <nav
-            className="flex items-center justify-between gap-0 border-b border-slate-200 bg-white px-3 py-5 sm:gap-1 sm:px-6 sm:py-6"
+            className="flex items-center justify-between gap-0 border-b border-slate-200 bg-white px-2 py-4 sm:gap-1 sm:px-4 sm:py-4"
             aria-label="Registration progress"
           >
           {STEPS.map((s, i) => (
@@ -311,8 +311,8 @@ export function PilotRegistrationView() {
               <div className="flex w-full min-w-0 flex-col items-center gap-2">
                 <span
                   className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white sm:size-9 sm:text-sm",
-                    step >= s.id ? "bg-blue-500" : "bg-slate-300"
+                    "flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white sm:size-8 sm:text-xs",
+                    step >= s.id ? "bg-[#008B8B]" : "bg-slate-300"
                   )}
                   aria-current={step === s.id ? "step" : undefined}
                 >
@@ -322,7 +322,7 @@ export function PilotRegistrationView() {
                   className={cn(
                     "text-center text-[10px] sm:text-xs",
                     step === s.id
-                      ? "font-semibold text-blue-900"
+                      ? "font-semibold text-[#0a3d3d]"
                       : s.id < step
                         ? "font-medium text-slate-500"
                         : "font-medium text-slate-400"
@@ -334,8 +334,8 @@ export function PilotRegistrationView() {
               {i < STEPS.length - 1 ? (
                 <div
                   className={cn(
-                    "mb-6 h-px min-w-[12px] flex-1 sm:mb-7",
-                    step > s.id ? "bg-blue-500" : "bg-slate-200"
+                    "mb-5 h-px min-w-[10px] flex-1 sm:mb-6",
+                    step > s.id ? "bg-[#008B8B]" : "bg-slate-200"
                   )}
                   aria-hidden
                 />
@@ -344,10 +344,10 @@ export function PilotRegistrationView() {
           ))}
           </nav>
 
-          <div className="bg-white px-5 py-6 sm:px-8 sm:py-8">
+          <div className="bg-white px-4 py-5 sm:px-6 sm:py-6">
         {step === 1 ? (
           <form
-            className="space-y-5"
+            className="space-y-4"
             autoComplete="off"
             onSubmit={(e) => {
               e.preventDefault();
@@ -371,7 +371,7 @@ export function PilotRegistrationView() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Raj Kumar"
-                className="h-11 rounded-lg border-slate-200 bg-white px-3"
+                className="h-10 rounded-lg border-slate-200 bg-white px-3"
                 autoComplete="name"
               />
             </div>
@@ -388,7 +388,7 @@ export function PilotRegistrationView() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="raj@email.com"
-                className="h-11 rounded-lg border-slate-200 bg-white px-3"
+                className="h-10 rounded-lg border-slate-200 bg-white px-3"
                 autoComplete="email"
               />
             </div>
@@ -405,7 +405,7 @@ export function PilotRegistrationView() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+91 98765 43210"
-                className="h-11 rounded-lg border-slate-200 bg-white px-3"
+                className="h-10 rounded-lg border-slate-200 bg-white px-3"
                 autoComplete="tel"
               />
             </div>
@@ -422,7 +422,7 @@ export function PilotRegistrationView() {
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="Mumbai"
-                  className="h-11 rounded-lg border-slate-200 bg-white px-3"
+                  className="h-10 rounded-lg border-slate-200 bg-white px-3"
                   autoComplete="address-level2"
                 />
               </div>
@@ -437,7 +437,7 @@ export function PilotRegistrationView() {
                   value={state}
                   onChange={(e) => setState(e.target.value)}
                   className={cn(
-                    "h-11 w-full rounded-lg border border-input bg-white px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                    "h-10 w-full rounded-lg border border-input bg-white px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
                     state === "" ? "text-muted-foreground" : "text-slate-900"
                   )}
                 >
@@ -470,7 +470,7 @@ export function PilotRegistrationView() {
                 title="Enter exactly 12 digits"
                 aria-describedby="aadhaar-hint"
                 aria-invalid={aadhaarStepError}
-                className="h-11 rounded-lg border-slate-200 bg-white px-3 tabular-nums"
+                className="h-10 rounded-lg border-slate-200 bg-white px-3 tabular-nums"
                 autoComplete="off"
               />
               <p id="aadhaar-hint" className="text-xs text-muted-foreground">
@@ -497,7 +497,7 @@ export function PilotRegistrationView() {
                 value={dgca}
                 onChange={(e) => setDgca(e.target.value)}
                 placeholder="UA-XXXXXXXXXX"
-                className="h-11 rounded-lg border-slate-200 bg-white px-3"
+                className="h-10 rounded-lg border-slate-200 bg-white px-3"
                 autoComplete="off"
               />
             </div>
@@ -505,7 +505,7 @@ export function PilotRegistrationView() {
             <div className="flex justify-end pt-2">
               <Button
                 type="submit"
-                className="h-11 gap-2 rounded-lg bg-blue-500 px-6 font-semibold text-white shadow-sm hover:bg-blue-600"
+                className="h-10 gap-2 rounded-lg bg-[#008B8B] px-6 font-semibold text-white shadow-sm hover:bg-[#006b6b]"
               >
                 Next
                 <ArrowRight className="size-4" aria-hidden />
@@ -514,7 +514,7 @@ export function PilotRegistrationView() {
           </form>
         ) : step === 2 ? (
           <form
-            className="space-y-6"
+            className="space-y-5"
             autoComplete="off"
             onSubmit={(e) => {
               e.preventDefault();
@@ -548,7 +548,7 @@ export function PilotRegistrationView() {
                       className={cn(
                         "rounded-full border px-3 py-1.5 text-sm font-medium transition",
                         on
-                          ? "border-blue-500 bg-blue-500 text-white shadow-sm"
+                          ? "border-[#008B8B] bg-[#008B8B] text-white shadow-sm"
                           : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                       )}
                     >
@@ -582,7 +582,7 @@ export function PilotRegistrationView() {
                 step={1}
                 value={flightHours}
                 onChange={(e) => setFlightHours(Number(e.target.value))}
-                className="h-2 w-full cursor-pointer accent-blue-500"
+                className="h-2 w-full cursor-pointer accent-[#008B8B]"
               />
             </div>
 
@@ -616,7 +616,7 @@ export function PilotRegistrationView() {
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="Tell clients about your experience..."
-                className="min-h-[100px] w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                className="min-h-[88px] w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               />
             </div>
 
@@ -625,14 +625,14 @@ export function PilotRegistrationView() {
                 type="button"
                 variant="outline"
                 onClick={() => setStep(1)}
-                className="h-11 gap-2 rounded-lg border-blue-500 bg-white px-6 font-semibold text-blue-600 hover:bg-blue-50"
+                className="h-10 gap-2 rounded-lg border-[#008B8B] bg-white px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
               >
                 <ArrowLeft className="size-4" aria-hidden />
                 Back
               </Button>
               <Button
                 type="submit"
-                className="h-11 gap-2 rounded-lg bg-blue-500 px-6 font-semibold text-white shadow-sm hover:bg-blue-600"
+                className="h-10 gap-2 rounded-lg bg-[#008B8B] px-6 font-semibold text-white shadow-sm hover:bg-[#006b6b]"
               >
                 Next
                 <ArrowRight className="size-4" aria-hidden />
@@ -640,7 +640,7 @@ export function PilotRegistrationView() {
             </div>
           </form>
         ) : step === 3 ? (
-          <div className="space-y-6">
+          <div className="space-y-5">
             {drones.length > 0 ? (
               <div className="space-y-2">
                 <h3 className="text-sm font-bold text-slate-900">Your Drones</h3>
@@ -693,7 +693,7 @@ export function PilotRegistrationView() {
                       setDroneFormError(false);
                     }}
                     placeholder="DJI Mavic 3"
-                    className="h-11 rounded-lg border-slate-200 bg-white px-3"
+                    className="h-10 rounded-lg border-slate-200 bg-white px-3"
                   />
                 </div>
 
@@ -713,7 +713,7 @@ export function PilotRegistrationView() {
                       setDroneFormError(false);
                     }}
                     className={cn(
-                      "h-11 w-full rounded-lg border border-input bg-white px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                      "h-10 w-full rounded-lg border border-input bg-white px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
                       droneType === "" ? "text-muted-foreground" : "text-slate-900"
                     )}
                   >
@@ -740,7 +740,7 @@ export function PilotRegistrationView() {
                       value={droneCamera}
                       onChange={(e) => setDroneCamera(e.target.value)}
                       placeholder="4K HDR"
-                      className="h-11 rounded-lg border-slate-200 bg-white px-3"
+                      className="h-10 rounded-lg border-slate-200 bg-white px-3"
                     />
                   </div>
                   <div className="space-y-2">
@@ -756,7 +756,7 @@ export function PilotRegistrationView() {
                       value={dronePayload}
                       onChange={(e) => setDronePayload(e.target.value)}
                       placeholder="2.5"
-                      className="h-11 rounded-lg border-slate-200 bg-white px-3"
+                      className="h-10 rounded-lg border-slate-200 bg-white px-3"
                     />
                   </div>
                 </div>
@@ -775,7 +775,7 @@ export function PilotRegistrationView() {
                       value={droneFlightMin}
                       onChange={(e) => setDroneFlightMin(e.target.value)}
                       placeholder="45"
-                      className="h-11 rounded-lg border-slate-200 bg-white px-3"
+                      className="h-10 rounded-lg border-slate-200 bg-white px-3"
                     />
                   </div>
                   <div className="space-y-2">
@@ -791,7 +791,7 @@ export function PilotRegistrationView() {
                       value={droneRangeKm}
                       onChange={(e) => setDroneRangeKm(e.target.value)}
                       placeholder="15"
-                      className="h-11 rounded-lg border-slate-200 bg-white px-3"
+                      className="h-10 rounded-lg border-slate-200 bg-white px-3"
                     />
                   </div>
                 </div>
@@ -809,7 +809,7 @@ export function PilotRegistrationView() {
                           className={cn(
                             "rounded-full border px-3 py-1.5 text-sm font-medium transition",
                             on
-                              ? "border-blue-500 bg-blue-50 text-blue-800"
+                              ? "border-[#008B8B] bg-[#008B8B]/8 text-[#004040]"
                               : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                           )}
                         >
@@ -831,7 +831,7 @@ export function PilotRegistrationView() {
                   type="button"
                   variant="outline"
                   onClick={handleAddDrone}
-                  className="h-11 w-full gap-2 rounded-lg border-slate-200 bg-white font-semibold text-slate-800 hover:bg-slate-50"
+                  className="h-10 w-full gap-2 rounded-lg border-slate-200 bg-white font-semibold text-slate-800 hover:bg-slate-50"
                 >
                   <Plus className="size-4" aria-hidden />
                   Add Drone
@@ -844,7 +844,7 @@ export function PilotRegistrationView() {
                 type="button"
                 variant="outline"
                 onClick={() => setStep(2)}
-                className="h-11 gap-2 rounded-lg border-slate-300 bg-white px-6 font-semibold text-slate-700 hover:bg-slate-50"
+                className="h-10 gap-2 rounded-lg border-slate-300 bg-white px-6 font-semibold text-slate-700 hover:bg-slate-50"
               >
                 <ArrowLeft className="size-4" aria-hidden />
                 Back
@@ -852,7 +852,7 @@ export function PilotRegistrationView() {
               <Button
                 type="button"
                 onClick={handleGoToReview}
-                className="h-11 gap-2 rounded-lg bg-blue-500 px-6 font-semibold text-white shadow-sm hover:bg-blue-600"
+                className="h-10 gap-2 rounded-lg bg-[#008B8B] px-6 font-semibold text-white shadow-sm hover:bg-[#006b6b]"
               >
                 Review
                 <ArrowRight className="size-4" aria-hidden />
@@ -944,7 +944,7 @@ export function PilotRegistrationView() {
                   {drones.map((d) => (
                     <li
                       key={d.id}
-                      className="rounded-lg border border-blue-100 bg-blue-50/80 px-4 py-3"
+                      className="rounded-lg border border-[#008B8B]/20 bg-[#008B8B]/8 px-4 py-3"
                     >
                       <p className="font-bold text-slate-900">
                         {d.modelName}{" "}
@@ -980,7 +980,7 @@ export function PilotRegistrationView() {
                 type="button"
                 variant="outline"
                 onClick={() => setStep(3)}
-                className="h-11 gap-2 rounded-lg border-slate-300 bg-white px-6 font-semibold text-slate-700 hover:bg-slate-50"
+                className="h-10 gap-2 rounded-lg border-slate-300 bg-white px-6 font-semibold text-slate-700 hover:bg-slate-50"
               >
                 <ArrowLeft className="size-4" aria-hidden />
                 Back
@@ -988,7 +988,7 @@ export function PilotRegistrationView() {
               <Button
                 type="button"
                 onClick={handleSubmitRegistration}
-                className="h-11 gap-2 rounded-lg bg-blue-500 px-6 font-semibold text-white shadow-sm hover:bg-blue-600"
+                className="h-10 gap-2 rounded-lg bg-[#008B8B] px-6 font-semibold text-white shadow-sm hover:bg-[#006b6b]"
               >
                 Submit Registration
                 <ArrowRight className="size-4" aria-hidden />

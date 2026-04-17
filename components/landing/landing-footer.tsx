@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Globe, Shield } from "lucide-react";
+import { Mail, MapPin, Plane } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -7,90 +7,112 @@ export type LandingFooterProps = {
   className?: string;
 };
 
-const resources = [
-  { href: "/marketplace", label: "Company" },
-  { href: "/services", label: "Services" },
-  { href: "#", label: "Support" },
-  { href: "#", label: "Terms" },
+const solutions = [
+  { href: "/marketplace", label: "Fleet & Marketplace" },
+  { href: "/services", label: "Mission Services" },
+  { href: "/contact", label: "Enterprise Quotes" },
+  { href: "/blogs", label: "Insights & Updates" },
+  { href: "/pilot-registration", label: "Pilot Network" },
 ] as const;
 
-const connect = [
-  { href: "https://twitter.com", label: "X / Twitter" },
-  { href: "https://linkedin.com", label: "LinkedIn" },
-  { href: "https://discord.com", label: "Discord" },
-] as const;
+const contactEmail = "info@dronehire.com";
+const contactAddress =
+  "7th Floor, Samanvay Silver Complex, Vadodara, Gujarat 390020";
 
 export function LandingFooter({ className }: LandingFooterProps) {
+  const year = new Date().getFullYear();
+
   return (
     <footer
       className={cn(
-        "relative z-[60] w-full shrink-0 border-t border-slate-200 bg-white py-5 sm:py-6",
+        "relative z-[60] w-full shrink-0 border-t border-slate-200 bg-white text-slate-700",
         "transition-[padding-left,padding-right] duration-200 ease-out",
         className
       )}
       role="contentinfo"
     >
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 md:grid-cols-[minmax(220px,1.2fr)_auto_auto] md:items-start md:gap-8">
-        <div className="flex flex-col items-center gap-3 md:items-start">
-          <div className="font-[family-name:var(--font-landing-headline)] text-2xl font-black tracking-tighter text-[#009aa1] uppercase">
-            Drone Hire
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-14">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8 xl:gap-12">
+          {/* Brand */}
+          <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-1">
+            <Link
+              href="/"
+              className="inline-flex w-fit items-center gap-2.5 text-left transition-opacity hover:opacity-90"
+            >
+              <Plane
+                className="size-8 shrink-0 text-[#008B8B] sm:size-9"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+              <span className="font-[family-name:var(--font-landing-headline)] text-lg leading-tight sm:text-xl">
+                <span className="font-bold tracking-tight text-slate-900">
+                  DRONE{" "}
+                </span>
+                <span className="font-semibold tracking-tight text-[#008B8B]">
+                  HIRE
+                </span>
+              </span>
+            </Link>
+            <p className="max-w-xs text-sm leading-relaxed text-slate-600">
+              Turning flight plans into deliveries. Smart drone logistics and
+              on-demand aerial services for industry, agriculture, and beyond.
+            </p>
           </div>
-          <p className="max-w-[18rem] text-center text-xs leading-relaxed text-slate-500 md:text-left">
-            Leading the autonomous revolution. Delivering the future, one
-            coordinate at a time.
-          </p>
-        </div>
 
-        <div className="grid w-full max-w-[30rem] grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 md:max-w-none md:gap-10">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <span className="font-[family-name:var(--font-landing-headline)] text-[10px] font-bold tracking-[0.3em] text-slate-900 uppercase">
-              Resources
-            </span>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-slate-500 sm:grid-cols-4">
-              {resources.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className="transition-colors hover:text-[#009aa1]"
-                >
-                  {item.label}
-                </Link>
+          {/* Solutions */}
+          <div>
+            <h3 className="font-[family-name:var(--font-landing-headline)] text-[11px] font-bold tracking-[0.25em] text-[#008B8B] uppercase">
+              Solutions
+            </h3>
+            <ul className="mt-5 flex flex-col gap-3" role="list">
+              {solutions.map((item) => (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    className="text-sm text-slate-600 transition-colors hover:text-[#008B8B]"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
-          <div className="flex flex-col items-center gap-3 text-center">
-            <span className="font-[family-name:var(--font-landing-headline)] text-[10px] font-bold tracking-[0.3em] text-slate-900 uppercase">
-              Connect
-            </span>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-slate-500 sm:grid-cols-3">
-              {connect.map((item) => (
+
+          {/* Contact */}
+          <div>
+            <h3 className="font-[family-name:var(--font-landing-headline)] text-[11px] font-bold tracking-[0.25em] text-[#008B8B] uppercase">
+              Contact
+            </h3>
+            <ul className="mt-5 flex flex-col gap-4" role="list">
+              <li>
                 <a
-                  key={item.label}
-                  href={item.href}
-                  className="transition-colors hover:text-[#009aa1]"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={`mailto:${contactEmail}`}
+                  className="group flex gap-2.5 text-sm text-slate-600 transition-colors hover:text-[#008B8B]"
                 >
-                  {item.label}
+                  <Mail
+                    className="mt-0.5 size-4 shrink-0 text-[#008B8B]"
+                    aria-hidden
+                  />
+                  <span className="break-all">{contactEmail}</span>
                 </a>
-              ))}
-            </div>
+              </li>
+              <li>
+                <div className="flex gap-2.5 text-sm text-slate-600">
+                  <MapPin
+                    className="mt-0.5 size-4 shrink-0 text-[#008B8B]"
+                    aria-hidden
+                  />
+                  <span className="leading-relaxed">{contactAddress}</span>
+                </div>
+              </li>
+            </ul>
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-2.5 md:items-end">
-          <p className="text-center text-xs text-slate-500 md:text-right">
-            © {new Date().getFullYear()} Drone Hire. All rights
-            reserved.
+        <div className="mt-12 border-t border-slate-200 pt-6">
+          <p className="text-center text-xs leading-relaxed text-slate-500">
+            © {year} Drone Hire. All rights reserved.
           </p>
-          <div className="flex gap-4">
-            <span className="flex size-8 items-center justify-center rounded border border-slate-200 bg-white text-slate-500">
-              <Globe className="size-4" aria-hidden />
-            </span>
-            <span className="flex size-8 items-center justify-center rounded border border-slate-200 bg-white text-slate-500">
-              <Shield className="size-4" aria-hidden />
-            </span>
-          </div>
         </div>
       </div>
     </footer>
