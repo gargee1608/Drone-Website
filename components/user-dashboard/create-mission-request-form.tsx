@@ -52,7 +52,7 @@ export function CreateMissionRequestForm() {
   return (
     <form className="space-y-4" onSubmit={handleSubmitRequest}>
       <div className="space-y-1.5">
-        <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f]">
+        <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/65">
           Reason or title
         </label>
         <input
@@ -60,11 +60,11 @@ export function CreateMissionRequestForm() {
           value={reasonOrTitle}
           onChange={(e) => setReasonOrTitle(e.target.value)}
           placeholder="Short title or reason for this request"
-          className="w-full rounded-lg border border-[#c1c6d7] bg-transparent px-3 py-2.5 text-xs text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
+          className="w-full rounded-lg border border-[#c1c6d7] bg-transparent px-3 py-2.5 text-xs text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25 dark:border-white/20 dark:text-white dark:placeholder:text-white/45"
         />
       </div>
       <div className="space-y-1.5">
-        <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f]">
+        <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/65">
           Pickup location
         </label>
         <input
@@ -72,11 +72,11 @@ export function CreateMissionRequestForm() {
           value={pickupLocation}
           onChange={(e) => setPickupLocation(e.target.value)}
           placeholder="Enter hangar or coordinates"
-          className="w-full rounded-lg border border-[#c1c6d7] bg-transparent px-3 py-2.5 text-xs text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
+          className="w-full rounded-lg border border-[#c1c6d7] bg-transparent px-3 py-2.5 text-xs text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25 dark:border-white/20 dark:text-white dark:placeholder:text-white/45"
         />
       </div>
       <div className="space-y-1.5">
-        <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f]">
+        <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/65">
           Drop location
         </label>
         <input
@@ -84,12 +84,12 @@ export function CreateMissionRequestForm() {
           value={dropLocation}
           onChange={(e) => setDropLocation(e.target.value)}
           placeholder="Enter destination"
-          className="w-full rounded-lg border border-[#c1c6d7] bg-transparent px-3 py-2.5 text-xs text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
+          className="w-full rounded-lg border border-[#c1c6d7] bg-transparent px-3 py-2.5 text-xs text-[#191c1d] placeholder:text-[#717786] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25 dark:border-white/20 dark:text-white dark:placeholder:text-white/45"
         />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f]">
+          <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/65">
             Payload weight
           </label>
           <div className="relative">
@@ -101,29 +101,27 @@ export function CreateMissionRequestForm() {
               value={payloadWeightKg}
               onChange={(e) => setPayloadWeightKg(e.target.value)}
               placeholder="0.0"
-              className="w-full rounded-lg border border-[#c1c6d7] bg-transparent py-2.5 pl-3 pr-12 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
+              className="w-full rounded-lg border border-[#c1c6d7] bg-transparent py-2.5 pl-3 pr-12 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25 dark:border-white/20 dark:text-white"
             />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[#4d5b7f]">
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[#4d5b7f] dark:text-white/65">
               kg
             </span>
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f]">
+          <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/65">
             Type
           </label>
           <select
             value={requestType}
             onChange={(e) => setRequestType(e.target.value)}
             className={cn(
-              "w-full appearance-none rounded-lg border border-[#c1c6d7] bg-transparent bg-[length:0.875rem] bg-[right_0.75rem_center] bg-no-repeat py-2.5 pl-3 pr-9 text-xs outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25",
+              "w-full rounded-lg border border-[#c1c6d7] bg-transparent py-2.5 pl-3 pr-3 text-xs outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25",
               requestType === ""
-                ? "text-[#717786]"
-                : "text-[#191c1d]"
+                ? "text-[#717786] dark:text-white/45"
+                : "text-[#191c1d] dark:text-white",
+              "dark:border-white/20"
             )}
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23414755' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-            }}
             aria-label="Type"
           >
             <option value="">Select the Type</option>
@@ -135,21 +133,19 @@ export function CreateMissionRequestForm() {
         </div>
       </div>
       <div className="space-y-1.5">
-        <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f]">
+        <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/65">
           Priority
         </label>
         <select
           value={requestPriority}
           onChange={(e) => setRequestPriority(e.target.value)}
           className={cn(
-            "w-full appearance-none rounded-lg border border-[#c1c6d7] bg-transparent bg-[length:0.875rem] bg-[right_0.75rem_center] bg-no-repeat py-2.5 pl-3 pr-9 text-xs outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25",
+            "w-full rounded-lg border border-[#c1c6d7] bg-transparent py-2.5 pl-3 pr-3 text-xs outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25",
             requestPriority === ""
-              ? "text-[#717786]"
-              : "text-[#191c1d]"
+              ? "text-[#717786] dark:text-white/45"
+              : "text-[#191c1d] dark:text-white",
+            "dark:border-white/20"
           )}
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23414755' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-          }}
           aria-label="Priority"
         >
           <option value="">Select the priority</option>

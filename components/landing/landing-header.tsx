@@ -85,8 +85,11 @@ export function LandingHeader() {
       : "/settings";
 
   const settingsFrom = searchParams.get("from");
-  const showAdminHeaderUtilities =
-    isAdminDashboard || (isSettingsPage && settingsFrom === "admin");
+  const showHeaderNotifications =
+    isAdminDashboard ||
+    isUserDashboard ||
+    (isSettingsPage &&
+      (settingsFrom === "admin" || settingsFrom === "user"));
   const profileHref =
     isAdminDashboard || settingsFrom === "admin"
       ? "/dashboard/profile"
@@ -275,7 +278,7 @@ export function LandingHeader() {
             !isPilotRegistration &&
             !hideNotificationsAndSettings ? (
               <>
-                {showAdminHeaderUtilities ? (
+                {showHeaderNotifications ? (
                   <>
                     <AdminInboxMenu />
                     <HeaderThemeModeToggle />
