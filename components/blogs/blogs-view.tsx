@@ -14,6 +14,7 @@ import {
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { BLOG_ADMIN_UPDATED_EVENT } from "@/lib/blog-admin-storage";
 import { getMergedGridPosts, getMergedPostBySlug } from "@/lib/blog-merge";
+import { ADMIN_PAGE_TITLE_ON_DARK_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 const filterLabels = [
@@ -97,7 +98,12 @@ export function BlogsView() {
           <span className="mb-2 inline-block rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#a1faff] backdrop-blur-md sm:mb-3 sm:px-3 sm:py-1 sm:text-[10px]">
             Featured Publication
           </span>
-          <h1 className="mb-3 font-[family-name:var(--font-landing-headline)] text-2xl font-extrabold leading-tight tracking-tighter text-white sm:mb-4 sm:text-3xl md:text-4xl lg:text-5xl">
+          <h1
+            className={cn(
+              "mb-3 sm:mb-4",
+              ADMIN_PAGE_TITLE_ON_DARK_CLASS
+            )}
+          >
             {featuredHero.headlineLead}{" "}
             <span className="bg-gradient-to-r from-[#a1faff] to-emerald-400 bg-clip-text text-transparent">
               {featuredHero.headlineGradient}

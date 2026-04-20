@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { Button } from "@/components/ui/button";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { appendUserRequest } from "@/lib/user-requests";
 import { cn } from "@/lib/utils";
 
@@ -237,7 +238,7 @@ export function MarketplaceView() {
           <header className="relative mb-12 lg:mb-16">
             <div className="pointer-events-none absolute -top-12 -left-12 h-64 w-64 rounded-full bg-[#008B8B]/5 blur-[80px]" />
             <div className="relative z-10">
-              <h1 className="mb-4 font-[family-name:var(--font-landing-headline)] text-3xl font-bold tracking-tighter text-slate-900 md:text-4xl lg:text-5xl">
+              <h1 className={cn("mb-4", ADMIN_PAGE_TITLE_CLASS)}>
                 Marketplace
               </h1>
               <p className="max-w-xl font-[family-name:var(--font-landing-body)] text-lg text-slate-500">

@@ -79,7 +79,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
 function RecentActivityPanel({ requests }: { requests: UserMissionRequest[] }) {
   if (requests.length === 0) {
     return (
-      <div className="flex flex-col rounded-xl border border-[#c1c6d7]/15 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex flex-col rounded-xl border border-[#c1c6d7]/15 bg-white p-5 sm:p-6">
         <div className="mb-4 flex items-center justify-between gap-2">
           <h3 className="text-base font-bold text-[#191c1d] sm:text-lg">
             Recent activity
@@ -110,7 +110,7 @@ function RecentActivityPanel({ requests }: { requests: UserMissionRequest[] }) {
   }
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-[#c1c6d7]/15 bg-white p-5 shadow-sm sm:p-6">
+    <div className="flex h-full flex-col rounded-xl border border-[#c1c6d7]/15 bg-white p-5 sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-2">
         <h3 className="text-base font-bold text-[#191c1d] sm:text-lg">
           Recent activity
@@ -189,7 +189,7 @@ export function UserDashboardView() {
       <>
         <SectionLabel>Overview</SectionLabel>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
-          <div className="flex flex-col gap-4 rounded-xl border border-[#c1c6d7]/15 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 rounded-xl border border-[#c1c6d7]/15 bg-white p-6">
             <div className="flex items-center justify-between">
               <span className="rounded-lg bg-[#008B8B]/14 p-2 text-[#008B8B]">
                 <Rocket className="size-6" />
@@ -203,7 +203,7 @@ export function UserDashboardView() {
               <p className={cn("text-3xl font-bold text-[#191c1d]")}>1,284</p>
             </div>
           </div>
-          <div className="flex flex-col gap-4 rounded-xl border border-[#c1c6d7]/15 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 rounded-xl border border-[#c1c6d7]/15 bg-white p-6">
             <div className="flex items-center justify-between">
               <span className="rounded-lg bg-[#cde5ff] p-2 text-[#006195]">
                 <Cog className="size-6" />
@@ -220,7 +220,7 @@ export function UserDashboardView() {
               </p>
             </div>
           </div>
-          <div className="flex flex-col gap-4 rounded-xl border border-[#c1c6d7]/15 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 rounded-xl border border-[#c1c6d7]/15 bg-white p-6">
             <div className="flex items-center justify-between">
               <span className="rounded-lg bg-[#dae2ff] p-2 text-[#505e83]">
                 <BarChart3 className="size-6" />

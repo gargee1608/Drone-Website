@@ -103,8 +103,8 @@ function statusDisplayForRow(m: UserRequestAdminRow): {
     if (label === "Pending") {
       return {
         label,
-        dotClass: "bg-slate-400",
-        textClass: "text-slate-600",
+        dotClass: "bg-muted-foreground/50",
+        textClass: "text-muted-foreground",
       };
     }
     if (label === "Accepted") {
@@ -122,8 +122,8 @@ function statusDisplayForRow(m: UserRequestAdminRow): {
   }
   return {
     label: "Pending",
-    dotClass: "bg-slate-400",
-    textClass: "text-slate-600",
+    dotClass: "bg-muted-foreground/50",
+    textClass: "text-muted-foreground",
   };
 }
 
@@ -153,11 +153,11 @@ export function UserRequestTable({
   showTotalSubtitle = false,
 }: UserRequestTableProps) {
   return (
-    <div className="rounded-2xl border border-[#c1c6d7]/15 bg-white p-5 shadow-sm sm:p-6">
+    <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm sm:p-6">
       {showTitle ? (
         <h2
           className={cn(
-            "text-xl font-bold text-[#191c1d]",
+            "text-xl font-bold text-foreground",
             showTotalSubtitle ? "mb-2" : "mb-6 sm:mb-8"
           )}
         >
@@ -167,14 +167,14 @@ export function UserRequestTable({
       {showTotalSubtitle ? (
         <p
           className={cn(
-            "text-[13px] font-medium text-slate-600",
-            showTitle ? "mb-6 sm:mb-8" : "mb-6 font-semibold text-[#191c1d] sm:mb-8"
+            "text-[13px] font-medium text-muted-foreground",
+            showTitle ? "mb-6 sm:mb-8" : "mb-6 font-semibold text-foreground sm:mb-8"
           )}
         >
           Total {rows.length} request{rows.length === 1 ? "" : "s"}
         </p>
       ) : null}
-      <div className="overflow-hidden rounded-xl border border-slate-200/90">
+      <div className="overflow-hidden rounded-xl border border-border/90">
         <table className="w-full table-fixed border-collapse text-left text-[10px] leading-snug sm:text-[11px]">
           <colgroup>
             <col className="w-[12%]" />
@@ -186,46 +186,46 @@ export function UserRequestTable({
             <col className="w-[16%]" />
           </colgroup>
           <thead>
-            <tr className="border-b border-slate-200 bg-[#f1f3f5]">
+            <tr className="border-b border-border bg-muted/60">
               <th
                 scope="col"
-                className="px-2 py-3 text-left text-[9px] font-bold uppercase tracking-wide text-slate-600 sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
+                className="px-2 py-3 text-left text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
               >
                 Request ID
               </th>
               <th
                 scope="col"
-                className="px-2 py-3 text-[9px] font-bold uppercase tracking-wide text-slate-600 sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
+                className="px-2 py-3 text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
               >
                 Requirement type
               </th>
               <th
                 scope="col"
-                className="px-2 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-slate-600 sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
+                className="px-2 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
               >
                 Payload
               </th>
               <th
                 scope="col"
-                className="px-2 py-3 text-[9px] font-bold uppercase tracking-wide text-slate-600 sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
+                className="px-2 py-3 text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
               >
                 Destination
               </th>
               <th
                 scope="col"
-                className="px-2 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-slate-600 sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
+                className="px-2 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
               >
                 Urgency
               </th>
               <th
                 scope="col"
-                className="px-2 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-slate-600 sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
+                className="px-2 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
               >
                 Status
               </th>
               <th
                 scope="col"
-                className="px-2 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-slate-600 sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
+                className="px-2 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
               >
                 Actions
               </th>
@@ -244,13 +244,13 @@ export function UserRequestTable({
                 <tr
                   key={m.key}
                   className={cn(
-                    "border-b border-slate-200 transition-colors last:border-0 hover:bg-slate-50/90",
+                    "border-b border-border transition-colors last:border-0 hover:bg-muted/50",
                     highlightRow && "bg-[#008B8B]/8 hover:bg-[#008B8B]/12"
                   )}
                 >
                   <td className="min-w-0 px-2 py-2.5 align-top sm:px-3 sm:py-3">
                     <span
-                      className="inline-block max-w-full font-mono text-[10px] font-medium leading-tight tracking-tight text-slate-600 [overflow-wrap:anywhere] sm:text-[11px]"
+                      className="inline-block max-w-full font-mono text-[10px] font-medium leading-tight tracking-tight text-muted-foreground [overflow-wrap:anywhere] sm:text-[11px]"
                       title={tableRequestId(m)}
                     >
                       {tableRequestId(m)}
@@ -260,14 +260,14 @@ export function UserRequestTable({
                     {onViewDetails ? (
                       <button
                         type="button"
-                        className="flex min-w-0 w-full cursor-pointer items-start gap-1.5 rounded-md text-left outline-none transition-colors hover:bg-slate-100/90 focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 sm:gap-2"
+                        className="flex min-w-0 w-full cursor-pointer items-start gap-1.5 rounded-md text-left outline-none transition-colors hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 sm:gap-2"
                         aria-label={`View request details: ${m.title}`}
                         onClick={() => onViewDetails(m)}
                       >
                         <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
                           <ReqIcon className="size-3 shrink-0" aria-hidden />
                         </span>
-                        <span className="min-w-0 break-words font-medium leading-tight text-[#191c1d] underline-offset-2 hover:underline">
+                        <span className="min-w-0 break-words font-medium leading-tight text-foreground underline-offset-2 hover:underline">
                           {m.title}
                         </span>
                       </button>
@@ -276,20 +276,20 @@ export function UserRequestTable({
                         <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
                           <ReqIcon className="size-3 shrink-0" aria-hidden />
                         </span>
-                        <span className="min-w-0 break-words font-medium leading-tight text-[#191c1d]">
+                        <span className="min-w-0 break-words font-medium leading-tight text-foreground">
                           {m.title}
                         </span>
                       </div>
                     )}
                   </td>
-                  <td className="min-w-0 px-2 py-2.5 align-top text-right tabular-nums text-slate-700 sm:px-3 sm:py-3">
+                  <td className="min-w-0 px-2 py-2.5 align-top text-right tabular-nums text-foreground sm:px-3 sm:py-3">
                     <span className="inline-block break-words">{weightDisplay}</span>
                   </td>
                   <td className="min-w-0 px-2 py-2.5 align-top sm:px-3 sm:py-3">
-                    <div className="break-words font-medium leading-tight text-[#191c1d]">
+                    <div className="break-words font-medium leading-tight text-foreground">
                       {target}
                     </div>
-                    <div className="mt-0.5 break-words text-[8px] leading-snug text-slate-500 sm:text-[9px]">
+                    <div className="mt-0.5 break-words text-[8px] leading-snug text-muted-foreground sm:text-[9px]">
                       {payload.replace(/\s*\([^)]*kg\)\s*/i, "").trim() || "—"}
                     </div>
                   </td>
@@ -346,7 +346,7 @@ export function UserRequestTable({
                       </button>
                       <button
                         type="button"
-                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200/90 disabled:pointer-events-none disabled:opacity-50"
+                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors hover:bg-muted/80 disabled:pointer-events-none disabled:opacity-50"
                         aria-label="View details"
                         disabled={!onViewDetails}
                         onClick={() => onViewDetails?.(m)}

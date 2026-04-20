@@ -15,6 +15,7 @@ import {
   saveAdminServices,
   type AdminService,
 } from "@/lib/admin-services";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 function formatAddedDate(iso: number) {
@@ -151,12 +152,10 @@ export function AdminServicesView() {
   };
 
   return (
-    <div className="min-w-0 text-[#191c1d]">
+    <div className="min-w-0 text-foreground">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="max-w-2xl">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Services
-          </h1>
+          <h1 className={ADMIN_PAGE_TITLE_CLASS}>Services</h1>
         </div>
         <Button
           type="button"
@@ -169,20 +168,20 @@ export function AdminServicesView() {
       </div>
 
       {formMode !== "closed" ? (
-        <section className="mb-10 rounded-2xl border-2 border-[#c1c6d7] bg-white p-5 shadow-sm sm:p-6">
+        <section className="mb-10 rounded-2xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-[#191c1d]">
+            <h2 className="text-base font-bold text-foreground">
               {formMode === "add" ? "New service" : "Edit service"}
             </h2>
             <button
               type="button"
               onClick={closeForm}
-              className="text-sm font-medium text-slate-500 hover:text-[#191c1d]"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               Cancel
             </button>
           </div>
-          <p className="mb-5 text-sm text-slate-600">
+          <p className="mb-5 text-sm text-muted-foreground">
             Required: title and price label. Description and image URL are
             optional (default image used if URL is empty).
           </p>
@@ -190,9 +189,9 @@ export function AdminServicesView() {
             <div className="grid gap-4 sm:grid-cols-2">
               {formMode === "edit" && editId ? (
                 <div className="sm:col-span-2">
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Service ID:{" "}
-                    <span className="font-mono font-medium text-[#191c1d]">
+                    <span className="font-mono font-medium text-foreground">
                       {editId}
                     </span>
                   </p>
@@ -201,7 +200,7 @@ export function AdminServicesView() {
               <div className="sm:col-span-2">
                 <label
                   htmlFor="admin-svc-title"
-                  className="mb-1.5 block text-xs font-semibold text-slate-700"
+                  className="mb-1.5 block text-xs font-semibold text-foreground"
                 >
                   Title
                 </label>
@@ -213,14 +212,14 @@ export function AdminServicesView() {
                     setFormError(null);
                   }}
                   placeholder="e.g. Medical logistics"
-                  className="h-11 rounded-lg border-slate-200 bg-white"
+                  className="h-11 rounded-lg border-border bg-card"
                   autoComplete="off"
                 />
               </div>
               <div>
                 <label
                   htmlFor="admin-svc-price"
-                  className="mb-1.5 block text-xs font-semibold text-slate-700"
+                  className="mb-1.5 block text-xs font-semibold text-foreground"
                 >
                   Price / label
                 </label>
@@ -232,14 +231,14 @@ export function AdminServicesView() {
                     setFormError(null);
                   }}
                   placeholder="e.g. $49 or $120/h"
-                  className="h-11 rounded-lg border-slate-200 bg-white"
+                  className="h-11 rounded-lg border-border bg-card"
                   autoComplete="off"
                 />
               </div>
               <div className="sm:col-span-2">
                 <label
                   htmlFor="admin-svc-desc"
-                  className="mb-1.5 block text-xs font-semibold text-slate-700"
+                  className="mb-1.5 block text-xs font-semibold text-foreground"
                 >
                   Short description
                 </label>
@@ -252,13 +251,13 @@ export function AdminServicesView() {
                   }}
                   rows={3}
                   placeholder="What the customer gets in one or two sentences."
-                  className="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-[#191c1d] placeholder:text-slate-400 focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#008B8B]/35"
+                  className="w-full resize-y rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/80 focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#008B8B]/35"
                 />
               </div>
               <div className="sm:col-span-2">
                 <label
                   htmlFor="admin-svc-image"
-                  className="mb-1.5 block text-xs font-semibold text-slate-700"
+                  className="mb-1.5 block text-xs font-semibold text-foreground"
                 >
                   Cover image URL (optional)
                 </label>
@@ -270,14 +269,14 @@ export function AdminServicesView() {
                     setFormError(null);
                   }}
                   placeholder="https://… or leave empty for default cover"
-                  className="h-11 rounded-lg border-slate-200 bg-white font-mono text-xs"
+                  className="h-11 rounded-lg border-border bg-card font-mono text-xs"
                   autoComplete="off"
                 />
               </div>
               <div className="sm:col-span-2">
                 <label
                   htmlFor="admin-svc-image-alt"
-                  className="mb-1.5 block text-xs font-semibold text-slate-700"
+                  className="mb-1.5 block text-xs font-semibold text-foreground"
                 >
                   Image alt text (optional)
                 </label>
@@ -289,7 +288,7 @@ export function AdminServicesView() {
                     setFormError(null);
                   }}
                   placeholder="Describe the image for accessibility"
-                  className="h-11 rounded-lg border-slate-200 bg-white"
+                  className="h-11 rounded-lg border-border bg-card"
                   autoComplete="off"
                 />
               </div>
@@ -309,22 +308,22 @@ export function AdminServicesView() {
         </section>
       ) : null}
 
-      <section className="rounded-2xl border-2 border-[#c1c6d7] bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
-          <h2 className="text-base font-bold text-[#191c1d]">
+      <section className="rounded-2xl border-2 border-border bg-card shadow-sm">
+        <div className="border-b border-border px-5 py-4 sm:px-6">
+          <h2 className="text-base font-bold text-foreground">
             All services ({items.length})
           </h2>
         </div>
         {items.length === 0 ? (
-          <p className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
+          <p className="px-5 py-10 text-center text-sm text-muted-foreground sm:px-6">
             No services yet. Click &quot;Add New Service&quot; to create one.
           </p>
         ) : (
           <ul className="grid list-none grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3 lg:gap-5">
             {sortedItems.map((row) => (
               <li key={row.id}>
-                <article className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-[#008B8B]/35 hover:shadow-md">
-                  <div className="relative aspect-[16/10] w-full shrink-0 bg-slate-100">
+                <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:border-[#008B8B]/35 hover:shadow-md">
+                  <div className="relative aspect-[16/10] w-full shrink-0 bg-muted">
                     <Image
                       src={row.image}
                       alt={row.imageAlt}
@@ -345,31 +344,31 @@ export function AdminServicesView() {
                         Service
                       </span>
                       <span
-                        className="max-w-full truncate rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[10px] font-semibold tabular-nums tracking-wide text-slate-600 normal-case"
+                        className="max-w-full truncate rounded-full border border-border bg-card px-2.5 py-0.5 text-[10px] font-semibold tabular-nums tracking-wide text-muted-foreground normal-case"
                         title={row.priceLabel}
                       >
                         {row.priceLabel}
                       </span>
                     </div>
-                    <h3 className="line-clamp-2 text-base font-bold leading-snug text-[#191c1d]">
+                    <h3 className="line-clamp-2 text-base font-bold leading-snug text-foreground">
                       {row.title}
                     </h3>
-                    <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">
+                    <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                       {row.description}
                     </p>
-                    <p className="text-[11px] text-slate-500">
-                      <span className="font-medium text-slate-600">
+                    <p className="text-[11px] text-muted-foreground">
+                      <span className="font-medium text-muted-foreground">
                         {formatAddedDate(row.createdAt)}
                       </span>
-                      <span className="mx-1.5 text-slate-300" aria-hidden>
+                      <span className="mx-1.5 text-border" aria-hidden>
                         ·
                       </span>
                       <span>{formatAddedTime(row.createdAt)}</span>
                     </p>
-                    <p className="font-mono text-[10px] leading-tight text-slate-500 break-all">
+                    <p className="font-mono text-[10px] leading-tight text-muted-foreground break-all">
                       {row.id}
                     </p>
-                    <div className="mt-auto flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                    <div className="mt-auto flex flex-wrap gap-2 border-t border-border pt-3">
                       <button
                         type="button"
                         onClick={() => openEditForm(row)}

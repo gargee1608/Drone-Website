@@ -46,7 +46,7 @@ export function ServiceListingMegaMenu({
 }: ServiceListingMegaMenuProps) {
   const triggerBase =
     variant === "landing"
-      ? "inline-flex items-center gap-1 text-sm font-medium text-slate-600 transition-colors duration-300 hover:text-[#008B8B]"
+      ? "inline-flex items-center gap-1 text-sm font-medium text-slate-600 transition-colors duration-300 hover:text-[#008B8B] dark:text-white dark:hover:text-white"
       : "site-header-marketing-link inline-flex items-center gap-1 text-[#191c1d] transition-colors hover:opacity-90";
 
   return (

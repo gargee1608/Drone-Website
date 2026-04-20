@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 type DutyStatus = "ACTIVE" | "INACTIVE";
@@ -119,10 +120,10 @@ function CertificationBadge({ level }: { level: number }) {
       className={cn(
         "inline-flex items-center rounded border px-2 py-0.5 font-mono text-[10px] font-bold uppercase",
         high
-          ? "border-[#006a6e]/20 bg-[#006a6e]/10 text-[#006a6e]"
+          ? "border-[#006a6e]/20 bg-[#006a6e]/10 text-[#006a6e] dark:border-white/25 dark:bg-white/10 dark:text-white"
           : level === 4
-            ? "border-slate-200 bg-slate-100 text-slate-600"
-            : "border-slate-200 bg-slate-100 text-slate-500"
+            ? "border-border bg-muted text-muted-foreground dark:text-white"
+            : "border-border bg-muted text-muted-foreground/90 dark:text-white"
       )}
     >
       LEVEL {level}
@@ -137,14 +138,14 @@ function DutyBadge({ status }: { status: DutyStatus }) {
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest",
         active
-          ? "bg-green-50 text-green-600"
-          : "bg-slate-50 text-slate-400"
+          ? "bg-green-50 text-green-600 dark:bg-white/10 dark:text-white"
+          : "bg-muted/40 text-muted-foreground/70 dark:bg-white/10 dark:text-white"
       )}
     >
       <span
         className={cn(
           "size-1.5 rounded-full",
-          active ? "bg-green-500" : "bg-slate-300"
+          active ? "bg-green-500 dark:bg-white" : "bg-muted-foreground/40 dark:bg-white/70"
         )}
       />
       {status}
@@ -189,76 +190,69 @@ export function PilotStatusView() {
   }, [filter]);
 
   return (
-    <div className="relative">
-      <div
-        className="pointer-events-none absolute inset-0 rounded-2xl opacity-[0.14] [background-image:radial-gradient(circle,#e2e8f0_1px,transparent_1px)] [background-size:32px_32px]"
-        aria-hidden
-      />
+    <div className="relative text-foreground dark:text-white">
       <div className="relative z-10 mx-auto max-w-7xl px-0 pb-2 pt-0 lg:px-2">
         <div className="mb-8 md:mb-10">
-          <h1 className="font-[family-name:var(--font-landing-headline)] text-3xl font-bold tracking-tighter text-[#1a1c1e] sm:text-4xl">
-            Pilot Status
-          </h1>
+          <h1 className={ADMIN_PAGE_TITLE_CLASS}>Pilot Status</h1>
         </div>
 
         <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:mb-10 lg:grid-cols-4">
-          <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05),0_2px_4px_-1px_rgba(0,0,0,0.03)]">
-            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+          <div className="flex flex-col rounded-2xl border border-border bg-card p-6">
+            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
               Total registered
             </span>
             <div className="flex items-end gap-3">
-              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e]">
+              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
                 {KPI.totalRegistered}
               </span>
-              <span className="mb-1 font-mono text-xs font-bold text-[#006a6e]">
+              <span className="mb-1 font-mono text-xs font-bold text-[#006a6e] dark:text-white">
                 {KPI.totalDelta}
               </span>
             </div>
           </div>
-          <div className="relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05),0_2px_4px_-1px_rgba(0,0,0,0.03)]">
-            <div className="absolute -right-4 -top-4 size-20 rounded-full bg-green-50 blur-2xl" />
-            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+          <div className="flex flex-col rounded-2xl border border-border bg-card p-6">
+            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
               Currently active
             </span>
             <div className="flex items-end gap-3">
-              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e]">
+              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
                 {KPI.currentlyActive}
               </span>
-              <span className="mb-1 flex items-center text-[10px] font-bold text-[#1a1c1e]">
-                <span className="mr-2 size-2 animate-pulse rounded-full bg-[#1a1c1e]" />
+              <span className="mb-1 flex items-center text-[10px] font-bold text-[#1a1c1e] dark:text-white">
+                <span className="mr-2 size-2 animate-pulse rounded-full bg-foreground dark:bg-white" />
                 IN-FLIGHT
               </span>
             </div>
           </div>
-          <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05),0_2px_4px_-1px_rgba(0,0,0,0.03)]">
-            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+          <div className="flex flex-col rounded-2xl border border-border bg-card p-6">
+            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
               Inactive / On-leave
             </span>
             <div className="flex items-end gap-3">
-              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e]">
+              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
                 {KPI.inactiveOnLeave}
               </span>
-              <span className="mb-1 font-mono text-xs text-slate-400">
+              <span className="mb-1 font-mono text-xs text-muted-foreground/80 dark:text-white/90">
                 {KPI.inactiveDelta}
               </span>
             </div>
           </div>
-          <div className="flex flex-col rounded-2xl border border-[#006a6e]/20 bg-slate-50/50 p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05),0_2px_4px_-1px_rgba(0,0,0,0.03)]">
-            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+          <div className="flex flex-col rounded-2xl border border-[#006a6e]/20 bg-muted/40 p-6">
+            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
               Pending approval
             </span>
             <div className="flex items-end gap-3">
-              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e]">
+              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
                 {KPI.pendingApproval}
               </span>
-              <span className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#1a1c1e]">
+              <span className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#1a1c1e] dark:text-white">
                 Needs review
               </span>
             </div>
           </div>
         </div>
 
-        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-end">
+        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-end">
           <label className="sr-only" htmlFor="pilot-status-filter">
             Duty status
           </label>
@@ -267,24 +261,24 @@ export function PilotStatusView() {
               id="pilot-status-filter"
               value={filter}
               onChange={(e) => setFilter(e.target.value as FilterTab)}
-              className="w-full cursor-pointer appearance-none rounded-md border border-slate-200 bg-white py-1.5 pl-2 pr-7 text-xs font-medium text-[#1a1c1e] shadow-sm outline-none transition hover:border-slate-300 focus:border-[#006a6e] focus:ring-1 focus:ring-[#006a6e]/25"
+              className="w-full cursor-pointer appearance-none rounded-md border border-border bg-card py-1.5 pl-2 pr-7 text-xs font-medium text-foreground shadow-sm outline-none transition hover:border-muted-foreground/40 focus:border-[#006a6e] focus:ring-1 focus:ring-[#006a6e]/25 dark:text-white"
             >
               <option value="all">All</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
             <ChevronDown
-              className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/80 dark:text-white"
               aria-hidden
             />
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/80">
+                <tr className="border-b border-border bg-muted/50">
                   {[
                     "Pilot personnel",
                     "Certification",
@@ -296,19 +290,19 @@ export function PilotStatusView() {
                   ].map((h) => (
                     <th
                       key={h}
-                      className="px-6 py-4 font-[family-name:var(--font-landing-headline)] text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500"
+                      className="px-6 py-4 font-[family-name:var(--font-landing-headline)] text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground dark:text-white"
                     >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {paginatedRows.length === 0 ? (
                   <tr>
                     <td
                       colSpan={7}
-                      className="px-6 py-12 text-center text-sm text-slate-500"
+                      className="px-6 py-12 text-center text-sm text-muted-foreground dark:text-white"
                     >
                       No pilots match your filters.
                     </td>
@@ -317,13 +311,13 @@ export function PilotStatusView() {
                   paginatedRows.map((row) => (
                     <tr
                       key={row.id}
-                      className="transition-colors hover:bg-slate-50"
+                      className="transition-colors hover:bg-muted/50"
                     >
                       <td className="px-6 py-5">
-                        <div className="text-sm font-bold text-[#1a1c1e]">
+                        <div className="text-sm font-bold text-[#1a1c1e] dark:text-white">
                           {row.name}
                         </div>
-                        <div className="text-[10px] uppercase tracking-tighter text-slate-400">
+                        <div className="text-[10px] uppercase tracking-tighter text-muted-foreground/80 dark:text-white/85">
                           ID: {row.id}
                         </div>
                       </td>
@@ -331,31 +325,31 @@ export function PilotStatusView() {
                         <CertificationBadge level={row.certLevel} />
                       </td>
                       <td className="px-6 py-5">
-                        <div className="text-sm font-medium text-[#1a1c1e]">
+                        <div className="text-sm font-medium text-[#1a1c1e] dark:text-white">
                           {row.experienceYears} Years
                         </div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[10px] text-muted-foreground/80 dark:text-white/85">
                           {row.experienceRank}
                         </div>
                       </td>
-                      <td className="px-6 py-5 font-mono text-sm text-[#1a1c1e]">
+                      <td className="px-6 py-5 font-mono text-sm text-[#1a1c1e] dark:text-white">
                         {row.flightCount} Flights
                       </td>
                       <td className="px-6 py-5">
                         <DutyBadge status={row.dutyStatus} />
                       </td>
                       <td className="px-6 py-5">
-                        <div className="text-xs font-medium text-[#1a1c1e]">
+                        <div className="text-xs font-medium text-[#1a1c1e] dark:text-white">
                           {row.lastDate}
                         </div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[10px] text-muted-foreground/80 dark:text-white/85">
                           {row.lastTimeUtc}
                         </div>
                       </td>
                       <td className="px-6 py-5">
                         <button
                           type="button"
-                          className="rounded p-1 text-slate-400 transition hover:text-[#006a6e]"
+                          className="rounded p-1 text-muted-foreground/80 transition hover:text-[#006a6e] dark:text-white dark:hover:text-white"
                           aria-label={`Actions for ${row.name}`}
                         >
                           <MoreHorizontal className="size-5" />
@@ -368,12 +362,12 @@ export function PilotStatusView() {
             </table>
           </div>
 
-          <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
+          <div className="flex items-center justify-end gap-2 border-t border-border bg-muted/40 px-6 py-4">
               <button
                 type="button"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="rounded border border-slate-200 bg-white p-1.5 text-slate-400 disabled:cursor-not-allowed disabled:opacity-50 hover:text-[#006a6e]"
+                className="rounded border border-border bg-card p-1.5 text-muted-foreground/80 disabled:cursor-not-allowed disabled:opacity-50 hover:text-[#006a6e] dark:text-white dark:hover:text-white"
                 aria-label="Previous page"
               >
                 <ChevronLeft className="size-[18px]" />
@@ -388,7 +382,7 @@ export function PilotStatusView() {
                         "size-8 rounded text-xs font-bold transition-colors",
                         p === page
                           ? "bg-[#006a6e] text-white shadow-sm"
-                          : "border border-slate-200 bg-white text-slate-500 hover:text-[#006a6e]"
+                          : "border border-border bg-card text-muted-foreground hover:text-[#006a6e] dark:text-white dark:hover:text-white"
                       )}
                       aria-current={p === page ? "page" : undefined}
                     >
@@ -402,7 +396,7 @@ export function PilotStatusView() {
                 onClick={() =>
                   setPage((p) => Math.min(totalPages, p + 1))
                 }
-                className="rounded border border-slate-200 bg-white p-1.5 text-slate-400 transition hover:text-[#006a6e] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded border border-border bg-card p-1.5 text-muted-foreground/80 transition hover:text-[#006a6e] disabled:cursor-not-allowed disabled:opacity-50 dark:text-white dark:hover:text-white"
                 aria-label="Next page"
               >
                 <ChevronRight className="size-[18px]" />

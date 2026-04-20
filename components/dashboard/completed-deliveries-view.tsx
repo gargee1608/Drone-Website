@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+
 type MissionStatus = "Success" | "Partial" | "Delayed";
 
 type DeliveryRow = {
@@ -167,7 +169,7 @@ export function CompletedDeliveriesView() {
 
   return (
     <section
-      className="rounded-2xl bg-white px-4 pb-4 pt-0 sm:px-6 sm:pb-6 sm:pt-0"
+      className="rounded-2xl bg-card px-4 pb-4 pt-0 sm:px-6 sm:pb-6 sm:pt-0"
       style={{
         backgroundImage: "radial-gradient(#e2e8f0 0.5px, transparent 0.5px)",
         backgroundSize: "24px 24px",
@@ -176,14 +178,12 @@ export function CompletedDeliveriesView() {
       <header className="mb-6">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-[family-name:var(--font-landing-headline)] text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Completed Deliveries
-            </h1>
+            <h1 className={ADMIN_PAGE_TITLE_CLASS}>Completed Deliveries</h1>
           </div>
           <button
             type="button"
             onClick={handleExportCsv}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted/50"
           >
             <Download className="size-4" aria-hidden />
             Export CSV
@@ -191,11 +191,11 @@ export function CompletedDeliveriesView() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <article className="rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-            <p className="font-[family-name:var(--font-landing-headline)] text-[11px] font-normal uppercase tracking-[0.15em] text-slate-500">
+          <article className="rounded-xl border border-border bg-card p-5 text-center shadow-sm">
+            <p className="font-[family-name:var(--font-landing-headline)] text-[11px] font-normal uppercase tracking-[0.15em] text-muted-foreground">
               Total Deliveries
             </p>
-            <p className="mt-2 font-[family-name:var(--font-landing-headline)] text-4xl font-normal tracking-tight text-slate-900">
+            <p className="mt-2 font-[family-name:var(--font-landing-headline)] text-4xl font-normal tracking-tight text-foreground">
               {formatNumber(filteredRows.length)}
             </p>
             <p className="mt-2 text-xs font-normal text-[#0d6200]">
@@ -203,11 +203,11 @@ export function CompletedDeliveriesView() {
             </p>
           </article>
 
-          <article className="rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-            <p className="font-[family-name:var(--font-landing-headline)] text-[11px] font-normal uppercase tracking-[0.15em] text-slate-500">
+          <article className="rounded-xl border border-border bg-card p-5 text-center shadow-sm">
+            <p className="font-[family-name:var(--font-landing-headline)] text-[11px] font-normal uppercase tracking-[0.15em] text-muted-foreground">
               Total Distance Flow
             </p>
-            <p className="mt-2 font-[family-name:var(--font-landing-headline)] text-4xl font-normal tracking-tight text-slate-900">
+            <p className="mt-2 font-[family-name:var(--font-landing-headline)] text-4xl font-normal tracking-tight text-foreground">
               {formatNumber(totalDistance)} KM
             </p>
             <p className="mt-2 text-xs font-normal text-[#006a6e]">
@@ -215,26 +215,26 @@ export function CompletedDeliveriesView() {
             </p>
           </article>
 
-          <article className="rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-            <p className="font-[family-name:var(--font-landing-headline)] text-[11px] font-normal uppercase tracking-[0.15em] text-slate-500">
+          <article className="rounded-xl border border-border bg-card p-5 text-center shadow-sm">
+            <p className="font-[family-name:var(--font-landing-headline)] text-[11px] font-normal uppercase tracking-[0.15em] text-muted-foreground">
               Reliability Rate
             </p>
             <p className="mt-2 font-[family-name:var(--font-landing-headline)] text-4xl font-normal tracking-tight text-[#0d6200]">
               {reliability}%
             </p>
-            <p className="mt-2 text-xs font-normal text-slate-500">
+            <p className="mt-2 text-xs font-normal text-muted-foreground">
               Success ratio in current filters
             </p>
           </article>
         </div>
       </header>
 
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <section className="rounded-xl border border-border bg-card shadow-sm">
         <div className="p-4 sm:p-6">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[860px] border-collapse text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/60">
+                <tr className="border-b border-border bg-muted/50">
                   {[
                     "Mission ID",
                     "Execution Date",
@@ -246,7 +246,7 @@ export function CompletedDeliveriesView() {
                   ].map((head) => (
                     <th
                       key={head}
-                      className="px-4 py-4 font-[family-name:var(--font-landing-headline)] text-[9px] font-normal uppercase tracking-[0.12em] text-slate-500"
+                      className="px-4 py-4 font-[family-name:var(--font-landing-headline)] text-[9px] font-normal uppercase tracking-[0.12em] text-muted-foreground"
                     >
                       {head}
                     </th>
@@ -254,28 +254,28 @@ export function CompletedDeliveriesView() {
                   <th className="px-4 py-4" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {paginatedRows.map((row) => (
                   <tr
                     key={row.missionId}
-                    className="group transition-colors hover:bg-slate-50/80"
+                    className="group transition-colors hover:bg-muted/50/80"
                   >
                     <td className="px-4 py-4">
                       <span className="font-mono text-sm font-normal tracking-wider text-[#006a6e]">
                         {row.missionId}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-slate-600">
+                    <td className="px-4 py-4 text-muted-foreground">
                       {dateFormatter.format(new Date(`${row.executionDate}T00:00:00`))}
                     </td>
-                    <td className="px-4 py-4 text-slate-600">{row.payload}</td>
-                    <td className="px-4 py-4 text-slate-600">
+                    <td className="px-4 py-4 text-muted-foreground">{row.payload}</td>
+                    <td className="px-4 py-4 text-muted-foreground">
                       {row.distanceKm} km
                     </td>
-                    <td className="px-4 py-4 text-slate-700">
+                    <td className="px-4 py-4 text-foreground">
                       {row.pilot}
                     </td>
-                    <td className="px-4 py-4 text-slate-500">
+                    <td className="px-4 py-4 text-muted-foreground">
                       {row.droneUnit}
                     </td>
                     <td className="px-4 py-4">
@@ -294,7 +294,7 @@ export function CompletedDeliveriesView() {
                     <td className="px-4 py-4 text-right">
                       <button
                         type="button"
-                        className="rounded p-1 text-slate-400 transition hover:text-[#006a6e]"
+                        className="rounded p-1 text-muted-foreground/80 transition hover:text-[#006a6e]"
                         aria-label={`More actions for ${row.missionId}`}
                       >
                         <MoreVertical className="size-4" aria-hidden />
@@ -306,7 +306,7 @@ export function CompletedDeliveriesView() {
                   <tr>
                     <td
                       colSpan={8}
-                      className="px-4 py-10 text-center text-xs text-slate-500"
+                      className="px-4 py-10 text-center text-xs text-muted-foreground"
                     >
                       No missions match your current filters.
                     </td>
@@ -322,7 +322,7 @@ export function CompletedDeliveriesView() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 disabled:bg-slate-100 disabled:text-slate-400"
+                className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground disabled:bg-muted disabled:text-muted-foreground/80"
                 aria-label="Previous page"
               >
                 <ChevronLeft className="size-4" aria-hidden />
@@ -335,7 +335,7 @@ export function CompletedDeliveriesView() {
                   className={`inline-flex size-8 items-center justify-center rounded-lg border text-sm font-semibold ${
                     p === page
                       ? "border-[#006a6e] bg-[#006a6e] text-white"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      : "border-border bg-card text-muted-foreground hover:bg-muted/50"
                   }`}
                   aria-current={p === page ? "page" : undefined}
                 >
@@ -346,7 +346,7 @@ export function CompletedDeliveriesView() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 disabled:bg-slate-100 disabled:text-slate-400"
+                className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground disabled:bg-muted disabled:text-muted-foreground/80"
                 aria-label="Next page"
               >
                 <ChevronRight className="size-4" aria-hidden />

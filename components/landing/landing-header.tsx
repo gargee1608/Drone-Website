@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Bell, LogOut, Menu, Plane, Search, Settings, User, X } from "lucide-react";
+import { LogOut, Menu, Plane, Search, Settings, User, X } from "lucide-react";
 
 import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav-context";
 import {
@@ -12,11 +12,13 @@ import {
 } from "@/components/nav/service-listing-mega-menu";
 import { SidebarMenuGlyph } from "@/components/nav/sidebar-menu-glyph";
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
+import { AdminInboxMenu } from "@/components/notifications/admin-inbox-menu";
+import { HeaderThemeModeToggle } from "@/components/nav/header-theme-mode-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const landingOutlineButtonClassName =
-  "inline-flex h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-4 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase transition hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent";
+  "inline-flex h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-4 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase transition hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent dark:border-white dark:text-white dark:hover:border-white/85 dark:hover:text-white";
 
 export function LandingHeader() {
   const pathname = usePathname();
@@ -83,6 +85,8 @@ export function LandingHeader() {
       : "/settings";
 
   const settingsFrom = searchParams.get("from");
+  const showAdminHeaderUtilities =
+    isAdminDashboard || (isSettingsPage && settingsFrom === "admin");
   const profileHref =
     isAdminDashboard || settingsFrom === "admin"
       ? "/dashboard/profile"
@@ -119,13 +123,20 @@ export function LandingHeader() {
 
   const linkClass = (href: string) =>
     cn(
-      "text-sm font-medium text-slate-600 transition-colors duration-300 hover:text-[#008B8B]",
+      "text-sm font-medium text-slate-600 transition-colors duration-300 hover:text-[#008B8B] dark:text-white dark:hover:text-white",
       (pathname === href || pathname?.startsWith(`${href}/`)) &&
-        "font-semibold text-slate-900"
+        "font-semibold text-slate-900 dark:text-white"
     );
 
   return (
-    <header className="fixed top-0 z-50 w-full border-b border-slate-100 bg-white">
+    <header
+      className={cn(
+        "fixed top-0 z-50 w-full border-b dark:text-white",
+        compactAppHeader
+          ? "border-border bg-background"
+          : "border-slate-100 bg-white dark:border-border dark:bg-background"
+      )}
+    >
       <nav
         className={cn(
           "mx-auto flex max-w-[1600px] flex-wrap items-center justify-between px-4 sm:px-6 lg:px-8",
@@ -140,7 +151,7 @@ export function LandingHeader() {
             {isAdminDashboard ? (
               <button
                 type="button"
-                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 lg:inline-flex"
+                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white lg:inline-flex"
                 onClick={() =>
                   setAdminSidebarExpanded(!adminSidebarExpanded)
                 }
@@ -158,7 +169,7 @@ export function LandingHeader() {
             {showUserDashboardSidebar ? (
               <button
                 type="button"
-                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 lg:inline-flex"
+                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white lg:inline-flex"
                 onClick={() =>
                   setUserSidebarExpanded(!userSidebarExpanded)
                 }
@@ -199,7 +210,7 @@ export function LandingHeader() {
                 triggerClassName={cn(
                   (pathname === "/services" ||
                     pathname?.startsWith("/services/")) &&
-                    "font-semibold text-slate-900"
+                    "font-semibold text-slate-900 dark:text-white"
                 )}
               />
               <Link href="/blogs" className={linkClass("/blogs")}>
@@ -213,16 +224,16 @@ export function LandingHeader() {
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-4 lg:gap-6">
-          <div className="hidden min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 lg:flex">
+          <div className="hidden min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 lg:flex">
             <Search
-              className="mr-2 size-4 shrink-0 text-slate-500"
+              className="mr-2 size-4 shrink-0 text-slate-500 dark:text-white"
               aria-hidden
             />
             <input
               type="search"
               name="track-delivery"
               placeholder="Search..."
-              className="w-40 min-w-0 border-0 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:ring-0 xl:w-48"
+              className="w-40 min-w-0 border-0 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:ring-0 dark:text-white dark:placeholder:text-white/45 xl:w-48"
               autoComplete="off"
             />
           </div>
@@ -232,7 +243,7 @@ export function LandingHeader() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="md:hidden"
+                className="text-slate-700 md:hidden dark:text-white"
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
                 aria-controls="landing-mobile-nav"
@@ -264,20 +275,17 @@ export function LandingHeader() {
             !isPilotRegistration &&
             !hideNotificationsAndSettings ? (
               <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="text-slate-500 hover:text-[#008B8B]"
-                  aria-label="Notifications"
-                >
-                  <Bell className="size-5" />
-                </Button>
+                {showAdminHeaderUtilities ? (
+                  <>
+                    <AdminInboxMenu />
+                    <HeaderThemeModeToggle />
+                  </>
+                ) : null}
                 <Link
                   href={settingsHref}
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "icon" }),
-                    "text-slate-500 hover:text-[#008B8B]"
+                    "text-slate-500 hover:text-[#008B8B] dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                   )}
                   aria-label="Settings"
                 >
@@ -295,7 +303,7 @@ export function LandingHeader() {
                   aria-label="Account menu"
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "icon" }),
-                    "shrink-0 text-slate-500 hover:text-[#008B8B] focus-visible:ring-2 focus-visible:ring-[#008B8B]/35"
+                    "shrink-0 text-slate-500 hover:text-[#008B8B] focus-visible:ring-2 focus-visible:ring-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                   )}
                 >
                   <User className="size-5" aria-hidden />
@@ -303,27 +311,27 @@ export function LandingHeader() {
                 {accountMenuOpen ? (
                   <div
                     role="menu"
-                    className="absolute right-0 top-full z-[60] mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5"
+                    className="absolute right-0 top-full z-[60] mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg ring-1 ring-black/5"
                   >
                     <Link
                       href={profileHref}
                       role="menuitem"
-                      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-[#191c1d] transition-colors hover:bg-slate-50"
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                       onClick={() => setAccountMenuOpen(false)}
                     >
-                      <User className="size-4 shrink-0 text-slate-600" aria-hidden />
+                      <User className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                       Profile
                     </Link>
                     <button
                       type="button"
                       role="menuitem"
-                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-[#191c1d] transition-colors hover:bg-slate-50"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
                       onClick={() => {
                         setAccountMenuOpen(false);
                         router.replace("/login");
                       }}
                     >
-                      <LogOut className="size-4 shrink-0 text-slate-600" aria-hidden />
+                      <LogOut className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                       Logout
                     </button>
                   </div>
@@ -334,7 +342,7 @@ export function LandingHeader() {
                 href="/login"
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon" }),
-                  "shrink-0 text-slate-500 hover:text-[#008B8B]"
+                  "shrink-0 text-slate-500 hover:text-[#008B8B] dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                 )}
                 aria-label="Login"
               >

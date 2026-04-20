@@ -37,14 +37,14 @@ export function QuickActionsCardGrid({
           key={href + title}
           href={href}
           className={cn(
-            "group flex items-center gap-3 rounded-xl border bg-white transition-colors",
+            "group flex items-center gap-3 rounded-xl border border-border/80 bg-card text-foreground transition-colors",
             prominent
-              ? "min-h-[5.25rem] border-[#c1c6d7]/20 p-4 shadow-md sm:min-h-[5.5rem] sm:p-5"
-              : "min-h-[4.25rem] border-[#c1c6d7]/15 p-3.5 shadow-sm",
+              ? "min-h-[5.25rem] p-4 shadow-md sm:min-h-[5.5rem] sm:p-5"
+              : "min-h-[4.25rem] p-3.5 shadow-sm",
             prominent &&
               index === 0 &&
               "border-[#008B8B]/30 ring-1 ring-[#008B8B]/15",
-            "hover:border-[#008B8B]/35 hover:bg-[#f5f8ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/40"
+            "hover:border-[#008B8B]/35 hover:bg-muted/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/40"
           )}
         >
           <span
@@ -65,7 +65,7 @@ export function QuickActionsCardGrid({
           <span className="min-w-0 flex-1 text-left">
             <span
               className={cn(
-                "block font-bold text-[#191c1d]",
+                "block font-bold text-foreground",
                 prominent ? "text-sm sm:text-base" : "text-xs sm:text-sm"
               )}
             >
@@ -73,7 +73,7 @@ export function QuickActionsCardGrid({
             </span>
             <span
               className={cn(
-                "mt-0.5 block leading-snug text-[#4d5b7f]",
+                "mt-0.5 block leading-snug text-muted-foreground",
                 prominent ? "text-xs sm:text-sm" : "text-[10px] sm:text-[11px]"
               )}
             >

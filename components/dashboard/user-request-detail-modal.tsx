@@ -71,10 +71,10 @@ export function DetailField({
 }) {
   return (
     <div>
-      <dt className="text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f]">
+      <dt className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
         {label}
       </dt>
-      <dd className="mt-1 text-xs font-medium text-[#191c1d]">{children}</dd>
+      <dd className="mt-1 text-xs font-medium text-foreground">{children}</dd>
     </div>
   );
 }
@@ -114,19 +114,19 @@ export function UserRequestDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="user-request-detail-title"
-        className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-[#c1c6d7]/20 bg-white shadow-2xl sm:rounded-2xl"
+        className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-border bg-card text-foreground shadow-2xl sm:rounded-2xl"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-[#edeeef] px-5 py-4 sm:px-6">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4 sm:px-6">
           <h2
             id="user-request-detail-title"
-            className="pr-4 text-base font-bold text-[#191c1d] sm:text-lg"
+            className="pr-4 text-base font-bold text-foreground sm:text-lg"
           >
             Request details
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-lg p-2 text-[#414755] transition-colors hover:bg-[#f3f4f5]"
+            className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted"
             aria-label="Close"
           >
             <X className="size-5" />
@@ -199,7 +199,7 @@ export function UserRequestDetailModal({
               <div>
                 <DetailField label="Routing & payload">{payload.mission.desc}</DetailField>
               </div>
-              <p className="text-xs leading-relaxed text-[#414755]">
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 Illustrative sample mission for the admin dashboard preview.
               </p>
             </dl>

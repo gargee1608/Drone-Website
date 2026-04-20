@@ -12,6 +12,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -104,11 +105,7 @@ export function LoginView() {
                 />
               </div>
             </div>
-            <h1
-              className={cn(
-                "mb-1.5 text-lg font-bold tracking-tight text-[#191c1d] sm:text-xl"
-              )}
-            >
+            <h1 className={cn("mb-1.5", ADMIN_PAGE_TITLE_CLASS)}>
               Welcome Back
             </h1>
             <div

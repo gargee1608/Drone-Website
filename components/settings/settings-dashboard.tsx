@@ -7,20 +7,25 @@ import {
   RefreshCw,
   UserRound,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// import { useAppTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import {
   parsePilotProfileSnapshot,
   PILOT_PROFILE_STORAGE_KEY,
   PILOT_PROFILE_UPDATED_EVENT,
 } from "@/lib/pilot-profile-snapshot";
+import {
+  applyThemeToDocument,
+  resolveThemeWithFallback,
+  THEME_STORAGE_KEY,
+  type AppTheme,
+} from "@/lib/theme";
 
 const profileInputClassName =
-  "h-10 rounded-lg border-slate-200 bg-white text-sm text-[#191c1d]";
+  "h-10 rounded-lg border-border bg-background text-sm text-foreground";
 
 function Switch({
   checked,
@@ -37,12 +42,12 @@ function Switch({
       onClick={() => onCheckedChange(!checked)}
       className={cn(
         "relative inline-flex h-7 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        checked ? "bg-[#008B8B]" : "bg-slate-300 dark:bg-slate-600"
+        checked ? "bg-[#008B8B]" : "bg-muted-foreground/35"
       )}
     >
       <span
         className={cn(
-          "pointer-events-none block size-6 rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform dark:bg-slate-100",
+          "pointer-events-none block size-6 rounded-full bg-background shadow-sm ring-1 ring-black/5 transition-transform",
           checked ? "translate-x-[1.15rem]" : "translate-x-0.5"
         )}
       />
@@ -51,9 +56,7 @@ function Switch({
 }
 
 export function SettingsDashboard() {
-  /* Dark mode: global theme disabled — toggles only update local UI. Uncomment useAppTheme + ThemeProvider to re-enable. */
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  // const { theme, setTheme } = useAppTheme();
+  const [theme, setTheme] = useState<AppTheme>("light");
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -73,6 +76,22 @@ export function SettingsDashboard() {
     null
   );
   const [profileDialogSuccess, setProfileDialogSuccess] = useState(false);
+
+  useLayoutEffect(() => {
+    const initial = resolveThemeWithFallback();
+    setTheme(initial);
+    applyThemeToDocument(initial);
+  }, []);
+
+  const setThemeMode = useCallback((next: AppTheme) => {
+    setTheme(next);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      /* ignore */
+    }
+    applyThemeToDocument(next);
+  }, []);
 
   const closeChangePassword = useCallback(() => {
     setChangePasswordOpen(false);
@@ -139,16 +158,16 @@ export function SettingsDashboard() {
       <div className="mx-auto w-full max-w-6xl antialiased">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {/* Change Password */}
-                <section className="flex flex-col rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
                   <div className="mb-4 flex items-start gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
                       <Lock className="size-5 text-[#008B8B]" aria-hidden />
                     </span>
                     <div className="min-w-0 text-left">
-                      <h2 className="text-base font-bold text-[#191c1d]">
+                      <h2 className="text-base font-bold text-foreground">
                         Change Password
                       </h2>
-                      <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                         Update your account password for better security
                       </p>
                     </div>
@@ -157,7 +176,7 @@ export function SettingsDashboard() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-10 w-full rounded-lg border-[#008B8B] bg-white text-sm font-semibold text-[#008B8B] hover:bg-[#008B8B]/8"
+                      className="h-10 w-full rounded-lg border-[#008B8B] bg-background text-sm font-semibold text-[#008B8B] hover:bg-[#008B8B]/8"
                       onClick={() => {
                         setPasswordDialogError(null);
                         setPasswordDialogSuccess(false);
@@ -170,7 +189,7 @@ export function SettingsDashboard() {
                 </section>
 
                 {/* Reset Profile */}
-                <section className="flex flex-col rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
                   <div className="mb-4 flex items-start gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-100">
                       <RefreshCw
@@ -179,10 +198,10 @@ export function SettingsDashboard() {
                       />
                     </span>
                     <div className="min-w-0 text-left">
-                      <h2 className="text-base font-bold text-[#191c1d]">
+                      <h2 className="text-base font-bold text-foreground">
                         Reset Profile Information
                       </h2>
-                      <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                         Open the editor to update your saved profile details
                       </p>
                     </div>
@@ -191,7 +210,7 @@ export function SettingsDashboard() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-10 w-full rounded-lg border-emerald-600 bg-white text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+                      className="h-10 w-full rounded-lg border-emerald-600 bg-background text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
                       onClick={openProfileDialog}
                     >
                       Reset Profile
@@ -200,40 +219,40 @@ export function SettingsDashboard() {
                 </section>
 
                 {/* Appearance */}
-                <section className="flex flex-col rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm sm:p-6 md:col-span-2 xl:col-span-1">
+                <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6 md:col-span-2 xl:col-span-1">
                   <div className="mb-5 flex items-start gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-violet-100">
                       <Moon className="size-5 text-violet-600" aria-hidden />
                     </span>
                     <div className="min-w-0 text-left">
-                      <h2 className="text-base font-bold text-[#191c1d]">
+                      <h2 className="text-base font-bold text-foreground">
                         Appearance
                       </h2>
-                      <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                         Switch between light and dark mode for the whole app.
                       </p>
                     </div>
                   </div>
-                  <div className="mt-auto space-y-4 border-t border-slate-200 pt-4">
+                  <div className="mt-auto space-y-4 border-t border-border pt-4">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-[#191c1d]">
+                      <span className="text-sm font-medium text-foreground">
                         Light Mode
                       </span>
                       <Switch
                         checked={theme === "light"}
                         onCheckedChange={(on) => {
-                          setTheme(on ? "light" : "dark");
+                          setThemeMode(on ? "light" : "dark");
                         }}
                       />
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-[#191c1d]">
+                      <span className="text-sm font-medium text-foreground">
                         Dark Mode
                       </span>
                       <Switch
                         checked={theme === "dark"}
                         onCheckedChange={(on) => {
-                          setTheme(on ? "dark" : "light");
+                          setThemeMode(on ? "dark" : "light");
                         }}
                       />
                     </div>
@@ -258,10 +277,10 @@ export function SettingsDashboard() {
             onClick={closeChangePassword}
           />
           <div
-            className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border-2 border-slate-200 bg-white shadow-xl ring-1 ring-black/5"
+            className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border-2 border-border bg-card text-card-foreground shadow-xl ring-1 ring-black/5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-b border-slate-200 bg-slate-50 px-6 py-5 sm:px-8">
+            <div className="border-b border-border bg-muted/50 px-6 py-5 sm:px-8">
               <div className="flex items-center gap-3">
                 <span
                   className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12"
@@ -272,13 +291,13 @@ export function SettingsDashboard() {
                 <div>
                   <h2
                     id="change-password-dialog-title"
-                    className="text-lg font-bold tracking-tight text-[#191c1d]"
+                    className="text-lg font-bold tracking-tight text-foreground"
                   >
                     Change password
                   </h2>
                   <p
                     id="change-password-dialog-desc"
-                    className="mt-0.5 text-sm text-slate-600"
+                    className="mt-0.5 text-sm text-muted-foreground"
                   >
                     Enter your current password, then choose a new one.
                   </p>
@@ -331,7 +350,7 @@ export function SettingsDashboard() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="current-password"
-                    className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                    className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                   >
                     Current password
                   </label>
@@ -345,13 +364,13 @@ export function SettingsDashboard() {
                       setCurrentPassword(e.target.value);
                       setPasswordDialogError(null);
                     }}
-                    className="h-10 rounded-lg border-slate-200 bg-white text-sm text-[#191c1d]"
+                    className="h-10 rounded-lg border-border bg-background text-sm text-foreground"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label
                     htmlFor="new-password"
-                    className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                    className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                   >
                     New password
                   </label>
@@ -365,13 +384,13 @@ export function SettingsDashboard() {
                       setNewPassword(e.target.value);
                       setPasswordDialogError(null);
                     }}
-                    className="h-10 rounded-lg border-slate-200 bg-white text-sm text-[#191c1d]"
+                    className="h-10 rounded-lg border-border bg-background text-sm text-foreground"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label
                     htmlFor="confirm-password"
-                    className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                    className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                   >
                     Confirm password
                   </label>
@@ -385,15 +404,15 @@ export function SettingsDashboard() {
                       setConfirmPassword(e.target.value);
                       setPasswordDialogError(null);
                     }}
-                    className="h-10 rounded-lg border-slate-200 bg-white text-sm text-[#191c1d]"
+                    className="h-10 rounded-lg border-border bg-background text-sm text-foreground"
                   />
                 </div>
               </div>
-              <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-5">
+              <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5">
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-lg border-2 border-slate-300 bg-white text-[#191c1d] hover:bg-slate-50"
+                  className="rounded-lg border-2 border-border bg-background text-foreground hover:bg-muted/50"
                   onClick={closeChangePassword}
                   disabled={passwordDialogSuccess}
                 >
@@ -402,7 +421,7 @@ export function SettingsDashboard() {
                 <Button
                   type="submit"
                   variant="outline"
-                  className="rounded-lg border-2 border-[#008B8B] bg-white text-[#008B8B] shadow-none hover:bg-[#008B8B]/8 hover:text-[#008B8B]"
+                  className="rounded-lg border-2 border-[#008B8B] bg-background text-[#008B8B] shadow-none hover:bg-[#008B8B]/8 hover:text-[#008B8B]"
                   disabled={passwordDialogSuccess}
                 >
                   Update password
@@ -428,10 +447,10 @@ export function SettingsDashboard() {
             onClick={closeProfileDialog}
           />
           <div
-            className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border-2 border-slate-200 bg-white shadow-xl ring-1 ring-black/5"
+            className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border-2 border-border bg-card text-card-foreground shadow-xl ring-1 ring-black/5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-6 py-5 sm:px-8">
+            <div className="shrink-0 border-b border-border bg-muted/50 px-6 py-5 sm:px-8">
               <div className="flex items-center gap-3">
                 <span
                   className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-100"
@@ -442,13 +461,13 @@ export function SettingsDashboard() {
                 <div>
                   <h2
                     id="profile-dialog-title"
-                    className="text-lg font-bold tracking-tight text-[#191c1d]"
+                    className="text-lg font-bold tracking-tight text-foreground"
                   >
                     Profile details
                   </h2>
                   <p
                     id="profile-dialog-desc"
-                    className="mt-0.5 text-sm text-slate-600"
+                    className="mt-0.5 text-sm text-muted-foreground"
                   >
                     Enter your details below. Other pilot data (skills, drones,
                     license, hours, bio) is unchanged unless you edit it in pilot
@@ -528,7 +547,7 @@ export function SettingsDashboard() {
                   <div className="space-y-1.5">
                     <label
                       htmlFor="profile-full-name"
-                      className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                      className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                     >
                       Full name
                     </label>
@@ -548,7 +567,7 @@ export function SettingsDashboard() {
                     <div className="space-y-1.5">
                       <label
                         htmlFor="profile-email"
-                        className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                        className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                       >
                         Email
                       </label>
@@ -568,7 +587,7 @@ export function SettingsDashboard() {
                     <div className="space-y-1.5">
                       <label
                         htmlFor="profile-phone"
-                        className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                        className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                       >
                         Phone
                       </label>
@@ -590,7 +609,7 @@ export function SettingsDashboard() {
                     <div className="space-y-1.5">
                       <label
                         htmlFor="profile-city"
-                        className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                        className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                       >
                         City
                       </label>
@@ -609,7 +628,7 @@ export function SettingsDashboard() {
                     <div className="space-y-1.5">
                       <label
                         htmlFor="profile-state"
-                        className="text-[10px] font-bold uppercase tracking-widest text-slate-600"
+                        className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                       >
                         State
                       </label>
@@ -628,12 +647,12 @@ export function SettingsDashboard() {
                   </div>
                 </div>
               </div>
-              <div className="shrink-0 border-t border-slate-200 bg-white px-6 py-4 sm:px-8">
+              <div className="shrink-0 border-t border-border bg-card px-6 py-4 sm:px-8">
                 <div className="flex flex-wrap items-center justify-end gap-3">
                   <Button
                     type="button"
                     variant="outline"
-                    className="rounded-lg border-2 border-slate-300 bg-white text-[#191c1d] hover:bg-slate-50"
+                    className="rounded-lg border-2 border-border bg-background text-foreground hover:bg-muted/50"
                     onClick={closeProfileDialog}
                     disabled={profileDialogSuccess}
                   >
@@ -642,7 +661,7 @@ export function SettingsDashboard() {
                   <Button
                     type="submit"
                     variant="outline"
-                    className="rounded-lg border-2 border-emerald-600 bg-white text-emerald-700 shadow-none hover:bg-emerald-50 hover:text-emerald-800"
+                    className="rounded-lg border-2 border-emerald-600 bg-background text-emerald-700 shadow-none hover:bg-emerald-50 hover:text-emerald-800"
                     disabled={profileDialogSuccess}
                   >
                     Save profile

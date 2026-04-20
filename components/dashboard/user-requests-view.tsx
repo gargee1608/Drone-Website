@@ -17,6 +17,7 @@ import {
   type UserRequestDetailPayload,
 } from "@/components/dashboard/user-request-detail-modal";
 import { UserRequestTable } from "@/components/dashboard/user-request-table";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
   demoAdminRowToAssignPilotRow,
   upsertDemoAcceptedForAssign,
@@ -275,13 +276,11 @@ export function UserRequestsView() {
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
-        User Request
-      </h1>
-      <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-slate-600 sm:text-sm">
+      <h1 className={ADMIN_PAGE_TITLE_CLASS}>User Request</h1>
+      <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
         Summary figures count every request in{" "}
-        <span className="font-semibold text-[#191c1d]">User requests</span> and{" "}
-        <span className="font-semibold text-[#191c1d]">Additional Inquires</span>{" "}
+        <span className="font-semibold text-foreground">User requests</span> and{" "}
+        <span className="font-semibold text-foreground">Additional Inquires</span>{" "}
         below.
       </p>
 
@@ -367,7 +366,7 @@ function UserRequestStatCard({
   iconWrapClassName: string;
 }) {
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-[#c1c6d7]/15 bg-white px-4 py-4 text-center shadow-sm sm:px-5 sm:py-5">
+    <div className="flex flex-col items-center rounded-2xl border border-border/60 bg-card px-4 py-4 text-center shadow-sm sm:px-5 sm:py-5">
       <span
         className={cn(
           "flex size-9 items-center justify-center rounded-lg sm:size-10",
@@ -376,10 +375,10 @@ function UserRequestStatCard({
       >
         <Icon className={cn("size-[18px]", iconClassName)} aria-hidden />
       </span>
-      <p className="mt-2.5 text-xl font-bold tabular-nums text-[#191c1d] sm:text-2xl">
+      <p className="mt-2.5 text-xl font-bold tabular-nums text-foreground sm:text-2xl">
         {value}
       </p>
-      <p className="mt-1 max-w-[9rem] text-[10px] font-medium leading-tight text-slate-600 sm:max-w-none sm:text-[11px]">
+      <p className="mt-1 max-w-[9rem] text-[10px] font-medium leading-tight text-muted-foreground sm:max-w-none sm:text-[11px]">
         {label}
       </p>
     </div>

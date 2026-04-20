@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, ChevronRight } from "lucide-react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { type ServiceCatalogItem } from "@/lib/service-catalog";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 const headline = "font-[family-name:var(--font-landing-headline)]";
@@ -52,14 +53,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
         {/* Copy left · image + indicative rate right (image first on narrow screens) */}
         <div className="mb-10 grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,11rem)] md:items-start md:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,12.5rem)] lg:gap-12">
           <div className="order-2 min-w-0 md:order-1">
-            <h1
-              className={cn(
-                headline,
-                "text-2xl font-bold leading-tight tracking-tight text-slate-900 sm:text-3xl"
-              )}
-            >
-              {item.title}
-            </h1>
+            <h1 className={ADMIN_PAGE_TITLE_CLASS}>{item.title}</h1>
             <p
               className={cn(
                 body,

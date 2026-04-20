@@ -1,6 +1,7 @@
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { SettingsDashboard } from "@/components/settings/settings-dashboard";
 import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-shell";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 
 export const metadata = {
   title: "Account Settings — Drone Hire",
@@ -21,7 +22,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     return (
       <DashboardLayout>
         <div className="mx-auto w-full max-w-[1280px]">
-          <h1 className="mb-8 text-2xl font-bold tracking-tight text-[#191c1d] sm:mb-10 sm:text-3xl">
+          <h1 className={`mb-8 sm:mb-10 ${ADMIN_PAGE_TITLE_CLASS}`}>
             Settings
           </h1>
           <SettingsDashboard />

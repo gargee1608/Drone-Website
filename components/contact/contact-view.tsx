@@ -9,6 +9,8 @@ import {
 import { type FormEvent, useState } from "react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
+import { appendContactInquiry } from "@/lib/contact-inquiries";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 /** Brand primary aligned with contact mock (#006a6e) */
@@ -22,8 +24,24 @@ export function ContactView() {
 
   function handleInquirySubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
+    const fd = new FormData(form);
+    const fullName = String(fd.get("fullName") ?? "").trim();
+    const email = String(fd.get("email") ?? "").trim();
+    const phone = String(fd.get("phone") ?? "").trim() || undefined;
+    const company = String(fd.get("company") ?? "").trim() || undefined;
+    const message = String(fd.get("message") ?? "").trim();
+    if (!fullName || !email || !message) return;
+
+    appendContactInquiry({
+      fullName,
+      email,
+      phone,
+      company,
+      message,
+    });
     setSubmitted(true);
-    event.currentTarget.reset();
+    form.reset();
   }
 
   return (
@@ -37,7 +55,7 @@ export function ContactView() {
       <section className="contact-hud-grid relative py-8 sm:py-10 lg:py-12">
         <div className="container mx-auto grid items-center gap-8 px-6 md:grid-cols-2 md:gap-10 lg:px-8">
           <div className="w-full">
-            <h1 className="mb-4 font-[family-name:var(--font-landing-headline)] text-4xl font-bold leading-[1.02] tracking-tighter text-[#1a2027] sm:text-5xl md:text-6xl">
+            <h1 className={cn("mb-4", ADMIN_PAGE_TITLE_CLASS)}>
               Get in <span className="text-[#006a6e]">Touch</span> with Us
             </h1>
             <p className="max-w-xl text-base leading-relaxed text-[#43484e] sm:text-lg">

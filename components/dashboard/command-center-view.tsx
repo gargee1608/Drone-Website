@@ -5,30 +5,8 @@ import { useEffect, useReducer, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { DetailField } from "@/components/dashboard/user-request-detail-modal";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
-
-const cc = {
-  primary: "#008B8B",
-  primaryContainer: "#006b6b",
-  onSurface: "#191c1d",
-  secondaryLabel: "#4d5b7f",
-  surface: "#f8f9fa",
-  sidebar: "#f3f4f5",
-  outlineVariant: "#c1c6d7",
-  surfaceContainerHighest: "#e1e3e4",
-  surfaceContainerLowest: "#ffffff",
-  surfaceContainerHigh: "#e7e8e9",
-  error: "#ba1a1a",
-  errorContainer: "#ffdad6",
-  tertiary: "#006195",
-  tertiaryContainer: "#147ab8",
-  primaryFixed: "#cfe8e8",
-  onPrimaryFixed: "#0a3030",
-  tertiaryFixed: "#cde5ff",
-  onTertiaryFixed: "#001d32",
-  onSecondaryContainer: "#4d5b7f",
-  onErrorContainer: "#93000a",
-} as const;
 
 /** Pilots awaiting registration review (shown under Pending Pilots). */
 const PENDING_PILOT_REGISTRATIONS = [
@@ -87,7 +65,7 @@ const APPROVED_PILOT_REGISTRATIONS = [
       {
         k: "Status",
         v: "Active",
-        vClass: "font-semibold text-green-700",
+        vClass: "font-semibold text-green-700 dark:text-green-400",
       },
       { k: "Region", v: "Sector 7G North" },
     ],
@@ -101,7 +79,7 @@ const APPROVED_PILOT_REGISTRATIONS = [
       {
         k: "Status",
         v: "Active",
-        vClass: "font-semibold text-green-700",
+        vClass: "font-semibold text-green-700 dark:text-green-400",
       },
       { k: "Region", v: "Port of Aerolia" },
     ],
@@ -115,7 +93,7 @@ const APPROVED_PILOT_REGISTRATIONS = [
       {
         k: "Status",
         v: "Active",
-        vClass: "font-semibold text-green-700",
+        vClass: "font-semibold text-green-700 dark:text-green-400",
       },
       { k: "Region", v: "Eastern Corridor" },
     ],
@@ -181,7 +159,7 @@ function mapPendingToApproved(pilot: PilotRegCard): PilotRegCard {
       {
         k: "Status",
         v: "Active",
-        vClass: "font-semibold text-green-700",
+        vClass: "font-semibold text-green-700 dark:text-green-400",
       },
       { k: "Region", v: region },
     ],
@@ -330,9 +308,7 @@ export function DashboardHomeContent() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
-        Admin Dashboard
-      </h1>
+      <h1 className={ADMIN_PAGE_TITLE_CLASS}>Admin Dashboard</h1>
 
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
@@ -360,8 +336,8 @@ export function DashboardHomeContent() {
           title="Registered pilots"
           value={registeredTotalDisplay}
           icon={UserCheck}
-          iconClassName="text-green-700"
-          iconBg="bg-green-100"
+          iconClassName="text-green-700 dark:text-green-400"
+          iconBg="bg-green-100 dark:bg-green-950/40"
         />
       </section>
 
@@ -393,15 +369,12 @@ function KpiCard({
   iconBg: string;
 }) {
   return (
-    <div className="cc-glass-card flex items-center justify-between rounded-2xl border border-[#c1c6d7]/15 p-5 shadow-sm">
+    <div className="cc-glass-card flex items-center justify-between rounded-2xl border border-border/60 p-5 shadow-sm">
       <div>
-        <p
-          className="text-[11px] uppercase tracking-widest"
-          style={{ color: cc.onSecondaryContainer }}
-        >
+        <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
           {title}
         </p>
-        <h2 className="mt-1 text-2xl font-bold tabular-nums">
+        <h2 className="mt-1 text-2xl font-bold tabular-nums text-foreground">
           {value}
         </h2>
       </div>
@@ -434,13 +407,10 @@ function PendingRegistrationsSection({
     <section className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-xl font-bold">
+          <h3 className="text-xl font-bold text-foreground">
             Pilot registrations
           </h3>
-          <p
-            className="mt-1 text-[13px] leading-snug"
-            style={{ color: cc.onSecondaryContainer }}
-          >
+          <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
             {pilotRegView === "pending"
               ? "Pilots awaiting review — accept or reject each application."
               : "Pilots who have completed registration and are cleared to operate."}
@@ -455,13 +425,8 @@ function PendingRegistrationsSection({
               "rounded-lg text-xs font-semibold",
               pilotRegView === "pending"
                 ? "bg-[#008B8B] text-white shadow-lg shadow-[#008B8B]/20 hover:bg-[#006b6b]"
-                : "bg-[#e7e8e9] hover:bg-[#c1c6d7]/30"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
             )}
-            style={
-              pilotRegView === "pending"
-                ? undefined
-                : { color: cc.onSecondaryContainer }
-            }
             onClick={() => setPilotRegView("pending")}
           >
             Pending Pilots
@@ -474,13 +439,8 @@ function PendingRegistrationsSection({
               "rounded-lg text-xs font-semibold",
               pilotRegView === "approved"
                 ? "bg-[#008B8B] text-white shadow-lg shadow-[#008B8B]/20 hover:bg-[#006b6b]"
-                : "bg-[#e7e8e9] hover:bg-[#c1c6d7]/30"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
             )}
-            style={
-              pilotRegView === "approved"
-                ? undefined
-                : { color: cc.onSecondaryContainer }
-            }
             onClick={() => setPilotRegView("approved")}
           >
             Approved Pilots
@@ -538,43 +498,33 @@ function PendingPilotCard({
   const isApproved = variant === "approved";
 
   return (
-    <div className="rounded-xl border border-[#c1c6d7]/15 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="rounded-xl border border-border/80 bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="mb-3 flex items-start justify-between">
         <div className="flex items-center space-x-2.5">
           <div
-            className="flex size-11 shrink-0 items-center justify-center rounded-full border border-[#c1c6d7]/30 bg-[#e7e8e9]"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border bg-muted"
             aria-hidden
           >
             <User
-              className="size-5"
+              className="size-5 text-muted-foreground"
               strokeWidth={2}
-              style={{ color: cc.onSecondaryContainer }}
             />
           </div>
           <div>
-            <h4 className="text-sm font-bold">{name}</h4>
+            <h4 className="text-sm font-bold text-foreground">{name}</h4>
             <span
-              className="mt-0.5 inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase"
-              style={
+              className={cn(
+                "mt-0.5 inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase",
                 isApproved
-                  ? {
-                      background: "#dcfce7",
-                      color: "#166534",
-                    }
-                  : {
-                      background: cc.primaryFixed,
-                      color: cc.onPrimaryFixed,
-                    }
-              }
+                  ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
+                  : "bg-[#cfe8e8] text-[#0a3030] dark:bg-primary/25 dark:text-primary"
+              )}
             >
               {badge}
             </span>
           </div>
         </div>
-        <span
-          className="max-w-[10rem] text-right text-[9px] font-bold opacity-60 sm:max-w-none"
-          style={{ color: cc.onSecondaryContainer }}
-        >
+        <span className="max-w-[10rem] text-right text-[9px] font-bold text-muted-foreground sm:max-w-none">
           {isApproved ? "Registered: " : "Submitted: "}
           {submitted}
         </span>
@@ -582,8 +532,10 @@ function PendingPilotCard({
       <div className="mb-5 space-y-2.5">
         {rows.map(({ k, v, vClass }) => (
           <div key={k} className="flex justify-between gap-2 text-xs">
-            <span style={{ color: cc.onSecondaryContainer }}>{k}</span>
-            <span className={cn("text-right font-semibold", vClass)}>{v}</span>
+            <span className="text-muted-foreground">{k}</span>
+            <span className={cn("text-right font-semibold text-foreground", vClass)}>
+              {v}
+            </span>
           </div>
         ))}
       </div>
@@ -611,8 +563,7 @@ function PendingPilotCard({
             type="button"
             size="sm"
             variant="secondary"
-            className="bg-[#e7e8e9] text-xs font-bold hover:bg-[#c1c6d7]/30"
-            style={{ color: cc.onSecondaryContainer }}
+            className="bg-muted text-xs font-bold text-foreground hover:bg-muted/80"
             onClick={onReject}
           >
             Reject
@@ -658,28 +609,27 @@ function ApprovedPilotProfileModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="approved-pilot-profile-title"
-        className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-[#c1c6d7]/20 bg-white shadow-2xl sm:rounded-2xl"
+        className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-border bg-card text-foreground shadow-2xl sm:rounded-2xl"
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#edeeef] px-5 py-4 sm:px-6">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <div
-              className="flex size-12 shrink-0 items-center justify-center rounded-full border border-[#c1c6d7]/30 bg-[#e7e8e9]"
+              className="flex size-12 shrink-0 items-center justify-center rounded-full border border-border bg-muted"
               aria-hidden
             >
               <User
-                className="size-6"
+                className="size-6 text-muted-foreground"
                 strokeWidth={2}
-                style={{ color: cc.onSecondaryContainer }}
               />
             </div>
             <div className="min-w-0">
               <h2
                 id="approved-pilot-profile-title"
-                className="truncate text-base font-bold text-[#191c1d] sm:text-lg"
+                className="truncate text-base font-bold text-foreground sm:text-lg"
               >
                 {pilot.name}
               </h2>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#166534]">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">
                 {pilot.badge}
               </p>
             </div>
@@ -687,17 +637,14 @@ function ApprovedPilotProfileModal({
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-lg p-2 text-[#414755] transition-colors hover:bg-[#f3f4f5]"
+            className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted"
             aria-label="Close"
           >
             <X className="size-5" />
           </button>
         </div>
         <div className="overflow-y-auto px-5 py-5 sm:px-6">
-          <p
-            className="mb-5 text-[11px] font-medium"
-            style={{ color: cc.onSecondaryContainer }}
-          >
+          <p className="mb-5 text-[11px] font-medium text-muted-foreground">
             Registered: {pilot.submitted}
           </p>
           <dl className="grid gap-4 sm:grid-cols-2">

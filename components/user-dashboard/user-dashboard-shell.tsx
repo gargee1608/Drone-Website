@@ -17,6 +17,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 /** Same CSS var as admin `DashboardLayout` so `SiteFooter` aligns with the sidebar. */
@@ -265,7 +266,7 @@ export function UserDashboardShell({
               <div className="flex items-center gap-3">
                 <h1
                   className={cn(
-                    "text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl",
+                    ADMIN_PAGE_TITLE_CLASS,
                     !pageSubtitle && "mb-6",
                     pageTitleClassName
                   )}

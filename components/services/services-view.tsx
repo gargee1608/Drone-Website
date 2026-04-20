@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { useAdminServicesCatalog } from "@/hooks/use-admin-services-catalog";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
   serviceCatalogBadgeClasses,
   serviceCatalogItems,
@@ -48,14 +49,7 @@ export function ServicesView({
               >
                 What we offer
               </p>
-              <h1
-                className={cn(
-                  headline,
-                  "mt-4 text-[2rem] font-bold leading-[1.1] tracking-tight text-slate-900 sm:text-4xl md:text-5xl"
-                )}
-              >
-                Services
-              </h1>
+              <h1 className={cn("mt-4", ADMIN_PAGE_TITLE_CLASS)}>Services</h1>
               <p
                 className={cn(
                   body,

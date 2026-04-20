@@ -8,6 +8,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   LogOut,
+  Mail,
   Plane,
   Settings,
 } from "lucide-react";
@@ -31,6 +32,11 @@ export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
   { href: "/dashboard/pilot-status", label: "Pilot Status", icon: BadgeCheck },
   { href: "/dashboard/blogs", label: "Blogs", icon: BookOpen },
   { href: "/dashboard/services", label: "Services", icon: Briefcase },
+  {
+    href: "/dashboard/contact-inquiries",
+    label: "Contact inquiries",
+    icon: Mail,
+  },
   { href: "/dashboard/profile", label: "Profile", icon: CircleUser },
   { href: "/settings?from=admin", label: "Settings", icon: Settings },
 ];

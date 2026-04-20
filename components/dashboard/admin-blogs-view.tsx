@@ -19,6 +19,7 @@ import {
   type AdminBlogExtra,
 } from "@/lib/blog-admin-storage";
 import { getMergedBlogPostsList } from "@/lib/blog-merge";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES: BlogPost["category"][] = [
@@ -235,12 +236,10 @@ export function AdminBlogsView() {
   };
 
   return (
-    <div className="min-w-0 text-[#191c1d]">
+    <div className="min-w-0 text-foreground">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="max-w-2xl">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Blogs
-          </h1>
+          <h1 className={ADMIN_PAGE_TITLE_CLASS}>Blogs</h1>
         </div>
         <Button
           type="button"
@@ -253,15 +252,15 @@ export function AdminBlogsView() {
       </div>
 
       {editorMode !== "closed" ? (
-        <section className="mb-10 rounded-2xl border-2 border-[#c1c6d7] bg-white p-5 shadow-sm sm:p-6">
+        <section className="mb-10 rounded-2xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-[#191c1d]">
+            <h2 className="text-base font-bold text-foreground">
               {editorMode === "add" ? "New article" : "Edit article"}
             </h2>
             <button
               type="button"
               onClick={closeEditor}
-              className="text-sm font-medium text-slate-500 hover:text-[#191c1d]"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               Cancel
             </button>
@@ -269,40 +268,40 @@ export function AdminBlogsView() {
           <form onSubmit={saveForm} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Title
                 </label>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="h-11 rounded-lg border-slate-200"
+                  className="h-11 rounded-lg border-border"
                   required
                 />
               </div>
               {editorMode === "add" ? (
                 <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                  <label className="mb-1.5 block text-xs font-semibold text-foreground">
                     Slug (optional — auto from title if empty)
                   </label>
                   <Input
                     value={slugManual}
                     onChange={(e) => setSlugManual(e.target.value)}
                     placeholder="e.g. fleet-safety-2024"
-                    className="h-11 rounded-lg border-slate-200 font-mono text-sm"
+                    className="h-11 rounded-lg border-border font-mono text-sm"
                   />
                 </div>
               ) : (
                 <div className="sm:col-span-2">
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Slug:{" "}
-                    <span className="font-mono font-medium text-[#191c1d]">
+                    <span className="font-mono font-medium text-foreground">
                       {editSlug}
                     </span>
                   </p>
                 </div>
               )}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Category
                 </label>
                 <select
@@ -310,7 +309,7 @@ export function AdminBlogsView() {
                   onChange={(e) =>
                     setCategory(e.target.value as BlogPost["category"])
                   }
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>
@@ -320,27 +319,27 @@ export function AdminBlogsView() {
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Date
                 </label>
                 <Input
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="h-11 rounded-lg border-slate-200"
+                  className="h-11 rounded-lg border-border"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Author
                 </label>
                 <Input
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  className="h-11 rounded-lg border-slate-200"
+                  className="h-11 rounded-lg border-border"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Tag tone
                 </label>
                 <select
@@ -348,7 +347,7 @@ export function AdminBlogsView() {
                   onChange={(e) =>
                     setTagTone(e.target.value as BlogPost["tagTone"])
                   }
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
                 >
                   {TAG_TONES.map((tone) => (
                     <option key={tone} value={tone}>
@@ -358,46 +357,46 @@ export function AdminBlogsView() {
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Excerpt
                 </label>
                 <textarea
                   value={excerpt}
                   onChange={(e) => setExcerpt(e.target.value)}
                   rows={2}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Cover image URL
                 </label>
                 <Input
                   value={image}
                   onChange={(e) => setImage(e.target.value)}
-                  className="h-11 rounded-lg border-slate-200 font-mono text-xs"
+                  className="h-11 rounded-lg border-border font-mono text-xs"
                   placeholder="https://…"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Image alt text
                 </label>
                 <Input
                   value={imageAlt}
                   onChange={(e) => setImageAlt(e.target.value)}
-                  className="h-11 rounded-lg border-slate-200"
+                  className="h-11 rounded-lg border-border"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Body (paragraphs separated by a blank line)
                 </label>
                 <textarea
                   value={bodyText}
                   onChange={(e) => setBodyText(e.target.value)}
                   rows={10}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs leading-relaxed"
+                  className="w-full rounded-lg border border-border px-3 py-2 font-mono text-xs leading-relaxed"
                 />
               </div>
             </div>
@@ -416,18 +415,18 @@ export function AdminBlogsView() {
         </section>
       ) : null}
 
-      <section className="rounded-2xl border-2 border-[#c1c6d7] bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
-          <h2 className="text-base font-bold text-[#191c1d]">
+      <section className="rounded-2xl border-2 border-border bg-card shadow-sm">
+        <div className="border-b border-border px-5 py-4 sm:px-6">
+          <h2 className="text-base font-bold text-foreground">
             All posts ({hydrated ? rows.length : "…"})
           </h2>
         </div>
         {!hydrated ? (
-          <p className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
+          <p className="px-5 py-10 text-center text-sm text-muted-foreground sm:px-6">
             Loading…
           </p>
         ) : rows.length === 0 ? (
-          <p className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
+          <p className="px-5 py-10 text-center text-sm text-muted-foreground sm:px-6">
             No posts yet. Use &quot;New blog&quot; to add one.
           </p>
         ) : (
@@ -443,13 +442,13 @@ export function AdminBlogsView() {
               const typeClass = extra
                 ? "border-[#008B8B]/25 bg-[#008B8B]/10 text-[#006d6d]"
                 : isBuiltIn
-                  ? "border-slate-200 bg-slate-100 text-slate-700"
-                  : "border-slate-200 bg-slate-50 text-slate-600";
+                  ? "border-border bg-muted text-foreground"
+                  : "border-border bg-muted/50 text-muted-foreground";
 
               return (
                 <li key={post.slug}>
-                  <article className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-[#008B8B]/35 hover:shadow-md">
-                    <div className="relative aspect-[16/10] w-full shrink-0 bg-slate-100">
+                  <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:border-[#008B8B]/35 hover:shadow-md">
+                    <div className="relative aspect-[16/10] w-full shrink-0 bg-muted">
                       <Image
                         src={post.image}
                         alt={post.imageAlt || post.title}
@@ -469,29 +468,29 @@ export function AdminBlogsView() {
                         >
                           {typeLabel}
                         </span>
-                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                        <span className="rounded-full border border-border bg-card px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {post.category}
                         </span>
                       </div>
-                      <h3 className="line-clamp-2 text-base font-bold leading-snug text-[#191c1d]">
+                      <h3 className="line-clamp-2 text-base font-bold leading-snug text-foreground">
                         {post.title}
                       </h3>
-                      <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">
+                      <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                         {post.excerpt}
                       </p>
-                      <p className="text-[11px] text-slate-500">
-                        <span className="font-medium text-slate-600">
+                      <p className="text-[11px] text-muted-foreground">
+                        <span className="font-medium text-muted-foreground">
                           {post.date}
                         </span>
-                        <span className="mx-1.5 text-slate-300" aria-hidden>
+                        <span className="mx-1.5 text-border" aria-hidden>
                           ·
                         </span>
                         <span>{post.author}</span>
                       </p>
-                      <p className="font-mono text-[10px] leading-tight text-slate-500 break-all">
+                      <p className="font-mono text-[10px] leading-tight text-muted-foreground break-all">
                         {post.slug}
                       </p>
-                      <div className="mt-auto flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                      <div className="mt-auto flex flex-wrap gap-2 border-t border-border pt-3">
                         <button
                           type="button"
                           onClick={() => openEdit(post)}

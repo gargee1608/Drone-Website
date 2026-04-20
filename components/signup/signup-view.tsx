@@ -5,6 +5,7 @@ import { ArrowRight, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -53,11 +54,7 @@ export function SignUpView() {
                 <User className="size-6 text-[#008B8B] sm:size-7" strokeWidth={1.75} />
               </div>
             </div>
-            <h1
-              className={cn(
-                "mb-1.5 text-xl font-bold tracking-tight text-[#191c1d] sm:text-2xl"
-              )}
-            >
+            <h1 className={cn("mb-1.5", ADMIN_PAGE_TITLE_CLASS)}>
               Create account
             </h1>
             <p className="text-xs font-medium leading-snug text-[#414755] sm:text-sm">

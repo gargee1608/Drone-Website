@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Battery, Gauge } from "lucide-react";
 
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+
 export function Hero() {
   return (
     <section className="relative flex min-h-[min(800px,90svh)] flex-col items-center justify-center overflow-hidden bg-white px-4 py-16 sm:px-8">
@@ -13,7 +15,7 @@ export function Hero() {
               Autonomous Network Live
             </span>
           </div>
-          <h1 className="font-[family-name:var(--font-landing-headline)] text-3xl font-bold leading-tight tracking-tighter text-slate-900 sm:text-4xl md:text-5xl lg:text-6xl">
+          <h1 className={ADMIN_PAGE_TITLE_CLASS}>
             Smart Drone Logistics &amp; Delivery Platform
           </h1>
           <p className="mt-6 max-w-lg font-[family-name:var(--font-landing-body)] text-lg leading-relaxed text-slate-600 md:text-xl">
