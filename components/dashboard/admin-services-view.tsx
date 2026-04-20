@@ -1,22 +1,35 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import Image from "next/image";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAdminServicesCatalog } from "@/hooks/use-admin-services-catalog";
 import {
   createAdminServiceId,
+  DEFAULT_ADMIN_SERVICE_IMAGE,
+  DEFAULT_ADMIN_SERVICE_IMAGE_ALT,
   loadAdminServices,
   saveAdminServices,
+  type AdminService,
 } from "@/lib/admin-services";
 import { cn } from "@/lib/utils";
 
-function formatAdded(iso: number) {
+function formatAddedDate(iso: number) {
   try {
     return new Intl.DateTimeFormat(undefined, {
       dateStyle: "medium",
+    }).format(new Date(iso));
+  } catch {
+    return "—";
+  }
+}
+
+function formatAddedTime(iso: number) {
+  try {
+    return new Intl.DateTimeFormat(undefined, {
       timeStyle: "short",
     }).format(new Date(iso));
   } catch {
@@ -26,16 +39,60 @@ function formatAdded(iso: number) {
 
 export function AdminServicesView() {
   const items = useAdminServicesCatalog();
+  const sortedItems = useMemo(
+    () => [...items].sort((a, b) => b.createdAt - a.createdAt),
+    [items]
+  );
+  type FormMode = "closed" | "add" | "edit";
+  const [formMode, setFormMode] = useState<FormMode>("closed");
+  const [editId, setEditId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priceLabel, setPriceLabel] = useState("");
+  const [image, setImage] = useState("");
+  const [imageAlt, setImageAlt] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+
+  const resetFormFields = () => {
+    setTitle("");
+    setDescription("");
+    setPriceLabel("");
+    setImage("");
+    setImageAlt("");
+  };
+
+  const openAddForm = () => {
+    setFormMode("add");
+    setEditId(null);
+    resetFormFields();
+    setFormError(null);
+  };
+
+  const openEditForm = (row: AdminService) => {
+    setFormMode("edit");
+    setEditId(row.id);
+    setTitle(row.title);
+    setDescription(row.description);
+    setPriceLabel(row.priceLabel);
+    setImage(row.image);
+    setImageAlt(row.imageAlt);
+    setFormError(null);
+  };
+
+  const closeForm = () => {
+    setFormMode("closed");
+    setEditId(null);
+    setFormError(null);
+    resetFormFields();
+  };
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const t = title.trim();
     const d = description.trim();
     const p = priceLabel.trim();
+    const img = image.trim();
+    const alt = imageAlt.trim();
     if (!t) {
       setFormError("Enter a service title.");
       return;
@@ -45,188 +102,297 @@ export function AdminServicesView() {
       return;
     }
     setFormError(null);
-    const next: AdminService = {
-      id: createAdminServiceId(),
-      title: t,
-      description: d || "—",
-      priceLabel: p,
-      createdAt: Date.now(),
-    };
-    const merged = [...loadAdminServices(), next];
-    saveAdminServices(merged);
-    setTitle("");
-    setDescription("");
-    setPriceLabel("");
+    const imageUrl = img || DEFAULT_ADMIN_SERVICE_IMAGE;
+    const imageAltResolved = alt
+      ? alt
+      : img
+        ? t
+        : DEFAULT_ADMIN_SERVICE_IMAGE_ALT;
+
+    if (formMode === "edit" && editId) {
+      const rows = loadAdminServices();
+      const existing = rows.find((r) => r.id === editId);
+      if (!existing) {
+        setFormError("Service not found.");
+        return;
+      }
+      const updated: AdminService = {
+        ...existing,
+        title: t,
+        description: d || "—",
+        priceLabel: p,
+        image: imageUrl,
+        imageAlt: imageAltResolved,
+      };
+      saveAdminServices(rows.map((r) => (r.id === editId ? updated : r)));
+      closeForm();
+      return;
+    }
+
+    if (formMode === "add") {
+      const next: AdminService = {
+        id: createAdminServiceId(),
+        title: t,
+        description: d || "—",
+        priceLabel: p,
+        createdAt: Date.now(),
+        image: imageUrl,
+        imageAlt: imageAltResolved,
+      };
+      saveAdminServices([...loadAdminServices(), next]);
+      closeForm();
+    }
   };
 
   const remove = (id: string) => {
     const merged = loadAdminServices().filter((r) => r.id !== id);
     saveAdminServices(merged);
+    if (editId === id) closeForm();
   };
 
   return (
     <div className="min-w-0 text-[#191c1d]">
-      <div className="mb-8 max-w-2xl">
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#008B8B]">
-          Command center
-        </p>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-          Services
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">
-          Add offerings that appear in your admin catalog. Data is stored in
-          this browser for demo purposes.
-        </p>
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="max-w-2xl">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Services
+          </h1>
+        </div>
+        <Button
+          type="button"
+          onClick={openAddForm}
+          className="shrink-0 rounded-full bg-[#008B8B] font-bold text-white hover:bg-[#007a7a]"
+        >
+          <Plus className="mr-2 size-4" aria-hidden />
+          Add New Service
+        </Button>
       </div>
 
-      <section className="mb-10 rounded-2xl border-2 border-[#c1c6d7] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-base font-bold text-[#191c1d]">Add a service</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Required: title and price label. Description is optional.
-        </p>
-        <form onSubmit={onSubmit} className="mt-5 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label
-                htmlFor="admin-svc-title"
-                className="mb-1.5 block text-xs font-semibold text-slate-700"
-              >
-                Title
-              </label>
-              <Input
-                id="admin-svc-title"
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value);
-                  setFormError(null);
-                }}
-                placeholder="e.g. Medical logistics"
-                className="h-11 rounded-lg border-slate-200 bg-white"
-                autoComplete="off"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="admin-svc-price"
-                className="mb-1.5 block text-xs font-semibold text-slate-700"
-              >
-                Price / label
-              </label>
-              <Input
-                id="admin-svc-price"
-                value={priceLabel}
-                onChange={(e) => {
-                  setPriceLabel(e.target.value);
-                  setFormError(null);
-                }}
-                placeholder="e.g. $49 or $120/h"
-                className="h-11 rounded-lg border-slate-200 bg-white"
-                autoComplete="off"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label
-                htmlFor="admin-svc-desc"
-                className="mb-1.5 block text-xs font-semibold text-slate-700"
-              >
-                Short description
-              </label>
-              <textarea
-                id="admin-svc-desc"
-                value={description}
-                onChange={(e) => {
-                  setDescription(e.target.value);
-                  setFormError(null);
-                }}
-                rows={3}
-                placeholder="What the customer gets in one or two sentences."
-                className="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-[#191c1d] placeholder:text-slate-400 focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#008B8B]/35"
-              />
-            </div>
+      {formMode !== "closed" ? (
+        <section className="mb-10 rounded-2xl border-2 border-[#c1c6d7] bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <h2 className="text-base font-bold text-[#191c1d]">
+              {formMode === "add" ? "New service" : "Edit service"}
+            </h2>
+            <button
+              type="button"
+              onClick={closeForm}
+              className="text-sm font-medium text-slate-500 hover:text-[#191c1d]"
+            >
+              Cancel
+            </button>
           </div>
-          {formError ? (
-            <p className="text-sm font-medium text-red-600" role="alert">
-              {formError}
-            </p>
-          ) : null}
-          <Button
-            type="submit"
-            className="rounded-full bg-[#008B8B] px-6 font-bold text-white hover:bg-[#007a7a]"
-          >
-            <Plus className="mr-2 size-4" aria-hidden />
-            Add service
-          </Button>
-        </form>
-      </section>
+          <p className="mb-5 text-sm text-slate-600">
+            Required: title and price label. Description and image URL are
+            optional (default image used if URL is empty).
+          </p>
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {formMode === "edit" && editId ? (
+                <div className="sm:col-span-2">
+                  <p className="text-xs text-slate-500">
+                    Service ID:{" "}
+                    <span className="font-mono font-medium text-[#191c1d]">
+                      {editId}
+                    </span>
+                  </p>
+                </div>
+              ) : null}
+              <div className="sm:col-span-2">
+                <label
+                  htmlFor="admin-svc-title"
+                  className="mb-1.5 block text-xs font-semibold text-slate-700"
+                >
+                  Title
+                </label>
+                <Input
+                  id="admin-svc-title"
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    setFormError(null);
+                  }}
+                  placeholder="e.g. Medical logistics"
+                  className="h-11 rounded-lg border-slate-200 bg-white"
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="admin-svc-price"
+                  className="mb-1.5 block text-xs font-semibold text-slate-700"
+                >
+                  Price / label
+                </label>
+                <Input
+                  id="admin-svc-price"
+                  value={priceLabel}
+                  onChange={(e) => {
+                    setPriceLabel(e.target.value);
+                    setFormError(null);
+                  }}
+                  placeholder="e.g. $49 or $120/h"
+                  className="h-11 rounded-lg border-slate-200 bg-white"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label
+                  htmlFor="admin-svc-desc"
+                  className="mb-1.5 block text-xs font-semibold text-slate-700"
+                >
+                  Short description
+                </label>
+                <textarea
+                  id="admin-svc-desc"
+                  value={description}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    setFormError(null);
+                  }}
+                  rows={3}
+                  placeholder="What the customer gets in one or two sentences."
+                  className="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-[#191c1d] placeholder:text-slate-400 focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#008B8B]/35"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label
+                  htmlFor="admin-svc-image"
+                  className="mb-1.5 block text-xs font-semibold text-slate-700"
+                >
+                  Cover image URL (optional)
+                </label>
+                <Input
+                  id="admin-svc-image"
+                  value={image}
+                  onChange={(e) => {
+                    setImage(e.target.value);
+                    setFormError(null);
+                  }}
+                  placeholder="https://… or leave empty for default cover"
+                  className="h-11 rounded-lg border-slate-200 bg-white font-mono text-xs"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label
+                  htmlFor="admin-svc-image-alt"
+                  className="mb-1.5 block text-xs font-semibold text-slate-700"
+                >
+                  Image alt text (optional)
+                </label>
+                <Input
+                  id="admin-svc-image-alt"
+                  value={imageAlt}
+                  onChange={(e) => {
+                    setImageAlt(e.target.value);
+                    setFormError(null);
+                  }}
+                  placeholder="Describe the image for accessibility"
+                  className="h-11 rounded-lg border-slate-200 bg-white"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            {formError ? (
+              <p className="text-sm font-medium text-red-600" role="alert">
+                {formError}
+              </p>
+            ) : null}
+            <Button
+              type="submit"
+              className="rounded-full bg-[#008B8B] px-6 font-bold text-white hover:bg-[#007a7a]"
+            >
+              Save
+            </Button>
+          </form>
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border-2 border-[#c1c6d7] bg-white shadow-sm">
         <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
           <h2 className="text-base font-bold text-[#191c1d]">
-            Your services ({items.length})
+            All services ({items.length})
           </h2>
         </div>
         {items.length === 0 ? (
-          <p className="px-5 py-12 text-center text-sm text-slate-600 sm:px-6">
-            No services yet. Use the form above to add the first one.
+          <p className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
+            No services yet. Click &quot;Add New Service&quot; to create one.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/90">
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:px-5">
-                    Title
-                  </th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:px-5">
-                    Price
-                  </th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:px-5">
-                    Description
-                  </th>
-                  <th className="hidden px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 md:table-cell sm:px-5">
-                    Added
-                  </th>
-                  <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:px-5">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {items.map((row) => (
-                  <tr key={row.id} className="bg-white hover:bg-slate-50/80">
-                    <td className="max-w-[12rem] px-4 py-3 font-semibold text-[#191c1d] sm:px-5">
-                      {row.title}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="inline-flex rounded-md bg-[#008B8B]/12 px-2 py-0.5 text-xs font-bold text-[#006d6d]">
+          <ul className="grid list-none grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3 lg:gap-5">
+            {sortedItems.map((row) => (
+              <li key={row.id}>
+                <article className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-[#008B8B]/35 hover:shadow-md">
+                  <div className="relative aspect-[16/10] w-full shrink-0 bg-slate-100">
+                    <Image
+                      src={row.image}
+                      alt={row.imageAlt}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    />
+                  </div>
+                  <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={cn(
+                          "rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                          "border-[#008B8B]/25 bg-[#008B8B]/10 text-[#006d6d]"
+                        )}
+                      >
+                        Service
+                      </span>
+                      <span
+                        className="max-w-full truncate rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[10px] font-semibold tabular-nums tracking-wide text-slate-600 normal-case"
+                        title={row.priceLabel}
+                      >
                         {row.priceLabel}
                       </span>
-                    </td>
-                    <td className="max-w-md px-4 py-3 text-slate-600 sm:px-5">
-                      <span className="line-clamp-2">{row.description}</span>
-                    </td>
-                    <td className="hidden whitespace-nowrap px-4 py-3 text-xs text-slate-500 md:table-cell sm:px-5">
-                      {formatAdded(row.createdAt)}
-                    </td>
-                    <td className="px-4 py-3 text-right sm:px-5">
+                    </div>
+                    <h3 className="line-clamp-2 text-base font-bold leading-snug text-[#191c1d]">
+                      {row.title}
+                    </h3>
+                    <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">
+                      {row.description}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      <span className="font-medium text-slate-600">
+                        {formatAddedDate(row.createdAt)}
+                      </span>
+                      <span className="mx-1.5 text-slate-300" aria-hidden>
+                        ·
+                      </span>
+                      <span>{formatAddedTime(row.createdAt)}</span>
+                    </p>
+                    <p className="font-mono text-[10px] leading-tight text-slate-500 break-all">
+                      {row.id}
+                    </p>
+                    <div className="mt-auto flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => openEditForm(row)}
+                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#008B8B]/10 px-3 py-2 text-xs font-semibold text-[#008B8B] transition hover:bg-[#008B8B]/18 min-[360px]:flex-none"
+                      >
+                        <Pencil className="size-3.5" aria-hidden />
+                        Edit
+                      </button>
                       <button
                         type="button"
                         onClick={() => remove(row.id)}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-red-700",
-                          "transition hover:bg-red-50 focus-visible:outline focus-visible:ring-2 focus-visible:ring-red-200"
-                        )}
-                        aria-label={`Remove ${row.title}`}
+                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50/80 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 min-[360px]:flex-none"
+                        aria-label={`Delete ${row.title}`}
                       >
                         <Trash2 className="size-3.5" aria-hidden />
-                        Remove
+                        Delete
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+                </article>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </div>

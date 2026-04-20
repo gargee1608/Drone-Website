@@ -11,15 +11,11 @@ import { type FormEvent, useState } from "react";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { cn } from "@/lib/utils";
 
-/** Brand palette aligned with contact mock (primary #006a6e, secondary #106e00, tertiary #0056cf) */
+/** Brand primary aligned with contact mock (#006a6e) */
 const primary = "#006a6e";
-const secondaryGreen = "#106e00";
 
 const HERO_DRONE_SRC =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuAd5Qx2LlWCZ9-TzvqoK7pqHmclSOHr17jAUqBID_gAtDBlz_woxh40RL0aYje_8Pq7fnTA43RQqObbP3Lut9zNeEcMA4UQPajuTicEqNLx4o65RfGnI1sjRz2gImY-2ybKjGr4pDw1vrJOoUzQ5ZohOV9HMGVTO09zg0gRB643966yyC2Adzdh-B1mV7TLLU1-YuPT5SOwLWrDWlE4FDEmzGVueL-k35aZm5SyMzREfwlNJJiBKjNXvn_ZhEjJYPbewfjqAxkP4X_7";
-
-const MAP_BG_SRC =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuAYin33I4RLGs36bM7VeBou6cWwS1NmSh9VJfVDjsnKe_UrmI9iOzGvwPffhjT6VfPeCmabuegMyJoTglDofzLWjM1eF1VqN8xebyYC5rWuF9acKu5la7Zf8dzGqnnRa9J25PbTZGsBakr4yaWVNDU0zSIPyiDmeOGRTTcZ0h7Phh0OkhmhQw-VyxAp7d6iuwU15aeg2c6qx-eUKpQmcmMMnQNjaGdLKxIkRL2lou3kYKuJpvsgXhNc4ZXAk_uUjmCKXmkBLlVt5PQm";
 
 export function ContactView() {
   const [submitted, setSubmitted] = useState(false);
@@ -231,46 +227,6 @@ export function ContactView() {
                     +1 (888) AERO-FLY
                   </p>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Map — centered, narrower than full viewport, slightly shorter than before */}
-      <section className="w-full px-4 pb-10 pt-0 sm:px-6 lg:px-8">
-        <div className="container mx-auto max-w-5xl">
-          <div className="relative h-[300px] w-full overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-100 shadow-sm sm:h-[340px] lg:h-[380px]">
-            <div
-              className="absolute inset-0 z-0 bg-cover bg-center contrast-75 saturate-50"
-              style={{ backgroundImage: `url('${MAP_BG_SRC}')` }}
-              role="img"
-              aria-label="Map of San Francisco area"
-            />
-            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-              <div className="flex h-[75%] w-[75%] max-w-md animate-pulse items-center justify-center rounded-full border border-[#006a6e]/10 sm:h-[70%] sm:w-[70%]">
-                <div className="h-[58%] w-[58%] rounded-full border border-[#006a6e]/5" />
-              </div>
-              <div className="absolute flex max-w-[calc(100%-2rem)] items-center gap-2 rounded-lg border border-[#006a6e]/20 bg-white/90 px-3 py-2.5 shadow-xl backdrop-blur-md sm:gap-3 sm:p-4">
-                <span
-                  className="relative flex size-3 shrink-0"
-                  aria-hidden
-                >
-                  <span
-                    className="absolute inline-flex size-3 animate-ping rounded-full opacity-75"
-                    style={{ backgroundColor: secondaryGreen }}
-                  />
-                  <span
-                    className="relative inline-flex size-3 rounded-full"
-                    style={{ backgroundColor: secondaryGreen }}
-                  />
-                </span>
-                <p
-                  className="font-[family-name:var(--font-landing-headline)] text-sm font-bold sm:text-base"
-                  style={{ color: primary }}
-                >
-                  Headquarters Locked
-                </p>
               </div>
             </div>
           </div>

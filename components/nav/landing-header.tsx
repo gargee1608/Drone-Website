@@ -46,7 +46,7 @@ export function LandingHeader() {
         <div className="flex min-w-0 items-center gap-8 lg:gap-12">
           <Link
             href="/"
-            className="font-[family-name:var(--font-landing-display)] text-lg font-bold tracking-tighter text-[#008B8B] uppercase shrink-0"
+            className="font-[family-name:var(--font-landing-headline)] text-lg font-bold tracking-tighter text-[#008B8B] uppercase shrink-0"
           >
             Drone Hire
           </Link>
@@ -93,7 +93,7 @@ export function LandingHeader() {
               href="/pilot-registration"
               className={cn(
                 "hidden h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-5 text-xs font-bold tracking-wider text-[#008B8B] uppercase transition hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent sm:inline-flex",
-                "font-[family-name:var(--font-landing-display)]",
+                "font-[family-name:var(--font-landing-headline)]",
                 hideRegisterPilotCta && "sm:hidden"
               )}
             >

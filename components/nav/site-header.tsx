@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { ArrowRight, Bell, Menu, Settings, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, Bell, LogOut, Menu, Settings, User, X } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useHasRegisteredPilot } from "@/hooks/use-has-registered-pilot";
@@ -78,7 +78,10 @@ export function SiteHeader({
   showNotifications = false,
 }: SiteHeaderProps = {}) {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const hasRegisteredPilot = useHasRegisteredPilot();
   const {
     sidebarExpanded: userSidebarExpanded,
@@ -106,12 +109,39 @@ export function SiteHeader({
       ? "/settings?from=admin"
       : "/settings";
 
+  const profileHref = isUserDashboard
+    ? "/settings?from=user"
+    : "/dashboard/profile";
+
   const whiteHeaderChrome =
     isSettingsPage || isAdminDashboard || isUserDashboard;
 
   /** Hide Register a Pilot / Registered Pilot on admin & user dashboards only. */
   const showPilotRegistrationCtas =
     !isAdminDashboard && !isUserDashboard;
+
+  useEffect(() => {
+    setAccountMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const el = accountMenuRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAccountMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [accountMenuOpen]);
 
   const navLinkClass = (href: string, options?: { services?: boolean }) => {
     const active = options?.services
@@ -284,16 +314,62 @@ export function SiteHeader({
                 <Settings className="size-4" />
               </Link>
             ) : null}
-            <Link
-              href="/login"
-              aria-label="Login"
-              className={cn(
-                buttonVariants({ variant: "ghost" }),
-                "inline-flex shrink-0 items-center justify-center rounded-full p-1 text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <LoginProfileIcon className="size-10 sm:size-11" />
-            </Link>
+            {showDashboardSettings ? (
+              <div className="relative shrink-0" ref={accountMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setAccountMenuOpen((v) => !v)}
+                  aria-expanded={accountMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Account menu"
+                  className={cn(
+                    buttonVariants({ variant: "ghost" }),
+                    "inline-flex shrink-0 items-center justify-center rounded-full p-1 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-[#008B8B]/35"
+                  )}
+                >
+                  <LoginProfileIcon className="size-10 sm:size-11" />
+                </button>
+                {accountMenuOpen ? (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full z-[60] mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5"
+                  >
+                    <Link
+                      href={profileHref}
+                      role="menuitem"
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-[#191c1d] transition-colors hover:bg-slate-50"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <User className="size-4 shrink-0 text-slate-600" aria-hidden />
+                      Profile
+                    </Link>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-[#191c1d] transition-colors hover:bg-slate-50"
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        router.replace("/login");
+                      }}
+                    >
+                      <LogOut className="size-4 shrink-0 text-slate-600" aria-hidden />
+                      Logout
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                aria-label="Login"
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "inline-flex shrink-0 items-center justify-center rounded-full p-1 text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <LoginProfileIcon className="size-10 sm:size-11" />
+              </Link>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -401,14 +477,38 @@ export function SiteHeader({
               Settings
             </Link>
           ) : null}
-          <Link
-            href="/login"
-            aria-label="Login"
-            className="inline-flex w-fit items-center justify-center rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
-            onClick={() => setOpen(false)}
-          >
-            <LoginProfileIcon className="size-10 sm:size-11" />
-          </Link>
+          {showDashboardSettings ? (
+            <div className="flex flex-col gap-1 border-t border-border/60 pt-3">
+              <Link
+                href={profileHref}
+                className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-[#191c1d] transition-colors hover:bg-muted"
+                onClick={() => setOpen(false)}
+              >
+                <User className="size-4 shrink-0 text-slate-600" aria-hidden />
+                Profile
+              </Link>
+              <button
+                type="button"
+                className="inline-flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-medium text-[#191c1d] transition-colors hover:bg-muted"
+                onClick={() => {
+                  setOpen(false);
+                  router.replace("/login");
+                }}
+              >
+                <LogOut className="size-4 shrink-0 text-slate-600" aria-hidden />
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              aria-label="Login"
+              className="inline-flex w-fit items-center justify-center rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
+              onClick={() => setOpen(false)}
+            >
+              <LoginProfileIcon className="size-10 sm:size-11" />
+            </Link>
+          )}
         </nav>
         {showPilotRegistrationCtas && ctaHref ? (
           ctaHref === "/pilot-registration" ? (

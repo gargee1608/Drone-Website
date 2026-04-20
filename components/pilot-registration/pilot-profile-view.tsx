@@ -61,8 +61,8 @@ export function PilotProfileView({
       <div
         className={
           variant === "dashboard"
-            ? "flex min-h-[12rem] items-center justify-center text-xs text-muted-foreground"
-            : "flex min-h-dvh items-center justify-center bg-background text-xs text-muted-foreground"
+            ? "flex min-h-[12rem] items-center justify-center bg-white text-xs text-slate-600"
+            : "flex min-h-dvh items-center justify-center bg-white text-xs text-slate-600"
         }
       >
         Loading…
@@ -73,7 +73,7 @@ export function PilotProfileView({
   if (!data) {
     if (variant === "dashboard") {
       return (
-        <div className="relative pb-8 pt-1 text-foreground">
+        <div className="relative bg-white pb-8 pt-1 text-slate-900">
           <Link
             href="/dashboard"
             className="mb-6 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-900"
@@ -82,14 +82,14 @@ export function PilotProfileView({
             Back to dashboard
           </Link>
           <div className="mx-auto max-w-5xl">
-            <h1 className="text-xl font-bold text-[#191c1d]">Profile</h1>
+            <h1 className="text-xl font-bold text-slate-900">Profile</h1>
             <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-600">
               No pilot profile is saved in this browser yet. Complete pilot
               registration to see details here.
             </p>
             <Link
               href="/pilot-registration"
-              className="mt-5 inline-flex items-center justify-center rounded-full border-2 border-[#008B8B] bg-white px-5 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/5"
+              className="mt-5 inline-flex items-center justify-center rounded-full border-2 border-blue-600 bg-white px-5 py-2 text-sm font-bold text-blue-600 transition hover:bg-blue-50"
             >
               Register a pilot
             </Link>
@@ -98,7 +98,7 @@ export function PilotProfileView({
       );
     }
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-background text-xs text-muted-foreground">
+      <div className="flex min-h-dvh items-center justify-center bg-white text-xs text-slate-600">
         Loading…
       </div>
     );
@@ -121,8 +121,8 @@ export function PilotProfileView({
     <div
       className={
         variant === "dashboard"
-          ? "relative text-foreground"
-          : "relative min-h-dvh bg-background text-foreground"
+          ? "relative bg-white text-slate-900"
+          : "relative min-h-dvh bg-white text-slate-900"
       }
     >
       <Link href={backHref} className={backLinkClass}>
@@ -139,7 +139,7 @@ export function PilotProfileView({
       >
         <header className="flex flex-col items-center text-center">
           <div
-            className="flex size-20 items-center justify-center rounded-full bg-[#008B8B] text-2xl font-bold text-white shadow-md"
+            className="flex size-20 items-center justify-center rounded-full bg-blue-600 text-2xl font-bold text-white shadow-md"
             aria-hidden
           >
             {initial}
@@ -191,7 +191,7 @@ export function PilotProfileView({
                   {data.email?.trim() ? (
                     <a
                       href={`mailto:${data.email.trim()}`}
-                      className="text-[#008B8B] underline-offset-2 hover:underline"
+                      className="text-blue-600 underline-offset-2 hover:underline"
                     >
                       {data.email.trim()}
                     </a>
@@ -206,7 +206,7 @@ export function PilotProfileView({
                   {data.phone?.trim() ? (
                     <a
                       href={`tel:${data.phone.replace(/\s/g, "")}`}
-                      className="text-[#008B8B] underline-offset-2 hover:underline"
+                      className="text-blue-600 underline-offset-2 hover:underline"
                     >
                       {data.phone.trim()}
                     </a>
@@ -260,7 +260,7 @@ export function PilotProfileView({
                   data.skills.map((s) => (
                     <span
                       key={s}
-                      className="rounded-full bg-[#008B8B] px-2.5 py-1 text-[11px] font-semibold text-white"
+                      className="rounded-full bg-blue-500 px-2.5 py-1 text-[11px] font-semibold text-white"
                     >
                       {s}
                     </span>

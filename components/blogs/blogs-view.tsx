@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Calendar } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 
 import {
   FEATURED_SLUG,
@@ -44,7 +44,7 @@ export function BlogsView() {
     () => postsBySlug[FEATURED_SLUG]
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const sync = () => {
       setListPosts(getMergedGridPosts());
       setFeaturedPost(
@@ -53,7 +53,16 @@ export function BlogsView() {
     };
     sync();
     window.addEventListener(BLOG_ADMIN_UPDATED_EVENT, sync);
-    return () => window.removeEventListener(BLOG_ADMIN_UPDATED_EVENT, sync);
+    window.addEventListener("storage", sync);
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) sync();
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      window.removeEventListener(BLOG_ADMIN_UPDATED_EVENT, sync);
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("pageshow", onPageShow);
+    };
   }, []);
 
   const filtered = useMemo(() => {

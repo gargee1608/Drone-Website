@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Next/Lightning CSS cannot parse the output for this arbitrary variant (nested `[` in selectors). */
+@source not inline("[[details[open]_&]]:rotate-180");
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

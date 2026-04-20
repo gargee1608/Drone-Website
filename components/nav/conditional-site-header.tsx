@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 
 import { LandingHeader } from "@/components/landing/landing-header";
@@ -26,7 +27,11 @@ export function ConditionalSiteHeader() {
     pathname?.startsWith("/dashboard/") ||
     pathname?.startsWith("/user-dashboard");
   if (isLandingChrome) {
-    return <LandingHeader />;
+    return (
+      <Suspense fallback={null}>
+        <LandingHeader />
+      </Suspense>
+    );
   }
   return <SiteHeader />;
 }

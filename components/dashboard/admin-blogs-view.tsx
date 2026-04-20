@@ -1,6 +1,7 @@
 "use client";
 
-import { Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { postsBySlug, type BlogPost } from "@/components/blogs/blog-data";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import {
   BLOG_ADMIN_UPDATED_EVENT,
   createInternalId,
+  deleteBuiltinFromCatalog,
   loadBlogExtras,
   loadBlogOverrides,
   saveBlogExtras,
@@ -219,13 +221,6 @@ export function AdminBlogsView() {
     }
   };
 
-  const revertBuiltin = (slug: string) => {
-    const ov = loadBlogOverrides();
-    delete ov[slug];
-    saveBlogOverrides(ov);
-    refresh();
-  };
-
   const deleteExtra = (internalId: string) => {
     const next = loadBlogExtras().filter((r) => r.internalId !== internalId);
     saveBlogExtras(next);
@@ -233,22 +228,19 @@ export function AdminBlogsView() {
     if (editInternalId === internalId) closeEditor();
   };
 
-  const hasOverride = (slug: string) => Boolean(loadBlogOverrides()[slug]);
+  const deleteBuiltin = (slug: string) => {
+    if (editSlug === slug) closeEditor();
+    deleteBuiltinFromCatalog(slug);
+    refresh();
+  };
 
   return (
     <div className="min-w-0 text-[#191c1d]">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="max-w-2xl">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#008B8B]">
-            Command center
-          </p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Blogs
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            Edit built-in Flight Log posts or publish new articles. Stored in
-            this browser for demo; public pages pick up changes after save.
-          </p>
         </div>
         <Button
           type="button"
@@ -434,90 +426,107 @@ export function AdminBlogsView() {
           <p className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
             Loading…
           </p>
+        ) : rows.length === 0 ? (
+          <p className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
+            No posts yet. Use &quot;New blog&quot; to add one.
+          </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/90">
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:px-5">
-                    Title
-                  </th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:px-5">
-                    Slug
-                  </th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:px-5">
-                    Type
-                  </th>
-                  <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:px-5">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {rows.map((post) => {
-                  const isBuiltIn = builtinSlugs.has(post.slug);
-                  const extra = extras.find((e) => e.slug === post.slug);
-                  return (
-                    <tr key={post.slug} className="bg-white hover:bg-slate-50/80">
-                      <td className="max-w-[14rem] px-4 py-3 font-semibold text-[#191c1d] sm:px-5">
+          <ul className="grid list-none grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3 lg:gap-5">
+            {rows.map((post) => {
+              const isBuiltIn = builtinSlugs.has(post.slug);
+              const extra = extras.find((e) => e.slug === post.slug);
+              const typeLabel = extra
+                ? "Custom"
+                : isBuiltIn
+                  ? "Built-in"
+                  : "—";
+              const typeClass = extra
+                ? "border-[#008B8B]/25 bg-[#008B8B]/10 text-[#006d6d]"
+                : isBuiltIn
+                  ? "border-slate-200 bg-slate-100 text-slate-700"
+                  : "border-slate-200 bg-slate-50 text-slate-600";
+
+              return (
+                <li key={post.slug}>
+                  <article className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-[#008B8B]/35 hover:shadow-md">
+                    <div className="relative aspect-[16/10] w-full shrink-0 bg-slate-100">
+                      <Image
+                        src={post.image}
+                        alt={post.imageAlt || post.title}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
+                    </div>
+                    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            "rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                            typeClass
+                          )}
+                        >
+                          {typeLabel}
+                        </span>
+                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                          {post.category}
+                        </span>
+                      </div>
+                      <h3 className="line-clamp-2 text-base font-bold leading-snug text-[#191c1d]">
                         {post.title}
-                      </td>
-                      <td className="font-mono text-xs text-slate-600 sm:px-5">
+                      </h3>
+                      <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">
+                        {post.excerpt}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        <span className="font-medium text-slate-600">
+                          {post.date}
+                        </span>
+                        <span className="mx-1.5 text-slate-300" aria-hidden>
+                          ·
+                        </span>
+                        <span>{post.author}</span>
+                      </p>
+                      <p className="font-mono text-[10px] leading-tight text-slate-500 break-all">
                         {post.slug}
-                      </td>
-                      <td className="text-xs text-slate-600 sm:px-5">
-                        {extra
-                          ? "Custom"
-                          : isBuiltIn
-                            ? "Built-in"
-                            : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right sm:px-5">
-                        <div className="flex flex-wrap justify-end gap-2">
+                      </p>
+                      <div className="mt-auto flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(post)}
+                          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#008B8B]/10 px-3 py-2 text-xs font-semibold text-[#008B8B] transition hover:bg-[#008B8B]/18 min-[360px]:flex-none"
+                        >
+                          <Pencil className="size-3.5" aria-hidden />
+                          Edit
+                        </button>
+                        {extra ? (
                           <button
                             type="button"
-                            onClick={() => openEdit(post)}
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                            onClick={() => deleteExtra(extra.internalId)}
+                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50/80 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 min-[360px]:flex-none"
                           >
-                            <Pencil className="size-3.5" aria-hidden />
-                            Edit
+                            <Trash2 className="size-3.5" aria-hidden />
+                            Delete
                           </button>
-                          {isBuiltIn ? (
-                            <button
-                              type="button"
-                              disabled={!hasOverride(post.slug)}
-                              onClick={() => revertBuiltin(post.slug)}
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100",
-                                !hasOverride(post.slug) && "opacity-40"
-                              )}
-                              title={
-                                hasOverride(post.slug)
-                                  ? "Discard edits"
-                                  : "No overrides"
-                              }
-                            >
-                              <RotateCcw className="size-3.5" aria-hidden />
-                              Revert
-                            </button>
-                          ) : extra ? (
-                            <button
-                              type="button"
-                              onClick={() => deleteExtra(extra.internalId)}
-                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="size-3.5" aria-hidden />
-                              Delete
-                            </button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        ) : isBuiltIn ? (
+                          <button
+                            type="button"
+                            onClick={() => deleteBuiltin(post.slug)}
+                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50/80 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 min-[360px]:flex-none"
+                            aria-label={`Delete ${post.title}`}
+                          >
+                            <Trash2 className="size-3.5" aria-hidden />
+                            Delete
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
     </div>

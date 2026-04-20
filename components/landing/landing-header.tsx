@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
-import { Bell, Menu, Plane, Search, Settings, User, X } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Bell, LogOut, Menu, Plane, Search, Settings, User, X } from "lucide-react";
 
 import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav-context";
 import {
@@ -20,8 +20,11 @@ const landingOutlineButtonClassName =
 
 export function LandingHeader() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const isAdminDashboard =
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
@@ -78,6 +81,41 @@ export function LandingHeader() {
     : isAdminDashboard
       ? "/settings?from=admin"
       : "/settings";
+
+  const settingsFrom = searchParams.get("from");
+  const profileHref =
+    isAdminDashboard || settingsFrom === "admin"
+      ? "/dashboard/profile"
+      : "/settings?from=user";
+
+  const showAccountMenu =
+    isAdminDashboard ||
+    isUserDashboard ||
+    (isSettingsPage &&
+      (settingsFrom === "user" || settingsFrom === "admin"));
+
+  useEffect(() => {
+    setAccountMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const el = accountMenuRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAccountMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [accountMenuOpen]);
 
   const linkClass = (href: string) =>
     cn(
@@ -247,7 +285,51 @@ export function LandingHeader() {
                 </Link>
               </>
             ) : null}
-            {!hideLoginIcon && !isHomePage ? (
+            {showAccountMenu ? (
+              <div className="relative shrink-0" ref={accountMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setAccountMenuOpen((v) => !v)}
+                  aria-expanded={accountMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Account menu"
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "icon" }),
+                    "shrink-0 text-slate-500 hover:text-[#008B8B] focus-visible:ring-2 focus-visible:ring-[#008B8B]/35"
+                  )}
+                >
+                  <User className="size-5" aria-hidden />
+                </button>
+                {accountMenuOpen ? (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full z-[60] mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5"
+                  >
+                    <Link
+                      href={profileHref}
+                      role="menuitem"
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-[#191c1d] transition-colors hover:bg-slate-50"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <User className="size-4 shrink-0 text-slate-600" aria-hidden />
+                      Profile
+                    </Link>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-[#191c1d] transition-colors hover:bg-slate-50"
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        router.replace("/login");
+                      }}
+                    >
+                      <LogOut className="size-4 shrink-0 text-slate-600" aria-hidden />
+                      Logout
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : !hideLoginIcon && !isHomePage ? (
               <Link
                 href="/login"
                 className={cn(
@@ -338,22 +420,56 @@ export function LandingHeader() {
             >
               Contact Us
             </Link>
+            {showAccountMenu && !isAdminDashboard ? (
+              <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-3">
+                <Link
+                  href={profileHref}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => setOpen(false)}
+                >
+                  Profile
+                </Link>
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => {
+                    setOpen(false);
+                    router.replace("/login");
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                onClick={() => setOpen(false)}
+              >
+                Login
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
             <Link
-              href="/login"
+              href={profileHref}
               className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               onClick={() => setOpen(false)}
             >
-              Login
+              Profile
             </Link>
+            <button
+              type="button"
+              className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+              onClick={() => {
+                setOpen(false);
+                router.replace("/login");
+              }}
+            >
+              Logout
+            </button>
           </div>
-        ) : (
-          <Link
-            href="/login"
-            className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            onClick={() => setOpen(false)}
-          >
-            Login
-          </Link>
         )}
         {isHomePage ? (
           <button

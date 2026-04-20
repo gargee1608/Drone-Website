@@ -148,9 +148,10 @@ export function ServicesView({
                         className="relative mx-auto block aspect-[3/4] w-[80%] max-w-[12rem] overflow-hidden rounded-xl border border-slate-200 bg-slate-100 sm:w-[78%] sm:max-w-[13rem]"
                       >
                         <Image
-                          src="/drone-hero.png"
-                          alt={item.title}
+                          src={item.image}
+                          alt={item.imageAlt}
                           fill
+                          unoptimized
                           className="object-cover transition duration-500 group-hover:scale-105"
                           sizes="(max-width: 640px) 40vw, (max-width: 1280px) 20vw, 13rem"
                         />
