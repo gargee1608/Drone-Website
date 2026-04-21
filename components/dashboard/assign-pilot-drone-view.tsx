@@ -1,12 +1,18 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import { Inter, Manrope } from "next/font/google";
 import {
   CheckCircle2,
-  Drone,
   Eye,
   MapPin,
+  Navigation,
+  Package,
+  Scale,
   User,
+  UserRound,
+  Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -17,7 +23,6 @@ import {
   saveCompletedAssignments,
   type CompletedAssignment,
 } from "@/lib/completed-assignments";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
   assignQueueValidRefsForPrune,
   DEMO_ASSIGN_BRIDGE_STORAGE_KEY,
@@ -25,86 +30,153 @@ import {
   mergeAssignPilotDisplayQueue,
 } from "@/lib/assign-demo-bridge";
 import {
+  appendAssignPilotDoneRef,
+  loadAssignPilotDoneRefs,
+  pruneAssignPilotDoneRefs,
+} from "@/lib/assign-pilot-done-refs";
+import {
   USER_REQUESTS_STORAGE_KEY,
   USER_REQUESTS_UPDATED_EVENT,
   userRequestQueueDisplayId,
   type AssignPilotRequestRow,
   type UserRequestAdminRow,
 } from "@/lib/user-requests";
-import {
-  appendAssignPilotDoneRef,
-  loadAssignPilotDoneRefs,
-  pruneAssignPilotDoneRefs,
-} from "@/lib/assign-pilot-done-refs";
 import { cn } from "@/lib/utils";
 
-const pilots = [
-  {
-    id: "sarah",
-    name: "Capt. Sarah Chen",
-    level: 5,
-    tags: ["Certified", "Available"] as const,
-    hours: "2.4k Flight Hours",
-    pilotId: "PLT-4401",
-    sector: "Bay Area North",
-    clearance: "Class A · Night OK",
-  },
-  {
-    id: "marcus",
-    name: "Marcus Thorne",
-    level: 4,
-    tags: ["Tactical", "Available"] as const,
-    hours: "1.8k Flight Hours",
-    pilotId: "PLT-8821",
-    sector: "Stratosphere-1 Hub",
-    clearance: "Class B · Cargo",
-  },
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-assign-headline",
+  weight: ["400", "700", "800"],
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-assign-body",
+  weight: ["300", "400", "500", "600"],
+});
+
+type PilotCard = {
+  id: string;
+  name: string;
+  level: number;
+  tags: readonly string[];
+  hours: string;
+  hoursShort: string;
+  yearsExp: number;
+  pilotId: string;
+  sector: string;
+  clearance: string;
+  certBadge: string;
+};
+
+type DroneCard = {
+  id: string;
+  model: string;
+  sn: string;
+  battery: number;
+  cargo: string;
+  cargoShort: string;
+  maxRange: string;
+  rangeShort: string;
+  estFlight: string;
+  lastInspection: string;
+  firmware: string;
+  subtitle: string;
+  imageUrl: string;
+  matchPercent: number;
+  status?: "charging" | "ready";
+};
+
+const PILOTS: readonly PilotCard[] = [
   {
     id: "elena",
-    name: "Elena Vance",
+    name: "Capt. Elena Vance",
     level: 5,
-    tags: ["Medical", "Available"] as const,
+    tags: ["Medical", "Available"],
     hours: "1,240 Flight Hours",
+    hoursShort: "1,240 hrs",
+    yearsExp: 8,
     pilotId: "PLT-1192",
     sector: "Medical Corridor",
     clearance: "Class A · MEDEVAC",
+    certBadge: "L5 Heavy Duty",
+  },
+  {
+    id: "marcus",
+    name: "Lt. Marcus Thorne",
+    level: 4,
+    tags: ["Tactical", "Available"],
+    hours: "1.8k Flight Hours",
+    hoursShort: "1.8k hrs",
+    yearsExp: 5,
+    pilotId: "PLT-8821",
+    sector: "Stratosphere-1 Hub",
+    clearance: "Class B · Cargo",
+    certBadge: "L4 Standard",
+  },
+  {
+    id: "sarah",
+    name: "Cmdr. Sarah Chen",
+    level: 5,
+    tags: ["Certified", "Available"],
+    hours: "2.4k Flight Hours",
+    hoursShort: "2,100 hrs",
+    yearsExp: 12,
+    pilotId: "PLT-4401",
+    sector: "Bay Area North",
+    clearance: "Class A · Night OK",
+    certBadge: "L5 Heavy Duty",
   },
   {
     id: "james",
     name: "James Okonkwo",
     level: 3,
-    tags: ["Regional", "Available"] as const,
+    tags: ["Regional", "Available"],
     hours: "980 Flight Hours",
+    hoursShort: "980 hrs",
+    yearsExp: 4,
     pilotId: "PLT-3308",
     sector: "Pacific Rim Route",
     clearance: "Class C · Regional",
+    certBadge: "L3 Regional",
   },
 ] as const;
 
-const drones = [
+const DRONES: readonly DroneCard[] = [
   {
     id: "skyfreight",
     model: "SkyFreight M-1",
     sn: "4409-TX",
-    battery: 85,
+    battery: 94,
     cargo: "15kg",
-    icon: "plane" as const,
+    cargoShort: "15kg Cap.",
     maxRange: "118 km",
+    rangeShort: "118km Range",
     estFlight: "38 min",
     lastInspection: "Mar 28, 2026",
     firmware: "FW 4.1.0",
+    subtitle: "Long-Range Specialist",
+    imageUrl:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuBUwp96u9ZV1ADoQbYT0czhoCurAizLfWAV5eEuSe-D6hxClmXwSzGbSo5Q8wGf0joYL2By0zmP0EnPjDDQsYLDBmD9EddwiCDKJkFOfyHGmDUR9s1kc0TnDnsz3kK81Bz0AJVi_qY6e9cE3yPcJDKoA1U0C0BZWWFSwsF9hRv2SBqWS6ix3iOCocopPC6gB40scij5nAguHYLQPA2jOC5Xf47fyNcn6gdO3zGZRqx5KpkS6GXvQJqSoBpzgesamI0Le4ZXnSH-MUUB",
+    matchPercent: 94,
+    status: "ready",
   },
   {
     id: "atlas",
     model: "Atlas Heavy-Lift",
     sn: "8821-HL",
-    battery: 92,
+    battery: 45,
     cargo: "50kg",
-    icon: "heavy" as const,
+    cargoShort: "50kg Cap.",
     maxRange: "95 km",
+    rangeShort: "95km Range",
     estFlight: "52 min",
     lastInspection: "Apr 1, 2026",
     firmware: "FW 3.9.2",
+    subtitle: "Heavy Lift Platform",
+    imageUrl: "/drones/atlas-heavy-lift.png",
+    matchPercent: 45,
+    status: "charging",
   },
   {
     id: "aeroscout",
@@ -112,11 +184,17 @@ const drones = [
     sn: "2214-AS",
     battery: 78,
     cargo: "8kg",
-    icon: "plane" as const,
+    cargoShort: "8kg Cap.",
     maxRange: "64 km",
+    rangeShort: "64km Range",
     estFlight: "28 min",
     lastInspection: "Mar 15, 2026",
     firmware: "FW 4.0.8",
+    subtitle: "Survey & inspection",
+    imageUrl:
+      "https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=1200&q=80",
+    matchPercent: 72,
+    status: "ready",
   },
   {
     id: "cargoline",
@@ -124,79 +202,51 @@ const drones = [
     sn: "9932-CX",
     battery: 88,
     cargo: "35kg",
-    icon: "heavy" as const,
+    cargoShort: "35kg Cap.",
     maxRange: "102 km",
+    rangeShort: "102km Range",
     estFlight: "45 min",
     lastInspection: "Mar 22, 2026",
     firmware: "FW 3.8.2",
+    subtitle: "Mid-weight logistics",
+    imageUrl:
+      "https://images.unsplash.com/photo-1579829366248-204fe8413f31?auto=format&fit=crop&w=1200&q=80",
+    matchPercent: 81,
+    status: "ready",
   },
 ] as const;
 
-const optionScrollClass =
-  "max-h-[min(32rem,58svh)] min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-2 [scrollbar-color:rgb(203_213_225)_rgb(241_245_249)] [scrollbar-gutter:stable] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-slate-200/60 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-400/80 hover:[&::-webkit-scrollbar-thumb]:bg-slate-500";
+function parseKgFromAssignRow(req: AssignPilotRequestRow): string {
+  const m = `${req.sectorLine} ${req.customer} ${req.dropoff}`.match(
+    /([\d.]+)\s*kg\b/i
+  );
+  return m ? `${m[1]} kg` : "—";
+}
 
-const requestDetailsHeadingClass =
-  "text-[10px] font-bold uppercase tracking-wider text-muted-foreground sm:text-xs";
+function parseKmHint(req: AssignPilotRequestRow): string {
+  const m = req.sectorLine.match(/([\d.]+)\s*km\b/i);
+  if (m) return `${m[1]} km`;
+  const medical = /medical|supply|urgent/i.test(req.customer + req.service);
+  return medical ? "65 km" : "48 km";
+}
 
-/** Main modal title — above subsection headings. */
-const assignedDetailsModalTitleClass =
-  "text-sm font-bold uppercase tracking-wider text-muted-foreground sm:text-base";
+function urgencyLabel(req: AssignPilotRequestRow): string {
+  const t = req.sectorLine.toLowerCase();
+  if (t.includes("urgent")) return "Express (High)";
+  if (t.includes("standard")) return "Standard";
+  return "Routine";
+}
 
-/** Request Details / Pilot & Drone Details — slightly larger than row labels. */
-const assignedDetailsGroupHeadingClass =
-  "text-xs font-bold uppercase tracking-wider text-muted-foreground sm:text-sm";
-
-/** Stable `id` for Request Details cards (for deep-link scroll from User Request accept). */
 function assignRequestDetailDomId(requestRef: string): string {
   return `assign-req-${requestRef.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 }
 
-function DetailRow({
-  label,
-  value,
-  variant = "default",
-}: {
-  label: string;
-  value: string;
-  variant?: "default" | "lg" | "lgRequest";
-}) {
-  const valueClass =
-    variant === "lgRequest"
-      ? cn(
-          "min-w-0 text-right font-bold tracking-wider text-muted-foreground",
-          "text-[10px] sm:text-xs"
-        )
-      : "min-w-0 text-right font-medium text-muted-foreground";
-
-  return (
-    <div
-      className={cn(
-        "flex items-start justify-between gap-3 leading-snug",
-        variant === "lg" || variant === "lgRequest"
-          ? "text-xs sm:text-sm"
-          : "text-[10px] sm:text-[11px]"
-      )}
-    >
-      <span
-        className={cn(
-          "shrink-0",
-          variant === "lgRequest"
-            ? requestDetailsHeadingClass
-            : variant === "lg"
-              ? "font-medium text-muted-foreground"
-              : "font-medium text-muted-foreground/70"
-        )}
-      >
-        {label}
-      </span>
-      <span className={valueClass}>{value}</span>
-    </div>
-  );
-}
+const glassCard =
+  "bg-white/70 backdrop-blur-xl dark:bg-card/80 border border-white/50 shadow-[0px_12px_32px_rgba(25,28,29,0.06)]";
 
 export function AssignPilotDroneView() {
-  const [selectedPilotId, setSelectedPilotId] = useState<string>("marcus");
-  const [selectedDroneId, setSelectedDroneId] = useState<string>("atlas");
+  const [selectedPilotId, setSelectedPilotId] = useState<string>("elena");
+  const [selectedDroneId, setSelectedDroneId] = useState<string>("skyfreight");
   const [assignQueue, setAssignQueue] = useState<AssignPilotRequestRow[]>([]);
   const [completedAssignments, setCompletedAssignments] = useState<
     CompletedAssignment[]
@@ -211,7 +261,6 @@ export function AssignPilotDroneView() {
     setAssignQueue(mergeAssignPilotDisplayQueue());
   }, []);
 
-  /** Latest completion card + prune; `doneRefs` tracks every assigned request ID for the list. */
   const syncCompletedAssignments = useCallback(() => {
     const ids = assignQueueValidRefsForPrune();
     pruneAssignPilotDoneRefs(ids);
@@ -264,7 +313,6 @@ export function AssignPilotDroneView() {
     };
   }, [syncAssignQueue, syncCompletedAssignments]);
 
-  /** Scroll to the request opened via `/dashboard/assign?focus=…` (e.g. after User Request accept). */
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -294,122 +342,45 @@ export function AssignPilotDroneView() {
     [assignQueue, completedRequestRefs]
   );
 
-  /** First mission not yet marked assigned in local tracking (FIFO). */
   const nextPendingRequest = pendingRequests[0] ?? null;
-  /**
-   * Pilot/drone assignment target: next pending, or the head of the queue so
-   * Assign Mission stays usable even if done-refs were over-eager (e.g. stale storage).
-   */
   const currentRequest =
     nextPendingRequest ?? (assignQueue.length > 0 ? assignQueue[0]! : null);
   const noUserRequests = assignQueue.length === 0;
-  /** True when every queue item is already marked assigned (for the status chip only). */
   const queueFullyAssigned =
     assignQueue.length > 0 && pendingRequests.length === 0;
 
   const selectedPilot = useMemo(
-    () => pilots.find((p) => p.id === selectedPilotId) ?? pilots[0],
+    () => PILOTS.find((p) => p.id === selectedPilotId) ?? PILOTS[0],
     [selectedPilotId]
   );
   const selectedDrone = useMemo(
-    () => drones.find((d) => d.id === selectedDroneId) ?? drones[0],
+    () => DRONES.find((d) => d.id === selectedDroneId) ?? DRONES[0],
     [selectedDroneId]
   );
+
   const historyDetail =
     historyDetailIndex !== null
       ? completedAssignments[historyDetailIndex]
       : null;
 
-  /** Only missions not yet marked assigned — hide e.g. #RQ-4029 after assignment. */
   const pendingForRequestDetails = useMemo(
     () =>
       assignQueue.filter((r) => !completedRequestRefs.has(r.requestRef)),
     [assignQueue, completedRequestRefs]
   );
 
-  const requestDetailsRows = pendingForRequestDetails;
+  const missionTitle = currentRequest?.customer ?? "No active mission";
+  const missionPayload = currentRequest
+    ? parseKgFromAssignRow(currentRequest)
+    : "—";
+  const missionRange = currentRequest
+    ? parseKmHint(currentRequest)
+    : "—";
+  const missionUrgency = currentRequest
+    ? urgencyLabel(currentRequest)
+    : "—";
+  const missionDropoff = currentRequest?.dropoff ?? "—";
 
-  const renderRequestCard = useCallback(
-    (req: AssignPilotRequestRow) => {
-      const isNext =
-        nextPendingRequest !== null && req.id === nextPendingRequest.id;
-      const isAssigned = completedRequestRefs.has(req.requestRef);
-      const requestIdLabel = req.requestRef.startsWith("demo-")
-        ? tableRequestId({
-            key: req.requestRef,
-            title: req.customer,
-            badge: "NORMAL",
-            badgeClass: "",
-            barColor: "",
-            desc: "",
-          } as UserRequestAdminRow)
-        : userRequestQueueDisplayId(req.requestRef);
-      return (
-        <li
-          id={assignRequestDetailDomId(req.requestRef)}
-          key={req.id}
-          className={cn(
-            "rounded-xl border bg-card/90 p-4 shadow-sm sm:p-5",
-            isNext && "border-[#008B8B] ring-2 ring-[#008B8B]/15",
-            !isNext && "border-border/90",
-            isAssigned && !isNext && "opacity-[0.92]"
-          )}
-        >
-          {!isAssigned && isNext ? (
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-[#008B8B] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                Next to assign
-              </span>
-            </div>
-          ) : null}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
-            <div className="rounded-xl bg-muted/50 px-4 py-3 lg:border-r lg:border-border lg:pr-6">
-              <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                Request ID
-              </span>
-              <p className="mt-1 text-sm font-bold tabular-nums text-foreground">
-                {requestIdLabel}
-              </p>
-            </div>
-            <div className="rounded-xl bg-muted/50 px-4 py-3 lg:border-r lg:border-border lg:pr-6">
-              <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                Title
-              </span>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {req.customer}
-              </p>
-            </div>
-            <div className="rounded-xl bg-muted/50 px-4 py-3 lg:border-r lg:border-border lg:pr-6">
-              <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                Service
-              </span>
-              <p className="mt-1 text-sm font-semibold text-[#006195]">
-                {req.service}
-              </p>
-            </div>
-            <div className="flex gap-3 rounded-xl bg-muted/50 px-4 py-3 sm:col-span-2 lg:col-span-1">
-              <MapPin
-                className="mt-0.5 size-5 shrink-0 text-[#008B8B]"
-                aria-hidden
-              />
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-muted-foreground/70">
-                  Drop-off Location
-                </p>
-                <p className="text-sm font-bold text-foreground">
-                  {req.dropoff}
-                </p>
-                <p className="text-xs text-muted-foreground">{req.sectorLine}</p>
-              </div>
-            </div>
-          </div>
-        </li>
-      );
-    },
-    [nextPendingRequest, completedRequestRefs]
-  );
-
-  /** At most one row; storage keeps only the latest User Request–backed completion. */
   const latestCompleted =
     completedAssignments[0] !== undefined ? completedAssignments[0] : null;
   const latestCompletedIndex = latestCompleted ? 0 : -1;
@@ -446,359 +417,473 @@ export function AssignPilotDroneView() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [assignedDialogOpen, historyDetailIndex]);
 
+  const fontWrap = cn(
+    manrope.variable,
+    inter.variable,
+    "font-[family-name:var(--font-assign-body)] text-[#191c1d] antialiased"
+  );
+
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-8 pb-4">
-      <section className="flex flex-col gap-4 border-b border-border/80 pb-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <h1 className={ADMIN_PAGE_TITLE_CLASS}>
-              Assign Pilot &amp; Drone
-            </h1>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-3">
+    <div
+      className={cn(
+        fontWrap,
+        "min-w-0 bg-[#f8f9fa] pb-12 pt-4 text-[#191c1d] dark:bg-background dark:text-foreground sm:pt-6"
+      )}
+    >
+      <div className="mx-auto max-w-7xl space-y-10 px-4 sm:px-6">
+        {!queueFullyAssigned && !noUserRequests ? (
+          <div className="flex w-full flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               disabled={noUserRequests}
-              className="inline-flex items-center justify-center rounded-full border-2 border-[#008B8B] bg-card px-8 py-2.5 text-sm font-bold text-[#008B8B] shadow-sm transition hover:bg-[#008B8B]/5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full border-2 border-[#008B8B] bg-white px-5 py-2 text-xs font-bold text-[#008B8B] shadow-sm transition hover:bg-[#008B8B]/5 disabled:opacity-50 dark:bg-card"
               onClick={() => {
                 if (!noUserRequests) setAssignedDialogOpen(true);
               }}
             >
-              Assign Mission
+              Assign mission
             </button>
+            <span className="inline-flex items-center justify-center rounded-full border-2 border-[#008B8B] bg-white px-5 py-2 text-xs font-bold uppercase tracking-wide text-[#008B8B] shadow-sm dark:border-primary dark:bg-card dark:text-primary">
+              {pendingRequests.length} pending / {assignQueue.length}
+            </span>
           </div>
-        </div>
-      </section>
+        ) : null}
 
-      <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
-        <div
-          className="absolute left-0 top-0 h-full w-1 bg-[#008B8B]"
-          aria-hidden
-        />
-        <div className="p-6 pl-7 sm:p-8">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-foreground">
-                Request Details
-              </h2>
-            </div>
-            {noUserRequests ? (
-              <span className="rounded-full bg-muted px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                No requests
+        {/* Queue strip — compact */}
+        {pendingForRequestDetails.length > 1 ? (
+          <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white/60 p-3 text-xs dark:border-border dark:bg-card/60">
+            <span className="font-bold text-muted-foreground">Queue:</span>
+            {pendingForRequestDetails.map((r) => (
+              <span
+                key={r.id}
+                className={cn(
+                  "rounded-full px-2.5 py-1 font-mono font-semibold",
+                  currentRequest?.id === r.id
+                    ? "bg-[#008B8B]/15 text-[#006767] dark:text-primary"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                {r.requestRef.startsWith("demo-")
+                  ? tableRequestId({
+                      key: r.requestRef,
+                      title: r.customer,
+                      badge: "NORMAL",
+                      badgeClass: "",
+                      barColor: "",
+                      desc: "",
+                    } as UserRequestAdminRow)
+                  : userRequestQueueDisplayId(r.requestRef)}
               </span>
-            ) : queueFullyAssigned ? null : (
-              <span className="rounded-full bg-[#008B8B]/14 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#0a3030] dark:text-primary">
-                {pendingRequests.length} pending / {assignQueue.length}
-              </span>
-            )}
+            ))}
           </div>
+        ) : null}
 
-          <ul className="space-y-4" aria-label="User mission requests">
-            {requestDetailsRows.map((req) => renderRequestCard(req))}
-          </ul>
-          {assignQueue.length > 0 && requestDetailsRows.length === 0 ? (
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              All missions in the queue are assigned. Accept another request
-              from{" "}
-              <Link
-                href="/dashboard/user-requests"
-                className="font-semibold text-[#008B8B] underline-offset-2 hover:underline"
-              >
-                User Request
-              </Link>{" "}
-              to add one here.
-            </p>
-          ) : null}
-          {assignQueue.length === 0 ? (
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              No accepted requests yet. Review submissions on the{" "}
-              <Link
-                href="/dashboard/user-requests"
-                className="font-semibold text-[#008B8B] underline-offset-2 hover:underline"
-              >
-                User Request
-              </Link>{" "}
-              page and accept one to assign it here.
-            </p>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
-        <h2 className="mb-4 text-lg font-bold text-foreground">Mission</h2>
-        {latestCompleted ? (
-          <ul className="space-y-3">
-            <li
-              className="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between"
+        {assignQueue.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-slate-300 bg-white/60 p-6 text-sm text-muted-foreground dark:border-border dark:bg-card/50">
+            No accepted requests yet. Open{" "}
+            <Link
+              href="/dashboard/user-requests"
+              className="font-semibold text-[#008B8B] underline-offset-2 hover:underline"
             >
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {userRequestQueueDisplayId(latestCompleted.requestRef)}
+              User Request
+            </Link>{" "}
+            and accept a mission to assign resources here.
+          </p>
+        ) : queueFullyAssigned ? (
+          <div className="space-y-6">
+            <p className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+              All queued missions are marked assigned. Accept another request from{" "}
+              <Link
+                href="/dashboard/user-requests"
+                className="font-semibold text-[#008B8B] underline-offset-2 hover:underline dark:text-teal-300"
+              >
+                User Request
+              </Link>{" "}
+              to add a new one.
+            </p>
+            {latestCompleted ? (
+              <div className="rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-border dark:bg-card/80">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Last Assigned
                 </p>
-                <p className="mt-1 text-sm font-semibold text-foreground">
+                <p className="mt-1 font-semibold text-foreground">
+                  {userRequestQueueDisplayId(latestCompleted.requestRef)} ·{" "}
                   {latestCompleted.customer}
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-                  <span className="font-medium text-foreground">
-                    {latestCompleted.pilotName}
-                  </span>
-                  <span className="text-muted-foreground/70"> &amp; </span>
-                  <span className="font-medium text-foreground">
-                    {latestCompleted.droneModel}
-                  </span>
+                <p className="text-sm text-muted-foreground">
+                  {latestCompleted.pilotName} · {latestCompleted.droneModel}
+                </p>
+                <button
+                  type="button"
+                  className="mt-3 inline-flex items-center gap-2 rounded-full border-2 border-[#008B8B] px-4 py-2 text-sm font-bold text-[#008B8B]"
+                  onClick={() => setHistoryDetailIndex(latestCompletedIndex)}
+                >
+                  <Eye className="size-4" aria-hidden />
+                  View details
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <>
+        {/* Active mission hero — id supports ?focus= scroll from User Request */}
+        <section
+          id={
+            currentRequest
+              ? assignRequestDetailDomId(currentRequest.requestRef)
+              : undefined
+          }
+          className={cn("relative overflow-hidden rounded-xl p-6 sm:p-8", glassCard)}
+        >
+          <div
+            className="pointer-events-none absolute -right-32 -top-32 size-64 rounded-full bg-[#008B8B]/5"
+            aria-hidden
+          />
+          <div className="relative z-10">
+            <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+              <div className="min-w-0">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-[#006767] dark:text-primary">
+                  Active mission request
+                </span>
+                <h1
+                  className="mb-4 font-[family-name:var(--font-assign-headline)] text-3xl font-extrabold tracking-tight text-[#191c1d] sm:text-4xl dark:text-foreground"
+                  style={{ fontFamily: "var(--font-assign-headline), sans-serif" }}
+                >
+                  {missionTitle}
+                </h1>
+                <div className="flex flex-wrap gap-6 sm:gap-8">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#008B8B]/15 text-[#006767] dark:text-primary">
+                      <Scale className="size-5" aria-hidden />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-600 dark:text-muted-foreground">
+                        Payload weight
+                      </p>
+                      <p className="font-[family-name:var(--font-assign-headline)] text-lg font-bold dark:text-foreground">
+                        {missionPayload}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#008B8B]/15 text-[#006767] dark:text-primary">
+                      <Navigation className="size-5" aria-hidden />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-600 dark:text-muted-foreground">
+                        Target range
+                      </p>
+                      <p className="font-[family-name:var(--font-assign-headline)] text-lg font-bold dark:text-foreground">
+                        {missionRange}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-orange-500/15 text-orange-800 dark:text-orange-200">
+                      <Zap className="size-5" aria-hidden />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-600 dark:text-muted-foreground">
+                        Urgency level
+                      </p>
+                      <p className="font-[family-name:var(--font-assign-headline)] text-lg font-bold text-orange-900 dark:text-orange-100">
+                        {missionUrgency}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col items-start gap-2 md:items-end">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-muted-foreground">
+                  Destination
+                </span>
+                <div className="flex items-center gap-2 text-[#006767] dark:text-primary">
+                  <MapPin className="size-5 shrink-0" aria-hidden />
+                  <span className="font-semibold">{missionDropoff}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Compatible drones + Available pilots — equal columns, sticky pilots on wide viewports */}
+        <div className="grid grid-cols-1 items-start gap-x-0 gap-y-10 border-t border-slate-200/80 pt-10 lg:grid-cols-2 lg:gap-x-10 lg:border-t-0 lg:pt-0 xl:gap-x-12 dark:border-border">
+          <section
+            aria-labelledby="compatible-drones-heading"
+            className="min-w-0"
+          >
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+              <h2
+                id="compatible-drones-heading"
+                className="font-[family-name:var(--font-assign-headline)] text-xl font-bold tracking-tight dark:text-foreground"
+                style={{ fontFamily: "var(--font-assign-headline), sans-serif" }}
+              >
+                Compatible drones
+              </h2>
+              <span className="shrink-0 rounded-full bg-[#e1e3e4] px-3 py-1 text-xs font-medium text-slate-600 dark:bg-muted dark:text-muted-foreground">
+                {DRONES.length} found
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2">
+              {DRONES.map((drone) => {
+                const selected = selectedDroneId === drone.id;
+                const best = drone.matchPercent >= 90;
+                return (
+                  <button
+                    key={drone.id}
+                    type="button"
+                    onClick={() => setSelectedDroneId(drone.id)}
+                    className={cn(
+                      "group relative overflow-hidden rounded-xl text-left shadow-sm transition-all hover:shadow-md",
+                      selected
+                        ? "border-2 border-[#008B8B] ring-2 ring-[#008B8B]/15"
+                        : "border border-slate-200/80 dark:border-border",
+                      "bg-white dark:bg-card"
+                    )}
+                  >
+                    {best ? (
+                      <div className="absolute left-3 top-3 z-10">
+                        <span className="rounded bg-[#008B8B] px-2 py-0.5 text-[10px] font-bold uppercase tracking-tighter text-white">
+                          Best match
+                        </span>
+                      </div>
+                    ) : null}
+                    <div className="relative h-40 overflow-hidden bg-[#e7e8e9] dark:bg-muted">
+                      <Image
+                        src={drone.imageUrl}
+                        alt=""
+                        fill
+                        className={cn(
+                          "object-cover transition-transform duration-500 group-hover:scale-105",
+                          drone.status === "charging" && "opacity-80"
+                        )}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 360px"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3
+                        className="mb-1 font-[family-name:var(--font-assign-headline)] text-lg font-bold dark:text-foreground"
+                        style={{
+                          fontFamily: "var(--font-assign-headline), sans-serif",
+                        }}
+                      >
+                        {drone.model}
+                      </h3>
+                      <p className="mb-4 text-xs font-medium text-slate-600 dark:text-muted-foreground">
+                        {drone.subtitle}
+                      </p>
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-3">
+                        <div className="flex items-center gap-2">
+                          <Package
+                            className={cn(
+                              "size-[18px] shrink-0",
+                              best ? "text-[#006767]" : "text-slate-400"
+                            )}
+                          />
+                          <span className="text-xs font-semibold">
+                            {drone.cargoShort}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Navigation
+                            className={cn(
+                              "size-[18px] shrink-0",
+                              best ? "text-[#006767]" : "text-slate-400"
+                            )}
+                          />
+                          <span className="text-xs font-semibold">
+                            {drone.rangeShort}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between border-t border-slate-200/80 pt-4 dark:border-border">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-24 overflow-hidden rounded-full bg-[#e7e8e9] dark:bg-muted">
+                            <div
+                              className={cn(
+                                "h-full rounded-full",
+                                drone.status === "charging"
+                                  ? "bg-orange-600"
+                                  : "bg-[#008B8B]"
+                              )}
+                              style={{ width: `${drone.matchPercent}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-bold tabular-nums">
+                            {drone.matchPercent}%
+                          </span>
+                        </div>
+                        {drone.status === "charging" ? (
+                          <span className="text-[10px] font-bold uppercase text-orange-800 dark:text-orange-200">
+                            Charging
+                          </span>
+                        ) : (
+                          <CheckCircle2
+                            className="size-5 shrink-0 text-[#008B8B]"
+                            aria-hidden
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section
+            aria-labelledby="available-pilots-heading"
+            className="min-w-0 border-t border-slate-200/80 pt-10 lg:sticky lg:top-24 lg:z-0 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0 xl:pl-12 dark:border-border"
+          >
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+              <h2
+                id="available-pilots-heading"
+                className="font-[family-name:var(--font-assign-headline)] text-xl font-bold tracking-tight dark:text-foreground"
+                style={{ fontFamily: "var(--font-assign-headline), sans-serif" }}
+              >
+                Available pilots
+              </h2>
+              <span className="shrink-0 rounded-full bg-[#e1e3e4] px-3 py-1 text-xs font-medium text-slate-600 dark:bg-muted dark:text-muted-foreground">
+                Top candidates
+              </span>
+            </div>
+            <div className="flex flex-col gap-4">
+              {PILOTS.map((pilot) => {
+                const selected = selectedPilotId === pilot.id;
+                const optimal = pilot.id === "elena";
+                return (
+                  <button
+                    key={pilot.id}
+                    type="button"
+                    onClick={() => setSelectedPilotId(pilot.id)}
+                    className={cn(
+                      "relative flex w-full items-center gap-4 rounded-xl p-4 text-left shadow-sm transition-colors",
+                      selected
+                        ? cn(glassCard, "border-2 border-[#008B8B]")
+                        : "border border-slate-200/80 bg-white hover:border-[#008B8B]/50 hover:shadow-md dark:border-border dark:bg-card dark:hover:border-primary/50"
+                    )}
+                  >
+                    {optimal && selected ? (
+                      <span className="absolute -right-1 -top-1 rounded-full bg-[#008B8B] px-2 py-1 text-[10px] font-bold text-white shadow-sm">
+                        Optimal
+                      </span>
+                    ) : null}
+                    <div
+                      className={cn(
+                        "flex size-16 shrink-0 items-center justify-center rounded-lg",
+                        selected
+                          ? "bg-[#008B8B]/15 text-[#006767] dark:bg-primary/20 dark:text-primary"
+                          : "bg-slate-200/90 text-slate-500 dark:bg-muted dark:text-muted-foreground"
+                      )}
+                      aria-hidden
+                    >
+                      <User
+                        className="size-9 shrink-0"
+                        strokeWidth={1.75}
+                        aria-hidden
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3
+                          className="font-[family-name:var(--font-assign-headline)] text-base font-bold dark:text-foreground"
+                          style={{
+                            fontFamily: "var(--font-assign-headline), sans-serif",
+                          }}
+                        >
+                          {pilot.name}
+                        </h3>
+                        <span
+                          className={cn(
+                            "rounded px-2 py-0.5 text-[10px] font-bold",
+                            optimal
+                              ? "bg-[#008B8B]/10 text-[#006767] dark:text-primary"
+                              : "bg-[#e7e8e9] text-slate-700 dark:bg-muted dark:text-foreground"
+                          )}
+                        >
+                          {pilot.certBadge}
+                        </span>
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <div className="flex items-center gap-1">
+                          <User
+                            className="size-4 shrink-0 text-slate-400"
+                            aria-hidden
+                          />
+                          <span className="text-xs text-slate-600 dark:text-muted-foreground">
+                            {pilot.hoursShort}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <UserRound
+                            className="size-4 shrink-0 text-slate-400"
+                            aria-hidden
+                          />
+                          <span className="text-xs text-slate-600 dark:text-muted-foreground">
+                            {pilot.yearsExp} yrs exp.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        {/* Last completed + details */}
+        {latestCompleted ? (
+          <div className="rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-border dark:bg-card/80">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Last Assigned
+                </p>
+                <p className="mt-1 font-semibold text-foreground">
+                  {userRequestQueueDisplayId(latestCompleted.requestRef)} ·{" "}
+                  {latestCompleted.customer}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {latestCompleted.pilotName} · {latestCompleted.droneModel}
                 </p>
               </div>
               <button
                 type="button"
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border-2 border-[#008B8B] bg-card px-4 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B] hover:text-white"
+                className="inline-flex items-center gap-2 rounded-full border-2 border-[#008B8B] px-4 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B] hover:text-white"
                 onClick={() => setHistoryDetailIndex(latestCompletedIndex)}
               >
                 <Eye className="size-4" aria-hidden />
                 View details
               </button>
-            </li>
-          </ul>
-        ) : (
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            No mission yet. Complete using{" "}
-            <span className="font-semibold text-foreground">Assign Mission</span>{" "}
-            or the bar below after selecting a pilot and drone.
-          </p>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Mobile sticky CTA */}
+        <div className="fixed bottom-6 left-4 right-4 z-40 md:hidden">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#2e3132] p-4 text-white shadow-xl">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="size-5 shrink-0 text-teal-300" />
+              <span className="text-sm font-medium">Assignment ready</span>
+            </div>
+            <button
+              type="button"
+              disabled={noUserRequests}
+              className="rounded-lg bg-[#008B8B] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+              onClick={() => {
+                if (!noUserRequests) setAssignedDialogOpen(true);
+              }}
+            >
+              Launch
+            </button>
+          </div>
+        </div>
+          </>
         )}
       </div>
 
-      <div className="flex w-full min-w-0 flex-col gap-8">
-        <section className="flex min-h-0 w-full min-w-0 flex-col rounded-2xl border-2 border-border bg-card p-6 shadow-sm sm:p-8">
-          <div className="mb-6 flex shrink-0 items-center gap-3">
-            <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#008B8B]/10 text-[#008B8B]"
-              aria-hidden
-            >
-              <User className="size-5" strokeWidth={2} />
-            </span>
-            <div className="min-w-0">
-              <h2 className="text-xl font-bold text-foreground">Select Pilot</h2>
-              <p className="mt-0.5 text-[13px] font-medium text-muted-foreground">
-                Click a row to select
-              </p>
-            </div>
-          </div>
-
-          <div
-            className={optionScrollClass}
-            role="listbox"
-            aria-label="Available pilots"
-            aria-multiselectable={false}
-          >
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/60">
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Pilot
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Level
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Tags
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Pilot ID
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Sector
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Clearance
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Hours
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border bg-card">
-                  {pilots.map((pilot) => {
-                    const selected = selectedPilotId === pilot.id;
-                    return (
-                      <tr
-                        key={pilot.id}
-                        role="option"
-                        tabIndex={0}
-                        aria-selected={selected}
-                        onClick={() => setSelectedPilotId(pilot.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setSelectedPilotId(pilot.id);
-                          }
-                        }}
-                        className={cn(
-                          "cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35",
-                          selected
-                            ? "bg-[#008B8B]/10 ring-1 ring-inset ring-[#008B8B]/25"
-                            : "hover:bg-muted/50"
-                        )}
-                      >
-                        <td className="px-3 py-3 font-semibold text-foreground">
-                          {pilot.name}
-                        </td>
-                        <td className="px-3 py-3 tabular-nums text-foreground">
-                          {pilot.level}
-                        </td>
-                        <td className="max-w-[10rem] px-3 py-3 text-xs text-muted-foreground">
-                          {pilot.tags.join(", ")}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-foreground">
-                          {pilot.pilotId}
-                        </td>
-                        <td className="max-w-[9rem] px-3 py-3 text-xs text-muted-foreground">
-                          {pilot.sector}
-                        </td>
-                        <td className="max-w-[11rem] px-3 py-3 text-xs text-muted-foreground">
-                          {pilot.clearance}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs text-muted-foreground">
-                          {pilot.hours}
-                        </td>
-                        <td className="px-3 py-3">
-                          <span
-                            className={cn(
-                              "text-xs font-bold",
-                              selected ? "text-[#008B8B]" : "text-[#008B8B]/75"
-                            )}
-                          >
-                            {selected ? "Selected" : "Select"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <section className="flex min-h-0 w-full min-w-0 flex-col rounded-2xl border-2 border-border bg-card p-6 shadow-sm sm:p-8">
-          <div className="mb-6 flex shrink-0 items-center gap-3">
-            <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#008B8B]/10 text-[#008B8B]"
-              aria-hidden
-            >
-              <Drone className="size-5" strokeWidth={2} />
-            </span>
-            <div className="min-w-0">
-              <h2 className="text-xl font-bold text-foreground">Select Drone</h2>
-              <p className="mt-0.5 text-[13px] font-medium text-muted-foreground">
-                Click a row to select
-              </p>
-            </div>
-          </div>
-
-          <div
-            className={optionScrollClass}
-            role="listbox"
-            aria-label="Available drones"
-            aria-multiselectable={false}
-          >
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full min-w-[800px] border-collapse text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/60">
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Model
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      S/N
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Battery
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Cargo
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Range / flight
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Last inspection
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Firmware
-                    </th>
-                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border bg-card">
-                  {drones.map((drone) => {
-                    const selected = selectedDroneId === drone.id;
-                    return (
-                      <tr
-                        key={drone.id}
-                        role="option"
-                        tabIndex={0}
-                        aria-selected={selected}
-                        onClick={() => setSelectedDroneId(drone.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setSelectedDroneId(drone.id);
-                          }
-                        }}
-                        className={cn(
-                          "cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35",
-                          selected
-                            ? "bg-[#008B8B]/10 ring-1 ring-inset ring-[#008B8B]/25"
-                            : "hover:bg-muted/50"
-                        )}
-                      >
-                        <td className="px-3 py-3 font-semibold text-foreground">
-                          {drone.model}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-foreground">
-                          {drone.sn}
-                        </td>
-                        <td className="px-3 py-3 tabular-nums text-foreground">
-                          {drone.battery}%
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs text-muted-foreground">
-                          {drone.cargo}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs text-muted-foreground">
-                          {drone.maxRange} · {drone.estFlight}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs text-muted-foreground">
-                          {drone.lastInspection}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-muted-foreground">
-                          {drone.firmware}
-                        </td>
-                        <td className="px-3 py-3">
-                          <span
-                            className={cn(
-                              "text-xs font-bold",
-                              selected ? "text-[#008B8B]" : "text-[#008B8B]/75"
-                            )}
-                          >
-                            {selected ? "Selected" : "Select"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      </div>
-
+      {/* Confirm dialog */}
       {assignedDialogOpen ? (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4"
@@ -819,17 +904,14 @@ export function AssignPilotDroneView() {
           >
             <div className="px-6 py-6 sm:px-10 sm:py-8">
               <div className="flex items-center justify-center gap-3 sm:gap-4">
-                <span
-                  className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100 sm:size-14"
-                  aria-hidden
-                >
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100 sm:size-14">
                   <CheckCircle2 className="size-7 sm:size-8" strokeWidth={2} />
                 </span>
                 <h2
                   id="assign-mission-dialog-title"
                   className="text-lg font-bold tracking-tight text-foreground sm:text-xl"
                 >
-                  Assign Mission
+                  Confirm assignment
                 </h2>
               </div>
               <p
@@ -842,20 +924,20 @@ export function AssignPilotDroneView() {
                     ? userRequestQueueDisplayId(currentRequest.requestRef)
                     : ""}
                 </span>
-                , pilot{" "}
-                <span className="text-xs font-semibold text-foreground sm:text-sm">
+                , assign{" "}
+                <span className="font-semibold text-foreground">
                   {selectedPilot.name}
                 </span>{" "}
-                and drone{" "}
-                <span className="text-xs font-semibold text-foreground sm:text-sm">
+                with{" "}
+                <span className="font-semibold text-foreground">
                   {selectedDrone.model}
-                </span>{" "}
-                are selected for this mission.
+                </span>
+                ?
               </p>
               <div className="mt-5 grid gap-4 rounded-2xl border border-border/90 bg-gradient-to-b from-muted/40 to-muted/20 p-4 sm:grid-cols-2 sm:gap-0 sm:p-0 sm:py-5">
                 <div className="min-w-0 sm:border-r sm:border-border/90 sm:px-6">
                   <p className="text-xs font-medium text-muted-foreground sm:text-sm">
-                    Pilot Name
+                    Pilot
                   </p>
                   <p className="mt-1.5 text-sm font-semibold text-foreground sm:text-base">
                     {selectedPilot.name}
@@ -910,66 +992,38 @@ export function AssignPilotDroneView() {
           >
             <h2
               id="assignment-history-title"
-              className={cn("block text-left", assignedDetailsModalTitleClass)}
+              className="text-sm font-bold uppercase tracking-wider text-muted-foreground sm:text-base"
             >
               Details
             </h2>
-            <div className="mt-4 space-y-3.5 rounded-xl border border-border bg-muted/60 p-4 sm:p-5">
-              <div className="space-y-2.5">
-                <p className={cn(assignedDetailsGroupHeadingClass, "text-center")}>
-                  Request Details
-                </p>
-                <DetailRow
-                  variant="lgRequest"
-                  label="Request ID"
-                  value={userRequestQueueDisplayId(historyDetail.requestRef)}
-                />
-                <DetailRow
-                  variant="lgRequest"
-                  label="Title"
-                  value={historyDetail.customer}
-                />
-                <DetailRow
-                  variant="lgRequest"
-                  label="Service"
-                  value={historyDetail.service}
-                />
-                <DetailRow
-                  variant="lgRequest"
-                  label="Drop-off"
-                  value={historyDetail.dropoff}
-                />
-                <DetailRow
-                  variant="lgRequest"
-                  label="Area"
-                  value={historyDetail.sectorLine}
-                />
-              </div>
-              <div className="space-y-2.5 border-t border-border pt-3">
-                <p className={cn(assignedDetailsGroupHeadingClass, "text-center")}>
-                  Pilot &amp; Drone Details
-                </p>
-                <DetailRow
-                  variant="lgRequest"
-                  label="Pilot Name"
-                  value={historyDetail.pilotName}
-                />
-                <DetailRow
-                  variant="lgRequest"
-                  label="Pilot ID"
-                  value={historyDetail.pilotBadgeId}
-                />
-                <DetailRow
-                  variant="lgRequest"
-                  label="Drone"
-                  value={historyDetail.droneModel}
-                />
+            <div className="mt-4 space-y-3 rounded-xl border border-border bg-muted/60 p-4 sm:p-5">
+              <div className="space-y-2 text-xs sm:text-sm">
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">Request ID</span>
+                  <span className="font-mono font-semibold">
+                    {userRequestQueueDisplayId(historyDetail.requestRef)}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">Title</span>
+                  <span className="text-right font-medium">
+                    {historyDetail.customer}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">Pilot</span>
+                  <span className="font-medium">{historyDetail.pilotName}</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">Drone</span>
+                  <span className="font-medium">{historyDetail.droneModel}</span>
+                </div>
               </div>
             </div>
             <div className="mt-6 flex justify-center">
               <button
                 type="button"
-                className="inline-flex min-w-[7rem] items-center justify-center rounded-full border-2 border-[#008B8B] bg-card px-6 py-2.5 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/5 sm:min-w-[7rem] sm:px-7 sm:text-base"
+                className="inline-flex min-w-[7rem] items-center justify-center rounded-full border-2 border-[#008B8B] bg-card px-6 py-2.5 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/5"
                 onClick={() => setHistoryDetailIndex(null)}
               >
                 Close

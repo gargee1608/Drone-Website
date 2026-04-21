@@ -20,7 +20,6 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "/", label: "Home" },
-  { href: "/marketplace", label: "Marketplace" },
   { href: "/services", label: "Services" },
   { href: "/blogs", label: "Blogs" },
   { href: "/contact", label: "Contact Us" },
@@ -74,7 +73,7 @@ const mobileRegisteredPilotClassName =
   "mt-2 w-full rounded-full border-2 border-[#008B8B] bg-transparent font-semibold tracking-wide text-[#008B8B] shadow-none transition hover:bg-[#008B8B]/10 hover:text-[#006b6b]";
 
 export function SiteHeader({
-  ctaLabel = "Register a Pilot",
+  ctaLabel = "New Registration",
   ctaHref = "/pilot-registration",
   showNotifications = false,
 }: SiteHeaderProps = {}) {
@@ -117,7 +116,7 @@ export function SiteHeader({
   const whiteHeaderChrome =
     isSettingsPage || isAdminDashboard || isUserDashboard;
 
-  /** Hide Register a Pilot / Registered Pilot on admin & user dashboards only. */
+  /** Hide New Registration / Registered Pilot on admin & user dashboards only. */
   const showPilotRegistrationCtas =
     !isAdminDashboard && !isUserDashboard;
 
@@ -237,7 +236,7 @@ export function SiteHeader({
               "site-header-primary-nav hidden min-w-0 items-center gap-3 text-sm font-medium text-[#191c1d] md:flex",
               "lg:gap-5"
             )}
-            aria-label="Home, marketplace, and services"
+            aria-label="Main navigation"
           >
             {nav.map((item) =>
               item.href === "/services" ? (
@@ -401,7 +400,7 @@ export function SiteHeader({
       >
         <nav
           className="site-header-primary-nav flex flex-col gap-3 text-sm font-medium text-[#191c1d]"
-          aria-label="Home, marketplace, and services"
+          aria-label="Main navigation"
         >
           {nav.map((item) =>
             item.href === "/services" ? (

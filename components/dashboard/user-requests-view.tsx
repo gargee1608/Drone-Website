@@ -331,7 +331,7 @@ export function UserRequestsView() {
           />
         </section>
 
-        <section aria-label="Marketplace additional inquires">
+        <section aria-label="Additional product inquiries">
           <UserRequestTable
             title="Additional Inquires"
             rows={additionalInquireTableRows}

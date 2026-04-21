@@ -24,9 +24,8 @@ export function ConditionalSiteFooter() {
     pathname === "/" ||
     pathname === "" ||
     pathname === "/login" ||
+    pathname === "/signup" ||
     pathname === "/pilot-registration" ||
-    pathname === "/marketplace" ||
-    pathname?.startsWith("/marketplace/") ||
     pathname === "/services" ||
     pathname?.startsWith("/services/") ||
     pathname === "/blogs" ||

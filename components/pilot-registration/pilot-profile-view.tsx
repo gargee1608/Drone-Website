@@ -274,7 +274,7 @@ export function PilotProfileView({
               href="/pilot-registration"
               className="mt-6 inline-flex items-center justify-center rounded-lg border-2 border-[#008080] bg-card px-5 py-2.5 text-sm text-foreground shadow-sm transition hover:bg-[#008080]/10"
             >
-              Register a pilot
+              New Registration
             </Link>
           </div>
         </div>

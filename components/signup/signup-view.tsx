@@ -5,6 +5,7 @@ import { ArrowRight, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -40,8 +41,13 @@ export function SignUpView() {
   }>({});
 
   return (
-    <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-background text-foreground">
-      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-visible px-4 py-8 pb-12 sm:px-6 sm:py-10 sm:pb-16">
+    <div
+      className={cn(
+        landingFontClassName,
+        "relative flex min-h-0 w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-white font-[family-name:var(--font-landing-body)] text-slate-900 antialiased"
+      )}
+    >
+      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-visible px-4 pt-24 pb-12 sm:px-6 sm:pb-16">
         <div className="login-glass-card relative w-full max-w-[340px] rounded-xl p-5 shadow-lg shadow-[#4d5b7f]/8 sm:max-w-[400px] sm:p-6">
           <div
             className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 rounded-t-xl bg-gradient-to-r from-[#008B8B] via-[#006b6b] to-[#006195] shadow-[0_2px_10px_rgba(0,88,188,0.35)]"

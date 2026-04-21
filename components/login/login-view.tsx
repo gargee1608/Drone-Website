@@ -12,6 +12,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -92,6 +93,54 @@ export function LoginView() {
     }
   }, [mode, userAuthMethod, otpSent]);
 
+  const signInWithBackend = async (emailRaw: string, passRaw: string) => {
+    const email = emailRaw.trim().toLowerCase();
+    const password = passRaw.trim();
+
+    const res = await fetch(apiUrl("/api/auth/signin"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const raw = await res.text();
+    let data: {
+      token?: string;
+      role?: string;
+      message?: string;
+      error?: string;
+      detail?: string;
+      hint?: string;
+    } = {};
+
+    if (raw) {
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          data = parsed as typeof data;
+        }
+      } catch {
+        alert("Invalid server response");
+        return;
+      }
+    }
+
+    if (!res.ok || !data.token) {
+      const fromProxy = [data.error, data.detail, data.hint]
+        .filter(Boolean)
+        .join(" — ");
+      alert(data.message || fromProxy || "Login failed");
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+    if (data.role === "admin") {
+      router.push("/dashboard");
+    } else {
+      router.push("/user-dashboard");
+    }
+  };
+
   return (
     <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-background text-foreground">
       <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-14">
@@ -169,35 +218,65 @@ export function LoginView() {
               {mode === "admin" ? "Admin dashboard" : "User Dashboard"}
             </p>
           </div>
+<form
+  className="space-y-2 sm:space-y-2.5"
+  noValidate
+  onSubmit={async (e) => {
+    e.preventDefault();
 
-          <form
-            className="space-y-2 sm:space-y-2.5"
-            noValidate
-            onSubmit={(e) => {
-              e.preventDefault();
+    // ✅ USER OTP FLOW (no backend)
+    if (mode === "user" && userAuthMethod === "otp") {
+      const next = validateUserOtp(identity, otp, otpSent);
+      setErrors(next);
+      if (Object.keys(next).length > 0) return;
 
-              if (mode === "user" && userAuthMethod === "otp") {
-                const next = validateUserOtp(identity, otp, otpSent);
-                setErrors(next);
-                if (Object.keys(next).length > 0) return;
-                router.push("/user-dashboard");
-                return;
-              }
+      router.push("/user-dashboard");
+      return;
+    }
 
-              if (mode === "admin") {
-                const next = validateAdmin(identity, password);
-                setErrors(next);
-                if (Object.keys(next).length > 0) return;
-                router.push("/dashboard");
-                return;
-              }
+    // ✅ ADMIN LOGIN (API: test@gmail.com / test123 → token + role)
+    if (mode === "admin") {
+      const next = validateAdmin(identity, password);
+      setErrors(next);
+      if (Object.keys(next).length > 0) return;
 
-              const next = validateUserPassword(identity, password);
-              setErrors(next);
-              if (Object.keys(next).length > 0) return;
-              router.push("/user-dashboard");
-            }}
-          >
+      try {
+        await signInWithBackend(identity, password);
+      } catch (error) {
+        console.error(error);
+        const detail =
+          error instanceof Error ? error.message : "Unknown network error";
+        alert(
+          `Could not reach the API (${detail}). Start the backend: cd backend && node server.js`
+        );
+      }
+
+      return;
+    }
+
+    // ✅ USER PASSWORD: same backend when signing in with an email (e.g. test@gmail.com)
+    const next = validateUserPassword(identity, password);
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
+    const id = identity.trim();
+    if (emailPattern.test(id)) {
+      try {
+        await signInWithBackend(id, password);
+      } catch (error) {
+        console.error(error);
+        const detail =
+          error instanceof Error ? error.message : "Unknown network error";
+        alert(
+          `Could not reach the API (${detail}). Start the backend: cd backend && node server.js`
+        );
+      }
+      return;
+    }
+
+    router.push("/user-dashboard");
+  }}
+>
             {mode === "user" ? (
               <div
                 className="flex w-full rounded-lg border border-slate-200 bg-slate-100/80 p-0.5"

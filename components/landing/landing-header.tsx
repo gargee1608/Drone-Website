@@ -51,8 +51,6 @@ export function LandingHeader() {
   } = useUserDashboardNav();
 
   const isMarketingAuthPage =
-    pathname === "/marketplace" ||
-    (pathname?.startsWith("/marketplace/") ?? false) ||
     pathname === "/services" ||
     (pathname?.startsWith("/services/") ?? false) ||
     pathname === "/blogs" ||
@@ -70,8 +68,6 @@ export function LandingHeader() {
     pathname === "/pilot-registration" || showHeaderLoginButton;
 
   const hideNotificationsAndSettings =
-    pathname === "/marketplace" ||
-    (pathname?.startsWith("/marketplace/") ?? false) ||
     pathname === "/services" ||
     (pathname?.startsWith("/services/") ?? false) ||
     pathname === "/blogs" ||
@@ -204,9 +200,6 @@ export function LandingHeader() {
               <Link href="/" className={linkClass("/")}>
                 Home
               </Link>
-              <Link href="/marketplace" className={linkClass("/marketplace")}>
-                Marketplace
-              </Link>
               <ServiceListingMegaMenu
                 variant="landing"
                 label="Services"
@@ -263,7 +256,7 @@ export function LandingHeader() {
                 hideRegisterPilotCta && "sm:hidden"
               )}
             >
-              Register a Pilot
+              New Registration
             </Link>
             {showHeaderLoginButton ? (
               <button
@@ -379,13 +372,6 @@ export function LandingHeader() {
               onClick={() => setOpen(false)}
             >
               Home
-            </Link>
-            <Link
-              href="/marketplace"
-              className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              onClick={() => setOpen(false)}
-            >
-              Marketplace
             </Link>
             <div className="px-3 pt-1 pb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Services
@@ -503,7 +489,7 @@ export function LandingHeader() {
             )}
             onClick={() => setOpen(false)}
           >
-            Register a Pilot
+            New Registration
           </Link>
         ) : null}
       </div>

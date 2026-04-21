@@ -33,8 +33,8 @@ export type PilotProfileSnapshot = {
   dgca: string;
 };
 
-/** Skills removed from product; strip on read so legacy stored profiles stay clean. */
-const REMOVED_SKILL_LABELS = new Set(["fpv", "mapping"]);
+/** Legacy strip list (empty) — pilot registration uses full skill labels including FPV & Mapping. */
+const REMOVED_SKILL_LABELS = new Set<string>();
 
 export function filterRemovedSkills(skills: string[]): string[] {
   return skills.filter(

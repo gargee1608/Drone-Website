@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -34,11 +35,16 @@ export function AdminServicesView() {
   // ================= FETCH SERVICES =================
   const fetchServices = async () => {
     try {
-      const res = await fetch("http://localhost:4000/api/services");
-      const data = await res.json();
-      setItems(data);
+      const res = await fetch(apiUrl("/api/services"));
+      const data: unknown = await res.json();
+      if (!res.ok || !Array.isArray(data)) {
+        setItems([]);
+        return;
+      }
+      setItems(data as AdminService[]);
     } catch (err) {
       console.log(err);
+      setItems([]);
     }
   };
 
@@ -92,7 +98,7 @@ export function AdminServicesView() {
   const updateService = async () => {
     if (!editId) return;
 
-    await fetch(`http://localhost:4000/api/services/${editId}`, {
+    await fetch(apiUrl(`/api/services/${editId}`), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -109,7 +115,7 @@ export function AdminServicesView() {
 
   // ================= DELETE =================
   const deleteService = async (id: number) => {
-    await fetch(`http://localhost:4000/api/services/${id}`, {
+    await fetch(apiUrl(`/api/services/${id}`), {
       method: "DELETE",
     });
 

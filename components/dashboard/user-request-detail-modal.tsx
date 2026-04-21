@@ -148,7 +148,7 @@ export function UserRequestDetailModal({
               {payload.request.requestSource === "marketplace_inquiry" ? (
                 <div className="sm:col-span-2">
                   <DetailField label="Request category">
-                    Additional Inquire (Marketplace)
+                    Additional inquiry
                   </DetailField>
                 </div>
               ) : null}

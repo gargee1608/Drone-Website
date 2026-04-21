@@ -5,126 +5,17 @@ import { useEffect, useReducer, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { DetailField } from "@/components/dashboard/user-request-detail-modal";
+import {
+  ADMIN_PILOT_REG_STATE_STORAGE_KEY,
+  getDefaultPilotRegState,
+  loadPilotRegStateFromStorage,
+  type PilotRegCard,
+} from "@/lib/admin-pilot-registration-storage";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
-/** Pilots awaiting registration review (shown under Pending Pilots). */
-const PENDING_PILOT_REGISTRATIONS = [
-  {
-    name: "Jonathan Reiss",
-    badge: "Pilot Candidate",
-    submitted: "2h ago",
-    rows: [
-      {
-        k: "License Type",
-        v: "Commercial Class B",
-        vClass: "text-[#008B8B]",
-      },
-      { k: "Flight Experience", v: "524 Hours" },
-      { k: "Region", v: "Sector 7G North" },
-    ],
-  },
-  {
-    name: "Sasha Greywell",
-    badge: "Pilot Candidate",
-    submitted: "5h ago",
-    rows: [
-      {
-        k: "License Type",
-        v: "Cargo Heavy Duty",
-        vClass: "text-[#008B8B]",
-      },
-      { k: "Flight Experience", v: "1,210 Hours" },
-      { k: "Region", v: "Global Logistics Hub" },
-    ],
-  },
-  {
-    name: "Priya Shah",
-    badge: "Pilot Candidate",
-    submitted: "1d ago",
-    rows: [
-      {
-        k: "License Type",
-        v: "Commercial Class A",
-        vClass: "text-[#008B8B]",
-      },
-      { k: "Flight Experience", v: "890 Hours" },
-      { k: "Region", v: "Eastern Corridor" },
-    ],
-  },
-] as const;
-
-/** Pilots who completed registration (shown under Approved Pilots). */
-const APPROVED_PILOT_REGISTRATIONS = [
-  {
-    name: "Elena Lourd",
-    badge: "Registered Pilot",
-    submitted: "Feb 8, 2026",
-    rows: [
-      { k: "License ID", v: "AL-110943-XP", vClass: "font-mono text-xs" },
-      {
-        k: "Status",
-        v: "Active",
-        vClass: "font-semibold text-green-700 dark:text-green-400",
-      },
-      { k: "Region", v: "Sector 7G North" },
-    ],
-  },
-  {
-    name: "Marcus Kael",
-    badge: "Registered Pilot",
-    submitted: "Jan 22, 2026",
-    rows: [
-      { k: "License ID", v: "AL-445129-L1", vClass: "font-mono text-xs" },
-      {
-        k: "Status",
-        v: "Active",
-        vClass: "font-semibold text-green-700 dark:text-green-400",
-      },
-      { k: "Region", v: "Port of Aerolia" },
-    ],
-  },
-  {
-    name: "Nora Quinn",
-    badge: "Registered Pilot",
-    submitted: "Mar 1, 2026",
-    rows: [
-      { k: "License ID", v: "AL-882301-K9", vClass: "font-mono text-xs" },
-      {
-        k: "Status",
-        v: "Active",
-        vClass: "font-semibold text-green-700 dark:text-green-400",
-      },
-      { k: "Region", v: "Eastern Corridor" },
-    ],
-  },
-] as const;
-
 /** Base count so initial approved list (3) displays as 1,282. */
 const REGISTERED_PILOTS_COUNT_BASE = 1279;
-
-type PilotRegCard = {
-  name: string;
-  badge: string;
-  submitted: string;
-  rows: { k: string; v: string; vClass?: string }[];
-};
-
-function clonePilotRegistrations(
-  source: readonly {
-    name: string;
-    badge: string;
-    submitted: string;
-    rows: readonly { k: string; v: string; vClass?: string }[];
-  }[]
-): PilotRegCard[] {
-  return source.map((p) => ({
-    name: p.name,
-    badge: p.badge,
-    submitted: p.submitted,
-    rows: p.rows.map((r) => ({ k: r.k, v: r.v, vClass: r.vClass })),
-  }));
-}
 
 function makePilotLicenseId(): string {
   const mid = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -147,6 +38,7 @@ function formatApprovedRegisteredDate(): string {
 function mapPendingToApproved(pilot: PilotRegCard): PilotRegCard {
   const region = pilot.rows.find((r) => r.k === "Region")?.v ?? "—";
   return {
+    id: `approved-${pilot.id}`,
     name: pilot.name,
     badge: "Registered Pilot",
     submitted: formatApprovedRegisteredDate(),
@@ -166,96 +58,29 @@ function mapPendingToApproved(pilot: PilotRegCard): PilotRegCard {
   };
 }
 
-const PILOT_REG_STATE_STORAGE_KEY =
-  "aerolaminar_dashboard_pilot_registrations_v1";
-
-function safeParsePilotCards(data: unknown): PilotRegCard[] | null {
-  if (!Array.isArray(data)) return null;
-  const out: PilotRegCard[] = [];
-  for (const item of data) {
-    if (
-      !item ||
-      typeof item !== "object" ||
-      typeof (item as PilotRegCard).name !== "string" ||
-      typeof (item as PilotRegCard).badge !== "string" ||
-      typeof (item as PilotRegCard).submitted !== "string" ||
-      !Array.isArray((item as PilotRegCard).rows)
-    ) {
-      return null;
-    }
-    const rows: PilotRegCard["rows"] = [];
-    for (const row of (item as PilotRegCard).rows) {
-      if (
-        !row ||
-        typeof row !== "object" ||
-        typeof row.k !== "string" ||
-        typeof row.v !== "string"
-      ) {
-        return null;
-      }
-      rows.push({
-        k: row.k,
-        v: row.v,
-        vClass:
-          typeof row.vClass === "string" ? row.vClass : undefined,
-      });
-    }
-    out.push({
-      name: (item as PilotRegCard).name,
-      badge: (item as PilotRegCard).badge,
-      submitted: (item as PilotRegCard).submitted,
-      rows,
-    });
-  }
-  return out;
-}
-
-function loadPilotRegStateFromStorage(): {
-  pending: PilotRegCard[];
-  approved: PilotRegCard[];
-} | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(PILOT_REG_STATE_STORAGE_KEY);
-    if (!raw) return null;
-    const o = JSON.parse(raw) as unknown;
-    if (!o || typeof o !== "object") return null;
-    const rec = o as Record<string, unknown>;
-    const pending = safeParsePilotCards(rec.pending);
-    const approved = safeParsePilotCards(rec.approved);
-    if (!pending || !approved) return null;
-    return { pending, approved };
-  } catch {
-    return null;
-  }
-}
-
 type PilotRegState = { pending: PilotRegCard[]; approved: PilotRegCard[] };
 
-const initialPilotRegState: PilotRegState = {
-  pending: clonePilotRegistrations(PENDING_PILOT_REGISTRATIONS),
-  approved: clonePilotRegistrations(APPROVED_PILOT_REGISTRATIONS),
-};
+const initialPilotRegState: PilotRegState = getDefaultPilotRegState();
 
 type PilotRegAction =
-  | { type: "accept"; name: string }
-  | { type: "reject"; name: string }
+  | { type: "accept"; id: string }
+  | { type: "reject"; id: string }
   | { type: "replace"; state: PilotRegState };
 
 function pilotRegReducer(state: PilotRegState, action: PilotRegAction): PilotRegState {
   switch (action.type) {
     case "accept": {
-      const pilot = state.pending.find((p) => p.name === action.name);
+      const pilot = state.pending.find((p) => p.id === action.id);
       if (!pilot) return state;
       return {
-        pending: state.pending.filter((p) => p.name !== action.name),
+        pending: state.pending.filter((p) => p.id !== action.id),
         approved: [mapPendingToApproved(pilot), ...state.approved],
       };
     }
     case "reject":
       return {
         ...state,
-        pending: state.pending.filter((p) => p.name !== action.name),
+        pending: state.pending.filter((p) => p.id !== action.id),
       };
     case "replace":
       return action.state;
@@ -280,16 +105,40 @@ export function DashboardHomeContent() {
   }, []);
 
   useEffect(() => {
+    const onPendingUpdated = () => {
+      const next = loadPilotRegStateFromStorage();
+      if (next) dispatchPilotReg({ type: "replace", state: next });
+    };
+    window.addEventListener("aerolaminar-pending-pilots-updated", onPendingUpdated);
+    return () =>
+      window.removeEventListener(
+        "aerolaminar-pending-pilots-updated",
+        onPendingUpdated
+      );
+  }, []);
+
+  useEffect(() => {
     if (!pilotRegStorageReady || typeof window === "undefined") return;
     try {
       localStorage.setItem(
-        PILOT_REG_STATE_STORAGE_KEY,
+        ADMIN_PILOT_REG_STATE_STORAGE_KEY,
         JSON.stringify(pilotRegState)
       );
     } catch {
       /* ignore quota */
     }
   }, [pilotRegState, pilotRegStorageReady]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#pilot-registrations") return;
+    const t = window.setTimeout(() => {
+      document
+        .getElementById("pilot-registrations")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+    return () => window.clearTimeout(t);
+  }, []);
 
   const pendingPilots = pilotRegState.pending;
   const approvedPilots = pilotRegState.approved;
@@ -298,12 +147,12 @@ export function DashboardHomeContent() {
     REGISTERED_PILOTS_COUNT_BASE + approvedPilots.length
   ).toLocaleString();
 
-  const handleAcceptPilot = (name: string) => {
-    dispatchPilotReg({ type: "accept", name });
+  const handleAcceptPilot = (id: string) => {
+    dispatchPilotReg({ type: "accept", id });
   };
 
-  const handleRejectPilot = (name: string) => {
-    dispatchPilotReg({ type: "reject", name });
+  const handleRejectPilot = (id: string) => {
+    dispatchPilotReg({ type: "reject", id });
   };
 
   return (
@@ -393,8 +242,8 @@ function PendingRegistrationsSection({
 }: {
   pendingPilots: PilotRegCard[];
   approvedPilots: PilotRegCard[];
-  onAcceptPilot: (name: string) => void;
-  onRejectPilot: (name: string) => void;
+  onAcceptPilot: (id: string) => void;
+  onRejectPilot: (id: string) => void;
 }) {
   const [pilotRegView, setPilotRegView] = useState<"pending" | "approved">(
     "pending"
@@ -404,7 +253,7 @@ function PendingRegistrationsSection({
   const list = pilotRegView === "pending" ? pendingPilots : approvedPilots;
 
   return (
-    <section className="space-y-6">
+    <section id="pilot-registrations" className="scroll-mt-24 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-bold text-foreground">
@@ -451,14 +300,14 @@ function PendingRegistrationsSection({
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {list.map((p) => (
           <PendingPilotCard
-            key={p.name}
+            key={p.id}
             variant={pilotRegView === "pending" ? "pending" : "approved"}
             name={p.name}
             badge={p.badge}
             submitted={p.submitted}
             rows={p.rows}
-            onAccept={() => onAcceptPilot(p.name)}
-            onReject={() => onRejectPilot(p.name)}
+            onAccept={() => onAcceptPilot(p.id)}
+            onReject={() => onRejectPilot(p.id)}
             onViewProfile={
               pilotRegView === "approved"
                 ? () => setProfilePilot(p)

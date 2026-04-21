@@ -15,7 +15,6 @@ import { ServiceListingMegaMenu } from "@/components/nav/service-listing-mega-me
 import { cn } from "@/lib/utils";
 
 export const standardAppNavLinks = [
-  { href: "/marketplace", label: "Marketplace" },
   { href: "/onboarding", label: "Onboarding Wizards" },
   { href: "/services", label: "Service Listing" },
 ] as const;
@@ -41,7 +40,7 @@ function LoginProfileIcon({ className }: { className?: string }) {
 }
 
 export type StandardAppHeaderProps = {
-  /** Highlights the matching primary nav link (e.g. `/marketplace`, `/onboarding`, `/services`). */
+  /** Highlights the matching primary nav link (e.g. `/onboarding`, `/services`). */
   activeHref?: string;
 };
 

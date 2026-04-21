@@ -105,6 +105,14 @@ export function parsePilotRegistrationDraft(
   }
 }
 
+export function savePilotRegistrationDraft(draft: PilotRegistrationDraft) {
+  try {
+    localStorage.setItem(PILOT_REGISTRATION_DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    /* quota / private mode */
+  }
+}
+
 export function clearPilotRegistrationDraft() {
   try {
     localStorage.removeItem(PILOT_REGISTRATION_DRAFT_KEY);

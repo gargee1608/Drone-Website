@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
+import { apiUrl } from "@/lib/api-url";
 import { useAdminServicesCatalog } from "@/hooks/use-admin-services-catalog";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
@@ -28,12 +29,32 @@ export function ServicesView({
   // ✅ NEW: DB services state
   const [dbServices, setDbServices] = useState<any[]>([]);
 
-  // 🔄 STEP 7: Fetch from backend
+  // 🔄 Fetch from backend (API returns an array of rows, or { error } on failure)
   useEffect(() => {
-    fetch("http://localhost:4000/api/services")
-      .then((res) => res.json())
-      .then((data) => setDbServices(data))
-      .catch((err) => console.log("Error fetching services:", err));
+    fetch(apiUrl("/api/services"))
+      .then(async (res) => {
+        const data: unknown = await res.json().catch(() => null);
+        if (!res.ok || !Array.isArray(data)) {
+          if (
+            data &&
+            typeof data === "object" &&
+            "error" in data &&
+            process.env.NODE_ENV === "development"
+          ) {
+            console.warn(
+              "Services API:",
+              (data as { error?: string }).error ?? res.status
+            );
+          }
+          setDbServices([]);
+          return;
+        }
+        setDbServices(data);
+      })
+      .catch((err) => {
+        console.log("Error fetching services:", err);
+        setDbServices([]);
+      });
   }, []);
 
   return (
@@ -135,7 +156,7 @@ export function ServicesView({
               {/* 🆕 DATABASE SERVICES (FROM POSTGRESQL) */}
               {dbServices.map((service) => (
   <li key={service.id}>
-    <article className="group flex h-full flex-col rounded-2xl border border-blue-200 bg+white-50 p-4 shadow-sm">
+    <article className="group flex h-full flex-col rounded-2xl border border-blue-200 bg-slate-50 p-4 shadow-sm">
 
       {/* IMAGE */}
       {service.image && (

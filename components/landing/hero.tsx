@@ -33,7 +33,7 @@ export function Hero() {
               href="/pilot-registration"
               className="inline-flex items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-8 py-4 font-[family-name:var(--font-landing-headline)] text-sm font-bold text-[#008B8B] transition-colors hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent"
             >
-              Register a Pilot
+              New Registration
             </Link>
           </div>
         </div>
