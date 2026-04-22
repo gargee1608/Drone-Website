@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
+import { expressBackendOrigin } from "@/lib/express-backend-origin";
 
-const BACKEND = (process.env.BACKEND_URL ?? "http://127.0.0.1:4000").replace(
-  /\/$/,
-  ""
-);
+export const dynamic = "force-dynamic";
 
 type RouteCtx = { params: Promise<{ slug: string[] }> };
 
@@ -18,7 +15,7 @@ async function proxy(req: NextRequest, ctx: RouteCtx) {
   }
 
   const path = slug.join("/");
-  const url = `${BACKEND}/${path}${req.nextUrl.search}`;
+  const url = `${expressBackendOrigin()}/${path}${req.nextUrl.search}`;
 
   const headers = new Headers();
   for (const name of ["content-type", "accept", "authorization"]) {

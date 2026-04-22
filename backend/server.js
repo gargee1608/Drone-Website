@@ -201,18 +201,6 @@ app.post("/send-otp", async (req, res) => {
   }
 });
 
-const PORT = Number(process.env.PORT) || 4000;
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-server.on("error", (err) => {
-  if (err && err.code === "EADDRINUSE") {
-    console.error(
-      `[backend] Port ${PORT} is already in use. Stop the existing process or change PORT in backend/.env`
-    );
-  } else {
-    console.error(err);
-  }
-  process.exit(1);
+app.listen(4000, () => {
+  console.log("Server running on port 4000");
 });

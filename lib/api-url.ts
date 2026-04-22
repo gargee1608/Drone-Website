@@ -1,13 +1,20 @@
 /**
  * URL for the Express API from the browser.
  * Default uses `/api/express/...` (Next Route Handler proxies to Express — works with Turbopack).
- * Set `NEXT_PUBLIC_API_URL` (no trailing slash) to call the API directly, e.g. production.
+ * Pilot register uses `/api/pilots/register` (dedicated proxy) so the path is never truncated.
+ * Set `NEXT_PUBLIC_API_URL` to the server origin only (e.g. `https://api.example.com`), not `.../api`.
  */
 export function apiUrl(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   const envBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
   if (envBase) {
+    if (envBase.endsWith("/api") && normalized.startsWith("/api/")) {
+      return `${envBase}${normalized.replace(/^\/api/, "")}`;
+    }
     return `${envBase}${normalized}`;
+  }
+  if (normalized === "/api/pilots/register") {
+    return "/api/pilots/register";
   }
   return `/api/express${normalized}`;
 }
