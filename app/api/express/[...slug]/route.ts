@@ -46,7 +46,7 @@ async function proxy(req: NextRequest, ctx: RouteCtx) {
       {
         error: "Backend unreachable",
         detail,
-        hint: "Run `node server.js` in the `backend` folder (port 4000).",
+        hint: "Run the auth API on port 4000: `cd server && npm run dev` (or set `BACKEND_URL`).",
       },
       { status: 502 }
     );

@@ -109,7 +109,11 @@ function formatNumber(value: number) {
 
 const PAGE_SIZE = 4;
 
-export function CompletedDeliveriesView() {
+export function CompletedDeliveriesView({
+  showPageTitle = true,
+}: {
+  showPageTitle?: boolean;
+} = {}) {
   const [page, setPage] = useState(1);
 
   const filteredRows = useMemo(() => ROWS, []);
@@ -176,9 +180,13 @@ export function CompletedDeliveriesView() {
       }}
     >
       <header className="mb-6">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div
+          className={`flex flex-wrap items-end justify-between gap-3 ${showPageTitle ? "mb-6" : "mb-4"}`}
+        >
           <div>
-            <h1 className={ADMIN_PAGE_TITLE_CLASS}>Completed Deliveries</h1>
+            {showPageTitle ? (
+              <h1 className={ADMIN_PAGE_TITLE_CLASS}>Completed Deliveries</h1>
+            ) : null}
           </div>
           <button
             type="button"

@@ -11,8 +11,10 @@ import {
   serviceMegaMenuItems,
 } from "@/components/nav/service-listing-mega-menu";
 import { SidebarMenuGlyph } from "@/components/nav/sidebar-menu-glyph";
+import { usePilotDashboardNav } from "@/components/pilot-dashboard/pilot-dashboard-nav-context";
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
 import { AdminInboxMenu } from "@/components/notifications/admin-inbox-menu";
+import { PilotMissionNotificationsMenu } from "@/components/notifications/pilot-mission-notifications-menu";
 import { HeaderThemeModeToggle } from "@/components/nav/header-theme-mode-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -32,11 +34,24 @@ export function LandingHeader() {
     pathname === "/dashboard/" ||
     (pathname?.startsWith("/dashboard/") ?? false);
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
+  const isPilotDashboard =
+    pathname?.startsWith("/pilot-dashboard") ||
+    pathname?.startsWith("/pilot-profile") ||
+    false;
   const isSettingsPage =
     pathname === "/settings" || (pathname?.startsWith("/settings/") ?? false);
-  const showUserDashboardSidebar = isUserDashboard || isSettingsPage;
+  const settingsFrom = searchParams.get("from");
+  const isPilotSettingsContext =
+    isSettingsPage && settingsFrom === "pilot";
+  const showUserDashboardSidebar =
+    isUserDashboard || (isSettingsPage && settingsFrom !== "pilot");
+  const showPilotDashboardSidebar =
+    isPilotDashboard || isPilotSettingsContext;
   const compactAppHeader =
-    isAdminDashboard || isUserDashboard || isSettingsPage;
+    isAdminDashboard ||
+    isUserDashboard ||
+    isPilotDashboard ||
+    isSettingsPage;
   const isHomePage = pathname === "/" || pathname === "";
   const isPilotRegistration =
     pathname === "/pilot-registration" ||
@@ -49,6 +64,10 @@ export function LandingHeader() {
     sidebarExpanded: userSidebarExpanded,
     setSidebarExpanded: setUserSidebarExpanded,
   } = useUserDashboardNav();
+  const {
+    sidebarExpanded: pilotSidebarExpanded,
+    setSidebarExpanded: setPilotSidebarExpanded,
+  } = usePilotDashboardNav();
 
   const isMarketingAuthPage =
     pathname === "/services" ||
@@ -58,14 +77,19 @@ export function LandingHeader() {
     pathname === "/contact";
   const hideRegisterPilotCta =
     pathname === "/login" ||
+    pathname === "/pilot-login" ||
     pathname === "/pilot-registration" ||
     pathname === "/settings" ||
     pathname?.startsWith("/settings/") ||
     isAdminDashboard ||
-    isUserDashboard;
+    isUserDashboard ||
+    isPilotDashboard;
   const showHeaderLoginButton = isHomePage || isMarketingAuthPage;
   const hideLoginIcon =
-    pathname === "/pilot-registration" || showHeaderLoginButton;
+    pathname === "/login" ||
+    pathname === "/pilot-login" ||
+    pathname === "/pilot-registration" ||
+    showHeaderLoginButton;
 
   const hideNotificationsAndSettings =
     pathname === "/services" ||
@@ -74,28 +98,53 @@ export function LandingHeader() {
     (pathname?.startsWith("/blogs/") ?? false) ||
     pathname === "/contact";
 
-  const settingsHref = isUserDashboard
-    ? "/settings?from=user"
-    : isAdminDashboard
-      ? "/settings?from=admin"
-      : "/settings";
+  const settingsHref =
+    isPilotDashboard || isPilotSettingsContext
+      ? "/settings?from=pilot"
+      : isUserDashboard
+        ? "/settings?from=user"
+        : isAdminDashboard
+          ? "/settings?from=admin"
+          : "/settings";
 
-  const settingsFrom = searchParams.get("from");
   const showHeaderNotifications =
     isAdminDashboard ||
     isUserDashboard ||
     (isSettingsPage &&
       (settingsFrom === "admin" || settingsFrom === "user"));
+  const showPilotThemeToggle =
+    isPilotDashboard || isPilotSettingsContext;
+  const showPilotNotifications =
+    isPilotDashboard || isPilotSettingsContext;
   const profileHref =
-    isAdminDashboard || settingsFrom === "admin"
-      ? "/dashboard/profile"
-      : "/settings?from=user";
+    isPilotDashboard || settingsFrom === "pilot"
+      ? "/pilot-profile"
+      : isAdminDashboard || settingsFrom === "admin"
+        ? "/dashboard/profile"
+        : "/settings?from=user";
 
   const showAccountMenu =
     isAdminDashboard ||
     isUserDashboard ||
+    isPilotDashboard ||
     (isSettingsPage &&
-      (settingsFrom === "user" || settingsFrom === "admin"));
+      (settingsFrom === "user" ||
+        settingsFrom === "admin" ||
+        settingsFrom === "pilot"));
+
+  const isAdminSettingsContext =
+    isSettingsPage && settingsFrom === "admin";
+  const isUserSettingsContext =
+    isSettingsPage && settingsFrom === "user";
+
+  const showHeaderSettingsIcon = !(
+    isPilotDashboard ||
+    isPilotSettingsContext ||
+    isAdminDashboard ||
+    isUserDashboard ||
+    isAdminSettingsContext ||
+    isUserSettingsContext
+  );
 
   useEffect(() => {
     setAccountMenuOpen(false);
@@ -179,6 +228,24 @@ export function LandingHeader() {
                 }
                 aria-expanded={userSidebarExpanded}
                 aria-controls="user-dashboard-sidebar"
+              >
+                <SidebarMenuGlyph />
+              </button>
+            ) : null}
+            {showPilotDashboardSidebar ? (
+              <button
+                type="button"
+                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white lg:inline-flex"
+                onClick={() =>
+                  setPilotSidebarExpanded(!pilotSidebarExpanded)
+                }
+                aria-label={
+                  pilotSidebarExpanded
+                    ? "Collapse pilot sidebar"
+                    : "Expand pilot sidebar"
+                }
+                aria-expanded={pilotSidebarExpanded}
+                aria-controls="pilot-dashboard-sidebar"
               >
                 <SidebarMenuGlyph />
               </button>
@@ -277,16 +344,22 @@ export function LandingHeader() {
                     <HeaderThemeModeToggle />
                   </>
                 ) : null}
-                <Link
-                  href={settingsHref}
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "icon" }),
-                    "text-slate-500 hover:text-[#008B8B] dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
-                  )}
-                  aria-label="Settings"
-                >
-                  <Settings className="size-5" />
-                </Link>
+                {showPilotThemeToggle ? <HeaderThemeModeToggle /> : null}
+                {showPilotNotifications ? (
+                  <PilotMissionNotificationsMenu />
+                ) : null}
+                {showHeaderSettingsIcon ? (
+                  <Link
+                    href={settingsHref}
+                    className={cn(
+                      buttonVariants({ variant: "ghost", size: "icon" }),
+                      "text-slate-500 hover:text-[#008B8B] dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
+                    )}
+                    aria-label="Settings"
+                  >
+                    <Settings className="size-5" />
+                  </Link>
+                ) : null}
               </>
             ) : null}
             {showAccountMenu ? (
@@ -324,7 +397,11 @@ export function LandingHeader() {
                       className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
                       onClick={() => {
                         setAccountMenuOpen(false);
-                        router.replace("/login");
+                        router.replace(
+                          isPilotDashboard || settingsFrom === "pilot"
+                            ? "/pilot-login"
+                            : "/login"
+                        );
                       }}
                     >
                       <LogOut className="size-4 shrink-0 text-muted-foreground" aria-hidden />

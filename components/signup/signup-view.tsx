@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Lock, User } from "lucide-react";
+import { ArrowRight, Lock, Mail, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -41,23 +40,17 @@ export function SignUpView() {
   }>({});
 
   return (
-    <div
-      className={cn(
-        landingFontClassName,
-        "relative flex min-h-0 w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-white font-[family-name:var(--font-landing-body)] text-slate-900 antialiased"
-      )}
-    >
-      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-visible px-4 pt-24 pb-12 sm:px-6 sm:pb-16">
-        <div className="login-glass-card relative w-full max-w-[340px] rounded-xl p-5 shadow-lg shadow-[#4d5b7f]/8 sm:max-w-[400px] sm:p-6">
-          <div
-            className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 rounded-t-xl bg-gradient-to-r from-[#008B8B] via-[#006b6b] to-[#006195] shadow-[0_2px_10px_rgba(0,88,188,0.35)]"
-            aria-hidden
-          />
-
-          <div className="mb-4 pt-0.5 text-center sm:mb-5">
-            <div className="mb-2.5 flex justify-center sm:mb-3">
-              <div className="flex size-11 items-center justify-center rounded-lg border border-[#008B8B]/20 bg-[#008B8B]/10 shadow-sm sm:size-12">
-                <User className="size-6 text-[#008B8B] sm:size-7" strokeWidth={1.75} />
+    <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-background text-foreground">
+      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-14">
+        <div className="login-glass-card relative w-full max-w-[min(100%,360px)] overflow-hidden rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md sm:max-w-[420px] sm:p-5">
+          <div className="mb-2 text-center sm:mb-2.5">
+            <div className="mb-1.5 flex justify-center sm:mb-2">
+              <div className="flex size-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 shadow-sm sm:size-11">
+                <User
+                  className="size-[22px] text-[#008B8B] sm:size-6"
+                  strokeWidth={1.75}
+                  aria-hidden
+                />
               </div>
             </div>
             <h1 className={cn("mb-1.5", ADMIN_PAGE_TITLE_CLASS)}>
@@ -69,7 +62,7 @@ export function SignUpView() {
           </div>
 
           <form
-            className="space-y-3 sm:space-y-4"
+            className="space-y-2 sm:space-y-2.5"
             noValidate
             onSubmit={(e) => {
               e.preventDefault();
@@ -84,17 +77,17 @@ export function SignUpView() {
                 htmlFor="signup-email"
                 className="block px-1 text-xs font-semibold text-[#414755] sm:text-sm"
               >
-                Email
+                Email Address
               </label>
               <div className="relative">
-                <User
+                <Mail
                   className="pointer-events-none absolute left-2.5 top-1/2 size-[15px] -translate-y-1/2 text-[#717786] sm:left-3 sm:size-4"
                   aria-hidden
                 />
                 <input
                   id="signup-email"
                   name="email"
-                  type="text"
+                  type="email"
                   autoComplete="email"
                   placeholder="you@company.com"
                   value={email}
@@ -105,10 +98,10 @@ export function SignUpView() {
                   aria-invalid={errors.email ? true : undefined}
                   aria-describedby={errors.email ? "signup-email-error" : undefined}
                   className={cn(
-                    "w-full rounded-md border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-all focus:ring-2 sm:py-2.5 sm:pl-10",
+                    "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
                     errors.email
-                      ? "ring-2 ring-red-500/80 focus:ring-red-500/50"
-                      : "focus:ring-[#008B8B]/20"
+                      ? "border-red-500 focus:border-red-500"
+                      : "focus:border-slate-500"
                   )}
                 />
               </div>
@@ -116,7 +109,7 @@ export function SignUpView() {
                 <p
                   id="signup-email-error"
                   role="alert"
-                  className="px-1 text-[11px] font-medium leading-snug text-red-600 sm:text-xs"
+                  className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
                 >
                   {errors.email}
                 </p>
@@ -149,10 +142,10 @@ export function SignUpView() {
                   aria-invalid={errors.password ? true : undefined}
                   aria-describedby={errors.password ? "signup-password-error" : undefined}
                   className={cn(
-                    "w-full rounded-md border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-all focus:ring-2 sm:py-2.5 sm:pl-10",
+                    "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
                     errors.password
-                      ? "ring-2 ring-red-500/80 focus:ring-red-500/50"
-                      : "focus:ring-[#008B8B]/20"
+                      ? "border-red-500 focus:border-red-500"
+                      : "focus:border-slate-500"
                   )}
                 />
               </div>
@@ -160,7 +153,7 @@ export function SignUpView() {
                 <p
                   id="signup-password-error"
                   role="alert"
-                  className="px-1 text-[11px] font-medium leading-snug text-red-600 sm:text-xs"
+                  className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
                 >
                   {errors.password}
                 </p>
@@ -193,10 +186,10 @@ export function SignUpView() {
                   aria-invalid={errors.confirm ? true : undefined}
                   aria-describedby={errors.confirm ? "signup-confirm-error" : undefined}
                   className={cn(
-                    "w-full rounded-md border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-all focus:ring-2 sm:py-2.5 sm:pl-10",
+                    "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
                     errors.confirm
-                      ? "ring-2 ring-red-500/80 focus:ring-red-500/50"
-                      : "focus:ring-[#008B8B]/20"
+                      ? "border-red-500 focus:border-red-500"
+                      : "focus:border-slate-500"
                   )}
                 />
               </div>
@@ -204,7 +197,7 @@ export function SignUpView() {
                 <p
                   id="signup-confirm-error"
                   role="alert"
-                  className="px-1 text-[11px] font-medium leading-snug text-red-600 sm:text-xs"
+                  className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
                 >
                   {errors.confirm}
                 </p>
@@ -214,15 +207,15 @@ export function SignUpView() {
             <button
               type="submit"
               className={cn(
-                "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#008B8B] to-[#006b6b] py-2.5 px-3 text-sm font-bold text-white shadow-md shadow-[#008B8B]/20 transition-all hover:shadow-[#008B8B]/35 active:scale-[0.99] sm:py-3"
+                "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#008B8B] to-[#006b6b] py-2 px-3 text-sm font-bold text-white shadow-md shadow-[#008B8B]/20 transition-all hover:shadow-[#008B8B]/35 active:scale-[0.99] sm:py-2.5"
               )}
             >
               Create account
-              <ArrowRight className="size-3.5 sm:size-4" />
+              <ArrowRight className="size-3.5 sm:size-4" aria-hidden />
             </button>
           </form>
 
-          <div className="mt-5 text-center sm:mt-6">
+          <div className="mt-3 text-center sm:mt-4">
             <p className="text-xs font-medium text-[#414755] sm:text-sm">
               Already have an account?{" "}
               <Link

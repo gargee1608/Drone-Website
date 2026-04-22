@@ -13,6 +13,7 @@ export function ConditionalSiteHeader() {
     pathname === "/" ||
     pathname === "" ||
     pathname === "/login" ||
+    pathname === "/pilot-login" ||
     pathname === "/signup" ||
     pathname === "/pilot-registration" ||
     pathname === "/services" ||
@@ -24,7 +25,9 @@ export function ConditionalSiteHeader() {
     pathname?.startsWith("/settings/") ||
     pathname === "/dashboard" ||
     pathname?.startsWith("/dashboard/") ||
-    pathname?.startsWith("/user-dashboard");
+    pathname?.startsWith("/user-dashboard") ||
+    pathname?.startsWith("/pilot-dashboard") ||
+    pathname?.startsWith("/pilot-profile");
   if (isLandingChrome) {
     return (
       <Suspense fallback={null}>

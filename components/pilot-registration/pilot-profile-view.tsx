@@ -78,16 +78,18 @@ type MetricCardProps = {
 
 function MetricCard({ icon, iconWrapClass, value, label }: MetricCardProps) {
   return (
-    <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
+    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
       <div
-        className={`flex size-11 items-center justify-center rounded-lg ${iconWrapClass}`}
+        className={`flex size-10 items-center justify-center rounded-xl ${iconWrapClass}`}
       >
         {icon}
       </div>
       <p className="mt-3 text-2xl tracking-tight text-foreground">
         {value}
       </p>
-      <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
     </div>
   );
 }
@@ -101,19 +103,19 @@ type InfoRowProps = {
 
 function InfoRow({ icon, iconClass, label, value }: InfoRowProps) {
   return (
-    <div className="flex items-start gap-4 border-b border-border py-4 last:border-b-0">
+    <div className="flex items-start gap-3 border-b border-border/80 py-3.5 last:border-b-0">
       <div
-        className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${iconClass}`}
+        className={`mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
       >
         {icon}
       </div>
       <div className="min-w-0 flex-1">
         <p
-          className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground"
+          className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
         >
           {label}
         </p>
-        <div className="mt-1 text-sm text-foreground">{value}</div>
+        <div className="mt-1 text-[13px] text-foreground sm:text-sm">{value}</div>
       </div>
     </div>
   );
@@ -296,8 +298,8 @@ export function PilotProfileView({
 
   const innerPad =
     variant === "dashboard"
-      ? "mx-auto max-w-6xl px-0 pb-8 pt-0 sm:px-0"
-      : "mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 sm:pt-8";
+      ? "mx-auto max-w-[1120px] px-0 pb-8 pt-0 sm:px-0"
+      : "mx-auto max-w-[1120px] px-4 pb-12 pt-22 sm:px-6 sm:pt-24";
 
   return (
     <div
@@ -309,12 +311,17 @@ export function PilotProfileView({
     >
       <div className={innerPad}>
         {/* Top header — avatar, identity, edit */}
-        <div className="flex flex-col gap-6 rounded-xl border border-border/80 bg-card p-5 shadow-sm sm:flex-row sm:items-start sm:justify-between sm:p-6">
-          <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-4 shadow-sm sm:p-5 lg:p-6">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-[#008B8B]/12 via-sky-500/10 to-emerald-500/10"
+          />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:gap-5">
             <div className="relative mx-auto shrink-0 sm:mx-0">
-              <div className="flex size-[5.5rem] items-center justify-center rounded-full bg-sky-100 ring-4 ring-sky-50 dark:bg-sky-950/50 dark:ring-sky-900/40">
+              <div className="flex size-[4.75rem] items-center justify-center rounded-full bg-sky-100 ring-4 ring-sky-50 dark:bg-sky-950/50 dark:ring-sky-900/40">
                 <Headset
-                  className="size-10 text-sky-700 dark:text-sky-300"
+                  className="size-8 text-sky-700 dark:text-sky-300"
                   strokeWidth={1.75}
                   aria-hidden
                 />
@@ -350,16 +357,17 @@ export function PilotProfileView({
                 ) : null}
               </p>
             </div>
-          </div>
-          <div className="flex shrink-0 justify-center sm:justify-end">
-            <button
-              type="button"
-              onClick={openEditDialog}
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#008080] bg-card px-4 text-sm text-foreground shadow-sm transition hover:bg-[#008080]/10"
-            >
-              <Pencil className="size-4" aria-hidden />
-              Edit
-            </button>
+            </div>
+            <div className="flex shrink-0 justify-center sm:justify-end">
+              <button
+                type="button"
+                onClick={openEditDialog}
+                className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#008080] bg-card px-3.5 text-sm text-foreground shadow-sm transition hover:bg-[#008080]/10"
+              >
+                <Pencil className="size-4" aria-hidden />
+                Edit profile
+              </button>
+            </div>
           </div>
         </div>
 
@@ -622,14 +630,14 @@ export function PilotProfileView({
         </div>
 
         {/* Detail cards */}
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
-            <div className="bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-3">
-              <h2 className="text-sm tracking-wide text-white">
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+            <div className="border-b border-border/80 bg-muted/35 px-4 py-3">
+              <h2 className="text-sm font-semibold tracking-wide text-foreground">
                 Personal information
               </h2>
             </div>
-            <div className="px-4 pb-1 pt-0">
+            <div className="px-4 pb-0.5 pt-0">
               <InfoRow
                 icon={<UserRound className="size-5 text-sky-600 dark:text-sky-300" />}
                 iconClass="bg-sky-100 dark:bg-sky-950/45"
@@ -673,13 +681,13 @@ export function PilotProfileView({
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
-            <div className="bg-gradient-to-r from-emerald-500 to-green-600 px-4 py-3">
-              <h2 className="text-sm tracking-wide text-white">
+          <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+            <div className="border-b border-border/80 bg-muted/35 px-4 py-3">
+              <h2 className="text-sm font-semibold tracking-wide text-foreground">
                 Professional information
               </h2>
             </div>
-            <div className="px-4 pb-1 pt-0">
+            <div className="px-4 pb-0.5 pt-0">
               <InfoRow
                 icon={<Clock className="size-5 text-sky-600 dark:text-sky-300" aria-hidden />}
                 iconClass="bg-sky-100 dark:bg-sky-950/45"

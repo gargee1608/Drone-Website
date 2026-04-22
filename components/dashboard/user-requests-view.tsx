@@ -126,7 +126,7 @@ function staticRequestToAdminRow(
   };
 }
 
-export function UserRequestsView() {
+export function UserRequestsView({ showPageTitle = true }: { showPageTitle?: boolean } = {}) {
   const router = useRouter();
   const demoAdminHydrated = useRef(false);
   /** Client-only review outcome for built-in demo table rows (localStorage keys use `demo-…`). */
@@ -276,7 +276,7 @@ export function UserRequestsView() {
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      <h1 className={ADMIN_PAGE_TITLE_CLASS}>User Request</h1>
+      {showPageTitle ? <h1 className={ADMIN_PAGE_TITLE_CLASS}>User Request</h1> : null}
       <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
         Summary figures count every request in{" "}
         <span className="font-semibold text-foreground">User requests</span> and{" "}
@@ -285,7 +285,7 @@ export function UserRequestsView() {
       </p>
 
       <section
-        className="mt-6 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4"
+        className={`grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4 ${showPageTitle ? "mt-6" : "mt-4"}`}
         aria-label="Request summary: User requests and Additional Inquires combined"
       >
         <UserRequestStatCard

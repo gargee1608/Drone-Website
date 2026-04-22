@@ -144,64 +144,125 @@ export async function verifyOtp(req, res, next) {
   }
 }
 
+function wantedRoleFromBody(bodyRole) {
+  if (bodyRole === "admin") return "admin";
+  if (bodyRole === "pilot") return "pilot";
+  return "user";
+}
+
+/**
+ * @param {{ kind: string; key: string; email?: string; mobile?: string }} parsed
+ * @param {string} password
+ * @param {"user" | "admin" | "pilot"} wantedRole
+ */
+async function resolvePasswordLogin(parsed, password, wantedRole) {
+  const devAnyPassword = isDevLoginAnyPassword();
+
+  let user = findUserByParsed(parsed);
+
+  if (devAnyPassword) {
+    if (!user) {
+      user = createUser({
+        email: parsed.email,
+        mobile: parsed.mobile,
+        passwordHash: await bcrypt.hash("dev-bypass", BCRYPT_ROUNDS),
+        role:
+          wantedRole === "admin"
+            ? "admin"
+            : wantedRole === "pilot"
+              ? "pilot"
+              : "user",
+      });
+      console.warn(
+        `[auth] DEV_LOGIN_ANY_PASSWORD: created user ${parsed.key} as ${user.role}`
+      );
+    }
+  } else {
+    if (!user || !user.passwordHash) {
+      const err = new Error("Invalid email or password");
+      err.status = 401;
+      err.code = "INVALID_CREDENTIALS";
+      throw err;
+    }
+
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) {
+      const err = new Error("Invalid email or password");
+      err.status = 401;
+      err.code = "INVALID_CREDENTIALS";
+      throw err;
+    }
+  }
+
+  if (!devAnyPassword) {
+    if (user.role !== wantedRole) {
+      let message = "Access denied";
+      if (wantedRole === "admin") {
+        message =
+          user.role === "pilot"
+            ? "Use Pilot Login for this account"
+            : "Not an admin account";
+      } else if (wantedRole === "user") {
+        message =
+          user.role === "admin"
+            ? "Use Admin Login for this account"
+            : user.role === "pilot"
+              ? "Use Pilot Login for this account"
+              : "Use User Login for this account";
+      } else if (wantedRole === "pilot") {
+        message =
+          user.role === "admin"
+            ? "Use Admin Login for this account"
+            : user.role === "user"
+              ? "Not a pilot account"
+              : "Use the correct login for this account";
+      }
+      const err = new Error(message);
+      err.status = 403;
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+  }
+
+  return user;
+}
+
 export async function login(req, res, next) {
   try {
     assertValid(req);
     const { identifier, password, role: bodyRole } = req.body;
-    const wantedRole = bodyRole || "user";
+    const wantedRole = wantedRoleFromBody(bodyRole);
     const parsed = parseIdentifier(identifier);
-    const devAnyPassword = isDevLoginAnyPassword();
-
-    let user = findUserByParsed(parsed);
-
-    if (devAnyPassword) {
-      if (!user) {
-        user = createUser({
-          email: parsed.email,
-          mobile: parsed.mobile,
-          passwordHash: await bcrypt.hash("dev-bypass", BCRYPT_ROUNDS),
-          role: wantedRole === "admin" ? "admin" : "user",
-        });
-        console.warn(
-          `[auth] DEV_LOGIN_ANY_PASSWORD: created user ${parsed.key} as ${user.role}`
-        );
-      }
-    } else {
-      if (!user || !user.passwordHash) {
-        const err = new Error("Invalid email or password");
-        err.status = 401;
-        err.code = "INVALID_CREDENTIALS";
-        throw err;
-      }
-
-      const ok = await bcrypt.compare(password, user.passwordHash);
-      if (!ok) {
-        const err = new Error("Invalid email or password");
-        err.status = 401;
-        err.code = "INVALID_CREDENTIALS";
-        throw err;
-      }
-    }
-
-    if (!devAnyPassword) {
-      if (wantedRole === "admin" && user.role !== "admin") {
-        const err = new Error("Not an admin account");
-        err.status = 403;
-        err.code = "FORBIDDEN";
-        throw err;
-      }
-      if (wantedRole === "user" && user.role === "admin") {
-        const err = new Error("Use Admin Login for this account");
-        err.status = 403;
-        err.code = "FORBIDDEN";
-        throw err;
-      }
-    }
+    const user = await resolvePasswordLogin(parsed, password, wantedRole);
 
     const token = signToken(user);
     res.json({
       ok: true,
       token,
+      role: user.role,
+      user: userPublic(user),
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
+/** Next.js app login: `{ email, password, role? }` → same auth as `/login`. */
+export async function signin(req, res, next) {
+  try {
+    assertValid(req);
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+    const bodyRole = req.body.role;
+    const wantedRole = wantedRoleFromBody(bodyRole);
+    const parsed = parseIdentifier(email);
+    const user = await resolvePasswordLogin(parsed, password, wantedRole);
+
+    const token = signToken(user);
+    res.json({
+      ok: true,
+      token,
+      role: user.role,
       user: userPublic(user),
     });
   } catch (e) {
@@ -214,7 +275,7 @@ export async function register(req, res, next) {
     assertValid(req);
     const { identifier, password, role } = req.body;
     const parsed = parseIdentifier(identifier);
-    const wantedRole = role === "admin" ? "admin" : "user";
+    const wantedRole = wantedRoleFromBody(role);
 
     const exists = findUserByParsed(parsed);
     if (exists) {

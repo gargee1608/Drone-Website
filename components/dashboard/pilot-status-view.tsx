@@ -153,7 +153,11 @@ function DutyBadge({ status }: { status: DutyStatus }) {
   );
 }
 
-export function PilotStatusView() {
+export function PilotStatusView({
+  showPageTitle = true,
+}: {
+  showPageTitle?: boolean;
+} = {}) {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [page, setPage] = useState(1);
 
@@ -192,9 +196,13 @@ export function PilotStatusView() {
   return (
     <div className="relative text-foreground dark:text-white">
       <div className="relative z-10 mx-auto max-w-7xl px-0 pb-2 pt-0 lg:px-2">
-        <div className="mb-8 md:mb-10">
-          <h1 className={ADMIN_PAGE_TITLE_CLASS}>Pilot Status</h1>
-        </div>
+        {showPageTitle ? (
+          <div className="mb-8 md:mb-10">
+            <h1 className={ADMIN_PAGE_TITLE_CLASS}>Pilot Status</h1>
+          </div>
+        ) : (
+          <div className="mb-5 md:mb-6" />
+        )}
 
         <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:mb-10 lg:grid-cols-4">
           <div className="flex flex-col rounded-2xl border border-border bg-card p-6">

@@ -13,17 +13,22 @@ export function ConditionalSiteFooter() {
     pathname === "/dashboard/" ||
     (pathname?.startsWith("/dashboard/") ?? false);
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
+  const isPilotDashboard =
+    pathname?.startsWith("/pilot-dashboard") ||
+    pathname?.startsWith("/pilot-profile") ||
+    false;
   const isSettings =
     pathname === "/settings" ||
     pathname === "/settings/" ||
     (pathname?.startsWith("/settings/") ?? false);
   const isDashboardShellFooter =
-    isAdminDashboard || isUserDashboard || isSettings;
+    isAdminDashboard || isUserDashboard || isPilotDashboard || isSettings;
   const whiteFooterChrome = isDashboardShellFooter;
   const isLandingChrome =
     pathname === "/" ||
     pathname === "" ||
     pathname === "/login" ||
+    pathname === "/pilot-login" ||
     pathname === "/signup" ||
     pathname === "/pilot-registration" ||
     pathname === "/services" ||

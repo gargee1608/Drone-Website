@@ -29,6 +29,7 @@ import {
   DEMO_ASSIGN_BRIDGE_UPDATED_EVENT,
   mergeAssignPilotDisplayQueue,
 } from "@/lib/assign-demo-bridge";
+import { pushPilotMissionNotification } from "@/lib/pilot-mission-notifications";
 import {
   appendAssignPilotDoneRef,
   loadAssignPilotDoneRefs,
@@ -402,6 +403,15 @@ export function AssignPilotDroneView() {
     saveCompletedAssignments(next);
     setCompletedAssignments(next);
     setDoneRefs(loadAssignPilotDoneRefs());
+    pushPilotMissionNotification({
+      requestRef: row.requestRef,
+      customer: row.customer,
+      service: row.service,
+      dropoff: row.dropoff,
+      pilotName: row.pilotName,
+      pilotBadgeId: row.pilotBadgeId,
+      droneModel: row.droneModel,
+    });
     setAssignedDialogOpen(false);
   };
 

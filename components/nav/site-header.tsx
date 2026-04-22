@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Bell, LogOut, Menu, Settings, User, X } from "lucide-react";
+import { ArrowRight, Bell, LogOut, Menu, User, X } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { HeaderThemeModeToggle } from "@/components/nav/header-theme-mode-toggle";
@@ -15,6 +15,7 @@ import {
 } from "@/components/nav/service-listing-mega-menu";
 import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav-context";
 import { SidebarMenuGlyph } from "@/components/nav/sidebar-menu-glyph";
+import { usePilotDashboardNav } from "@/components/pilot-dashboard/pilot-dashboard-nav-context";
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
 import { cn } from "@/lib/utils";
 
@@ -91,8 +92,13 @@ export function SiteHeader({
     sidebarExpanded: adminSidebarExpanded,
     setSidebarExpanded: setAdminSidebarExpanded,
   } = useAdminDashboardNav();
+  const {
+    sidebarExpanded: pilotSidebarExpanded,
+    setSidebarExpanded: setPilotSidebarExpanded,
+  } = usePilotDashboardNav();
 
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
+  const isPilotDashboard = pathname?.startsWith("/pilot-dashboard") ?? false;
   const isAdminDashboard =
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
@@ -100,25 +106,21 @@ export function SiteHeader({
   const isSettingsPage = pathname?.startsWith("/settings") ?? false;
 
   const showUserDashboardSidebarToggle = isUserDashboard;
+  const showPilotDashboardSidebarToggle = isPilotDashboard;
   const showAdminDashboardSidebarToggle = isAdminDashboard;
 
-  const showDashboardSettings = isUserDashboard || isAdminDashboard;
-  const settingsHref = isUserDashboard
-    ? "/settings?from=user"
-    : isAdminDashboard
-      ? "/settings?from=admin"
-      : "/settings";
+  const showDashboardAccountChrome = isUserDashboard || isAdminDashboard;
 
   const profileHref = isUserDashboard
     ? "/settings?from=user"
     : "/dashboard/profile";
 
   const whiteHeaderChrome =
-    isSettingsPage || isAdminDashboard || isUserDashboard;
+    isSettingsPage || isAdminDashboard || isUserDashboard || isPilotDashboard;
 
   /** Hide New Registration / Registered Pilot on admin & user dashboards only. */
   const showPilotRegistrationCtas =
-    !isAdminDashboard && !isUserDashboard;
+    !isAdminDashboard && !isUserDashboard && !isPilotDashboard;
 
   useEffect(() => {
     setAccountMenuOpen(false);
@@ -196,6 +198,24 @@ export function SiteHeader({
               }
               aria-expanded={userSidebarExpanded}
               aria-controls="user-dashboard-sidebar"
+            >
+              <SidebarMenuGlyph />
+            </button>
+          ) : null}
+          {showPilotDashboardSidebarToggle ? (
+            <button
+              type="button"
+              className="hidden lg:inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35"
+              onClick={() =>
+                setPilotSidebarExpanded(!pilotSidebarExpanded)
+              }
+              aria-label={
+                pilotSidebarExpanded
+                  ? "Collapse pilot dashboard sidebar"
+                  : "Expand pilot dashboard sidebar"
+              }
+              aria-expanded={pilotSidebarExpanded}
+              aria-controls="pilot-dashboard-sidebar"
             >
               <SidebarMenuGlyph />
             </button>
@@ -303,21 +323,9 @@ export function SiteHeader({
               <Button className={ctaButtonClassName}>{ctaLabel}</Button>
             ) : null}
           </div>
-          {/* Settings (dashboards only) + login + menu */}
+          {/* Account menu (dashboards); settings live in sidebars */}
           <div className="flex shrink-0 items-center gap-0.5 border-l border-border/50 pl-2 sm:gap-1 sm:pl-3 md:pl-4">
-            {showDashboardSettings ? (
-              <Link
-                href={settingsHref}
-                className={cn(
-                  buttonVariants({ variant: "ghost", size: "icon" }),
-                  "text-muted-foreground hover:text-foreground"
-                )}
-                aria-label="Settings"
-              >
-                <Settings className="size-4" />
-              </Link>
-            ) : null}
-            {showDashboardSettings ? (
+            {showDashboardAccountChrome ? (
               <div className="relative shrink-0" ref={accountMenuRef}>
                 <button
                   type="button"
@@ -471,16 +479,7 @@ export function SiteHeader({
               </a>
             )
           )}
-          {showDashboardSettings ? (
-            <Link
-              href={settingsHref}
-              className="rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
-              onClick={() => setOpen(false)}
-            >
-              Settings
-            </Link>
-          ) : null}
-          {showDashboardSettings ? (
+          {showDashboardAccountChrome ? (
             <div className="flex flex-col gap-1 border-t border-border/60 pt-3">
               <Link
                 href={profileHref}
