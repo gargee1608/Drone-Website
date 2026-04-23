@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       {
         message: "Backend unreachable",
         detail,
-        hint: "Start Express on port 4000 and set BACKEND_URL if it is not http://127.0.0.1:4000.",
+        hint: "Start `cd backend && npm run dev` on port 4000 (PostgreSQL required), or set `BACKEND_URL`.",
       },
       { status: 502 }
     );

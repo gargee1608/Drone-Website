@@ -16,6 +16,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { usePilotDashboardNav } from "@/components/pilot-dashboard/pilot-dashboard-nav-context";
+import { getPilotDisplayName, jwtPayloadRole } from "@/lib/pilot-display-name";
+import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +36,7 @@ const sidebarNav = [
     href: "/pilot-dashboard/completed-deliveries",
   },
   { label: "Pilot Status", icon: Plane, href: "/pilot-dashboard/pilot-status" },
-  { label: "Pilot profile", icon: UserRound, href: "/pilot-profile" },
+  { label: "Profile", icon: UserRound, href: "/pilot-profile" },
   { label: "Settings", icon: Settings, href: "/settings?from=pilot" },
 ] as const;
 
@@ -98,6 +100,7 @@ function LogoutControl({ onAfterClick }: { onAfterClick?: () => void }) {
       onClick={() => {
         onAfterClick?.();
         localStorage.removeItem("token");
+        localStorage.removeItem("pilot");
         router.replace("/pilot-login");
       }}
       className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400/50 dark:text-white dark:hover:bg-white/10 dark:focus-visible:outline-white/35"
@@ -139,8 +142,36 @@ export function PilotDashboardShell({
   omitPageTitle = false,
   children,
 }: PilotDashboardShellProps) {
+  const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [pilotWelcome, setPilotWelcome] = useState<string | null>(null);
   const { sidebarExpanded, setSidebarExpanded } = usePilotDashboardNav();
+
+  const isMainPilotDashboard =
+    pathname === "/pilot-dashboard" || pathname === "/pilot-dashboard/";
+
+  useEffect(() => {
+    const sync = () => {
+      const t =
+        typeof window !== "undefined"
+          ? localStorage.getItem("token")
+          : null;
+      if (!t || jwtPayloadRole(t) !== "pilot") {
+        setPilotWelcome(null);
+        return;
+      }
+      setPilotWelcome(getPilotDisplayName(t));
+    };
+    sync();
+    window.addEventListener("storage", sync);
+    window.addEventListener("focus", sync);
+    window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("focus", sync);
+      window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, sync);
+    };
+  }, []);
 
   useEffect(() => {
     setSidebarExpanded(true);
@@ -271,6 +302,11 @@ export function PilotDashboardShell({
             <div
               className={cn(omitPageTitle ? "mb-4 sm:mb-6" : "mb-8 sm:mb-10")}
             >
+              {pilotWelcome && isMainPilotDashboard ? (
+                <h2 className="mb-4 text-xl font-bold text-slate-900 sm:mb-5 dark:text-white">
+                  Welcome, {pilotWelcome} 🚀
+                </h2>
+              ) : null}
               {omitPageTitle ? (
                 <>
                   <h1 className="sr-only">{pageTitle}</h1>

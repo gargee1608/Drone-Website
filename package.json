@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:all": "concurrently -n next,api -c cyan,magenta \"next dev\" \"npm run dev --prefix server\"",
+    "dev": "concurrently -n next,api -c cyan,magenta \"next dev\" \"npm run dev --prefix backend\"",
+    "dev:next": "next dev",
+    "dev:memory-auth": "concurrently -n next,api -c cyan,magenta \"next dev\" \"npm run dev --prefix server\"",
+    "dev:all": "npm run dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

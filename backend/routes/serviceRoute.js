@@ -18,12 +18,12 @@ router.get("/", async (req, res) => {
 
 // ✅ ADD new service
 router.post("/", async (req, res) => {
-  const { title, description, price } = req.body;
+  const { title, description, price, image } = req.body || {};
 
   try {
     const result = await pool.query(
       "INSERT INTO services (title, description, price, image) VALUES ($1, $2, $3, $4) RETURNING *",
-      [title, description, price, image]
+      [title, description, price, image ?? null]
     );
 
     res.json(result.rows[0]);

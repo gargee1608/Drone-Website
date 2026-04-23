@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { PilotRegistrationView } from "@/components/pilot-registration/pilot-registration-view";
+import { PilotRegistrationView } from "@/components/pilot-registration/pilot-registration";
 
 export const metadata: Metadata = {
   title: "Pilot & Drone Registration — Drone Hire",

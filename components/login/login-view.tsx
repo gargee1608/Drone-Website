@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -116,9 +117,20 @@ export function LoginView() {
         },
         body: JSON.stringify({ email }),
       });
-  
-      const data = await res.json();
-  
+
+      const body = await readResponseJson(res);
+      if (!body.okParse) {
+        alert(
+          "OTP service returned a non-JSON response. Check that the backend is running on port 4000."
+        );
+        return;
+      }
+
+      const data =
+        body.data && typeof body.data === "object" && body.data !== null
+          ? (body.data as { error?: string })
+          : {};
+
       if (res.ok) {
         setOtpSent(true);
         alert("OTP sent to Mailtrap successfully");
@@ -151,7 +163,12 @@ export function LoginView() {
       }),
     });
 
-    const raw = await res.text();
+    const parsedBody = await readResponseJson(res);
+    if (!parsedBody.okParse) {
+      alert("Invalid server response");
+      return;
+    }
+
     let data: {
       token?: string;
       role?: string;
@@ -162,23 +179,25 @@ export function LoginView() {
       hint?: string;
     } = {};
 
-    if (raw) {
-      try {
-        const parsed: unknown = JSON.parse(raw);
-        if (parsed && typeof parsed === "object") {
-          data = parsed as typeof data;
-        }
-      } catch {
-        alert("Invalid server response");
-        return;
-      }
+    if (
+      parsedBody.data &&
+      typeof parsedBody.data === "object" &&
+      parsedBody.data !== null
+    ) {
+      data = parsedBody.data as typeof data;
     }
 
     if (!res.ok || !data.token) {
       const fromProxy = [data.error, data.detail, data.hint]
         .filter(Boolean)
         .join(" — ");
-      alert(data.message || fromProxy || "Login failed");
+      const head = String(data.message || data.error || "").trim();
+      const tail = [data.detail, data.hint]
+        .map((x) => String(x ?? "").trim())
+        .filter(Boolean)
+        .join(" — ");
+      const combined = [head, tail].filter(Boolean).join(" — ");
+      alert(combined || fromProxy || "Login failed");
       return;
     }
 

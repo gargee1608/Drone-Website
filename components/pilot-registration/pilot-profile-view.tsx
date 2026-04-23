@@ -21,6 +21,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getPilotDisplayName, jwtPayloadRole } from "@/lib/pilot-display-name";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
   normalizePilotSkillsForSnapshot,
@@ -38,6 +39,73 @@ function readSnapshot(): PilotProfileSnapshot | null {
     sessionStorage.getItem(PILOT_PROFILE_STORAGE_KEY) ??
     localStorage.getItem(PILOT_PROFILE_STORAGE_KEY);
   return parsePilotProfileSnapshot(raw);
+}
+
+function emptyPilotSnapshot(): PilotProfileSnapshot {
+  return {
+    fullName: "",
+    email: undefined,
+    phone: undefined,
+    city: "",
+    state: "",
+    aadhaar: undefined,
+    flightHours: 0,
+    bio: "",
+    skills: [],
+    drones: [],
+    dgca: "",
+  };
+}
+
+/** Dashboard profile: merge saved snapshot with logged-in pilot (same name source as flight deck). */
+function readSnapshotForPilotProfile(
+  variant: PilotProfileViewVariant
+): PilotProfileSnapshot | null {
+  const base = readSnapshot();
+
+  if (variant !== "dashboard") {
+    return base;
+  }
+
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const isPilotSession = Boolean(
+    token && jwtPayloadRole(token) === "pilot"
+  );
+
+  if (!isPilotSession) {
+    return base;
+  }
+
+  const displayName = getPilotDisplayName(token);
+  let pilotEmail: string | undefined;
+  try {
+    const raw = localStorage.getItem("pilot");
+    if (raw) {
+      const p = JSON.parse(raw) as { email?: string };
+      pilotEmail = p.email?.trim() || undefined;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  if (base) {
+    const mergedName =
+      displayName !== "Pilot"
+        ? displayName
+        : base.fullName.trim() || displayName;
+    return {
+      ...base,
+      fullName: mergedName,
+      email: pilotEmail ?? base.email,
+    };
+  }
+
+  return {
+    ...emptyPilotSnapshot(),
+    fullName: displayName,
+    email: pilotEmail,
+  };
 }
 
 function parseSkillsManual(text: string): string[] {
@@ -144,11 +212,11 @@ export function PilotProfileView({
   const [editError, setEditError] = useState<string | null>(null);
 
   const refreshFromStorage = useCallback(() => {
-    setData(readSnapshot());
-  }, []);
+    setData(readSnapshotForPilotProfile(variant));
+  }, [variant]);
 
   useEffect(() => {
-    const snap = readSnapshot();
+    const snap = readSnapshotForPilotProfile(variant);
     setData(snap);
     setReady(true);
     if (variant === "standalone" && !snap) {
@@ -174,7 +242,7 @@ export function PilotProfileView({
   }, [editOpen]);
 
   function openEditDialog() {
-    const snap = readSnapshot();
+    const snap = readSnapshotForPilotProfile(variant);
     if (!snap) return;
     setEditFullName(snap.fullName);
     setEditEmail(snap.email ?? "");
@@ -192,7 +260,7 @@ export function PilotProfileView({
 
   function handleEditSave(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const base = readSnapshot();
+    const base = readSnapshotForPilotProfile(variant);
     if (!base) return;
 
     const name = editFullName.trim();
@@ -264,19 +332,26 @@ export function PilotProfileView({
 
   if (!data) {
     if (variant === "dashboard") {
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("token")
+          : null;
+      const isPilot =
+        token !== null && jwtPayloadRole(token) === "pilot";
       return (
         <div className="relative bg-background pb-10 pt-1 text-foreground">
           <div className="mx-auto max-w-5xl rounded-xl border border-border bg-card p-8 shadow-sm">
             <h1 className={ADMIN_PAGE_TITLE_CLASS}>Profile</h1>
             <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
-              No pilot profile is saved in this browser yet. Complete pilot
-              registration to see details here.
+              {isPilot
+                ? "Could not load your profile. Try opening this page again, or complete registration to save full details in this browser."
+                : "No profile is saved in this browser yet. Sign in as a pilot or complete registration to see details here."}
             </p>
             <Link
-              href="/pilot-registration"
+              href={isPilot ? "/pilot-dashboard" : "/pilot-registration"}
               className="mt-6 inline-flex items-center justify-center rounded-lg border-2 border-[#008080] bg-card px-5 py-2.5 text-sm text-foreground shadow-sm transition hover:bg-[#008080]/10"
             >
-              New Registration
+              {isPilot ? "Back to dashboard" : "New Registration"}
             </Link>
           </div>
         </div>

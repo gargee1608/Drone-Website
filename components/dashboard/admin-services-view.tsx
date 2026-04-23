@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiUrl } from "@/lib/api-url";
+import { readResponseJson } from "@/lib/read-response-json";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -36,12 +37,12 @@ export function AdminServicesView() {
   const fetchServices = async () => {
     try {
       const res = await fetch(apiUrl("/api/services"));
-      const data: unknown = await res.json();
-      if (!res.ok || !Array.isArray(data)) {
+      const body = await readResponseJson(res);
+      if (!body.okParse || !res.ok || !Array.isArray(body.data)) {
         setItems([]);
         return;
       }
-      setItems(data as AdminService[]);
+      setItems(body.data as AdminService[]);
     } catch (err) {
       console.log(err);
       setItems([]);

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { PilotDashboardShell } from "@/components/pilot-dashboard/pilot-dashboard-shell";
+import { jwtPayloadRole } from "@/lib/pilot-display-name";
 import { cn } from "@/lib/utils";
 
 const flightDeck = Space_Grotesk({
@@ -32,20 +33,6 @@ const FD_PRIMARY = "#00418f";
 
 const LIVE_FEED_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDZ0f9uXM7jzeoXxh2c5WuE8cSxxxdPN2Gs-7YcV39DYRuhcq7nb5pD5f6oYdf9b-Gs4sfyX-Xp-yvyzcp0T7XJ7fh1M03lZpLy9ODmqvdX9-Tb-C2_Y8vT-elTvruYtsixaIWB05aJt3XRt0kifxLVtKCocqAngquDMsBzEjmJ-DP26S33wmi7h-ruFGbfJwrkQ6YxbxKinBYuaPoXwJAvKXKIGZt9QCEoFxuyXHaJQCE6YohzPX_zRyQBQQgx_BnAPtxTW2p1hzbN";
-
-function jwtPayloadRole(token: string): string | null {
-  try {
-    const part = token.split(".")[1];
-    if (!part) return null;
-    const b64 = part.replace(/-/g, "+").replace(/_/g, "/");
-    const pad =
-      b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
-    const json = JSON.parse(atob(b64 + pad)) as { role?: string };
-    return typeof json.role === "string" ? json.role : null;
-  } catch {
-    return null;
-  }
-}
 
 const cardShadow = "shadow-[0_4px_20px_rgba(0,0,0,0.04)]";
 

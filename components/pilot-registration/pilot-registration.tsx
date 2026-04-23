@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
   consumePilotRegistrationForceBlankNextOpen,
@@ -15,7 +16,6 @@ import {
   savePilotRegistrationDraft,
   type PilotRegistrationDraft,
 } from "@/lib/pilot-registration-draft";
-import { appendPendingPilotRegistration } from "@/lib/admin-pilot-registration-storage";
 import {
   normalizePilotSkillsForSnapshot,
   PILOT_PROFILE_STORAGE_KEY,
@@ -24,6 +24,7 @@ import {
   type PilotProfileDrone,
   type PilotProfileSnapshot,
 } from "@/lib/pilot-profile-snapshot";
+import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
@@ -174,6 +175,7 @@ export function PilotRegistrationView() {
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -197,6 +199,7 @@ export function PilotRegistrationView() {
     setStep(1);
     setFullName("");
     setEmail("");
+    setPassword("");
     setPhone("");
     setCity("");
     setState("");
@@ -293,6 +296,10 @@ export function PilotRegistrationView() {
     }
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setStepError("A valid email is required.");
+      return false;
+    }
+    if (!password.trim() || password.trim().length < 6) {
+      setStepError("Password must be at least 6 characters.");
       return false;
     }
     if (!phone.trim()) {
@@ -397,6 +404,10 @@ export function PilotRegistrationView() {
       setSubmitError("Select at least one skill on the Skills step.");
       return;
     }
+    if (!password.trim() || password.trim().length < 6) {
+      setSubmitError("Set a password (at least 6 characters) on the Personal step.");
+      return;
+    }
     setSubmitError(null);
 
     const hrsRaw = Number(flightHours);
@@ -424,26 +435,40 @@ export function PilotRegistrationView() {
       dgca: dgca.trim(),
     };
 
-    const registerPilotToDB = async (payload: any) => {
-      const res = await fetch("http://localhost:4000/api/pilot-registration", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-    
-      return res.json();
-    };
-
-    //appendPendingPilotRegistration(snapshot);
-    await registerPilotToDB({
-      name: snapshot.fullName,
-      email: snapshot.email,
-      phone: snapshot.phone,
-      experience: snapshot.flightHours,
-      license_number: snapshot.dgca,
+    const res = await fetch(apiUrl("/api/pilots/register"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: snapshot.fullName,
+        email: snapshot.email,
+        phone: snapshot.phone,
+        experience: snapshot.flightHours,
+        license_number: snapshot.dgca,
+        password: password.trim(),
+      }),
     });
+
+    const regBody = await readResponseJson(res);
+    if (!regBody.okParse) {
+      setSubmitError(
+        "Registration server returned an invalid response. Is the backend running on port 4000?"
+      );
+      return;
+    }
+    if (!res.ok) {
+      const errObj =
+        regBody.data &&
+        typeof regBody.data === "object" &&
+        regBody.data !== null
+          ? (regBody.data as { message?: string; error?: string })
+          : {};
+      setSubmitError(
+        errObj.message ||
+          errObj.error ||
+          `Registration failed (HTTP ${res.status}).`
+      );
+      return;
+    }
 
     const json = JSON.stringify(snapshot);
     try {
@@ -578,6 +603,25 @@ export function PilotRegistrationView() {
                     placeholder="raj@email.com"
                     className="h-10 rounded-lg border-slate-200 bg-white px-3"
                     autoComplete="email"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="pilot-password"
+                    className="text-sm font-medium text-slate-800"
+                  >
+                    Password <RequiredMark />
+                  </label>
+                  <Input
+                    id="pilot-password"
+                    name="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="h-10 rounded-lg border-slate-200 bg-white px-3"
+                    autoComplete="new-password"
                   />
                 </div>
 

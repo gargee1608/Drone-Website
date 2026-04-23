@@ -7,6 +7,7 @@ import { useState, type FormEvent } from "react";
 
 import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -51,27 +52,34 @@ export function PilotLoginView() {
         }),
       });
 
-      const raw = await res.text();
+      const parsedBody = await readResponseJson(res);
+      if (!parsedBody.okParse) {
+        alert("Invalid server response");
+        return;
+      }
+
       let data: {
         token?: string;
         role?: string;
-        user?: { role?: string };
+        user?: {
+          role?: string;
+          name?: string;
+          fullName?: string;
+          email?: string;
+          id?: unknown;
+        };
         message?: string;
         error?: string;
         detail?: string;
         hint?: string;
       } = {};
 
-      if (raw) {
-        try {
-          const parsed: unknown = JSON.parse(raw);
-          if (parsed && typeof parsed === "object") {
-            data = parsed as typeof data;
-          }
-        } catch {
-          alert("Invalid server response");
-          return;
-        }
+      if (
+        parsedBody.data &&
+        typeof parsedBody.data === "object" &&
+        parsedBody.data !== null
+      ) {
+        data = parsedBody.data as typeof data;
       }
 
       if (!res.ok || !data.token) {
@@ -89,6 +97,7 @@ export function PilotLoginView() {
       }
 
       localStorage.setItem("token", data.token);
+      localStorage.setItem("pilot", JSON.stringify(data.user)); 
       router.push("/pilot-dashboard");
     } catch (err) {
       console.error(err);
