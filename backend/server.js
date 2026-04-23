@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const transporter = require("./email");
@@ -13,6 +14,10 @@ app.use(express.json());
 
 
 const serviceRoute = require("./routes/serviceRoute");
+
+const pilotRoutes = require("./routes/pilotRoutes");
+app.use("/api", pilotRoutes);
+
 
 // ✅ API route
 app.use("/api/services", serviceRoute);
@@ -198,6 +203,27 @@ app.post("/send-otp", async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: "Email sending failed" });
+  }
+});
+
+app.post("/api/pilots/register", async (req, res) => {
+  try {
+    const { name, email, phone, experience, license_number } = req.body;
+
+    const result = await pool.query(
+      `INSERT INTO pilots (name, email, phone, experience, license_number)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [name, email, phone, experience, license_number]
+    );
+
+    res.status(201).json({
+      message: "Pilot registered successfully",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 

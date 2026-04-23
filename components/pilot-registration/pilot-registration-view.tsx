@@ -383,7 +383,7 @@ export function PilotRegistrationView() {
    * Submit from Review (step 4), or from Skills (step 2) via “Submit” (no drone section).
    * Does not run on Enter / implicit form submit.
    */
-  function submitRegistration() {
+  async function submitRegistration() {
     const skipFromSkills = step === 2;
     if (step !== 4 && !skipFromSkills) return;
     const name = fullName.trim();
@@ -424,7 +424,26 @@ export function PilotRegistrationView() {
       dgca: dgca.trim(),
     };
 
-    appendPendingPilotRegistration(snapshot);
+    const registerPilotToDB = async (payload: any) => {
+      const res = await fetch("http://localhost:4000/api/pilot-registration", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+    
+      return res.json();
+    };
+
+    //appendPendingPilotRegistration(snapshot);
+    await registerPilotToDB({
+      name: snapshot.fullName,
+      email: snapshot.email,
+      phone: snapshot.phone,
+      experience: snapshot.flightHours,
+      license_number: snapshot.dgca,
+    });
 
     const json = JSON.stringify(snapshot);
     try {
