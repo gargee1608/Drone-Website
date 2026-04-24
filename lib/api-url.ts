@@ -16,5 +16,9 @@ export function apiUrl(path: string): string {
   if (normalized === "/api/pilots/register") {
     return "/api/pilots/register";
   }
+  /** Served by Next Route Handlers (`app/api/blogs/...`) — same DB as backend; works without Express. */
+  if (normalized.startsWith("/api/blogs")) {
+    return normalized;
+  }
   return `/api/express${normalized}`;
 }

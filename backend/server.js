@@ -1,10 +1,13 @@
 require("dotenv").config();
+
+
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const transporter = require("./email");
 const pool = require("./db");
+
 
 const app = express();
 
@@ -15,6 +18,9 @@ app.use(express.json());
 const serviceRoute = require("./routes/serviceRoute");
 
 const pilotRoutes = require("./routes/pilotRoutes");
+const blogRoutes = require("./routes/blogRoutes");
+
+app.use("/api/blogs", blogRoutes);
 
 app.use("/api/pilots", pilotRoutes);
 
@@ -161,6 +167,7 @@ function jwtSecret() {
   }
   return "dev-insecure-jwt-secret";
 }
+
 
 function storedPasswordFromUser(row) {
   if (!row || typeof row !== "object") return "";

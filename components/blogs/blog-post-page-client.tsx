@@ -5,6 +5,11 @@ import { useEffect, useState } from "react";
 
 import type { BlogPost } from "@/components/blogs/blog-data";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
+import {
+  fetchBlogByIdFromApi,
+  mapApiRowToBlogPost,
+  parseBlogDbSlug,
+} from "@/lib/blog-api";
 import { getMergedPostBySlug } from "@/lib/blog-merge";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
@@ -17,12 +22,40 @@ export function BlogPostPageClient({
   initialPost: BlogPost | null;
 }) {
   const [post, setPost] = useState<BlogPost | null>(initialPost);
-  const [ready, setReady] = useState(Boolean(initialPost));
+  const [ready, setReady] = useState(
+    Boolean(initialPost) || parseBlogDbSlug(slug) == null
+  );
 
   useEffect(() => {
+    const id = parseBlogDbSlug(slug);
+    if (id != null) {
+      if (initialPost) {
+        setPost(initialPost);
+        setReady(true);
+        return undefined;
+      }
+      let cancelled = false;
+      setReady(false);
+      fetchBlogByIdFromApi(id)
+        .then((row) => {
+          if (cancelled) return;
+          setPost(row ? mapApiRowToBlogPost(row) : null);
+          setReady(true);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setPost(null);
+            setReady(true);
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
     setPost(getMergedPostBySlug(slug) ?? null);
     setReady(true);
-  }, [slug]);
+    return undefined;
+  }, [slug, initialPost]);
 
   useEffect(() => {
     if (!post?.title) return;

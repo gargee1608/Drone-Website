@@ -2,25 +2,30 @@
 
 import Image from "next/image";
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { postsBySlug, type BlogPost } from "@/components/blogs/blog-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  fetchBlogsFromApi,
+  mapApiRowToBlogPost,
+} from "@/lib/blog-api";
+import { apiUrl } from "@/lib/api-url";
+import {
   BLOG_ADMIN_UPDATED_EVENT,
-  createInternalId,
   deleteBuiltinFromCatalog,
   loadBlogExtras,
   loadBlogOverrides,
   saveBlogExtras,
   saveBlogOverrides,
-  slugifyTitle,
   type AdminBlogExtra,
 } from "@/lib/blog-admin-storage";
 import { getMergedBlogPostsList } from "@/lib/blog-merge";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
+
+type AdminBlogRow = BlogPost & { dbId?: number };
 
 const CATEGORIES: BlogPost["category"][] = [
   "Technology",
@@ -43,28 +48,16 @@ function textToBody(text: string): string[] {
   return parts.length > 0 ? parts : [text.trim() || " "];
 }
 
-function ensureUniqueSlug(candidate: string, excludeSlug?: string): string {
-  const slugs = new Set(
-    getMergedBlogPostsList().map((p) => p.slug).filter((s) => s !== excludeSlug)
-  );
-  let s = candidate;
-  let n = 0;
-  while (slugs.has(s)) {
-    n += 1;
-    s = `${candidate}-${n}`;
-  }
-  return s;
-}
-
 type EditorMode = "closed" | "add" | "edit";
 
 export function AdminBlogsView() {
-  const [rows, setRows] = useState<BlogPost[]>([]);
+  const [rows, setRows] = useState<AdminBlogRow[]>([]);
   const [extras, setExtras] = useState<AdminBlogExtra[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>("closed");
   const [editSlug, setEditSlug] = useState<string | null>(null);
   const [editInternalId, setEditInternalId] = useState<string | null>(null);
+  const [editDbId, setEditDbId] = useState<number | null>(null);
 
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
@@ -75,21 +68,31 @@ export function AdminBlogsView() {
   const [imageAlt, setImageAlt] = useState("");
   const [tagTone, setTagTone] = useState<BlogPost["tagTone"]>("primary");
   const [bodyText, setBodyText] = useState("");
-  const [slugManual, setSlugManual] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const openedEditSlugRef = useRef<string | null>(null);
 
-  const refresh = useCallback(() => {
-    setRows(getMergedBlogPostsList());
+  const refresh = useCallback(async () => {
+    let dbPosts: AdminBlogRow[] = [];
+    try {
+      const apiRows = await fetchBlogsFromApi();
+      dbPosts = apiRows.map((r) => ({
+        ...mapApiRowToBlogPost(r),
+        dbId: r.id,
+      }));
+    } catch {
+      dbPosts = [];
+    }
+    const merged = getMergedBlogPostsList();
+    setRows([...dbPosts, ...merged]);
     setExtras(loadBlogExtras());
   }, []);
 
   useEffect(() => {
-    refresh();
-    setHydrated(true);
+    void refresh().finally(() => setHydrated(true));
   }, [refresh]);
 
   useEffect(() => {
-    const fn = () => refresh();
+    const fn = () => void refresh();
     window.addEventListener(BLOG_ADMIN_UPDATED_EVENT, fn);
     return () => window.removeEventListener(BLOG_ADMIN_UPDATED_EVENT, fn);
   }, [refresh]);
@@ -100,6 +103,7 @@ export function AdminBlogsView() {
     setEditorMode("add");
     setEditSlug(null);
     setEditInternalId(null);
+    setEditDbId(null);
     setTitle("");
     setExcerpt("");
     setDate(
@@ -113,15 +117,15 @@ export function AdminBlogsView() {
     setImageAlt("");
     setTagTone("primary");
     setBodyText("");
-    setSlugManual("");
     setFormError(null);
   };
 
-  const openEdit = (post: BlogPost) => {
+  const openEdit = (post: AdminBlogRow) => {
     const extra = loadBlogExtras().find((e) => e.slug === post.slug);
     setEditorMode("edit");
     setEditSlug(post.slug);
     setEditInternalId(extra?.internalId ?? null);
+    setEditDbId(typeof post.dbId === "number" ? post.dbId : null);
     setTitle(post.title);
     setExcerpt(post.excerpt);
     setDate(post.date);
@@ -131,18 +135,40 @@ export function AdminBlogsView() {
     setImageAlt(post.imageAlt);
     setTagTone(post.tagTone);
     setBodyText(bodyToText(post.body));
-    setSlugManual(post.slug);
     setFormError(null);
   };
+
+  useEffect(() => {
+    if (!hydrated || rows.length === 0 || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get("editSlug");
+    if (!target) {
+      openedEditSlugRef.current = null;
+      return;
+    }
+    if (openedEditSlugRef.current === target) return;
+    const post = rows.find((r) => r.slug === target);
+    if (!post) return;
+    openedEditSlugRef.current = target;
+    openEdit(post);
+    params.delete("editSlug");
+    const q = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}${q ? `?${q}` : ""}`
+    );
+  }, [hydrated, rows]);
 
   const closeEditor = () => {
     setEditorMode("closed");
     setEditSlug(null);
     setEditInternalId(null);
+    setEditDbId(null);
     setFormError(null);
   };
 
-  const saveForm = (e: React.FormEvent) => {
+  const saveForm = async (e: React.FormEvent) => {
     e.preventDefault();
     const t = title.trim();
     if (!t) {
@@ -165,19 +191,59 @@ export function AdminBlogsView() {
     };
 
     if (editorMode === "add") {
-      const rawSlug = slugManual.trim() || slugifyTitle(t);
-      const slug = ensureUniqueSlug(rawSlug);
-      const row: AdminBlogExtra = {
-        ...baseFields,
-        slug,
-        internalId: createInternalId(),
-        createdAt: Date.now(),
-      };
-      const next = [...loadBlogExtras(), row];
-      saveBlogExtras(next);
-      setExtras(next);
-      refresh();
-      closeEditor();
+      const img =
+        image.trim() || "https://placehold.co/800x600/e2e8f0/64748b?text=Blog";
+      const content = bodyText.trim() || " ";
+      try {
+        const res = await fetch(apiUrl("/api/blogs"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: t, content, image: img }),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        if (!res.ok) {
+          setFormError(
+            typeof data.error === "string" ? data.error : "Save failed"
+          );
+          return;
+        }
+        await refresh();
+        window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+        closeEditor();
+      } catch {
+        setFormError("Network error — is the backend running?");
+      }
+      return;
+    }
+
+    if (editorMode === "edit" && editDbId != null) {
+      const img =
+        image.trim() || "https://placehold.co/800x600/e2e8f0/64748b?text=Blog";
+      const content = bodyText.trim() || " ";
+      try {
+        const res = await fetch(apiUrl(`/api/blogs/${editDbId}`), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: t, content, image: img }),
+          }
+        );
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        if (!res.ok) {
+          setFormError(
+            typeof data.error === "string" ? data.error : "Update failed"
+          );
+          return;
+        }
+        await refresh();
+        window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+        closeEditor();
+      } catch {
+        setFormError("Network error — is the backend running?");
+      }
       return;
     }
 
@@ -217,7 +283,7 @@ export function AdminBlogsView() {
           },
         });
       }
-      refresh();
+      await refresh();
       closeEditor();
     }
   };
@@ -225,14 +291,30 @@ export function AdminBlogsView() {
   const deleteExtra = (internalId: string) => {
     const next = loadBlogExtras().filter((r) => r.internalId !== internalId);
     saveBlogExtras(next);
-    refresh();
+    void refresh();
     if (editInternalId === internalId) closeEditor();
   };
 
   const deleteBuiltin = (slug: string) => {
     if (editSlug === slug) closeEditor();
     deleteBuiltinFromCatalog(slug);
-    refresh();
+    void refresh();
+  };
+
+  const deleteDbBlog = async (id: number) => {
+    try {
+      const res = await fetch(apiUrl(`/api/blogs/${id}`), {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        return;
+      }
+      await refresh();
+      window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+      if (editDbId === id) closeEditor();
+    } catch {
+      /* ignore */
+    }
   };
 
   return (
@@ -280,15 +362,10 @@ export function AdminBlogsView() {
               </div>
               {editorMode === "add" ? (
                 <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                    Slug (optional — auto from title if empty)
-                  </label>
-                  <Input
-                    value={slugManual}
-                    onChange={(e) => setSlugManual(e.target.value)}
-                    placeholder="e.g. fleet-safety-2024"
-                    className="h-11 rounded-lg border-border font-mono text-sm"
-                  />
+                  <p className="text-xs text-muted-foreground">
+                    New posts are saved to the database. The URL slug is set
+                    automatically (e.g. blog-1).
+                  </p>
                 </div>
               ) : (
                 <div className="sm:col-span-2">
@@ -432,21 +509,26 @@ export function AdminBlogsView() {
         ) : (
           <ul className="grid list-none grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3 lg:gap-5">
             {rows.map((post) => {
+              const isDb = typeof post.dbId === "number";
               const isBuiltIn = builtinSlugs.has(post.slug);
               const extra = extras.find((e) => e.slug === post.slug);
-              const typeLabel = extra
-                ? "Custom"
-                : isBuiltIn
-                  ? "Built-in"
-                  : "—";
-              const typeClass = extra
-                ? "border-[#008B8B]/25 bg-[#008B8B]/10 text-[#006d6d]"
-                : isBuiltIn
-                  ? "border-border bg-muted text-foreground"
-                  : "border-border bg-muted/50 text-muted-foreground";
+              const typeLabel = isDb
+                ? "Database"
+                : extra
+                  ? "Custom"
+                  : isBuiltIn
+                    ? "Built-in"
+                    : "—";
+              const typeClass = isDb
+                ? "border-emerald-700/30 bg-emerald-700/10 text-emerald-900"
+                : extra
+                  ? "border-[#008B8B]/25 bg-[#008B8B]/10 text-[#006d6d]"
+                  : isBuiltIn
+                    ? "border-border bg-muted text-foreground"
+                    : "border-border bg-muted/50 text-muted-foreground";
 
               return (
-                <li key={post.slug}>
+                <li key={isDb ? `db-${post.dbId}` : post.slug}>
                   <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:border-[#008B8B]/35 hover:shadow-md">
                     <div className="relative aspect-[16/10] w-full shrink-0 bg-muted">
                       <Image
@@ -499,7 +581,17 @@ export function AdminBlogsView() {
                           <Pencil className="size-3.5" aria-hidden />
                           Edit
                         </button>
-                        {extra ? (
+                        {isDb ? (
+                          <button
+                            type="button"
+                            onClick={() => void deleteDbBlog(post.dbId!)}
+                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50/80 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 min-[360px]:flex-none"
+                            aria-label={`Delete ${post.title}`}
+                          >
+                            <Trash2 className="size-3.5" aria-hidden />
+                            Delete
+                          </button>
+                        ) : extra ? (
                           <button
                             type="button"
                             onClick={() => deleteExtra(extra.internalId)}

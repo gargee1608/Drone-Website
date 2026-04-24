@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  MoreHorizontal,
-} from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
@@ -260,16 +255,16 @@ export function PilotStatusView({
           </div>
         </div>
 
-        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-end">
+        <div className="mb-6 flex justify-end">
           <label className="sr-only" htmlFor="pilot-status-filter">
             Duty status
           </label>
-          <div className="relative w-full max-w-[9.5rem] sm:ml-auto sm:w-auto">
+          <div className="relative w-full max-w-[9.5rem] sm:w-auto">
             <select
               id="pilot-status-filter"
               value={filter}
               onChange={(e) => setFilter(e.target.value as FilterTab)}
-              className="w-full cursor-pointer appearance-none rounded-md border border-border bg-card py-1.5 pl-2 pr-7 text-xs font-medium text-foreground shadow-sm outline-none transition hover:border-muted-foreground/40 focus:border-[#006a6e] focus:ring-1 focus:ring-[#006a6e]/25 dark:text-white"
+              className="w-full cursor-pointer appearance-none rounded-md border border-border bg-transparent py-1.5 pl-2 pr-7 text-xs font-medium text-foreground outline-none transition hover:border-muted-foreground/40 focus-visible:border-[#006a6e] focus-visible:ring-1 focus-visible:ring-[#006a6e]/25 dark:text-white"
             >
               <option value="all">All</option>
               <option value="active">Active</option>
@@ -293,8 +288,7 @@ export function PilotStatusView({
                     "Experience",
                     "Flight record",
                     "Duty status",
-                    "Last telemetry",
-                    "Actions",
+                    "Last Mission",
                   ].map((h) => (
                     <th
                       key={h}
@@ -309,7 +303,7 @@ export function PilotStatusView({
                 {paginatedRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={6}
                       className="px-6 py-12 text-center text-sm text-muted-foreground dark:text-white"
                     >
                       No pilots match your filters.
@@ -353,15 +347,6 @@ export function PilotStatusView({
                         <div className="text-[10px] text-muted-foreground/80 dark:text-white/85">
                           {row.lastTimeUtc}
                         </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <button
-                          type="button"
-                          className="rounded p-1 text-muted-foreground/80 transition hover:text-[#006a6e] dark:text-white dark:hover:text-white"
-                          aria-label={`Actions for ${row.name}`}
-                        >
-                          <MoreHorizontal className="size-5" />
-                        </button>
                       </td>
                     </tr>
                   ))
