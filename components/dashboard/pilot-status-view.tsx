@@ -2,7 +2,13 @@
 
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-
+import { getPilots } from "@/app/services/pilotServices";
+import {
+  experienceSubtitleFromPilotRow,
+  experienceYearsFromPilotRow,
+  flightHoursFromPilotRow,
+  missionsCompletedFromPilotRow,
+} from "@/lib/pilot-db-metrics";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -14,95 +20,13 @@ type PilotRow = {
   certLevel: number;
   experienceYears: number;
   experienceRank: string;
+  flightHours: number;
   flightCount: number;
   dutyStatus: DutyStatus;
   lastDate: string;
   lastTimeUtc: string;
+  isPendingApproval: boolean;
 };
-
-const KPI = {
-  totalRegistered: 84,
-  totalDelta: "+4 this month",
-  currentlyActive: 52,
-  inactiveOnLeave: 12,
-  inactiveDelta: "14% decrease",
-  pendingApproval: 20,
-} as const;
-
-const SEED_ROWS: PilotRow[] = [
-  {
-    id: "AE-9042",
-    name: "Capt. Sarah Chen",
-    certLevel: 5,
-    experienceYears: 8,
-    experienceRank: "Commercial Master",
-    flightCount: 142,
-    dutyStatus: "ACTIVE",
-    lastDate: "Oct 24, 2024",
-    lastTimeUtc: "14:22 UTC",
-  },
-  {
-    id: "AE-8112",
-    name: "Marcus Thorne",
-    certLevel: 4,
-    experienceYears: 5,
-    experienceRank: "Logistics Spec.",
-    flightCount: 98,
-    dutyStatus: "INACTIVE",
-    lastDate: "Oct 12, 2024",
-    lastTimeUtc: "09:15 UTC",
-  },
-  {
-    id: "AE-2201",
-    name: "Lt. Elena Kovac",
-    certLevel: 5,
-    experienceYears: 10,
-    experienceRank: "Senior Commander",
-    flightCount: 205,
-    dutyStatus: "ACTIVE",
-    lastDate: "Oct 23, 2024",
-    lastTimeUtc: "22:10 UTC",
-  },
-  {
-    id: "AE-5531",
-    name: "Capt. James Orion",
-    certLevel: 3,
-    experienceYears: 4,
-    experienceRank: "Fleet Support",
-    flightCount: 76,
-    dutyStatus: "INACTIVE",
-    lastDate: "Oct 22, 2024",
-    lastTimeUtc: "11:05 UTC",
-  },
-];
-
-function buildFleetRows(): PilotRow[] {
-  const extra: PilotRow[] = [];
-  for (let i = 5; i <= 84; i++) {
-    const duty: DutyStatus = i % 3 === 0 ? "INACTIVE" : "ACTIVE";
-    extra.push({
-      id: `AE-${String(7000 + i).padStart(4, "0")}`,
-      name: i % 5 === 0 ? `Cmdr. Alex Row ${i}` : `Lt. Pilot ${i}`,
-      certLevel: (i % 3) + 3,
-      experienceYears: 2 + (i % 12),
-      experienceRank:
-        i % 4 === 0
-          ? "Fleet Support"
-          : i % 4 === 1
-            ? "Commercial Master"
-            : i % 4 === 2
-              ? "Logistics Spec."
-              : "Senior Commander",
-      flightCount: 40 + (i % 200),
-      dutyStatus: duty,
-      lastDate: "Oct 20, 2024",
-      lastTimeUtc: `${String(8 + (i % 12)).padStart(2, "0")}:${String((i * 7) % 60).padStart(2, "0")} UTC`,
-    });
-  }
-  return [...SEED_ROWS, ...extra];
-}
-
-const ALL_ROWS = buildFleetRows();
 
 const PAGE_SIZE = 4;
 
@@ -154,16 +78,17 @@ export function PilotStatusView({
   showPageTitle?: boolean;
 } = {}) {
   const [filter, setFilter] = useState<FilterTab>("all");
+  const [apiPilots, setApiPilots] = useState<PilotRow[]>([]);
   const [page, setPage] = useState(1);
 
   const filteredRows = useMemo(() => {
-    return ALL_ROWS.filter((row) => {
+    return apiPilots.filter((row) => {
       if (filter === "active" && row.dutyStatus !== "ACTIVE") return false;
       if (filter === "inactive" && row.dutyStatus !== "INACTIVE")
         return false;
       return true;
     });
-  }, [filter]);
+  }, [apiPilots, filter]);
 
   const totalFiltered = filteredRows.length;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
@@ -183,6 +108,71 @@ export function PilotStatusView({
     const start = (page - 1) * PAGE_SIZE;
     return filteredRows.slice(start, start + PAGE_SIZE);
   }, [filteredRows, page]);
+
+  const kpi = useMemo(() => {
+    const totalRegistered = apiPilots.length;
+    const currentlyActive = apiPilots.filter(
+      (p) => p.dutyStatus === "ACTIVE"
+    ).length;
+    const inactiveOnLeave = totalRegistered - currentlyActive;
+    const pendingApproval = apiPilots.filter((p) => p.isPendingApproval).length;
+    const inactivePct =
+      totalRegistered > 0
+        ? `${Math.round((inactiveOnLeave / totalRegistered) * 100)}% of total`
+        : "0% of total";
+    return {
+      totalRegistered,
+      currentlyActive,
+      inactiveOnLeave,
+      pendingApproval,
+      inactivePct,
+    };
+  }, [apiPilots]);
+
+  useEffect(() => {
+    const fetchPilots = async () => {
+      const data = await getPilots();
+      const rows = Array.isArray(data) ? data : [];
+
+      // map backend data -> UI format and derive status counts from available fields
+      const formatted = rows.map((pilot: Record<string, unknown>) => {
+        const rawStatus = String(
+          pilot.duty_status ?? pilot.dutyStatus ?? pilot.status ?? "ACTIVE"
+        ).toUpperCase();
+        const dutyStatus: DutyStatus =
+          rawStatus === "INACTIVE" ||
+          rawStatus === "OFFLINE" ||
+          rawStatus === "ON_LEAVE"
+            ? "INACTIVE"
+            : "ACTIVE";
+        const approvalStatus = String(
+          pilot.approval_status ?? pilot.admin_status ?? pilot.status ?? ""
+        ).toLowerCase();
+
+        return {
+          id: pilot.id?.toString() || "",
+          name: String(pilot.name ?? "Unknown pilot"),
+          certLevel: Number(pilot.cert_level ?? 3),
+          experienceYears: experienceYearsFromPilotRow(pilot),
+          experienceRank: experienceSubtitleFromPilotRow(pilot),
+          flightHours: flightHoursFromPilotRow(pilot),
+          flightCount: missionsCompletedFromPilotRow(pilot),
+          dutyStatus,
+          lastDate: String(pilot.last_date ?? "N/A"),
+          lastTimeUtc: String(pilot.last_time_utc ?? "N/A"),
+          isPendingApproval:
+            approvalStatus === "pending" ||
+            approvalStatus === "pending approval" ||
+            approvalStatus === "needs review" ||
+            approvalStatus === "awaiting approval",
+        };
+      });
+
+      setApiPilots(formatted);
+    };
+  
+    fetchPilots();
+  }, []);
 
   useEffect(() => {
     setPage(1);
@@ -206,10 +196,10 @@ export function PilotStatusView({
             </span>
             <div className="flex items-end gap-3">
               <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-                {KPI.totalRegistered}
+                {kpi.totalRegistered}
               </span>
               <span className="mb-1 font-mono text-xs font-bold text-[#006a6e] dark:text-white">
-                {KPI.totalDelta}
+                Live from DB
               </span>
             </div>
           </div>
@@ -219,7 +209,7 @@ export function PilotStatusView({
             </span>
             <div className="flex items-end gap-3">
               <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-                {KPI.currentlyActive}
+                {kpi.currentlyActive}
               </span>
               <span className="mb-1 flex items-center text-[10px] font-bold text-[#1a1c1e] dark:text-white">
                 <span className="mr-2 size-2 animate-pulse rounded-full bg-foreground dark:bg-white" />
@@ -233,10 +223,10 @@ export function PilotStatusView({
             </span>
             <div className="flex items-end gap-3">
               <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-                {KPI.inactiveOnLeave}
+                {kpi.inactiveOnLeave}
               </span>
               <span className="mb-1 font-mono text-xs text-muted-foreground/80 dark:text-white/90">
-                {KPI.inactiveDelta}
+                {kpi.inactivePct}
               </span>
             </div>
           </div>
@@ -246,7 +236,7 @@ export function PilotStatusView({
             </span>
             <div className="flex items-end gap-3">
               <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-                {KPI.pendingApproval}
+                {kpi.pendingApproval}
               </span>
               <span className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#1a1c1e] dark:text-white">
                 Needs review
@@ -286,7 +276,8 @@ export function PilotStatusView({
                     "Pilot personnel",
                     "Certification",
                     "Experience",
-                    "Flight record",
+                    "Flight hours",
+                    "Missions",
                     "Duty status",
                     "Last Mission",
                   ].map((h) => (
@@ -303,7 +294,7 @@ export function PilotStatusView({
                 {paginatedRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={7}
                       className="px-6 py-12 text-center text-sm text-muted-foreground dark:text-white"
                     >
                       No pilots match your filters.
@@ -328,14 +319,19 @@ export function PilotStatusView({
                       </td>
                       <td className="px-6 py-5">
                         <div className="text-sm font-medium text-[#1a1c1e] dark:text-white">
-                          {row.experienceYears} Years
+                          {row.experienceYears > 0
+                            ? `${row.experienceYears} Years`
+                            : "—"}
                         </div>
                         <div className="text-[10px] text-muted-foreground/80 dark:text-white/85">
                           {row.experienceRank}
                         </div>
                       </td>
+                      <td className="px-6 py-5 font-mono text-sm tabular-nums text-[#1a1c1e] dark:text-white">
+                        {row.flightHours.toLocaleString("en-US")} hrs
+                      </td>
                       <td className="px-6 py-5 font-mono text-sm text-[#1a1c1e] dark:text-white">
-                        {row.flightCount} Flights
+                        {row.flightCount.toLocaleString("en-US")} completed
                       </td>
                       <td className="px-6 py-5">
                         <DutyBadge status={row.dutyStatus} />

@@ -4,12 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { Space_Grotesk } from "next/font/google";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   CheckCircle2,
-  ExternalLink,
+  ChevronDown,
   History,
-  MapPin,
   Maximize2,
   Rocket,
   ShieldCheck,
@@ -18,8 +17,19 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import { updatePilotStatus } from "@/app/services/pilotServices";
+import { fetchPilotSessionRow } from "@/lib/fetch-pilot-session-row";
 import { PilotDashboardShell } from "@/components/pilot-dashboard/pilot-dashboard-shell";
-import { jwtPayloadRole } from "@/lib/pilot-display-name";
+import {
+  assignedMissionCountFromPilotRow,
+  missionsCompletedFromPilotRow,
+} from "@/lib/pilot-db-metrics";
+import {
+  displayFlightHoursLikeProfilePage,
+  snapshotFlightHoursFromStorage,
+} from "@/lib/pilot-profile-flight-hours";
+import { jwtPayloadRole, jwtPayloadSub } from "@/lib/pilot-display-name";
+import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
 import { cn } from "@/lib/utils";
 
 const flightDeck = Space_Grotesk({
@@ -94,45 +104,105 @@ function DeckStatCard({
   );
 }
 
-function AirspeedGauge({ value, label }: { value: string; label: string }) {
-  const r = 45;
-  const c = 2 * Math.PI * r;
-  const pct = 0.72;
-  const dashoffset = c * (1 - pct);
+type DutyStatus = "ACTIVE" | "INACTIVE";
+
+function mapApiDutyStatus(pilot: Record<string, unknown>): DutyStatus {
+  const rawStatus = String(
+    pilot.duty_status ?? pilot.dutyStatus ?? pilot.status ?? "ACTIVE"
+  ).toUpperCase();
+  if (
+    rawStatus === "INACTIVE" ||
+    rawStatus === "OFFLINE" ||
+    rawStatus === "ON_LEAVE"
+  ) {
+    return "INACTIVE";
+  }
+  return "ACTIVE";
+}
+
+function PilotDutyStatusCard({
+  status,
+  loading,
+  saving,
+  onChange,
+}: {
+  status: DutyStatus;
+  loading: boolean;
+  saving: boolean;
+  onChange: (next: DutyStatus) => void;
+}) {
+  const active = status === "ACTIVE";
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[200px]">
-      <svg className="size-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
-        <circle
-          cx="50"
-          cy="50"
-          r={r}
-          fill="none"
-          className="stroke-slate-100 dark:stroke-white/10"
-          strokeWidth="8"
-        />
-        <circle
-          cx="50"
-          cy="50"
-          r={r}
-          fill="none"
-          stroke={FD_PRIMARY}
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={dashoffset}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xl font-semibold tabular-nums text-slate-900 dark:text-white">
-          {value}
+    <div
+      className={cn(
+        "flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-5 sm:p-6",
+        cardShadow,
+        "dark:border-white/10 dark:bg-[#1a1f24]"
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span
+          className={cn(
+            flightDeck.variable,
+            "font-[family-name:var(--font-flight-deck)] text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-white/55"
+          )}
+        >
+          Status
         </span>
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-          {label}
-        </span>
+        <CheckCircle2
+          className={cn(
+            "size-4 shrink-0 sm:size-[18px]",
+            active
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-amber-600 dark:text-amber-400"
+          )}
+          aria-hidden
+        />
+      </div>
+      <div className="relative w-fit max-w-full min-h-0">
+        <select
+          id="pilot-deck-duty-status"
+          aria-label="Duty status"
+          value={status}
+          disabled={loading || saving}
+          onChange={(e) => onChange(e.target.value as DutyStatus)}
+          className={cn(
+            flightDeck.variable,
+            "w-fit min-w-[5.5rem] cursor-pointer appearance-none rounded-md border border-slate-200 bg-white",
+            "py-1 pl-2 pr-7 text-xs font-semibold uppercase tracking-wide text-slate-900 sm:min-w-[6rem] sm:py-1.5 sm:pl-2.5 sm:pr-8 sm:text-sm",
+            "outline-none transition hover:border-slate-300 focus-visible:ring-2 focus-visible:ring-[#00418f]/25",
+            "disabled:cursor-not-allowed disabled:opacity-60",
+            "dark:border-white/15 dark:bg-[#1a1f24] dark:text-white dark:hover:border-white/25"
+          )}
+        >
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+        </select>
+        <ChevronDown
+          className="pointer-events-none absolute right-1.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400 sm:right-2 sm:size-4 dark:text-white/45"
+          aria-hidden
+        />
+      </div>
+      <div
+        className={cn(
+          "flex items-center gap-1.5 text-xs font-semibold",
+          active
+            ? "text-emerald-600 dark:text-emerald-400"
+            : "text-amber-700 dark:text-amber-400"
+        )}
+      >
+        <span
+          className={cn(
+            "size-2 shrink-0 rounded-full",
+            active ? "bg-emerald-500" : "bg-amber-500"
+          )}
+        />
+        <span>{saving ? "Saving…" : active ? "On duty" : "Off duty"}</span>
       </div>
     </div>
   );
 }
+
 
 const FLIGHT_LOG_ROWS = [
   {
@@ -161,6 +231,16 @@ const FLIGHT_LOG_ROWS = [
 export function PilotDashboardView() {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
+  const [dutyStatus, setDutyStatus] = useState<DutyStatus>("ACTIVE");
+  const [dutyLoading, setDutyLoading] = useState(true);
+  const [dutySaving, setDutySaving] = useState(false);
+  const [missionsCompleted, setMissionsCompleted] = useState(0);
+  const [flightHoursTotal, setFlightHoursTotal] = useState(0);
+  /** When true, flight hours came from a resolved `pilots` row (same source as profile API path). */
+  const [flightHoursFromPilotRecord, setFlightHoursFromPilotRecord] =
+    useState(false);
+  const [assignedMissionCount, setAssignedMissionCount] = useState(0);
+  const pilotDbIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -176,6 +256,122 @@ export function PilotDashboardView() {
     }
     setAuthorized(true);
   }, [router]);
+
+  useEffect(() => {
+    if (!authorized) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const sub = jwtPayloadSub(token);
+    pilotDbIdRef.current = sub;
+    let cancelled = false;
+
+    async function loadPilotMetrics() {
+      setDutyLoading(true);
+      const rec = await fetchPilotSessionRow(sub);
+      if (cancelled) return;
+
+      if (rec) {
+        setFlightHoursFromPilotRecord(true);
+        setDutyStatus(mapApiDutyStatus(rec));
+        setMissionsCompleted(missionsCompletedFromPilotRow(rec));
+        setFlightHoursTotal(
+          displayFlightHoursLikeProfilePage(rec, {
+            preferApiRowWhenPresent: true,
+            snapshotFallbackHours: snapshotFlightHoursFromStorage(),
+          })
+        );
+        setAssignedMissionCount(assignedMissionCountFromPilotRow(rec));
+      } else {
+        setFlightHoursFromPilotRecord(false);
+        setMissionsCompleted(0);
+        setFlightHoursTotal(
+          displayFlightHoursLikeProfilePage(null, {
+            preferApiRowWhenPresent: false,
+            snapshotFallbackHours: snapshotFlightHoursFromStorage(),
+          })
+        );
+        setAssignedMissionCount(0);
+      }
+      setDutyLoading(false);
+    }
+
+    void loadPilotMetrics();
+
+    function onVisible() {
+      if (document.visibilityState !== "visible" || cancelled) return;
+      void loadPilotMetrics();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [authorized]);
+
+  useEffect(() => {
+    if (!authorized) return;
+    async function refreshFromPilotRecord() {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const sub = jwtPayloadSub(token);
+      const row = await fetchPilotSessionRow(sub);
+      if (row) {
+        setFlightHoursFromPilotRecord(true);
+        setDutyStatus(mapApiDutyStatus(row));
+        setMissionsCompleted(missionsCompletedFromPilotRow(row));
+        setFlightHoursTotal(
+          displayFlightHoursLikeProfilePage(row, {
+            preferApiRowWhenPresent: true,
+            snapshotFallbackHours: snapshotFlightHoursFromStorage(),
+          })
+        );
+        setAssignedMissionCount(assignedMissionCountFromPilotRow(row));
+      } else {
+        setFlightHoursFromPilotRecord(false);
+        setFlightHoursTotal(
+          displayFlightHoursLikeProfilePage(null, {
+            preferApiRowWhenPresent: false,
+            snapshotFallbackHours: snapshotFlightHoursFromStorage(),
+          })
+        );
+      }
+    }
+    function onProfileUpdated() {
+      void refreshFromPilotRecord();
+    }
+    window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, onProfileUpdated);
+    return () =>
+      window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, onProfileUpdated);
+  }, [authorized]);
+
+  async function onDutyChange(next: DutyStatus) {
+    const id = pilotDbIdRef.current;
+    if (!id) return;
+    const prev = dutyStatus;
+    setDutyStatus(next);
+    setDutySaving(true);
+    const result = await updatePilotStatus(id, next);
+    setDutySaving(false);
+    if (!result?.success) {
+      setDutyStatus(prev);
+      alert("Could not update duty status. Check that the backend is running and try again.");
+      return;
+    }
+    const updated = result.data;
+    if (updated && typeof updated === "object" && !Array.isArray(updated)) {
+      const r = updated as Record<string, unknown>;
+      setFlightHoursFromPilotRecord(true);
+      setFlightHoursTotal(
+        displayFlightHoursLikeProfilePage(r, {
+          preferApiRowWhenPresent: true,
+          snapshotFallbackHours: snapshotFlightHoursFromStorage(),
+        })
+      );
+      setMissionsCompleted(missionsCompletedFromPilotRow(r));
+      setAssignedMissionCount(assignedMissionCountFromPilotRow(r));
+    }
+  }
 
   if (!authorized) {
     return (
@@ -198,48 +394,65 @@ export function PilotDashboardView() {
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
           <DeckStatCard
             label="Flight Hours"
-            value="2,450"
+            value={
+              dutyLoading ? "…" : flightHoursTotal.toLocaleString("en-US")
+            }
             unit="HRS"
             icon={Timer}
             iconClassName="text-[#00418f] dark:text-sky-300"
-            footerClassName="text-emerald-600 dark:text-emerald-400"
+            footerClassName={
+              dutyLoading
+                ? "text-slate-500 dark:text-white/50"
+                : flightHoursFromPilotRecord
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-slate-500 dark:text-white/55"
+            }
             footer={
-              <>
-                <TrendingUp className="size-3.5 shrink-0" aria-hidden />
-                <span>+12.4% this month</span>
-              </>
+              dutyLoading ? (
+                <>
+                  <Timer className="size-3.5 shrink-0" aria-hidden />
+                  <span>Loading pilot record…</span>
+                </>
+              ) : flightHoursFromPilotRecord ? (
+                <>
+                  <TrendingUp className="size-3.5 shrink-0" aria-hidden />
+                  <span>Live total</span>
+                </>
+              ) : (
+                <>
+                  <History className="size-3.5 shrink-0" aria-hidden />
+                  <span>
+                    Saved profile hours — could not load your pilots row; check
+                    backend
+                  </span>
+                </>
+              )
             }
           />
           <DeckStatCard
-            label="Safety Rating"
-            value="99.8"
-            unit="%"
+            label="Assigned Mission Count"
+            value={dutyLoading ? "…" : assignedMissionCount.toLocaleString("en-US")}
             icon={ShieldCheck}
             iconClassName="text-[#00418f] dark:text-sky-300"
             footerClassName="text-blue-600 dark:text-blue-400"
             footer={
               <>
                 <Star className="size-3.5 shrink-0 fill-current" aria-hidden />
-                <span>Elite Pilot Status</span>
+                <span>Total assigned to this pilot</span>
               </>
             }
           />
-          <DeckStatCard
-            label="Status"
-            value="Available"
-            icon={CheckCircle2}
-            iconClassName="text-emerald-600 dark:text-emerald-400"
-            footerClassName="text-emerald-600 dark:text-emerald-400"
-            footer={
-              <>
-                <span className="size-2 animate-pulse rounded-full bg-emerald-500" />
-                <span>System Ready</span>
-              </>
-            }
+          <PilotDutyStatusCard
+            status={dutyStatus}
+            loading={dutyLoading}
+            saving={dutySaving}
+            onChange={onDutyChange}
           />
           <DeckStatCard
             label="Missions Completed"
-            value="1,284"
+            value={
+              dutyLoading ? "…" : missionsCompleted.toLocaleString("en-US")
+            }
             unit="Total"
             icon={Rocket}
             iconClassName="text-[#00418f] dark:text-sky-300"
@@ -247,15 +460,14 @@ export function PilotDashboardView() {
             footer={
               <>
                 <History className="size-3.5 shrink-0" aria-hidden />
-                <span>Across 4 fleets</span>
+                <span>Stored on your pilot record</span>
               </>
             }
           />
         </section>
 
-        {/* Main grid: mission + logs | telemetry */}
-        <section className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-6">
-          <div className="flex flex-col gap-5 lg:col-span-8 lg:gap-6">
+        {/* Main stack: mission control + flight logs (full width) */}
+        <section className="flex w-full flex-col gap-5 sm:gap-6 lg:gap-8">
             {/* Active Mission Control */}
             <div
               className={cn(
@@ -294,7 +506,7 @@ export function PilotDashboardView() {
                       alt="Live aerial view"
                       fill
                       className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 50vw"
+                      sizes="(max-width: 768px) 100vw, min(896px, 100vw)"
                       priority
                     />
                     <div className="absolute inset-0 bg-black/10" aria-hidden />
@@ -439,117 +651,6 @@ export function PilotDashboardView() {
                 </table>
               </div>
             </div>
-          </div>
-
-          {/* Flight Telemetry */}
-          <div className="flex flex-col gap-5 lg:col-span-4 lg:gap-6">
-            <div
-              className={cn(
-                "flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-5 sm:p-6",
-                cardShadow,
-                "dark:border-white/10 dark:bg-[#1a1f24]"
-              )}
-            >
-              <h2
-                className={cn(
-                  flightDeck.variable,
-                  "mb-5 text-lg font-semibold tracking-tight text-slate-900 sm:mb-6 sm:text-xl dark:text-white"
-                )}
-              >
-                Flight Telemetry
-              </h2>
-              <div className="flex flex-col gap-8">
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-white/55">
-                      Altitude
-                    </span>
-                    <span className="text-sm font-semibold tabular-nums text-[#00418f] dark:text-sky-300">
-                      245m{" "}
-                      <span className="text-xs font-normal text-slate-400 dark:text-white/45">
-                        / 500m
-                      </span>
-                    </span>
-                  </div>
-                  <div className="flex h-20 items-end gap-2">
-                    {[25, 33, 66, 50, 75, 50].map((h, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "w-full rounded-sm",
-                          i >= 3 ? "bg-[#00418f] dark:bg-sky-400" : "bg-slate-100 dark:bg-white/10"
-                        )}
-                        style={{ height: `${h}%` }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-white/55">
-                      Airspeed
-                    </span>
-                    <span className="text-sm font-semibold tabular-nums text-[#00418f] dark:text-sky-300">
-                      42.8 kn
-                    </span>
-                  </div>
-                  <AirspeedGauge value="42.8" label="Knots" />
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-white/55">
-                    Signal Strength
-                  </span>
-                  <div className="flex items-center gap-4 rounded-lg bg-slate-50 p-3 dark:bg-white/[0.05]">
-                    <div className="flex h-6 items-end gap-0.5">
-                      {[2, 3, 4, 5, 6].map((h, i) => (
-                        <div
-                          key={i}
-                          className={cn(
-                            "w-1 rounded-full",
-                            i < 4 ? "bg-[#00418f] dark:bg-sky-400" : "bg-slate-200 dark:bg-white/15"
-                          )}
-                          style={{ height: `${h * 3}px` }}
-                        />
-                      ))}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white">
-                        Strong
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-white/55">
-                        -54 dBm / 2.4 GHz
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-auto border-t border-slate-100 pt-5 dark:border-white/10">
-                  <div className="flex items-center justify-between gap-3 rounded-lg bg-sky-50 p-3 dark:bg-sky-950/30">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <MapPin
-                        className="size-5 shrink-0 text-[#00418f] dark:text-sky-300"
-                        aria-hidden
-                      />
-                      <div className="min-w-0">
-                        <span className="block text-xs font-bold text-slate-900 dark:text-white">
-                          Current Loc
-                        </span>
-                        <span className="block font-mono text-[10px] text-slate-500 dark:text-white/55">
-                          42.3601° N, 71.0589° W
-                        </span>
-                      </div>
-                    </div>
-                    <ExternalLink
-                      className="size-4 shrink-0 text-slate-400 dark:text-white/45"
-                      aria-hidden
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </section>
 
       </div>

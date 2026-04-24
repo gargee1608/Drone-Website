@@ -1,7 +1,5 @@
-import {
-  parsePilotProfileSnapshot,
-  PILOT_PROFILE_STORAGE_KEY,
-} from "@/lib/pilot-profile-snapshot";
+import { readPilotProfileSnapshotRawFromBrowser } from "@/lib/pilot-profile-browser-storage";
+import { parsePilotProfileSnapshot } from "@/lib/pilot-profile-snapshot";
 
 export function jwtPayloadRole(token: string): string | null {
   try {
@@ -12,6 +10,24 @@ export function jwtPayloadRole(token: string): string | null {
       b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
     const json = JSON.parse(atob(b64 + pad)) as { role?: string };
     return typeof json.role === "string" ? json.role : null;
+  } catch {
+    return null;
+  }
+}
+
+/** JWT subject — for pilots this is the `pilots.id` from sign-in. */
+export function jwtPayloadSub(token: string): string | null {
+  try {
+    const part = token.split(".")[1];
+    if (!part) return null;
+    const b64 = part.replace(/-/g, "+").replace(/_/g, "/");
+    const pad =
+      b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
+    const json = JSON.parse(atob(b64 + pad)) as { sub?: string };
+    const sub = json.sub;
+    if (typeof sub !== "string") return null;
+    const t = sub.trim();
+    return t || null;
   } catch {
     return null;
   }
@@ -67,7 +83,7 @@ export function getPilotDisplayName(token: string | null): string {
 
   try {
     const snap = parsePilotProfileSnapshot(
-      localStorage.getItem(PILOT_PROFILE_STORAGE_KEY)
+      readPilotProfileSnapshotRawFromBrowser()
     );
     const n = snap?.fullName?.replace(/\s+/g, " ").trim();
     if (n) return n;

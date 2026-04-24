@@ -20,6 +20,8 @@ const serviceRoute = require("./routes/serviceRoute");
 const pilotRoutes = require("./routes/pilotRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 
+
+
 app.use("/api/blogs", blogRoutes);
 
 app.use("/api/pilots", pilotRoutes);
@@ -126,6 +128,50 @@ async function ensureAuthSchema() {
     await pool.query(
       "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS password TEXT"
     );
+    await pool.query(
+      "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS duty_status TEXT DEFAULT 'ACTIVE'"
+    );
+    await pool.query(
+      "UPDATE pilots SET duty_status = 'ACTIVE' WHERE duty_status IS NULL OR TRIM(COALESCE(duty_status, '')) = ''"
+    );
+    await pool.query(
+      "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS missions_completed INTEGER NOT NULL DEFAULT 0"
+    );
+    await pool.query(
+      "UPDATE pilots SET missions_completed = 0 WHERE missions_completed IS NULL"
+    );
+    await pool.query(
+      "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS flight_hours INTEGER NOT NULL DEFAULT 0"
+    );
+    await pool.query(
+      "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS safety_rating NUMERIC(6,2) NOT NULL DEFAULT 99.50"
+    );
+    await pool.query(
+      "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS experience_years INTEGER NOT NULL DEFAULT 0"
+    );
+    await pool.query(
+      "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS experience_rank TEXT"
+    );
+    await pool.query(`
+      UPDATE pilots
+      SET flight_hours = trim(experience::text)::integer
+      WHERE experience::text ~ '^[0-9]+$'
+        AND trim(experience::text)::integer >= 0
+        AND flight_hours = 0
+    `);
+    await pool.query(`
+      UPDATE pilots
+      SET flight_hours = CAST(
+        LEAST(
+          50000,
+          GREATEST(0, REPLACE(TRIM(experience::text), ',', '')::numeric)
+        ) AS integer
+      )
+      WHERE flight_hours = 0
+        AND trim(COALESCE(experience::text, '')) ~ '^[0-9,]+$'
+        AND replace(trim(experience::text), ',', '') ~ '^[0-9]+$'
+        AND length(replace(trim(experience::text), ',', '')) > 0
+    `);
   } catch (e) {
     console.warn("[auth] pilots column ensure skipped:", e.message);
   }

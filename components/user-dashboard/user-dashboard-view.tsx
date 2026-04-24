@@ -6,9 +6,9 @@ import {
   ArrowRight,
   BarChart3,
   CheckCircle2,
-  ClipboardList,
   Clock,
   Cog,
+  LucideIcon,
   Rocket,
   XCircle,
 } from "lucide-react";
@@ -73,6 +73,56 @@ function SectionLabel({ children }: { children: ReactNode }) {
     <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#717786] sm:text-xs dark:text-white/75">
       {children}
     </h2>
+  );
+}
+
+function OverviewStatCard({
+  icon: Icon,
+  iconWrapClassName,
+  badge,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  iconWrapClassName: string;
+  badge: ReactNode;
+  label: string;
+  value: number;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-h-[148px] flex-col rounded-2xl border-2 border-slate-200/95 bg-white p-5 sm:p-6",
+        "shadow-[0_2px_10px_-2px_rgba(15,23,42,0.06),0_0_0_1px_rgba(15,23,42,0.04)]",
+        "ring-1 ring-slate-900/[0.04]",
+        "transition-[border-color,box-shadow,ring-color] duration-200",
+        "hover:border-[#008B8B]/35 hover:shadow-[0_6px_24px_-6px_rgba(0,139,139,0.18)] hover:ring-[#008B8B]/12",
+        "dark:border-slate-600/90 dark:bg-[#161a1d]",
+        "dark:shadow-[0_2px_14px_-2px_rgba(0,0,0,0.45),inset_0_1px_0_0_rgba(255,255,255,0.04)]",
+        "dark:ring-white/[0.06]",
+        "dark:hover:border-[#008B8B]/45 dark:hover:shadow-[0_8px_28px_-6px_rgba(0,139,139,0.22)] dark:hover:ring-[#008B8B]/15"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span
+          className={cn(
+            "flex size-11 shrink-0 items-center justify-center rounded-xl sm:size-12",
+            iconWrapClassName
+          )}
+        >
+          <Icon className="size-5 sm:size-6" strokeWidth={1.75} aria-hidden />
+        </span>
+        <div className="min-w-0 shrink-0 text-right">{badge}</div>
+      </div>
+      <div className="mt-auto pt-5">
+        <p className="text-sm font-medium text-slate-500 dark:text-white/70">
+          {label}
+        </p>
+        <p className="mt-1 text-3xl font-bold tracking-tight text-slate-900 tabular-nums dark:text-white">
+          {value.toLocaleString("en-US")}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -163,9 +213,7 @@ function RecentActivityPanel({ requests }: { requests: UserMissionRequest[] }) {
 }
 
 export function UserDashboardView() {
-  const activeUnitsCount = 1;
-  const pendingTasksCount = 2;
-
+  const [allRequests, setAllRequests] = useState<UserMissionRequest[]>([]);
   const [recentRequests, setRecentRequests] = useState<UserMissionRequest[]>(
     []
   );
@@ -176,6 +224,7 @@ export function UserDashboardView() {
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
+      setAllRequests(sorted);
       setRecentRequests(sorted.slice(0, 6));
     };
     refresh();
@@ -184,58 +233,54 @@ export function UserDashboardView() {
       window.removeEventListener(USER_REQUESTS_UPDATED_EVENT, refresh);
   }, []);
 
+  const totalMissions = allRequests.length;
+  const pendingTasksCount = allRequests.filter((r) => r.adminStatus === "pending")
+    .length;
+  const activeUnitsCount = allRequests.filter((r) => r.adminStatus === "accepted")
+    .length;
+
   return (
     <UserDashboardShell pageTitle="User Dashboard">
       <>
         <SectionLabel>Overview</SectionLabel>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
-          <div className="flex flex-col gap-4 rounded-xl border border-[#c1c6d7]/15 bg-white p-6 dark:border-white/15 dark:bg-[#161a1d]">
-            <div className="flex items-center justify-between">
-              <span className="rounded-lg bg-[#008B8B]/14 p-2 text-[#008B8B]">
-                <Rocket className="size-6" />
-              </span>
-              <span className="rounded-full bg-[#008B8B]/14 px-2 py-1 text-xs font-bold text-[#0a3030] dark:text-white">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+          <OverviewStatCard
+            icon={Rocket}
+            iconWrapClassName="bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300"
+            label="Total Missions"
+            value={totalMissions}
+            badge={
+              <span className="inline-flex rounded-full bg-teal-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-teal-800 dark:bg-teal-500/25 dark:text-teal-100">
                 +12%
               </span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-[#414755] dark:text-white/75">Total Missions</p>
-              <p className={cn("text-3xl font-bold text-[#191c1d] dark:text-white")}>1,284</p>
-            </div>
-          </div>
-          <div className="flex flex-col gap-4 rounded-xl border border-[#c1c6d7]/15 bg-white p-6 dark:border-white/15 dark:bg-[#161a1d]">
-            <div className="flex items-center justify-between">
-              <span className="rounded-lg bg-[#cde5ff] p-2 text-[#006195]">
-                <Cog className="size-6" />
-              </span>
-              <span className="flex items-center gap-1 text-xs font-medium text-[#414755] dark:text-white/75">
-                <span className="size-2 animate-pulse rounded-full bg-green-500" />
+            }
+          />
+          <OverviewStatCard
+            icon={Cog}
+            iconWrapClassName="bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
+            label="Active Units"
+            value={activeUnitsCount}
+            badge={
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-white/75">
+                <span
+                  className="size-2 shrink-0 animate-pulse rounded-full bg-emerald-500"
+                  aria-hidden
+                />
                 Live
               </span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-[#414755] dark:text-white/75">Active Units</p>
-              <p className={cn("text-3xl font-bold text-[#191c1d] dark:text-white")}>
-                {activeUnitsCount}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-col gap-4 rounded-xl border border-[#c1c6d7]/15 bg-white p-6 dark:border-white/15 dark:bg-[#161a1d]">
-            <div className="flex items-center justify-between">
-              <span className="rounded-lg bg-[#dae2ff] p-2 text-[#505e83]">
-                <BarChart3 className="size-6" />
-              </span>
-              <span className="text-xs font-medium text-[#414755] dark:text-white/75">
+            }
+          />
+          <OverviewStatCard
+            icon={BarChart3}
+            iconWrapClassName="bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-200"
+            label="Pending Tasks"
+            value={pendingTasksCount}
+            badge={
+              <span className="text-xs font-medium text-slate-500 dark:text-white/75">
                 Queue: {pendingTasksCount}
               </span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-[#414755] dark:text-white/75">Pending Tasks</p>
-              <p className={cn("text-3xl font-bold text-[#191c1d] dark:text-white")}>
-                {pendingTasksCount}
-              </p>
-            </div>
-          </div>
+            }
+          />
         </div>
 
         <div className="mt-10 space-y-4 sm:mt-12">

@@ -12,9 +12,9 @@ import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { activePilotProfileSnapshotStorageKey } from "@/lib/pilot-profile-browser-storage";
 import {
   parsePilotProfileSnapshot,
-  PILOT_PROFILE_STORAGE_KEY,
   PILOT_PROFILE_UPDATED_EVENT,
 } from "@/lib/pilot-profile-snapshot";
 import {
@@ -487,7 +487,7 @@ export function SettingsDashboard() {
                   return;
                 }
                 const existing = parsePilotProfileSnapshot(
-                  localStorage.getItem(PILOT_PROFILE_STORAGE_KEY)
+                  localStorage.getItem(activePilotProfileSnapshotStorageKey())
                 );
                 const next = {
                   fullName: name,
@@ -501,11 +501,13 @@ export function SettingsDashboard() {
                   skills: existing?.skills ?? [],
                   drones: existing?.drones ?? [],
                   dgca: existing?.dgca ?? "",
+                  photoDataUrl: existing?.photoDataUrl,
                 };
                 const json = JSON.stringify(next);
                 try {
-                  localStorage.setItem(PILOT_PROFILE_STORAGE_KEY, json);
-                  sessionStorage.setItem(PILOT_PROFILE_STORAGE_KEY, json);
+                  const sk = activePilotProfileSnapshotStorageKey();
+                  localStorage.setItem(sk, json);
+                  sessionStorage.setItem(sk, json);
                 } catch {
                   setProfileDialogError("Could not save. Try again.");
                   setProfileDialogSuccess(false);

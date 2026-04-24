@@ -5,6 +5,27 @@ const pool = require("../db");
 
 const BCRYPT_ROUNDS = 10;
 
+/** Express `res.json` cannot serialize `bigint` (PG BIGSERIAL / BIGINT). */
+function pilotJsonValue(v) {
+  if (typeof v === "bigint") {
+    return v <= BigInt(Number.MAX_SAFE_INTEGER)
+      ? Number(v)
+      : v.toString();
+  }
+  return v;
+}
+
+/** Safe pilot row for JSON: drop password, coerce bigint fields. */
+function pilotRowForJson(row) {
+  if (!row || typeof row !== "object") return row;
+  const out = {};
+  for (const [k, v] of Object.entries(row)) {
+    if (k === "password") continue;
+    out[k] = pilotJsonValue(v);
+  }
+  return out;
+}
+
 async function pilotPasswordMatches(plain, stored) {
   if (stored == null || stored === "") return false;
   const s = String(stored);
@@ -26,19 +47,32 @@ router.post("/register", async (req, res) => {
         return res.status(400).json({ error: "Password is required" });
       }
       const passwordStored = await bcrypt.hash(plain, BCRYPT_ROUNDS);
+      const expStr =
+        experience == null ? "" : String(experience).trim();
+      const expDigits = expStr.replace(/,/g, "");
+      const initialFlightHours = /^[0-9]+$/.test(expDigits)
+        ? Math.min(50000, Math.max(0, parseInt(expDigits, 10)))
+        : 0;
 
       const result = await pool.query(
-        `INSERT INTO pilots (name, email, phone, experience, license_number, password)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO pilots (name, email, phone, experience, license_number, password, flight_hours)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING *`,
-        [name, email, phone, experience, license_number, passwordStored]
+        [
+          name,
+          email,
+          phone,
+          experience,
+          license_number,
+          passwordStored,
+          initialFlightHours,
+        ]
       );
 
       const row = result.rows[0];
-      const { password: _omit, ...safe } = row;
       res.json({
         success: true,
-        data: safe,
+        data: pilotRowForJson(row),
       });
     } catch (err) {
       console.error(err);
@@ -74,16 +108,157 @@ router.post("/register", async (req, res) => {
         });
       }
 
-      const { password: _omit, ...safePilot } = result.rows[0];
       res.json({
         success: true,
         message: "Login successful",
-        pilot: safePilot,
+        pilot: pilotRowForJson(result.rows[0]),
       });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Server error" });
     }
   });
+router.get("/", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM pilots");
+
+    res.json(result.rows.map((r) => pilotRowForJson(r)));
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ error: "Invalid pilot id" });
+    }
+
+    const result = await pool.query(`SELECT * FROM pilots WHERE id = $1`, [
+      id,
+    ]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Pilot not found" });
+    }
+
+    res.json(pilotRowForJson(result.rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+/** Increment completed-mission counter (e.g. after a delivery is finalized). */
+router.post("/:id/missions/increment", async (req, res) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ error: "Invalid pilot id" });
+    }
+
+    const rawDelta = req.body?.delta;
+    const delta =
+      rawDelta == null || rawDelta === ""
+        ? 1
+        : Number.parseInt(String(rawDelta), 10);
+    if (!Number.isFinite(delta) || delta < 1 || delta > 500) {
+      return res
+        .status(400)
+        .json({ error: "delta must be a number from 1 to 500" });
+    }
+
+    const result = await pool.query(
+      `UPDATE pilots
+       SET missions_completed = GREATEST(0, COALESCE(missions_completed, 0) + $1)
+       WHERE id = $2
+       RETURNING *`,
+      [delta, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Pilot not found" });
+    }
+
+    res.json({ success: true, data: pilotRowForJson(result.rows[0]) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.patch("/:id/status", async (req, res) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ error: "Invalid pilot id" });
+    }
+
+    const raw = String(req.body?.dutyStatus ?? "").toUpperCase().trim();
+    if (raw !== "ACTIVE" && raw !== "INACTIVE") {
+      return res
+        .status(400)
+        .json({ error: "dutyStatus must be ACTIVE or INACTIVE" });
+    }
+
+    const result = await pool.query(
+      `UPDATE pilots
+       SET duty_status = $1
+       WHERE id = $2
+       RETURNING *`,
+      [raw, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Pilot not found" });
+    }
+
+    res.json({ success: true, data: pilotRowForJson(result.rows[0]) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+/** Update pilot profile fields used by dashboards (keeps `experience` numeric string in sync). */
+router.patch("/:id/details", async (req, res) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ error: "Invalid pilot id" });
+    }
+
+    const rawH = req.body?.flightHours ?? req.body?.flight_hours;
+    if (rawH == null || rawH === "") {
+      return res.status(400).json({ error: "flightHours is required" });
+    }
+    const hrs = Math.floor(Number(rawH));
+    if (!Number.isFinite(hrs) || hrs < 0 || hrs > 50000) {
+      return res
+        .status(400)
+        .json({ error: "flightHours must be a number from 0 to 50000" });
+    }
+
+    const expStr = String(hrs);
+
+    const result = await pool.query(
+      `UPDATE pilots
+       SET flight_hours = $1, experience = $2
+       WHERE id = $3
+       RETURNING *`,
+      [hrs, expStr, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Pilot not found" });
+    }
+
+    res.json({ success: true, data: pilotRowForJson(result.rows[0]) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 module.exports = router;

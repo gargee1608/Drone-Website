@@ -1,7 +1,5 @@
-import {
-  parsePilotProfileSnapshot,
-  PILOT_PROFILE_STORAGE_KEY,
-} from "@/lib/pilot-profile-snapshot";
+import { readPilotProfileSnapshotRawFromBrowser } from "@/lib/pilot-profile-browser-storage";
+import { parsePilotProfileSnapshot } from "@/lib/pilot-profile-snapshot";
 
 export const PILOT_MISSION_NOTIFICATIONS_STORAGE_KEY =
   "aerolaminar_pilot_mission_notifications_v1";
@@ -99,7 +97,7 @@ function persistSeenIds(ids: Set<string>): void {
 function pilotProfileFullName(): string | null {
   if (typeof window === "undefined") return null;
   const p = parsePilotProfileSnapshot(
-    localStorage.getItem(PILOT_PROFILE_STORAGE_KEY)
+    readPilotProfileSnapshotRawFromBrowser()
   );
   const n = p?.fullName?.trim();
   return n || null;

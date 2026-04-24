@@ -2,16 +2,14 @@
 
 import {
   Building2,
-  Check,
-  Eye,
   Map,
   Package,
   ShoppingBag,
   Stethoscope,
-  X,
 } from "lucide-react";
 
 import {
+  loadUserRequests,
   type UserMissionAdminStatus,
   type UserRequestAdminRow,
   userRequestQueueDisplayId,
@@ -93,6 +91,70 @@ function statusLabelForAdminStatus(
   }
 }
 
+function pilotTableCells(m: UserRequestAdminRow): {
+  userId: string;
+  userName: string;
+  userRequirement: string;
+  payload: string;
+  destinations: string;
+} {
+  const parsed = parsePayloadAndTarget(m.desc);
+  const weightFromDesc = extractPayloadWeightDisplay(parsed.payload);
+
+  if (m.key.startsWith("demo-")) {
+    return {
+      userId: tableRequestId(m),
+      userName: "—",
+      userRequirement: m.title,
+      payload: weightFromDesc,
+      destinations:
+        parsed.target.trim() && parsed.target !== "—"
+          ? parsed.target.trim()
+          : "—",
+    };
+  }
+
+  const req = loadUserRequests().find((r) => r.id === m.key);
+  if (!req) {
+    return {
+      userId: tableRequestId(m),
+      userName: "—",
+      userRequirement: m.title,
+      payload: weightFromDesc,
+      destinations:
+        parsed.target.trim() && parsed.target !== "—"
+          ? parsed.target.trim()
+          : "—",
+    };
+  }
+
+  const pickup = req.pickupLocation.trim();
+  const drop = req.dropLocation.trim();
+  const destinations =
+    pickup && drop
+      ? `${pickup} → ${drop}`
+      : drop || pickup || "—";
+
+  const reqLabel = req.requestType.trim();
+  const reason = req.reasonOrTitle.trim();
+  const userRequirement = reqLabel
+    ? reason
+      ? `${reqLabel} · ${reason}`
+      : reqLabel
+    : reason || m.title;
+
+  const w = req.payloadWeightKg.trim();
+  const payload = w ? `${w} kg` : weightFromDesc;
+
+  return {
+    userId: userRequestQueueDisplayId(req.id),
+    userName: "—",
+    userRequirement,
+    payload,
+    destinations,
+  };
+}
+
 function statusDisplayForRow(m: UserRequestAdminRow): {
   label: RequestRowStatusLabel;
   dotClass: string;
@@ -141,17 +203,25 @@ export type UserRequestTableProps = {
   showTitle?: boolean;
   /** Show count subtitle under title. */
   showTotalSubtitle?: boolean;
+  /** Pilot dashboard: User Id, User Name, User Requirement, Payload, Destinations (+ Status). */
+  columnPreset?: "admin" | "pilot";
 };
 
 export function UserRequestTable({
   rows,
   onViewDetails,
-  onAcceptRow,
-  onRejectRow,
   title = "User Request",
   showTitle = true,
   showTotalSubtitle = false,
+  columnPreset = "admin",
 }: UserRequestTableProps) {
+  const isPilot = columnPreset === "pilot";
+
+  const thBase =
+    "px-3 py-3 align-middle text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-4 sm:py-3.5 sm:text-[10px] sm:tracking-wider";
+  const tdBase =
+    "min-w-0 px-3 py-3 align-middle text-foreground sm:px-4 sm:py-3.5";
+
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm sm:p-6">
       {showTitle ? (
@@ -174,61 +244,82 @@ export function UserRequestTable({
           Total {rows.length} request{rows.length === 1 ? "" : "s"}
         </p>
       ) : null}
-      <div className="overflow-hidden rounded-xl border border-border/90">
-        <table className="w-full table-fixed border-collapse text-left text-[10px] leading-snug sm:text-[11px]">
-          <colgroup>
-            <col className="w-[12%]" />
-            <col className="w-[23%]" />
-            <col className="w-[8%]" />
-            <col className="w-[21%]" />
-            <col className="w-[9%]" />
-            <col className="w-[11%]" />
-            <col className="w-[16%]" />
-          </colgroup>
+      <div
+        className={cn(
+          "rounded-xl border border-border/90",
+          isPilot ? "overflow-x-auto" : "overflow-hidden"
+        )}
+      >
+        <table
+          className={cn(
+            "w-full table-fixed border-collapse text-left text-[10px] leading-snug sm:text-[11px]",
+            isPilot && "min-w-[720px]"
+          )}
+        >
+          {isPilot ? (
+            <colgroup>
+              <col className="w-[11%]" />
+              <col className="w-[12%]" />
+              <col className="w-[22%]" />
+              <col className="w-[10%]" />
+              <col className="w-[30%]" />
+              <col className="w-[15%]" />
+            </colgroup>
+          ) : (
+            <colgroup>
+              <col className="w-[14%]" />
+              <col className="w-[26%]" />
+              <col className="w-[10%]" />
+              <col className="w-[24%]" />
+              <col className="w-[12%]" />
+              <col className="w-[14%]" />
+            </colgroup>
+          )}
           <thead>
             <tr className="border-b border-border bg-muted/60">
-              <th
-                scope="col"
-                className="px-2 py-3 text-left text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
-              >
-                Request ID
-              </th>
-              <th
-                scope="col"
-                className="px-2 py-3 text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
-              >
-                Requirement type
-              </th>
-              <th
-                scope="col"
-                className="px-2 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
-              >
-                Payload
-              </th>
-              <th
-                scope="col"
-                className="px-2 py-3 text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
-              >
-                Destination
-              </th>
-              <th
-                scope="col"
-                className="px-2 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
-              >
-                Urgency
-              </th>
-              <th
-                scope="col"
-                className="px-2 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
-              >
-                Status
-              </th>
-              <th
-                scope="col"
-                className="px-2 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-3.5 sm:text-[10px] sm:tracking-wider"
-              >
-                Actions
-              </th>
+              {isPilot ? (
+                <>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    User Id
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    User Name
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    User Requirement
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-right tabular-nums")}>
+                    Payload
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    Destinations
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-center")}>
+                    Status
+                  </th>
+                </>
+              ) : (
+                <>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    Request ID
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    Requirement type
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-right tabular-nums")}>
+                    Payload
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    Destination
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-center")}>
+                    Urgency
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-center")}>
+                    Status
+                  </th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -237,9 +328,88 @@ export function UserRequestTable({
               const weightDisplay = extractPayloadWeightDisplay(payload);
               const ReqIcon = requirementTypeIcon(m.title);
               const statusUi = statusDisplayForRow(m);
-              const reviewComplete =
-                m.adminStatus === "accepted" || m.adminStatus === "rejected";
               const highlightRow = m.title === "Industrial Part Delivery";
+              const pilotCells = isPilot ? pilotTableCells(m) : null;
+
+              if (isPilot && pilotCells) {
+                return (
+                  <tr
+                    key={m.key}
+                    className={cn(
+                      "border-b border-border transition-colors last:border-0 hover:bg-muted/50",
+                      highlightRow && "bg-[#008B8B]/8 hover:bg-[#008B8B]/12"
+                    )}
+                  >
+                    <td className={cn(tdBase, "text-left")}>
+                      <span
+                        className="inline-block max-w-full font-mono text-[10px] font-medium leading-snug tracking-tight text-muted-foreground [overflow-wrap:anywhere] sm:text-[11px]"
+                        title={pilotCells.userId}
+                      >
+                        {pilotCells.userId}
+                      </span>
+                    </td>
+                    <td className={cn(tdBase, "text-left")}>
+                      <span className="block break-words leading-snug">
+                        {pilotCells.userName}
+                      </span>
+                    </td>
+                    <td className={cn(tdBase, "text-left")}>
+                      {onViewDetails ? (
+                        <button
+                          type="button"
+                          className="flex min-w-0 w-full cursor-pointer items-center gap-2 rounded-md py-0.5 text-left outline-none transition-colors hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
+                          aria-label={`View request details: ${pilotCells.userRequirement}`}
+                          onClick={() => onViewDetails(m)}
+                        >
+                          <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
+                            <ReqIcon className="size-3 shrink-0" aria-hidden />
+                          </span>
+                          <span className="min-w-0 break-words leading-snug font-medium text-foreground underline-offset-2 hover:underline">
+                            {pilotCells.userRequirement}
+                          </span>
+                        </button>
+                      ) : (
+                        <div className="flex min-w-0 items-center gap-2 py-0.5">
+                          <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
+                            <ReqIcon className="size-3 shrink-0" aria-hidden />
+                          </span>
+                          <span className="min-w-0 break-words leading-snug font-medium text-foreground">
+                            {pilotCells.userRequirement}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+                    <td className={cn(tdBase, "text-right tabular-nums")}>
+                      <span className="inline-block w-full break-words leading-snug">
+                        {pilotCells.payload}
+                      </span>
+                    </td>
+                    <td className={cn(tdBase, "text-left")}>
+                      <div className="break-words leading-snug font-medium">
+                        {pilotCells.destinations}
+                      </div>
+                    </td>
+                    <td className={cn(tdBase, "text-center")}>
+                      <span
+                        className={cn(
+                          "inline-flex min-w-0 max-w-full items-center justify-center gap-1.5 text-[9px] font-medium leading-snug sm:text-[10px]",
+                          statusUi.textClass
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "size-1.5 shrink-0 rounded-full",
+                            statusUi.dotClass
+                          )}
+                          aria-hidden
+                        />
+                        <span className="min-w-0 break-words">{statusUi.label}</span>
+                      </span>
+                    </td>
+                  </tr>
+                );
+              }
+
               return (
                 <tr
                   key={m.key}
@@ -248,112 +418,74 @@ export function UserRequestTable({
                     highlightRow && "bg-[#008B8B]/8 hover:bg-[#008B8B]/12"
                   )}
                 >
-                  <td className="min-w-0 px-2 py-2.5 align-top sm:px-3 sm:py-3">
+                  <td className={cn(tdBase, "text-left")}>
                     <span
-                      className="inline-block max-w-full font-mono text-[10px] font-medium leading-tight tracking-tight text-muted-foreground [overflow-wrap:anywhere] sm:text-[11px]"
+                      className="inline-block max-w-full font-mono text-[10px] font-medium leading-snug tracking-tight text-muted-foreground [overflow-wrap:anywhere] sm:text-[11px]"
                       title={tableRequestId(m)}
                     >
                       {tableRequestId(m)}
                     </span>
                   </td>
-                  <td className="min-w-0 px-2 py-2.5 align-top sm:px-3 sm:py-3">
+                  <td className={cn(tdBase, "text-left")}>
                     {onViewDetails ? (
                       <button
                         type="button"
-                        className="flex min-w-0 w-full cursor-pointer items-start gap-1.5 rounded-md text-left outline-none transition-colors hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 sm:gap-2"
+                        className="flex min-w-0 w-full cursor-pointer items-center gap-2 rounded-md py-0.5 text-left outline-none transition-colors hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
                         aria-label={`View request details: ${m.title}`}
                         onClick={() => onViewDetails(m)}
                       >
-                        <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
                           <ReqIcon className="size-3 shrink-0" aria-hidden />
                         </span>
-                        <span className="min-w-0 break-words font-medium leading-tight text-foreground underline-offset-2 hover:underline">
+                        <span className="min-w-0 break-words leading-snug font-medium text-foreground underline-offset-2 hover:underline">
                           {m.title}
                         </span>
                       </button>
                     ) : (
-                      <div className="flex min-w-0 items-start gap-1.5 sm:gap-2">
-                        <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
+                      <div className="flex min-w-0 items-center gap-2 py-0.5">
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
                           <ReqIcon className="size-3 shrink-0" aria-hidden />
                         </span>
-                        <span className="min-w-0 break-words font-medium leading-tight text-foreground">
+                        <span className="min-w-0 break-words leading-snug font-medium text-foreground">
                           {m.title}
                         </span>
                       </div>
                     )}
                   </td>
-                  <td className="min-w-0 px-2 py-2.5 align-top text-right tabular-nums text-foreground sm:px-3 sm:py-3">
-                    <span className="inline-block break-words">{weightDisplay}</span>
+                  <td className={cn(tdBase, "text-right tabular-nums")}>
+                    <span className="inline-block w-full break-words leading-snug">
+                      {weightDisplay}
+                    </span>
                   </td>
-                  <td className="min-w-0 px-2 py-2.5 align-top sm:px-3 sm:py-3">
-                    <div className="break-words font-medium leading-tight text-foreground">
-                      {target}
-                    </div>
-                    <div className="mt-0.5 break-words text-[8px] leading-snug text-muted-foreground sm:text-[9px]">
+                  <td className={cn(tdBase, "text-left")}>
+                    <div className="break-words leading-snug font-medium">{target}</div>
+                    <div className="mt-1 break-words text-[8px] leading-snug text-muted-foreground sm:text-[9px]">
                       {payload.replace(/\s*\([^)]*kg\)\s*/i, "").trim() || "—"}
                     </div>
                   </td>
-                  <td className="min-w-0 px-2 py-2.5 align-top sm:px-3 sm:py-3">
-                    <div className="flex justify-center">
-                      <span
-                        className={cn(
-                          "inline-flex max-w-full items-center justify-center rounded px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide sm:text-[9px]",
-                          m.badgeClass
-                        )}
-                      >
-                        {m.badge}
-                      </span>
-                    </div>
+                  <td className={cn(tdBase, "text-center")}>
+                    <span
+                      className={cn(
+                        "inline-flex max-w-full items-center justify-center rounded px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide sm:text-[9px]",
+                        m.badgeClass
+                      )}
+                    >
+                      {m.badge}
+                    </span>
                   </td>
-                  <td className="min-w-0 px-2 py-2.5 align-top sm:px-3 sm:py-3">
-                    <div className="flex justify-center">
+                  <td className={cn(tdBase, "text-center")}>
+                    <span
+                      className={cn(
+                        "inline-flex min-w-0 max-w-full items-center justify-center gap-1.5 text-[9px] font-medium leading-snug sm:text-[10px]",
+                        statusUi.textClass
+                      )}
+                    >
                       <span
-                        className={cn(
-                          "inline-flex min-w-0 items-center justify-center gap-1 text-[9px] font-medium leading-tight sm:text-[10px]",
-                          statusUi.textClass
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "size-1.5 shrink-0 rounded-full sm:size-1.5",
-                            statusUi.dotClass
-                          )}
-                          aria-hidden
-                        />
-                        <span className="min-w-0 break-words">{statusUi.label}</span>
-                      </span>
-                    </div>
-                  </td>
-                  <td className="min-w-0 px-2 py-2.5 align-middle sm:px-3 sm:py-3">
-                    <div className="flex items-center justify-center gap-2 sm:gap-2.5">
-                      <button
-                        type="button"
-                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/15 text-[#008B8B] transition-colors hover:bg-[#008B8B]/25 disabled:pointer-events-none disabled:opacity-40"
-                        aria-label={`Accept request ${tableRequestId(m)}`}
-                        disabled={!onAcceptRow || reviewComplete}
-                        onClick={() => onAcceptRow?.(m)}
-                      >
-                        <Check className="size-[15px]" strokeWidth={2.5} />
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-red-50 text-red-600 transition-colors hover:bg-red-100 disabled:pointer-events-none disabled:opacity-40"
-                        aria-label={`Reject request ${tableRequestId(m)}`}
-                        disabled={!onRejectRow || reviewComplete}
-                        onClick={() => onRejectRow?.(m)}
-                      >
-                        <X className="size-[15px]" strokeWidth={2.5} />
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors hover:bg-muted/80 disabled:pointer-events-none disabled:opacity-50"
-                        aria-label="View details"
-                        disabled={!onViewDetails}
-                        onClick={() => onViewDetails?.(m)}
-                      >
-                        <Eye className="size-[15px]" strokeWidth={2} />
-                      </button>
-                    </div>
+                        className={cn("size-1.5 shrink-0 rounded-full", statusUi.dotClass)}
+                        aria-hidden
+                      />
+                      <span className="min-w-0 break-words">{statusUi.label}</span>
+                    </span>
                   </td>
                 </tr>
               );

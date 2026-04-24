@@ -1,9 +1,10 @@
 "use client";
 
-import type { FormEvent, ReactNode } from "react";
+import type { ChangeEvent, FormEvent, ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Circle,
   Clock,
@@ -19,25 +20,42 @@ import {
   X,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { patchPilotFlightHours } from "@/app/services/pilotServices";
+import { fetchPilotSessionRow } from "@/lib/fetch-pilot-session-row";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getPilotDisplayName, jwtPayloadRole } from "@/lib/pilot-display-name";
+import {
+  getPilotDisplayName,
+  jwtPayloadRole,
+  jwtPayloadSub,
+} from "@/lib/pilot-display-name";
+import { displayFlightHoursLikeProfilePage } from "@/lib/pilot-profile-flight-hours";
+import { normalizePilotDutyStatus } from "@/lib/pilot-duty-status";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import { cn } from "@/lib/utils";
+import {
+  getDashboardPilotProfilePhoto,
+  setPilotProfilePhotoDataUrl,
+  snapshotForSharedStorage,
+} from "@/lib/pilot-profile-photo-storage";
+import {
+  activePilotProfileSnapshotStorageKey,
+  readPilotProfileSnapshotRawFromBrowser,
+} from "@/lib/pilot-profile-browser-storage";
 import {
   normalizePilotSkillsForSnapshot,
   parsePilotProfileSnapshot,
-  PILOT_PROFILE_STORAGE_KEY,
   PILOT_PROFILE_UPDATED_EVENT,
   replaceAbcPlaceholder,
   type PilotProfileSnapshot,
 } from "@/lib/pilot-profile-snapshot";
 
+const DRONE_STEP_REGISTRATION_HREF =
+  "/pilot-registration?step=3&returnTo=%2Fpilot-profile";
+
 function readSnapshot(): PilotProfileSnapshot | null {
   if (typeof window === "undefined") return null;
-  /* Prefer session (just submitted); fall back to local (persisted). */
-  const raw =
-    sessionStorage.getItem(PILOT_PROFILE_STORAGE_KEY) ??
-    localStorage.getItem(PILOT_PROFILE_STORAGE_KEY);
+  const raw = readPilotProfileSnapshotRawFromBrowser();
   return parsePilotProfileSnapshot(raw);
 }
 
@@ -89,15 +107,29 @@ function readSnapshotForPilotProfile(
     /* ignore */
   }
 
+  const sub = token ? jwtPayloadSub(token) : null;
+
   if (base) {
+    /** Saved snapshot wins over JWT/login so Edit profile → Save actually persists. */
     const mergedName =
-      displayName !== "Pilot"
-        ? displayName
-        : base.fullName.trim() || displayName;
+      base.fullName.trim() !== ""
+        ? base.fullName.trim()
+        : displayName !== "Pilot"
+          ? displayName
+          : base.fullName.trim() || displayName;
+    const mergedEmail =
+      base.email != null && String(base.email).trim() !== ""
+        ? String(base.email).trim()
+        : pilotEmail ?? base.email;
+    const photoDataUrl =
+      sub && isPilotSession
+        ? getDashboardPilotProfilePhoto(sub, base, pilotEmail)
+        : base.photoDataUrl;
     return {
       ...base,
       fullName: mergedName,
-      email: pilotEmail ?? base.email,
+      email: mergedEmail,
+      photoDataUrl,
     };
   }
 
@@ -105,6 +137,10 @@ function readSnapshotForPilotProfile(
     ...emptyPilotSnapshot(),
     fullName: displayName,
     email: pilotEmail,
+    photoDataUrl:
+      sub && isPilotSession
+        ? getDashboardPilotProfilePhoto(sub, null, pilotEmail)
+        : undefined,
   };
 }
 
@@ -210,6 +246,17 @@ export function PilotProfileView({
   const [editSkillsText, setEditSkillsText] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const photoFileInputRef = useRef<HTMLInputElement>(null);
+  const [backendDuty, setBackendDuty] = useState<
+    "ACTIVE" | "INACTIVE" | null
+  >(null);
+  const [backendDutyLoading, setBackendDutyLoading] = useState(false);
+  /** Fetched `pilots` row when `GET /api/pilots/:id` succeeds; drives flight hours with same logic as Dashboard. */
+  const [pilotApiRow, setPilotApiRow] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   const refreshFromStorage = useCallback(() => {
     setData(readSnapshotForPilotProfile(variant));
@@ -233,6 +280,65 @@ export function PilotProfileView({
   }, [refreshFromStorage]);
 
   useEffect(() => {
+    if (variant !== "dashboard") {
+      setBackendDuty(null);
+      setBackendDutyLoading(false);
+      setPilotApiRow(null);
+      return;
+    }
+
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token || jwtPayloadRole(token) !== "pilot") {
+      setBackendDuty(null);
+      setBackendDutyLoading(false);
+      setPilotApiRow(null);
+      return;
+    }
+
+    const idRaw = jwtPayloadSub(token);
+    const pilotId = idRaw ? Number.parseInt(idRaw, 10) : NaN;
+    if (!Number.isFinite(pilotId)) {
+      setBackendDuty(null);
+      setBackendDutyLoading(false);
+      setPilotApiRow(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadPilotRow() {
+      setBackendDutyLoading(true);
+      const row = await fetchPilotSessionRow(idRaw);
+      if (cancelled) return;
+      setBackendDutyLoading(false);
+      if (row && typeof row === "object" && !Array.isArray(row)) {
+        const r = row as Record<string, unknown>;
+        setBackendDuty(
+          normalizePilotDutyStatus(r.duty_status ?? r.dutyStatus)
+        );
+        setPilotApiRow(r);
+      } else {
+        setBackendDuty(null);
+        setPilotApiRow(null);
+      }
+    }
+
+    void loadPilotRow();
+
+    function onVisible() {
+      if (document.visibilityState !== "visible" || cancelled) return;
+      void loadPilotRow();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [variant]);
+
+  useEffect(() => {
     if (!editOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setEditOpen(false);
@@ -251,7 +357,20 @@ export function PilotProfileView({
     setEditStateField(snap.state);
     setEditAadhaar(snap.aadhaar ?? "");
     setEditDgca(snap.dgca);
-    setEditFlightHours(snap.flightHours);
+    const t =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const preferApi = Boolean(
+      variant === "dashboard" &&
+        t &&
+        jwtPayloadRole(t) === "pilot" &&
+        pilotApiRow != null
+    );
+    setEditFlightHours(
+      displayFlightHoursLikeProfilePage(pilotApiRow, {
+        preferApiRowWhenPresent: preferApi,
+        snapshotFallbackHours: snap.flightHours,
+      })
+    );
     setEditSkillsText(snap.skills.join("\n"));
     setEditBio(snap.bio);
     setEditError(null);
@@ -261,7 +380,10 @@ export function PilotProfileView({
   function handleEditSave(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const base = readSnapshotForPilotProfile(variant);
-    if (!base) return;
+    if (!base) {
+      setEditError("Could not read your profile from this browser. Try reloading the page.");
+      return;
+    }
 
     const name = editFullName.trim();
     const city = editCity.trim();
@@ -302,18 +424,129 @@ export function PilotProfileView({
       skills,
       drones: base.drones,
       dgca: editDgca.trim(),
+      photoDataUrl: base.photoDataUrl,
     };
 
-    const json = JSON.stringify(snapshot);
+    const json = JSON.stringify(snapshotForSharedStorage(snapshot));
+    const storeKey = activePilotProfileSnapshotStorageKey();
     try {
-      localStorage.setItem(PILOT_PROFILE_STORAGE_KEY, json);
+      localStorage.setItem(storeKey, json);
     } catch {
       /* quota */
     }
-    sessionStorage.setItem(PILOT_PROFILE_STORAGE_KEY, json);
+    sessionStorage.setItem(storeKey, json);
     window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
     refreshFromStorage();
     setEditOpen(false);
+
+    if (variant === "dashboard") {
+      const tok =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (tok && jwtPayloadRole(tok) === "pilot") {
+        const raw = jwtPayloadSub(tok);
+        const pid = raw ? Number.parseInt(raw, 10) : NaN;
+        if (Number.isFinite(pid)) {
+          /** Professional block uses API row for hours; merge now so UI updates even if PATCH is slow or fails. */
+          setPilotApiRow((prev) =>
+            prev && typeof prev === "object" && !Array.isArray(prev)
+              ? {
+                  ...prev,
+                  flight_hours: hrs,
+                  experience: String(hrs),
+                }
+              : prev
+          );
+          void (async () => {
+            const patched = await patchPilotFlightHours(pid, hrs);
+            const row =
+              patched &&
+              typeof patched === "object" &&
+              "data" in patched &&
+              patched.data &&
+              typeof patched.data === "object"
+                ? (patched.data as Record<string, unknown>)
+                : await fetchPilotSessionRow(raw);
+            if (row && typeof row === "object" && !Array.isArray(row)) {
+              const r = row as Record<string, unknown>;
+              setPilotApiRow(r);
+              setBackendDuty(
+                normalizePilotDutyStatus(r.duty_status ?? r.dutyStatus)
+              );
+            }
+          })();
+        }
+      }
+    }
+  }
+
+  function persistProfileSnapshot(snapshot: PilotProfileSnapshot) {
+    const json = JSON.stringify(snapshotForSharedStorage(snapshot));
+    const storeKey = activePilotProfileSnapshotStorageKey();
+    try {
+      localStorage.setItem(storeKey, json);
+    } catch {
+      /* quota */
+    }
+    sessionStorage.setItem(storeKey, json);
+    window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
+    setData(snapshot);
+    refreshFromStorage();
+  }
+
+  function handleDroneDelete(index: number) {
+    const snap = readSnapshotForPilotProfile(variant);
+    if (!snap) return;
+    if (!snap.drones[index]) return;
+    const nextDrones = snap.drones.filter((_, i) => i !== index);
+    persistProfileSnapshot({ ...snap, drones: nextDrones });
+  }
+
+  function goToPilotRegistrationDroneStep() {
+    router.push(DRONE_STEP_REGISTRATION_HREF);
+  }
+
+  function openPilotPhotoPicker() {
+    setAvatarError(null);
+    photoFileInputRef.current?.click();
+  }
+
+  function handlePilotPhotoSelected(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Please choose an image file.");
+      return;
+    }
+    const maxBytes = Math.floor(1.5 * 1024 * 1024);
+    if (file.size > maxBytes) {
+      setAvatarError("Image must be about 1.5 MB or smaller.");
+      return;
+    }
+    const snap = readSnapshotForPilotProfile(variant);
+    if (!snap) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) {
+        setAvatarError("Could not read that image.");
+        return;
+      }
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const sub = token ? jwtPayloadSub(token) : null;
+      if (
+        token &&
+        sub &&
+        jwtPayloadRole(token) === "pilot"
+      ) {
+        setPilotProfilePhotoDataUrl(sub, dataUrl);
+      }
+      persistProfileSnapshot({ ...snap, photoDataUrl: dataUrl });
+      setAvatarError(null);
+    };
+    reader.onerror = () => setAvatarError("Could not read that image.");
+    reader.readAsDataURL(file);
   }
 
   if (!ready) {
@@ -366,8 +599,51 @@ export function PilotProfileView({
 
   const displayName = data.fullName.trim() || "Pilot";
   const showDgcaBadge = Boolean(data.dgca.trim());
+  const tokenForDuty =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const useBackendDutyForStatus = Boolean(
+    variant === "dashboard" &&
+      tokenForDuty &&
+      jwtPayloadRole(tokenForDuty) === "pilot"
+  );
+
+  let headerStatusDotClass: string;
+  let headerStatusText: string;
+  let rowStatusDotClass: string;
+  let rowStatusText: string;
+
+  if (useBackendDutyForStatus) {
+    const dot = backendDutyLoading
+      ? "bg-muted-foreground/40"
+      : backendDuty !== null
+        ? backendDuty === "ACTIVE"
+          ? "bg-emerald-500"
+          : "bg-muted-foreground/50"
+        : "bg-muted-foreground/50";
+    const text = backendDutyLoading
+      ? "…"
+      : backendDuty !== null
+        ? backendDuty
+        : "Inactive";
+    headerStatusDotClass = rowStatusDotClass = dot;
+    headerStatusText = rowStatusText = text;
+  } else {
+    headerStatusDotClass = rowStatusDotClass = showDgcaBadge
+      ? "bg-emerald-500"
+      : "bg-amber-400";
+    headerStatusText = showDgcaBadge ? "Available" : "Review";
+    rowStatusText = showDgcaBadge ? "Available" : "Pending verification";
+  }
+
+  const effectiveFlightHours = displayFlightHoursLikeProfilePage(
+    pilotApiRow,
+    {
+      preferApiRowWhenPresent: useBackendDutyForStatus,
+      snapshotFallbackHours: data.flightHours,
+    }
+  );
+
   const missionPct = missionSuccessPercent(data);
-  const roleLine = data.skills[0]?.trim() ?? "";
   const certDisplay = showDgcaBadge ? "99.9%" : "—";
   const skillsCount = String(data.skills.length);
 
@@ -386,27 +662,80 @@ export function PilotProfileView({
     >
       <div className={innerPad}>
         {/* Top header — avatar, identity, edit */}
-        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-4 shadow-sm sm:p-5 lg:p-6">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-[#008B8B]/12 via-sky-500/10 to-emerald-500/10"
-          />
+        <div
+          className={
+            variant === "dashboard"
+              ? "relative"
+              : "relative overflow-hidden rounded-2xl border border-border/80 bg-card p-4 shadow-sm sm:p-5 lg:p-6"
+          }
+        >
+          {variant !== "dashboard" ? (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-[#008B8B]/12 via-sky-500/10 to-emerald-500/10"
+            />
+          ) : null}
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:gap-5">
-            <div className="relative mx-auto shrink-0 sm:mx-0">
-              <div className="flex size-[4.75rem] items-center justify-center rounded-full bg-sky-100 ring-4 ring-sky-50 dark:bg-sky-950/50 dark:ring-sky-900/40">
-                <Headset
-                  className="size-8 text-sky-700 dark:text-sky-300"
-                  strokeWidth={1.75}
-                  aria-hidden
-                />
-              </div>
-              <span
-                className="absolute bottom-0 right-0 flex size-7 items-center justify-center rounded-full border-2 border-border bg-card shadow-md"
+            <div className="relative mx-auto mb-1 mr-1 flex shrink-0 flex-col items-center sm:mx-0 sm:items-start">
+              <input
+                ref={photoFileInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
                 aria-hidden
+                tabIndex={-1}
+                onChange={handlePilotPhotoSelected}
+              />
+              <button
+                type="button"
+                onClick={openPilotPhotoPicker}
+                className="relative size-[4.75rem] shrink-0 rounded-full p-0 ring-4 ring-sky-50 transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:ring-sky-900/40"
+                aria-label={
+                  data.photoDataUrl
+                    ? "Edit profile photo"
+                    : "Add profile photo"
+                }
               >
-                <Settings className="size-3.5 text-foreground" />
-              </span>
+                <span
+                  className={`absolute inset-0 flex items-center justify-center overflow-hidden rounded-full ${
+                    data.photoDataUrl
+                      ? "bg-muted"
+                      : "bg-sky-100 dark:bg-sky-950/50"
+                  }`}
+                >
+                  {data.photoDataUrl ? (
+                    <Image
+                      src={data.photoDataUrl}
+                      alt=""
+                      width={76}
+                      height={76}
+                      unoptimized
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <Headset
+                      className="size-8 text-sky-700 dark:text-sky-300"
+                      strokeWidth={1.75}
+                      aria-hidden
+                    />
+                  )}
+                </span>
+                <span
+                  className="pointer-events-none absolute -bottom-1 -right-1 z-[1] flex size-7 items-center justify-center rounded-full bg-[#008080] text-white shadow-md ring-2 ring-background dark:ring-card"
+                  aria-hidden
+                >
+                  <Pencil className="size-3.5" strokeWidth={2.25} />
+                </span>
+              </button>
+              {avatarError ? (
+                <p
+                  className="mt-2 max-w-[12rem] text-center text-xs text-red-600 sm:text-left"
+                  role="alert"
+                >
+                  {avatarError}
+                </p>
+              ) : null}
             </div>
             <div className="min-w-0 flex-1 text-center sm:text-left">
               <h1 className={ADMIN_PAGE_TITLE_CLASS}>{displayName}</h1>
@@ -415,21 +744,11 @@ export function PilotProfileView({
               >
                 <span className="inline-flex items-center gap-1.5">
                   <span
-                    className={`size-2 shrink-0 rounded-full ${showDgcaBadge ? "bg-emerald-500" : "bg-amber-400"}`}
+                    className={`size-2 shrink-0 rounded-full ${headerStatusDotClass}`}
                     aria-hidden
                   />
-                  <span className="text-foreground">
-                    {showDgcaBadge ? "Available" : "Review"}
-                  </span>
+                  <span className="text-foreground">{headerStatusText}</span>
                 </span>
-                {roleLine ? (
-                  <>
-                    <span className="text-muted-foreground/50" aria-hidden>
-                      ·
-                    </span>
-                    <span className="text-foreground">{roleLine}</span>
-                  </>
-                ) : null}
               </p>
             </div>
             </div>
@@ -480,6 +799,8 @@ export function PilotProfileView({
                 </button>
               </div>
               <form
+                id="pilot-profile-edit-form"
+                noValidate
                 onSubmit={handleEditSave}
                 className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5"
               >
@@ -576,10 +897,20 @@ export function PilotProfileView({
                         type="number"
                         min={0}
                         max={50000}
-                        value={editFlightHours}
-                        onChange={(e) =>
-                          setEditFlightHours(Number(e.target.value))
-                        }
+                        value={Number.isFinite(editFlightHours) ? editFlightHours : 0}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          if (raw === "") {
+                            setEditFlightHours(0);
+                            return;
+                          }
+                          const n = Number.parseInt(raw, 10);
+                          setEditFlightHours(
+                            Number.isFinite(n)
+                              ? Math.max(0, Math.min(50000, n))
+                              : 0
+                          );
+                        }}
                         className="h-10 rounded-lg border-border bg-background tabular-nums text-foreground"
                       />
                     </div>
@@ -662,47 +993,59 @@ export function PilotProfileView({
                   >
                     Cancel
                   </Button>
-                  <Button
+                  {/*
+                    Native submit: @base-ui/react Button merges getButtonProps() after
+                    element props and forces type="button", so type="submit" never applied
+                    and the form never submitted.
+                  */}
+                  <button
                     type="submit"
-                    className="rounded-lg bg-[#008B8B] text-white hover:bg-[#006b6b]"
+                    className={cn(
+                      buttonVariants({ variant: "default", size: "lg" }),
+                      "rounded-lg bg-[#008B8B] text-white hover:bg-[#006b6b]"
+                    )}
                   >
                     Save changes
-                  </Button>
+                  </button>
                 </div>
               </form>
             </div>
           </div>
         ) : null}
 
-        {/* Metrics row */}
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          <MetricCard
-            icon={<UserRound className="size-5 text-sky-600 dark:text-sky-300" aria-hidden />}
-            iconWrapClass="bg-sky-100 dark:bg-sky-950/45"
-            value={String(data.flightHours)}
-            label="Flight hours"
-          />
-          <MetricCard
-            icon={<Shield className="size-5 text-emerald-600 dark:text-emerald-300" aria-hidden />}
-            iconWrapClass="bg-emerald-100 dark:bg-emerald-950/45"
-            value={certDisplay}
-            label="Certificate sync"
-          />
-          <MetricCard
-            icon={
-              <LayoutGrid className="size-5 text-violet-600 dark:text-violet-300" aria-hidden />
-            }
-            iconWrapClass="bg-violet-100 dark:bg-violet-950/45"
-            value={skillsCount}
-            label="Skills active"
-          />
-          <MetricCard
-            icon={<Settings className="size-5 text-orange-600 dark:text-orange-300" aria-hidden />}
-            iconWrapClass="bg-orange-100 dark:bg-orange-950/45"
-            value="4.9"
-            label="Performance rating"
-          />
-        </div>
+        {variant !== "dashboard" ? (
+          <>
+            {/* Metrics row — hidden on Pilot Dashboard profile */}
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+              <MetricCard
+                icon={<UserRound className="size-5 text-sky-600 dark:text-sky-300" aria-hidden />}
+                iconWrapClass="bg-sky-100 dark:bg-sky-950/45"
+                value={String(data.flightHours)}
+                label="Flight hours"
+              />
+              <MetricCard
+                icon={<Shield className="size-5 text-emerald-600 dark:text-emerald-300" aria-hidden />}
+                iconWrapClass="bg-emerald-100 dark:bg-emerald-950/45"
+                value={certDisplay}
+                label="Certificate sync"
+              />
+              <MetricCard
+                icon={
+                  <LayoutGrid className="size-5 text-violet-600 dark:text-violet-300" aria-hidden />
+                }
+                iconWrapClass="bg-violet-100 dark:bg-violet-950/45"
+                value={skillsCount}
+                label="Skills active"
+              />
+              <MetricCard
+                icon={<Settings className="size-5 text-orange-600 dark:text-orange-300" aria-hidden />}
+                iconWrapClass="bg-orange-100 dark:bg-orange-950/45"
+                value="4.9"
+                label="Performance rating"
+              />
+            </div>
+          </>
+        ) : null}
 
         {/* Detail cards */}
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -769,7 +1112,7 @@ export function PilotProfileView({
                 label="Flight hours"
                 value={
                   <span className="tabular-nums">
-                    {data.flightHours.toLocaleString("en-IN")}{" "}
+                    {effectiveFlightHours.toLocaleString("en-IN")}{" "}
                     <span className="text-muted-foreground">h</span>
                   </span>
                 }
@@ -800,15 +1143,107 @@ export function PilotProfileView({
                 label="Status"
                 value={
                   <span className="inline-flex items-center gap-2">
-                    {showDgcaBadge ? "Available" : "Pending verification"}
+                    {rowStatusText}
                     <span
-                      className={`size-2 rounded-full ${showDgcaBadge ? "bg-emerald-500" : "bg-amber-400"}`}
+                      className={`size-2 rounded-full ${rowStatusDotClass}`}
                       aria-hidden
                     />
                   </span>
                 }
               />
             </div>
+          </div>
+        </div>
+
+        <div className="mt-5 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/80 bg-muted/35 px-4 py-3">
+            <h2 className="text-sm font-semibold tracking-wide text-foreground">
+              Drone details
+            </h2>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={goToPilotRegistrationDroneStep}
+              className="h-8 rounded-lg border-[#008080] text-xs text-foreground hover:bg-[#008080]/10"
+            >
+              Add Drone Details
+            </Button>
+          </div>
+          <div className="px-4 py-4">
+            {data.drones.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-5 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No drone details added yet.
+                </p>
+                <Button
+                  type="button"
+                  onClick={goToPilotRegistrationDroneStep}
+                  className="mt-3 h-8 rounded-lg bg-[#008B8B] px-3 text-xs text-white hover:bg-[#006b6b]"
+                >
+                  Add Drone Details
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {data.drones.map((drone, idx) => (
+                  <div
+                    key={drone.id || `${drone.modelName}-${idx}`}
+                    className="rounded-xl border border-border p-3.5"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">
+                          {drone.modelName || "—"}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {drone.type || "—"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={goToPilotRegistrationDroneStep}
+                          className="h-8 rounded-lg px-3 text-xs"
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => handleDroneDelete(idx)}
+                          className="h-8 rounded-lg px-3 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-white dark:hover:bg-red-950/40 dark:hover:text-white"
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
+                      <p>
+                        <span className="font-semibold text-foreground">Camera:</span>{" "}
+                        {drone.camera || "—"}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-foreground">Payload:</span>{" "}
+                        {drone.payloadKg || "—"}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-foreground">Flight time:</span>{" "}
+                        {drone.flightTimeMin || "—"}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-foreground">Range:</span>{" "}
+                        {drone.rangeKm || "—"}
+                      </p>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      <span className="font-semibold text-foreground">Use cases:</span>{" "}
+                      {drone.useCases?.length ? drone.useCases.join(", ") : "—"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

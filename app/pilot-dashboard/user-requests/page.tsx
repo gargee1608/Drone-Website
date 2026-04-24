@@ -9,7 +9,7 @@ export const metadata = {
 export default function PilotUserRequestsPage() {
   return (
     <PilotDashboardShell pageTitle="User Request">
-      <UserRequestsView showPageTitle={false} />
+      <UserRequestsView showPageTitle={false} pilotTables />
     </PilotDashboardShell>
   );
 }

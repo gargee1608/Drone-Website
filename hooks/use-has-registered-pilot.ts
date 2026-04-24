@@ -2,9 +2,9 @@
 
 import { useLayoutEffect, useState } from "react";
 
+import { readPilotProfileSnapshotRawFromBrowser } from "@/lib/pilot-profile-browser-storage";
 import {
   parsePilotProfileSnapshot,
-  PILOT_PROFILE_STORAGE_KEY,
   PILOT_PROFILE_UPDATED_EVENT,
 } from "@/lib/pilot-profile-snapshot";
 
@@ -17,7 +17,7 @@ export function useHasRegisteredPilot() {
   useLayoutEffect(() => {
     function read() {
       const s = parsePilotProfileSnapshot(
-        localStorage.getItem(PILOT_PROFILE_STORAGE_KEY)
+        readPilotProfileSnapshotRawFromBrowser()
       );
       setHasRegisteredPilot(Boolean(s?.fullName?.trim()));
     }

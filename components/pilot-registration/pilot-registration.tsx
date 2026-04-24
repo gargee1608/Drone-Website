@@ -18,6 +18,7 @@ import {
 } from "@/lib/pilot-registration-draft";
 import {
   normalizePilotSkillsForSnapshot,
+  parsePilotProfileSnapshot,
   PILOT_PROFILE_STORAGE_KEY,
   PILOT_PROFILE_UPDATED_EVENT,
   replaceAbcPlaceholder,
@@ -194,9 +195,11 @@ export function PilotRegistrationView() {
   const [draftUseCases, setDraftUseCases] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
+  const [profileReturnTo, setProfileReturnTo] = useState<string | null>(null);
 
   const resetForm = useCallback(() => {
     setStep(1);
+    setProfileReturnTo(null);
     setFullName("");
     setEmail("");
     setPassword("");
@@ -220,7 +223,55 @@ export function PilotRegistrationView() {
     setStepError(null);
   }, []);
 
+  function hydrateFromPilotProfileSnapshot(snap: PilotProfileSnapshot) {
+    setFullName(snap.fullName);
+    setEmail(snap.email?.trim() ?? "");
+    try {
+      const rawPilot = localStorage.getItem("pilot");
+      if (rawPilot && !snap.email?.trim()) {
+        const p = JSON.parse(rawPilot) as { email?: string };
+        const em = p.email?.trim();
+        if (em) setEmail(em);
+      }
+    } catch {
+      /* ignore */
+    }
+    setPhone(snap.phone ?? "");
+    setCity(snap.city);
+    setState(snap.state);
+    setAadhaar(snap.aadhaar ?? "");
+    setDgca(snap.dgca);
+    setFlightHours(snap.flightHours);
+    setSelectedSkills(snap.skills.length ? [...snap.skills] : []);
+    setBio(snap.bio);
+    setDrones(snap.drones.length ? [...snap.drones] : []);
+  }
+
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const ret = params.get("returnTo");
+      const stepQ = params.get("step");
+      if (ret === "/pilot-profile" && stepQ === "3") {
+        if (consumePilotRegistrationForceBlankNextOpen()) {
+          resetForm();
+        }
+        const rawProf = localStorage.getItem(PILOT_PROFILE_STORAGE_KEY);
+        const snap = parsePilotProfileSnapshot(rawProf);
+        if (!snap) {
+          router.replace("/pilot-profile");
+          return;
+        }
+        setProfileReturnTo(ret);
+        hydrateFromPilotProfileSnapshot(snap);
+        setStep(3);
+        setPassword("");
+        setSubmitError(null);
+        setStepError(null);
+        return;
+      }
+    }
+
     if (consumePilotRegistrationForceBlankNextOpen()) {
       resetForm();
       return;
@@ -246,7 +297,7 @@ export function PilotRegistrationView() {
     } catch {
       /* ignore */
     }
-  }, [resetForm]);
+  }, [resetForm, router]);
 
   useEffect(() => {
     savePilotRegistrationDraft(
@@ -421,6 +472,12 @@ export function PilotRegistrationView() {
 
     const dronesForSnapshot = skipFromSkills ? [] : drones;
 
+    const existingSnap = parsePilotProfileSnapshot(
+      typeof window !== "undefined"
+        ? localStorage.getItem(PILOT_PROFILE_STORAGE_KEY)
+        : null
+    );
+
     const snapshot: PilotProfileSnapshot = {
       fullName: replaceAbcPlaceholder(name),
       email: email.trim() || undefined,
@@ -433,6 +490,7 @@ export function PilotRegistrationView() {
       skills,
       drones: dronesForSnapshot,
       dgca: dgca.trim(),
+      photoDataUrl: existingSnap?.photoDataUrl,
     };
 
     const res = await fetch(apiUrl("/api/pilots/register"), {
@@ -482,6 +540,65 @@ export function PilotRegistrationView() {
       window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
     }
     router.replace("/dashboard#pilot-registrations");
+  }
+
+  function saveDronesToPilotProfile() {
+    if (!profileReturnTo || profileReturnTo !== "/pilot-profile") return;
+    setSubmitError(null);
+    setStepError(null);
+    const name = fullName.trim();
+    const c = city.trim();
+    const st = state.trim();
+    if (!name || !c || !st || aadhaarDigits.length !== 12) {
+      setSubmitError(
+        "Your profile is missing required fields. Open Personal info from step 1 or update your profile first."
+      );
+      return;
+    }
+    if (selectedSkills.length === 0) {
+      setSubmitError("Select at least one skill (use Back to open the Skills step).");
+      return;
+    }
+
+    const hrsRaw = Number(flightHours);
+    const hrs = Number.isFinite(hrsRaw)
+      ? Math.max(0, Math.min(50000, Math.floor(hrsRaw)))
+      : 0;
+    const skills = normalizePilotSkillsForSnapshot([...selectedSkills]);
+    const bioOut = replaceAbcPlaceholder(bio.trim());
+
+    const existingSnap = parsePilotProfileSnapshot(
+      typeof window !== "undefined"
+        ? localStorage.getItem(PILOT_PROFILE_STORAGE_KEY)
+        : null
+    );
+
+    const snapshot: PilotProfileSnapshot = {
+      fullName: replaceAbcPlaceholder(name),
+      email: email.trim() || undefined,
+      phone: phone.trim() || undefined,
+      city: c,
+      state: st,
+      aadhaar: aadhaarDigits,
+      flightHours: hrs,
+      bio: bioOut,
+      skills,
+      drones: [...drones],
+      dgca: dgca.trim(),
+      photoDataUrl: existingSnap?.photoDataUrl,
+    };
+
+    const json = JSON.stringify(snapshot);
+    try {
+      localStorage.setItem(PILOT_PROFILE_STORAGE_KEY, json);
+    } catch {
+      /* quota */
+    }
+    sessionStorage.setItem(PILOT_PROFILE_STORAGE_KEY, json);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
+    }
+    router.push(profileReturnTo);
   }
 
   return (
@@ -845,6 +962,13 @@ export function PilotRegistrationView() {
 
             {step === 3 ? (
               <div className="space-y-6">
+                {profileReturnTo === "/pilot-profile" ? (
+                  <p className="rounded-lg border border-teal-200 bg-teal-50/80 px-3 py-2 text-xs font-medium text-teal-900">
+                    Updating drones for your pilot profile. When finished, tap{" "}
+                    <span className="font-semibold">Save to profile</span> below
+                    to return to the dashboard profile page.
+                  </p>
+                ) : null}
                 <div className="space-y-3">
                   <h2 className="text-sm font-semibold text-slate-900">
                     Your Drones
@@ -1189,17 +1313,17 @@ export function PilotRegistrationView() {
                       type="button"
                       variant="outline"
                       className="h-10 rounded-lg border-slate-300 bg-white px-4 font-medium text-slate-700 hover:bg-slate-50"
-                      onClick={submitRegistration}
-                    >
-                      Submit
-                    </Button>
-                    <Button
-                      type="button"
                       onClick={goNext}
-                      className="h-10 rounded-lg bg-[#008B8B] px-6 font-semibold text-white shadow-sm hover:bg-[#006b6b]"
                     >
                       Next
                       <ArrowRight className="ml-1.5 inline size-4" aria-hidden />
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={submitRegistration}
+                      className="h-10 rounded-lg bg-[#008B8B] px-6 font-semibold text-white shadow-sm hover:bg-[#006b6b]"
+                    >
+                      Submit
                     </Button>
                   </div>
                 </div>
@@ -1220,6 +1344,16 @@ export function PilotRegistrationView() {
                   )}
                   {step < 4 ? (
                     <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+                      {profileReturnTo === "/pilot-profile" && step === 3 ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-10 rounded-lg border-[#008B8B] bg-white px-4 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                          onClick={saveDronesToPilotProfile}
+                        >
+                          Save to profile
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
                         onClick={goNext}

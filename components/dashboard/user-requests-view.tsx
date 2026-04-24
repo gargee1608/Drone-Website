@@ -126,8 +126,16 @@ function staticRequestToAdminRow(
   };
 }
 
-export function UserRequestsView({ showPageTitle = true }: { showPageTitle?: boolean } = {}) {
+export function UserRequestsView({
+  showPageTitle = true,
+  pilotTables = false,
+}: {
+  showPageTitle?: boolean;
+  /** Pilot dashboard: table columns User Id, User Name, User Requirement, Payload, Destinations. */
+  pilotTables?: boolean;
+} = {}) {
   const router = useRouter();
+  const tablePreset = pilotTables ? "pilot" : "admin";
   const demoAdminHydrated = useRef(false);
   /** Client-only review outcome for built-in demo table rows (localStorage keys use `demo-…`). */
   const [demoAdminByKey, setDemoAdminByKey] = useState<
@@ -325,6 +333,7 @@ export function UserRequestsView({ showPageTitle = true }: { showPageTitle?: boo
             rows={primaryTableRows}
             showTitle
             showTotalSubtitle
+            columnPreset={tablePreset}
             onViewDetails={openRequestDetails}
             onAcceptRow={handleAcceptRow}
             onRejectRow={handleRejectRow}
@@ -337,6 +346,7 @@ export function UserRequestsView({ showPageTitle = true }: { showPageTitle?: boo
             rows={additionalInquireTableRows}
             showTitle
             showTotalSubtitle
+            columnPreset={tablePreset}
             onViewDetails={openRequestDetails}
             onAcceptRow={handleAcceptRow}
             onRejectRow={handleRejectRow}

@@ -4,6 +4,13 @@
  */
 export const PILOT_PROFILE_STORAGE_KEY = "aerolaminar_pilot_profile_snapshot";
 
+/** Per signed-in pilot (`JWT sub` = `pilots.id`) so multiple pilots on one device do not share one blob. */
+export function pilotProfileSnapshotKeyForSub(sub: string): string {
+  const t = sub.trim();
+  if (!t) return PILOT_PROFILE_STORAGE_KEY;
+  return `${PILOT_PROFILE_STORAGE_KEY}::pilot::${t}`;
+}
+
 /** Dispatched on window after a pilot profile snapshot is saved (e.g. registration submit). */
 export const PILOT_PROFILE_UPDATED_EVENT = "aerolaminar-pilot-profile-updated";
 
@@ -31,7 +38,18 @@ export type PilotProfileSnapshot = {
   skills: string[];
   drones: PilotProfileDrone[];
   dgca: string;
+  /** Optional avatar from profile photo (data URL); set from pilot profile UI */
+  photoDataUrl?: string;
 };
+
+function normalizePhotoDataUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const t = value.trim();
+  if (!t.startsWith("data:image/")) return undefined;
+  /* Avoid huge strings breaking storage */
+  if (t.length > 4_000_000) return undefined;
+  return t;
+}
 
 /** Legacy strip list (empty) — pilot registration uses full skill labels including FPV & Mapping. */
 const REMOVED_SKILL_LABELS = new Set<string>();
@@ -73,7 +91,8 @@ export function parsePilotProfileSnapshot(
     );
     const bio =
       typeof parsed.bio === "string" ? replaceAbcPlaceholder(parsed.bio) : "";
-    return { ...parsed, fullName, bio, skills };
+    const photoDataUrl = normalizePhotoDataUrl(parsed.photoDataUrl);
+    return { ...parsed, fullName, bio, skills, photoDataUrl };
   } catch {
     return null;
   }
