@@ -444,10 +444,10 @@ export function UserDashboardFleetDashboard({
                       />
                       <div
                         className={cn(
-                          "rounded-lg border py-2.5 text-center text-[10px] font-bold uppercase tracking-wide transition-all peer-checked:border-[#0058bc] peer-checked:bg-[#0058bc] peer-checked:text-white",
+                          "rounded-lg border bg-transparent py-2.5 text-center text-[10px] font-bold uppercase tracking-wide transition-colors peer-checked:border-[#0058bc] peer-checked:text-[#0058bc]",
                           danger
-                            ? "border-rose-100 bg-rose-50/30 text-rose-600 peer-checked:border-rose-600 peer-checked:bg-rose-600 peer-checked:text-white dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
-                            : "border-slate-200 text-slate-700 dark:border-white/15 dark:text-white/85"
+                            ? "border-rose-300 text-rose-600 peer-checked:border-rose-600 peer-checked:text-rose-600 dark:border-rose-500/40 dark:text-rose-300"
+                            : "border-slate-300 text-slate-700 dark:border-white/20 dark:text-white/85"
                         )}
                       >
                         {label}
@@ -460,10 +460,10 @@ export function UserDashboardFleetDashboard({
               <button
                 type="submit"
                 disabled={submittingRequest}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-4 text-sm font-bold text-white shadow-lg transition-all hover:opacity-[0.97] hover:shadow-xl"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border bg-transparent py-4 text-sm font-bold transition-colors hover:bg-[#0058bc]/10 disabled:cursor-not-allowed disabled:opacity-70"
                 style={{
-                  backgroundColor: PRIMARY,
-                  boxShadow: "0 10px 25px -5px rgba(0,88,188,0.25)",
+                  borderColor: PRIMARY,
+                  color: PRIMARY,
                 }}
               >
                 {submittingRequest ? "Submitting..." : "Submit the Request"}
