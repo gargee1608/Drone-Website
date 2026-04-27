@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Activity,
   BadgeCheck,
   BookOpen,
   Briefcase,
@@ -53,6 +54,12 @@ export const userCommandCenterNavMain: readonly CommandCenterNavItem[] = [
     label: "My Request",
     icon: ClipboardList,
   },
+  {
+    href: "/user-dashboard/request-monitoring",
+    label: "Request Monitoring",
+    icon: Activity,
+  },
+  { href: "/user-dashboard/profile", label: "Profile", icon: CircleUser },
   { href: "/settings?from=user", label: "Settings", icon: Settings },
 ];
 

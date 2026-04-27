@@ -10,11 +10,28 @@ import { cn } from "@/lib/utils";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validateSignup(email: string, password: string, confirm: string) {
-  const errors: { email?: string; password?: string; confirm?: string } = {};
+function validateSignup(
+  firstName: string,
+  lastName: string,
+  email: string,
+  password: string,
+  confirm: string
+) {
+  const errors: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    password?: string;
+    confirm?: string;
+  } = {};
+  const fn = firstName.trim();
+  const ln = lastName.trim();
   const e = email.trim();
   const p = password.trim();
   const c = confirm.trim();
+
+  if (!fn) errors.firstName = "First name is required.";
+  if (!ln) errors.lastName = "Last name is required.";
 
   if (!e) errors.email = "Email is required.";
   else if (!emailPattern.test(e)) errors.email = "Enter a valid email address.";
@@ -30,10 +47,14 @@ function validateSignup(email: string, password: string, confirm: string) {
 
 export function SignUpView() {
   const router = useRouter();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [errors, setErrors] = useState<{
+    firstName?: string;
+    lastName?: string;
     email?: string;
     password?: string;
     confirm?: string;
@@ -66,12 +87,114 @@ export function SignUpView() {
             noValidate
             onSubmit={(e) => {
               e.preventDefault();
-              const next = validateSignup(email, password, confirm);
+              const next = validateSignup(
+                firstName,
+                lastName,
+                email,
+                password,
+                confirm
+              );
               setErrors(next);
               if (Object.keys(next).length > 0) return;
               router.push("/login");
             }}
           >
+            <div className="grid gap-2 sm:grid-cols-2 sm:gap-2.5">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="signup-first-name"
+                  className="block px-1 text-xs font-semibold text-[#414755] sm:text-sm"
+                >
+                  First name
+                </label>
+                <div className="relative">
+                  <User
+                    className="pointer-events-none absolute left-2.5 top-1/2 size-[15px] -translate-y-1/2 text-[#717786] sm:left-3 sm:size-4"
+                    aria-hidden
+                  />
+                  <input
+                    id="signup-first-name"
+                    name="firstName"
+                    type="text"
+                    autoComplete="given-name"
+                    placeholder="Jane"
+                    value={firstName}
+                    onChange={(e) => {
+                      setFirstName(e.target.value);
+                      if (errors.firstName)
+                        setErrors((p) => ({ ...p, firstName: undefined }));
+                    }}
+                    aria-invalid={errors.firstName ? true : undefined}
+                    aria-describedby={
+                      errors.firstName ? "signup-first-name-error" : undefined
+                    }
+                    className={cn(
+                      "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
+                      errors.firstName
+                        ? "border-red-500 focus:border-red-500"
+                        : "focus:border-slate-500"
+                    )}
+                  />
+                </div>
+                {errors.firstName ? (
+                  <p
+                    id="signup-first-name-error"
+                    role="alert"
+                    className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
+                  >
+                    {errors.firstName}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="signup-last-name"
+                  className="block px-1 text-xs font-semibold text-[#414755] sm:text-sm"
+                >
+                  Last name
+                </label>
+                <div className="relative">
+                  <User
+                    className="pointer-events-none absolute left-2.5 top-1/2 size-[15px] -translate-y-1/2 text-[#717786] sm:left-3 sm:size-4"
+                    aria-hidden
+                  />
+                  <input
+                    id="signup-last-name"
+                    name="lastName"
+                    type="text"
+                    autoComplete="family-name"
+                    placeholder="Doe"
+                    value={lastName}
+                    onChange={(e) => {
+                      setLastName(e.target.value);
+                      if (errors.lastName)
+                        setErrors((p) => ({ ...p, lastName: undefined }));
+                    }}
+                    aria-invalid={errors.lastName ? true : undefined}
+                    aria-describedby={
+                      errors.lastName ? "signup-last-name-error" : undefined
+                    }
+                    className={cn(
+                      "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
+                      errors.lastName
+                        ? "border-red-500 focus:border-red-500"
+                        : "focus:border-slate-500"
+                    )}
+                  />
+                </div>
+                {errors.lastName ? (
+                  <p
+                    id="signup-last-name-error"
+                    role="alert"
+                    className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
+                  >
+                    {errors.lastName}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <label
                 htmlFor="signup-email"

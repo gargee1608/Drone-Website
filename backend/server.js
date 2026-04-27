@@ -19,14 +19,16 @@ const serviceRoute = require("./routes/serviceRoute");
 
 const pilotRoutes = require("./routes/pilotRoutes");
 const blogRoutes = require("./routes/blogRoutes");
+const contactRoutes = require("./routes/contact");
 
+const requestRoutes = require("./routes/request");
+app.use("/api", requestRoutes);
+app.use("/api", contactRoutes);
 
 
 app.use("/api/blogs", blogRoutes);
 
 app.use("/api/pilots", pilotRoutes);
-
-
 
 /** Non-production (or AUTH_SIGNIN_DETAIL=true): include DB/API error text on 500 signin responses. */
 function signinErrorDetail(err) {

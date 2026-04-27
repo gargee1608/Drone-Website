@@ -219,17 +219,19 @@ export function AdminServicesView() {
                 <div className="mt-3 flex gap-2">
 
                   <button
+                    type="button"
                     onClick={() => openEdit(row)}
-                    className="bg-[#008B8B] text-white px-3 py-1 rounded flex items-center gap-1"
+                    className="flex items-center gap-1 rounded border border-[#008B8B] bg-transparent px-3 py-1 text-sm font-medium text-[#008B8B] transition-colors hover:bg-[#008B8B]/10"
                   >
-                    <Pencil size={14} /> Edit
+                    <Pencil size={14} aria-hidden /> Edit
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => deleteService(row.id)}
-                    className="bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1"
+                    className="flex items-center gap-1 rounded border border-red-600 bg-transparent px-3 py-1 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
                   >
-                    <Trash2 size={14} /> Delete
+                    <Trash2 size={14} aria-hidden /> Delete
                   </button>
 
                 </div>

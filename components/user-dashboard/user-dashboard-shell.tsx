@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  Activity,
   ClipboardList,
   History,
   LayoutDashboard,
@@ -28,6 +29,16 @@ const MY_REQUESTS_HREF = "/user-dashboard/my-requests";
 const sidebarNav = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/user-dashboard" },
   { label: "My Request", icon: ClipboardList, href: MY_REQUESTS_HREF },
+  {
+    label: "Request Monitoring",
+    icon: Activity,
+    href: "/user-dashboard/request-monitoring",
+  },
+  {
+    label: "Profile",
+    icon: UserRound,
+    href: "/user-dashboard/profile",
+  },
   { label: "Settings", icon: Settings, href: "/settings?from=user" },
 ] as const;
 
@@ -120,6 +131,8 @@ export type UserDashboardShellProps = {
   pageTitleClassName?: string;
   /** Classes for the title in the compact mobile top bar (defaults to `text-sm`). */
   pageTitleBarClassName?: string;
+  /** Override default `max-w-[1280px]` on the main content column. */
+  mainMaxWidthClassName?: string;
   children: ReactNode;
 };
 
@@ -128,6 +141,7 @@ export function UserDashboardShell({
   pageSubtitle,
   pageTitleClassName,
   pageTitleBarClassName,
+  mainMaxWidthClassName,
   children,
 }: UserDashboardShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -160,8 +174,8 @@ export function UserDashboardShell({
   }, [sidebarExpanded]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-white pt-20 text-[#191c1d] sm:pt-22 dark:bg-[#111315] dark:text-white">
-      <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-1.5 lg:hidden dark:border-white/15 dark:bg-[#111315]">
+    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-[#f8f9fa] pt-20 text-[#191c1d] sm:pt-22 dark:bg-[#111315] dark:text-white">
+      <div className="flex items-center gap-2 border-b border-slate-200 bg-[#f8f9fa] px-4 py-1.5 lg:hidden dark:border-white/15 dark:bg-[#111315]">
         <button
           type="button"
           className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-[#eceff1] dark:text-white dark:hover:bg-white/10"
@@ -260,7 +274,12 @@ export function UserDashboardShell({
             sidebarExpanded ? "lg:ml-60" : "lg:ml-0"
           )}
         >
-          <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4 lg:px-6 lg:pb-6 lg:pt-0">
+          <main
+            className={cn(
+              "mx-auto w-full flex-1 px-4 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4 lg:px-6 lg:pb-6 lg:pt-0",
+              mainMaxWidthClassName ?? "max-w-[1280px]"
+            )}
+          >
             <div className="mb-8 sm:mb-10">
               <div className="flex items-center gap-3">
                 <h1

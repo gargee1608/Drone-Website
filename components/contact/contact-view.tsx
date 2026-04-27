@@ -10,6 +10,7 @@ import { type FormEvent, useState } from "react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { appendContactInquiry } from "@/lib/contact-inquiries";
+import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -21,9 +22,11 @@ const HERO_DRONE_SRC =
 
 export function ContactView() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleInquirySubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleInquirySubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) return;
     const form = event.currentTarget;
     const fd = new FormData(form);
     const fullName = String(fd.get("fullName") ?? "").trim();
@@ -33,15 +36,52 @@ export function ContactView() {
     const message = String(fd.get("message") ?? "").trim();
     if (!fullName || !email || !message) return;
 
-    appendContactInquiry({
-      fullName,
-      email,
-      phone,
-      company,
-      message,
-    });
-    setSubmitted(true);
-    form.reset();
+    setSubmitting(true);
+    setSubmitted(false);
+    try {
+      const res = await fetch(apiUrl("/api/submit-inquiry"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          full_name: fullName,
+          email,
+          phone,
+          company,
+          message,
+        }),
+      });
+
+      let payload: { error?: string; message?: string } = {};
+      try {
+        payload = (await res.json()) as typeof payload;
+      } catch {
+        // ignore non-JSON response
+      }
+
+      if (!res.ok) {
+        alert(payload.error || payload.message || "Could not submit inquiry.");
+        return;
+      }
+
+      // Keep existing local dashboard widgets in sync.
+      appendContactInquiry({
+        fullName,
+        email,
+        phone,
+        company,
+        message,
+      });
+
+      setSubmitted(true);
+      form.reset();
+    } catch (error) {
+      console.error(error);
+      alert("Could not connect to backend. Please ensure the API is running.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -159,10 +199,11 @@ export function ContactView() {
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   type="submit"
+                  disabled={submitting}
                   className="inline-flex items-center justify-center rounded-lg px-5 py-2.5 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-white uppercase transition hover:opacity-90 sm:ml-auto"
                   style={{ backgroundColor: primary }}
                 >
-                  Submit inquiry
+                  {submitting ? "Submitting..." : "Submit inquiry"}
                 </button>
               </div>
 

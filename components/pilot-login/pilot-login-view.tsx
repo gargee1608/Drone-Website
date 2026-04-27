@@ -26,6 +26,8 @@ export function PilotLoginView() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetNote, setResetNote] = useState("");
@@ -198,7 +200,7 @@ export function PilotLoginView() {
                 />
                 <input
                   id="pilot-login-password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   value={password}
                   onChange={(ev) => setPassword(ev.target.value)}
@@ -215,18 +217,25 @@ export function PilotLoginView() {
                   }
                 />
               </div>
-              {errors.password ? (
-                <p
-                  id="pilot-login-password-err"
-                  className="mt-1 text-xs text-red-600"
-                >
-                  {errors.password}
-                </p>
-              ) : null}
-              <div className="mt-2 flex justify-end">
+              <div className="mt-2 flex items-center justify-between gap-2 px-0.5">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <input
+                    id="pilot-login-show-password"
+                    type="checkbox"
+                    checked={showPassword}
+                    onChange={(ev) => setShowPassword(ev.target.checked)}
+                    className="size-4 shrink-0 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-2 focus:ring-[#008B8B]/25 dark:border-white/20 dark:bg-[#161a1d] sm:size-[18px]"
+                  />
+                  <label
+                    htmlFor="pilot-login-show-password"
+                    className="cursor-pointer text-xs font-medium text-slate-600 dark:text-white/75 sm:text-sm"
+                  >
+                    Show password
+                  </label>
+                </div>
                 <button
                   type="button"
-                  className="text-xs font-semibold text-[#008B8B] underline-offset-2 hover:underline"
+                  className="shrink-0 text-xs font-semibold text-[#008B8B] underline-offset-2 hover:underline"
                   onClick={() => {
                     setResetEmail(email.trim().toLowerCase());
                     setResetNote("");
@@ -236,6 +245,29 @@ export function PilotLoginView() {
                   Forgot Password?
                 </button>
               </div>
+              <div className="mt-1.5 flex items-center gap-1.5 px-0.5">
+                <input
+                  id="pilot-login-remember"
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(ev) => setRemember(ev.target.checked)}
+                  className="size-4 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-2 focus:ring-[#008B8B]/25 dark:border-white/20 dark:bg-[#161a1d] sm:size-[18px]"
+                />
+                <label
+                  htmlFor="pilot-login-remember"
+                  className="cursor-pointer text-xs font-medium text-slate-600 dark:text-white/75 sm:text-sm"
+                >
+                  Remember me
+                </label>
+              </div>
+              {errors.password ? (
+                <p
+                  id="pilot-login-password-err"
+                  className="mt-1 text-xs text-red-600"
+                >
+                  {errors.password}
+                </p>
+              ) : null}
             </div>
 
             <button

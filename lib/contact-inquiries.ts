@@ -68,3 +68,14 @@ export function appendContactInquiry(
   }
   return entry;
 }
+
+export function deleteContactInquiry(id: string): boolean {
+  const all = loadContactInquiries();
+  const next = all.filter((row) => row.id !== id);
+  if (next.length === all.length) return false;
+  saveContactInquiries(next);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(CONTACT_INQUIRIES_UPDATED_EVENT));
+  }
+  return true;
+}

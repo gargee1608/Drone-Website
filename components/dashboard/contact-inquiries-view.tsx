@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Mail } from "lucide-react";
+import { Mail, Trash2 } from "lucide-react";
 
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
   CONTACT_INQUIRIES_UPDATED_EVENT,
+  deleteContactInquiry,
   loadContactInquiries,
   type ContactInquiry,
 } from "@/lib/contact-inquiries";
@@ -42,11 +43,7 @@ export function ContactInquiriesView() {
 
   return (
     <div className="mx-auto w-full max-w-4xl pb-8">
-      <h1 className={cn(ADMIN_PAGE_TITLE_CLASS, "mb-2")}>Contact inquiries</h1>
-      <p className="mb-8 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-        Submissions from the public Contact Us form on your site. Stored in
-        this browser for demo purposes.
-      </p>
+      <h1 className={cn(ADMIN_PAGE_TITLE_CLASS, "mb-8")}>Contact inquiries</h1>
 
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[#c1c6d7] bg-[#f8f9fa] px-6 py-14 text-center">
@@ -81,12 +78,14 @@ export function ContactInquiriesView() {
                     {row.email}
                   </a>
                 </div>
-                <time
-                  className="text-xs text-muted-foreground"
-                  dateTime={row.createdAt}
-                >
-                  {formatWhen(row.createdAt)}
-                </time>
+                <div>
+                  <time
+                    className="text-xs text-muted-foreground"
+                    dateTime={row.createdAt}
+                  >
+                    {formatWhen(row.createdAt)}
+                  </time>
+                </div>
               </div>
               <dl className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
                 {row.phone?.trim() ? (
@@ -102,9 +101,20 @@ export function ContactInquiriesView() {
                   </div>
                 ) : null}
               </dl>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                {row.message}
-              </p>
+              <div className="mt-3 flex items-start justify-between gap-3">
+                <p className="flex-1 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                  {row.message}
+                </p>
+                <button
+                  type="button"
+                  aria-label={`Delete inquiry from ${row.fullName}`}
+                  onClick={() => deleteContactInquiry(row.id)}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-[11px] font-semibold text-red-600 transition-colors hover:bg-red-50"
+                >
+                  <Trash2 className="size-3.5" aria-hidden />
+                  Delete
+                </button>
+              </div>
             </li>
           ))}
         </ul>

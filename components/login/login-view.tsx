@@ -77,6 +77,7 @@ export function LoginView() {
   const router = useRouter();
   const [mode, setMode] = useState<LoginMode>("admin");
   const [userAuthMethod, setUserAuthMethod] = useState<UserAuthMethod>("password");
+  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [identity, setIdentity] = useState("");
   const [password, setPassword] = useState("");
@@ -532,7 +533,7 @@ export function LoginView() {
                     <input
                       id="login-password"
                       name="password"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
                       placeholder="••••••••"
                       value={password}
@@ -553,19 +554,25 @@ export function LoginView() {
                       )}
                     />
                   </div>
-                  {errors.password ? (
-                    <p
-                      id="login-password-error"
-                      role="alert"
-                      className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
-                    >
-                      {errors.password}
-                    </p>
-                  ) : null}
-                  <div className="flex justify-end px-1">
+                  <div className="flex items-center justify-between gap-2 px-1 pt-0.5">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <input
+                        id="login-show-password"
+                        type="checkbox"
+                        checked={showPassword}
+                        onChange={(e) => setShowPassword(e.target.checked)}
+                        className="size-4 shrink-0 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-0 sm:size-[18px]"
+                      />
+                      <label
+                        htmlFor="login-show-password"
+                        className="cursor-pointer text-xs font-medium text-[#414755] sm:text-sm"
+                      >
+                        Show password
+                      </label>
+                    </div>
                     <button
                       type="button"
-                      className="text-[11px] font-semibold text-[#008B8B] transition-colors hover:text-[#006b6b] sm:text-xs"
+                      className="shrink-0 text-[11px] font-semibold text-[#008B8B] transition-colors hover:text-[#006b6b] sm:text-xs"
                       onClick={() => {
                         const id = identity.trim();
                         setResetEmail(
@@ -578,22 +585,30 @@ export function LoginView() {
                       Forgot Password?
                     </button>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 px-1">
-                  <input
-                    id="login-remember"
-                    type="checkbox"
-                    checked={remember}
-                    onChange={(e) => setRemember(e.target.checked)}
-                    className="size-4 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-0 sm:size-[18px]"
-                  />
-                  <label
-                    htmlFor="login-remember"
-                    className="cursor-pointer text-xs font-medium text-[#414755] sm:text-sm"
-                  >
-                    Remember me
-                  </label>
+                  <div className="flex items-center gap-1.5 px-1">
+                    <input
+                      id="login-remember"
+                      type="checkbox"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                      className="size-4 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-0 sm:size-[18px]"
+                    />
+                    <label
+                      htmlFor="login-remember"
+                      className="cursor-pointer text-xs font-medium text-[#414755] sm:text-sm"
+                    >
+                      Remember me
+                    </label>
+                  </div>
+                  {errors.password ? (
+                    <p
+                      id="login-password-error"
+                      role="alert"
+                      className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
+                    >
+                      {errors.password}
+                    </p>
+                  ) : null}
                 </div>
               </>
             )}
