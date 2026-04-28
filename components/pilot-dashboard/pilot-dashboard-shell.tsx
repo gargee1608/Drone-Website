@@ -26,9 +26,9 @@ const FOOTER_SIDEBAR_INSET_VAR = "--admin-sidebar-footer-inset";
 const sidebarNav = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/pilot-dashboard" },
   {
-    label: "User Requests",
-    icon: ClipboardList,
-    href: "/pilot-dashboard/user-requests",
+    label: "Assign Mission",
+    icon: Plane,
+    href: "/pilot-dashboard/assign-mission",
   },
   {
     label: "Completed Deliveries",

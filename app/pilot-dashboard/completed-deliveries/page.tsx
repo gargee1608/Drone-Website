@@ -9,7 +9,7 @@ export const metadata = {
 export default function PilotCompletedDeliveriesPage() {
   return (
     <PilotDashboardShell pageTitle="Completed Deliveries">
-      <CompletedDeliveriesView showPageTitle={false} />
+      <CompletedDeliveriesView showPageTitle={false} pilotScoped />
     </PilotDashboardShell>
   );
 }

@@ -10,6 +10,7 @@ import {
   Navigation,
   Package,
   Scale,
+  Trash2,
   User,
   UserRound,
   Zap,
@@ -25,6 +26,8 @@ import {
 } from "@/lib/completed-assignments";
 import {
   assignQueueValidRefsForPrune,
+  ASSIGN_INSPECT_STORAGE_KEY,
+  ASSIGN_INSPECT_UPDATED_EVENT,
   DEMO_ASSIGN_BRIDGE_STORAGE_KEY,
   DEMO_ASSIGN_BRIDGE_UPDATED_EVENT,
   mergeAssignPilotDisplayQueue,
@@ -42,6 +45,13 @@ import {
   type AssignPilotRequestRow,
   type UserRequestAdminRow,
 } from "@/lib/user-requests";
+import { apiUrl } from "@/lib/api-url";
+import {
+  parsePilotProfileSnapshot,
+  PILOT_PROFILE_STORAGE_KEY,
+  PILOT_PROFILE_UPDATED_EVENT,
+  type PilotProfileDrone,
+} from "@/lib/pilot-profile-snapshot";
 import { cn } from "@/lib/utils";
 
 const manrope = Manrope({
@@ -86,142 +96,211 @@ type DroneCard = {
   imageUrl: string;
   matchPercent: number;
   status?: "charging" | "ready";
+  /** From DB — used to score fit vs mission payload */
+  maxPayloadKg: number;
+  pilotName: string;
+  pilotBadgeId: string;
+  sourceSnapshotKey: string;
+  sourceDroneId: string;
+  sourceIndex: number;
 };
 
-const PILOTS: readonly PilotCard[] = [
-  {
-    id: "elena",
-    name: "Capt. Elena Vance",
-    level: 5,
-    tags: ["Medical", "Available"],
-    hours: "1,240 Flight Hours",
-    hoursShort: "1,240 hrs",
-    yearsExp: 8,
-    pilotId: "PLT-1192",
-    sector: "Medical Corridor",
-    clearance: "Class A · MEDEVAC",
-    certBadge: "L5 Heavy Duty",
-  },
-  {
-    id: "marcus",
-    name: "Lt. Marcus Thorne",
-    level: 4,
-    tags: ["Tactical", "Available"],
-    hours: "1.8k Flight Hours",
-    hoursShort: "1.8k hrs",
-    yearsExp: 5,
-    pilotId: "PLT-8821",
-    sector: "Stratosphere-1 Hub",
-    clearance: "Class B · Cargo",
-    certBadge: "L4 Standard",
-  },
-  {
-    id: "sarah",
-    name: "Cmdr. Sarah Chen",
-    level: 5,
-    tags: ["Certified", "Available"],
-    hours: "2.4k Flight Hours",
-    hoursShort: "2,100 hrs",
-    yearsExp: 12,
-    pilotId: "PLT-4401",
-    sector: "Bay Area North",
-    clearance: "Class A · Night OK",
-    certBadge: "L5 Heavy Duty",
-  },
-  {
-    id: "james",
-    name: "James Okonkwo",
-    level: 3,
-    tags: ["Regional", "Available"],
-    hours: "980 Flight Hours",
-    hoursShort: "980 hrs",
-    yearsExp: 4,
-    pilotId: "PLT-3308",
-    sector: "Pacific Rim Route",
-    clearance: "Class C · Regional",
-    certBadge: "L3 Regional",
-  },
-] as const;
+type ApiPilotRow = {
+  id: number | string;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  license_number?: string | null;
+  duty_status?: string | null;
+  flight_hours?: number | string | null;
+  experience_years?: number | string | null;
+  experience_rank?: string | null;
+};
 
-const DRONES: readonly DroneCard[] = [
-  {
-    id: "skyfreight",
-    model: "SkyFreight M-1",
-    sn: "4409-TX",
-    battery: 94,
-    cargo: "15kg",
-    cargoShort: "15kg Cap.",
-    maxRange: "118 km",
-    rangeShort: "118km Range",
-    estFlight: "38 min",
-    lastInspection: "Mar 28, 2026",
-    firmware: "FW 4.1.0",
-    subtitle: "Long-Range Specialist",
-    imageUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBUwp96u9ZV1ADoQbYT0czhoCurAizLfWAV5eEuSe-D6hxClmXwSzGbSo5Q8wGf0joYL2By0zmP0EnPjDDQsYLDBmD9EddwiCDKJkFOfyHGmDUR9s1kc0TnDnsz3kK81Bz0AJVi_qY6e9cE3yPcJDKoA1U0C0BZWWFSwsF9hRv2SBqWS6ix3iOCocopPC6gB40scij5nAguHYLQPA2jOC5Xf47fyNcn6gdO3zGZRqx5KpkS6GXvQJqSoBpzgesamI0Le4ZXnSH-MUUB",
-    matchPercent: 94,
+function nx(v: unknown, fallback: number): number {
+  if (v == null || v === "") return fallback;
+  const n = typeof v === "string" ? parseFloat(v) : Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function mapApiPilotToCard(row: ApiPilotRow): PilotCard {
+  const id = String(row.id);
+  const name = row.name?.trim() || "Pilot";
+  const duty = (row.duty_status ?? "ACTIVE").toUpperCase();
+  const lic = row.license_number?.trim() ?? "";
+  const fh = Math.round(nx(row.flight_hours, 0));
+  const years = Math.round(nx(row.experience_years, 0));
+  const level = Math.min(
+    5,
+    Math.max(
+      1,
+      years > 0
+        ? 1 + Math.floor(years / 3)
+        : Math.min(5, 1 + Math.floor(fh / 400))
+    )
+  );
+  const rank = row.experience_rank?.trim() || `L${level}`;
+  return {
+    id,
+    name,
+    level,
+    tags: [duty, lic ? lic.slice(0, 24) : "Licensed"].filter(Boolean),
+    hours: `${fh.toLocaleString("en-US")} flight hours`,
+    hoursShort: `${fh.toLocaleString("en-US")} hrs`,
+    yearsExp: years,
+    pilotId: lic || `PLT-${id}`,
+    sector: row.phone?.trim() ? `Tel ${row.phone}` : "—",
+    clearance: rank,
+    certBadge: lic ? lic.slice(0, 18) : rank,
+  };
+}
+
+
+function toPositiveNumber(raw: string, fallback: number): number {
+  const cleaned = raw.replace(/,/g, "").trim();
+  if (!cleaned) return fallback;
+  const n = Number.parseFloat(cleaned);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return n;
+}
+
+function profileDroneOwner(snapshotKey: string, fallbackName: string): string {
+  const maybeSub = snapshotKey.split("::pilot::")[1];
+  if (maybeSub && maybeSub.trim()) return `Pilot #${maybeSub.trim()}`;
+  return fallbackName || "Pilot";
+}
+
+function profileSnapshotPilotSub(snapshotKey: string): string | null {
+  const maybeSub = snapshotKey.split("::pilot::")[1];
+  const sub = maybeSub?.trim();
+  return sub ? sub : null;
+}
+
+function mapProfileDroneToCard(
+  drone: PilotProfileDrone,
+  owner: string,
+  pilotBadgeId: string,
+  idx: number,
+  snapshotKey: string
+): DroneCard {
+  const payload = toPositiveNumber(drone.payloadKg, 10);
+  const range = toPositiveNumber(drone.rangeKm, 60);
+  const flightMin = Math.round(toPositiveNumber(drone.flightTimeMin, 30));
+  const model = drone.modelName.trim() || "Profile Drone";
+  const camera = drone.camera.trim();
+  const serial = drone.id?.trim() || `profile-${owner}-${idx + 1}`;
+  const useCase = drone.useCases?.[0]?.trim() || drone.type.trim();
+  return {
+    id: `profile-${serial}`,
+    model,
+    sn: serial,
+    battery: 82,
+    cargo: `${payload}kg`,
+    cargoShort: `${payload}kg cap.`,
+    maxRange: `${range} km`,
+    rangeShort: `${range}km range`,
+    estFlight: `${flightMin} min`,
+    lastInspection: "Profile entry",
+    firmware: camera || "—",
+    subtitle: `${owner}${useCase ? ` · ${useCase}` : ""}`,
+    imageUrl: "/hero-drone-platform.png",
+    matchPercent: 70,
     status: "ready",
-  },
-  {
-    id: "atlas",
-    model: "Atlas Heavy-Lift",
-    sn: "8821-HL",
-    battery: 45,
-    cargo: "50kg",
-    cargoShort: "50kg Cap.",
-    maxRange: "95 km",
-    rangeShort: "95km Range",
-    estFlight: "52 min",
-    lastInspection: "Apr 1, 2026",
-    firmware: "FW 3.9.2",
-    subtitle: "Heavy Lift Platform",
-    imageUrl: "/drones/atlas-heavy-lift.png",
-    matchPercent: 45,
-    status: "charging",
-  },
-  {
-    id: "aeroscout",
-    model: "AeroScout V2",
-    sn: "2214-AS",
-    battery: 78,
-    cargo: "8kg",
-    cargoShort: "8kg Cap.",
-    maxRange: "64 km",
-    rangeShort: "64km Range",
-    estFlight: "28 min",
-    lastInspection: "Mar 15, 2026",
-    firmware: "FW 4.0.8",
-    subtitle: "Survey & inspection",
-    imageUrl:
-      "https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=1200&q=80",
-    matchPercent: 72,
-    status: "ready",
-  },
-  {
-    id: "cargoline",
-    model: "CargoLine XL",
-    sn: "9932-CX",
-    battery: 88,
-    cargo: "35kg",
-    cargoShort: "35kg Cap.",
-    maxRange: "102 km",
-    rangeShort: "102km Range",
-    estFlight: "45 min",
-    lastInspection: "Mar 22, 2026",
-    firmware: "FW 3.8.2",
-    subtitle: "Mid-weight logistics",
-    imageUrl:
-      "https://images.unsplash.com/photo-1579829366248-204fe8413f31?auto=format&fit=crop&w=1200&q=80",
-    matchPercent: 81,
-    status: "ready",
-  },
-] as const;
+    maxPayloadKg: payload,
+    pilotName: owner,
+    pilotBadgeId,
+    sourceSnapshotKey: snapshotKey,
+    sourceDroneId: drone.id?.trim() || "",
+    sourceIndex: idx,
+  };
+}
+
+function dedupeDrones(items: DroneCard[]): DroneCard[] {
+  const byKey = new Map<string, DroneCard>();
+  for (const drone of items) {
+    const key = `${drone.model.toLowerCase()}|${drone.sn.toLowerCase()}`;
+    if (!byKey.has(key)) byKey.set(key, drone);
+  }
+  return [...byKey.values()];
+}
+
+function loadProfileDronesFromBrowser(
+  pilotBySub: Record<string, { name: string; badgeId: string }> = {}
+): DroneCard[] {
+  if (typeof window === "undefined") return [];
+  const keys = new Set<string>();
+  try {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (k === PILOT_PROFILE_STORAGE_KEY || k.startsWith(`${PILOT_PROFILE_STORAGE_KEY}::`)) {
+        keys.add(k);
+      }
+    }
+    for (let i = 0; i < sessionStorage.length; i += 1) {
+      const k = sessionStorage.key(i);
+      if (!k) continue;
+      if (k === PILOT_PROFILE_STORAGE_KEY || k.startsWith(`${PILOT_PROFILE_STORAGE_KEY}::`)) {
+        keys.add(k);
+      }
+    }
+  } catch {
+    return [];
+  }
+
+  const out: DroneCard[] = [];
+  for (const key of keys) {
+    const raw =
+      sessionStorage.getItem(key) ??
+      localStorage.getItem(key) ??
+      null;
+    const snap = parsePilotProfileSnapshot(raw);
+    if (!snap || !Array.isArray(snap.drones) || snap.drones.length === 0) continue;
+    const sub = profileSnapshotPilotSub(key);
+    const pilotFromApi = sub ? pilotBySub[sub] : undefined;
+    const owner =
+      pilotFromApi?.name || profileDroneOwner(key, snap.fullName.trim() || "Pilot");
+    const badgeId = pilotFromApi?.badgeId || (sub ? `PLT-${sub}` : "—");
+    for (let i = 0; i < snap.drones.length; i += 1) {
+      const d = snap.drones[i];
+      out.push(mapProfileDroneToCard(d, owner, badgeId, i, key));
+    }
+  }
+  return dedupeDrones(out);
+}
+
+function isPilotProfileStorageKey(key: string | null): boolean {
+  if (!key) return false;
+  return key === PILOT_PROFILE_STORAGE_KEY || key.startsWith(`${PILOT_PROFILE_STORAGE_KEY}::`);
+}
 
 function parseKgFromAssignRow(req: AssignPilotRequestRow): string {
   const m = `${req.sectorLine} ${req.customer} ${req.dropoff}`.match(
     /([\d.]+)\s*kg\b/i
   );
   return m ? `${m[1]} kg` : "—";
+}
+
+function missionPayloadKg(req: AssignPilotRequestRow | null): number | null {
+  if (!req) return null;
+  const s = parseKgFromAssignRow(req);
+  const m = s.match(/([\d.]+)/);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
+function matchPercentForMission(
+  droneMaxKg: number,
+  missionKg: number | null
+): number {
+  if (!missionKg || missionKg <= 0 || !droneMaxKg || droneMaxKg <= 0) {
+    return 72;
+  }
+  if (missionKg > droneMaxKg) {
+    return Math.max(18, Math.round((droneMaxKg / missionKg) * 100));
+  }
+  return Math.min(99, 72 + Math.round((1 - missionKg / droneMaxKg) * 27));
 }
 
 function parseKmHint(req: AssignPilotRequestRow): string {
@@ -238,6 +317,116 @@ function urgencyLabel(req: AssignPilotRequestRow): string {
   return "Routine";
 }
 
+function missionRangeKm(req: AssignPilotRequestRow | null): number | null {
+  if (!req) return null;
+  const m = req.sectorLine.match(/([\d.]+)\s*km\b/i);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
+function missionUrgencyWeight(req: AssignPilotRequestRow | null): number {
+  if (!req) return 1;
+  const t = req.sectorLine.toLowerCase();
+  if (t.includes("urgent") || t.includes("critical")) return 3;
+  if (t.includes("priority") || t.includes("express")) return 2;
+  return 1;
+}
+
+function parseKmFromLabel(text: string): number | null {
+  const m = text.match(/([\d.]+)\s*km/i);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
+function scoreDroneForMission(
+  drone: DroneCard,
+  payloadKg: number | null,
+  rangeKm: number | null,
+  urgencyWeight: number
+): { score: number; note: string } {
+  let score = 35;
+  const reasons: string[] = [];
+
+  if (payloadKg && payloadKg > 0) {
+    if (drone.maxPayloadKg >= payloadKg) {
+      score += 30 + Math.min(10, Math.round(((drone.maxPayloadKg - payloadKg) / payloadKg) * 10));
+      reasons.push("payload-fit");
+    } else {
+      score -= Math.min(35, Math.round(((payloadKg - drone.maxPayloadKg) / payloadKg) * 50));
+      reasons.push("payload-limited");
+    }
+  }
+
+  const droneRange = parseKmFromLabel(drone.maxRange);
+  if (rangeKm && rangeKm > 0 && droneRange && droneRange > 0) {
+    if (droneRange >= rangeKm) {
+      score += 20;
+      reasons.push("range-fit");
+    } else {
+      score -= Math.min(25, Math.round(((rangeKm - droneRange) / rangeKm) * 40));
+      reasons.push("range-limited");
+    }
+  }
+
+  if (drone.status === "charging") {
+    score -= urgencyWeight >= 3 ? 20 : 10;
+    reasons.push("charging");
+  } else {
+    const batteryBoost = Math.round((drone.battery / 100) * (urgencyWeight >= 3 ? 20 : 12));
+    score += batteryBoost;
+    reasons.push(`battery-${drone.battery}%`);
+  }
+
+  score = Math.max(1, Math.min(99, score));
+  return { score, note: reasons.join(" · ") };
+}
+
+function scorePilotForMission(
+  pilot: PilotCard,
+  payloadKg: number | null,
+  rangeKm: number | null,
+  urgencyWeight: number
+): { score: number; note: string } {
+  let score = 30;
+  const reasons: string[] = [];
+  const active = pilot.tags.some((t) => t.toUpperCase().includes("ACTIVE"));
+
+  score += pilot.level * 8 + Math.min(20, pilot.yearsExp * 2);
+  reasons.push(`L${pilot.level}`);
+
+  if (active) {
+    score += 12;
+    reasons.push("active");
+  } else {
+    score -= 8;
+    reasons.push("inactive");
+  }
+
+  if (payloadKg && payloadKg >= 20 && pilot.level < 3) {
+    score -= 18;
+    reasons.push("heavy-payload-risk");
+  } else if (payloadKg && payloadKg >= 10 && pilot.level < 2) {
+    score -= 10;
+    reasons.push("payload-risk");
+  }
+
+  if (rangeKm && rangeKm > 90 && pilot.yearsExp < 3) {
+    score -= 12;
+    reasons.push("long-range-risk");
+  } else if (rangeKm && rangeKm > 60) {
+    score += 6;
+    reasons.push("range-capable");
+  }
+
+  score += urgencyWeight * (pilot.level >= 4 ? 6 : 2);
+  if (urgencyWeight >= 3) reasons.push("urgent-ready");
+
+  score = Math.max(1, Math.min(99, score));
+  return { score, note: reasons.join(" · ") };
+}
+
 function assignRequestDetailDomId(requestRef: string): string {
   return `assign-req-${requestRef.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 }
@@ -246,8 +435,13 @@ const glassCard =
   "bg-white/70 backdrop-blur-xl dark:bg-card/80 border border-white/50 shadow-[0px_12px_32px_rgba(25,28,29,0.06)]";
 
 export function AssignPilotDroneView() {
-  const [selectedPilotId, setSelectedPilotId] = useState<string>("elena");
-  const [selectedDroneId, setSelectedDroneId] = useState<string>("skyfreight");
+  const [selectedPilotId, setSelectedPilotId] = useState("");
+  const [selectedDroneId, setSelectedDroneId] = useState("");
+  const [fleetPilots, setFleetPilots] = useState<PilotCard[]>([]);
+  const [fleetDrones, setFleetDrones] = useState<DroneCard[]>([]);
+  const [fleetLoading, setFleetLoading] = useState(true);
+  const [fleetError, setFleetError] = useState<string | null>(null);
+  const [deletingDroneId, setDeletingDroneId] = useState<string | null>(null);
   const [assignQueue, setAssignQueue] = useState<AssignPilotRequestRow[]>([]);
   const [completedAssignments, setCompletedAssignments] = useState<
     CompletedAssignment[]
@@ -257,6 +451,77 @@ export function AssignPilotDroneView() {
     null
   );
   const [doneRefs, setDoneRefs] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadFleet() {
+      setFleetLoading(true);
+      setFleetError(null);
+      try {
+        const pr = await fetch(apiUrl("/api/pilots"));
+        if (!pr.ok) {
+          throw new Error(`Pilots HTTP ${pr.status}`);
+        }
+        const pilotsRaw: unknown = await pr.json();
+        if (cancelled) return;
+        const pilotsArr = Array.isArray(pilotsRaw) ? pilotsRaw : [];
+        const pilotCards = pilotsArr.map((row) => mapApiPilotToCard(row as ApiPilotRow));
+        const pilotBySub = pilotCards.reduce<
+          Record<string, { name: string; badgeId: string }>
+        >((acc, row) => {
+          acc[row.id] = { name: row.name, badgeId: row.pilotId };
+          return acc;
+        }, {});
+        const profileDrones = loadProfileDronesFromBrowser(pilotBySub);
+        setFleetPilots(pilotCards);
+        setFleetDrones(profileDrones);
+      } catch (e) {
+        if (!cancelled) {
+          setFleetError(
+            e instanceof Error ? e.message : "Could not load pilots."
+          );
+          setFleetPilots([]);
+          setFleetDrones(loadProfileDronesFromBrowser());
+        }
+      } finally {
+        if (!cancelled) setFleetLoading(false);
+      }
+    }
+    void loadFleet();
+    const onProfileUpdate = () => {
+      void loadFleet();
+    };
+    const onStorage = (event: StorageEvent) => {
+      if (isPilotProfileStorageKey(event.key)) {
+        void loadFleet();
+      }
+    };
+    window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, onProfileUpdate);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, onProfileUpdate);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!fleetPilots.length) return;
+    setSelectedPilotId((prev) =>
+      fleetPilots.some((p) => p.id === prev)
+        ? prev
+        : fleetPilots[0]!.id
+    );
+  }, [fleetPilots]);
+
+  useEffect(() => {
+    if (!fleetDrones.length) return;
+    setSelectedDroneId((prev) =>
+      fleetDrones.some((d) => d.id === prev)
+        ? prev
+        : fleetDrones[0]!.id
+    );
+  }, [fleetDrones]);
 
   const syncAssignQueue = useCallback(() => {
     setAssignQueue(mergeAssignPilotDisplayQueue());
@@ -288,10 +553,15 @@ export function AssignPilotDroneView() {
       syncAssignQueue();
       syncCompletedAssignments();
     };
+    const onInspectUpdated = () => {
+      syncAssignQueue();
+      syncCompletedAssignments();
+    };
     const onStorage = (e: StorageEvent) => {
       if (
         e.key !== USER_REQUESTS_STORAGE_KEY &&
-        e.key !== DEMO_ASSIGN_BRIDGE_STORAGE_KEY
+        e.key !== DEMO_ASSIGN_BRIDGE_STORAGE_KEY &&
+        e.key !== ASSIGN_INSPECT_STORAGE_KEY
       ) {
         return;
       }
@@ -300,6 +570,7 @@ export function AssignPilotDroneView() {
     };
     window.addEventListener(USER_REQUESTS_UPDATED_EVENT, onUserRequestsUpdated);
     window.addEventListener(DEMO_ASSIGN_BRIDGE_UPDATED_EVENT, onDemoBridgeUpdated);
+    window.addEventListener(ASSIGN_INSPECT_UPDATED_EVENT, onInspectUpdated);
     window.addEventListener("storage", onStorage);
     return () => {
       window.removeEventListener(
@@ -310,6 +581,7 @@ export function AssignPilotDroneView() {
         DEMO_ASSIGN_BRIDGE_UPDATED_EVENT,
         onDemoBridgeUpdated
       );
+      window.removeEventListener(ASSIGN_INSPECT_UPDATED_EVENT, onInspectUpdated);
       window.removeEventListener("storage", onStorage);
     };
   }, [syncAssignQueue, syncCompletedAssignments]);
@@ -349,14 +621,55 @@ export function AssignPilotDroneView() {
   const noUserRequests = assignQueue.length === 0;
   const queueFullyAssigned =
     assignQueue.length > 0 && pendingRequests.length === 0;
+  const missionPayloadNum = missionPayloadKg(currentRequest);
+  const missionRangeNum = missionRangeKm(currentRequest);
+  const missionUrgencyNum = missionUrgencyWeight(currentRequest);
+
+  const dronesForUi = useMemo(() => {
+    return fleetDrones
+      .map((d) => {
+        const fit = scoreDroneForMission(
+          d,
+          missionPayloadNum,
+          missionRangeNum,
+          missionUrgencyNum
+        );
+        return {
+          ...d,
+          matchPercent: fit.score,
+          matchNote: fit.note,
+        };
+      })
+      .sort((a, b) => b.matchPercent - a.matchPercent);
+  }, [fleetDrones, missionPayloadNum, missionRangeNum, missionUrgencyNum]);
+
+  const pilotsForUi = useMemo(() => {
+    return fleetPilots
+      .map((p) => {
+        const fit = scorePilotForMission(
+          p,
+          missionPayloadNum,
+          missionRangeNum,
+          missionUrgencyNum
+        );
+        return {
+          ...p,
+          matchScore: fit.score,
+          matchNote: fit.note,
+        };
+      })
+      .sort((a, b) => b.matchScore - a.matchScore);
+  }, [fleetPilots, missionPayloadNum, missionRangeNum, missionUrgencyNum]);
+
+  const optimalPilotId = pilotsForUi[0]?.id ?? "";
 
   const selectedPilot = useMemo(
-    () => PILOTS.find((p) => p.id === selectedPilotId) ?? PILOTS[0],
-    [selectedPilotId]
+    () => pilotsForUi.find((p) => p.id === selectedPilotId) ?? null,
+    [pilotsForUi, selectedPilotId]
   );
   const selectedDrone = useMemo(
-    () => DRONES.find((d) => d.id === selectedDroneId) ?? DRONES[0],
-    [selectedDroneId]
+    () => dronesForUi.find((d) => d.id === selectedDroneId) ?? null,
+    [dronesForUi, selectedDroneId]
   );
 
   const historyDetail =
@@ -386,8 +699,14 @@ export function AssignPilotDroneView() {
     completedAssignments[0] !== undefined ? completedAssignments[0] : null;
   const latestCompletedIndex = latestCompleted ? 0 : -1;
 
+  const assignActionDisabled =
+    noUserRequests ||
+    fleetLoading ||
+    !selectedPilot ||
+    !selectedDrone;
+
   const confirmAssignment = () => {
-    if (!currentRequest) return;
+    if (!currentRequest || !selectedPilot || !selectedDrone) return;
     const row: CompletedAssignment = {
       requestRef: currentRequest.requestRef,
       customer: currentRequest.customer,
@@ -410,6 +729,7 @@ export function AssignPilotDroneView() {
       dropoff: row.dropoff,
       pilotName: row.pilotName,
       pilotBadgeId: row.pilotBadgeId,
+      pilotSub: selectedPilot.id,
       droneModel: row.droneModel,
     });
     setAssignedDialogOpen(false);
@@ -433,6 +753,51 @@ export function AssignPilotDroneView() {
     "font-[family-name:var(--font-assign-body)] text-[#191c1d] antialiased"
   );
 
+  async function handleDeleteDrone(drone: DroneCard) {
+    if (typeof window === "undefined") return;
+    const snapshotKey = drone.sourceSnapshotKey;
+    if (!snapshotKey) return;
+    const raw =
+      sessionStorage.getItem(snapshotKey) ??
+      localStorage.getItem(snapshotKey) ??
+      null;
+    const snap = parsePilotProfileSnapshot(raw);
+    if (!snap || !Array.isArray(snap.drones)) return;
+
+    const nextDrones = snap.drones.filter((d, index) => {
+      if (drone.sourceDroneId) {
+        return (d.id?.trim() || "") !== drone.sourceDroneId;
+      }
+      return index !== drone.sourceIndex;
+    });
+    if (nextDrones.length === snap.drones.length) return;
+
+    setDeletingDroneId(drone.id);
+    try {
+      const nextSnap = { ...snap, drones: nextDrones };
+      const encoded = JSON.stringify(nextSnap);
+      try {
+        localStorage.setItem(snapshotKey, encoded);
+      } catch {
+        /* ignore localStorage quota/write */
+      }
+      sessionStorage.setItem(snapshotKey, encoded);
+
+      const sub = snapshotKey.split("::pilot::")[1]?.trim();
+      if (sub && /^[0-9]+$/.test(sub)) {
+        await fetch(apiUrl(`/api/pilots/${sub}/drones`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ drones: nextDrones }),
+        });
+      }
+
+      window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
+    } finally {
+      setDeletingDroneId(null);
+    }
+  }
+
   return (
     <div
       className={cn(
@@ -441,14 +806,23 @@ export function AssignPilotDroneView() {
       )}
     >
       <div className="mx-auto max-w-7xl space-y-10 px-4 sm:px-6">
+        {fleetError ? (
+          <p
+            className="rounded-lg border border-red-200 bg-red-50/90 px-4 py-3 text-sm text-red-900 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-100"
+            role="alert"
+          >
+            Could not load pilots from the API ({fleetError}). Ensure the backend
+            is running on port 4000 and PostgreSQL is available.
+          </p>
+        ) : null}
         {!queueFullyAssigned && !noUserRequests ? (
           <div className="flex w-full flex-wrap items-center justify-end gap-2">
             <button
               type="button"
-              disabled={noUserRequests}
+              disabled={assignActionDisabled}
               className="rounded-full border-2 border-[#008B8B] bg-white px-5 py-2 text-xs font-bold text-[#008B8B] shadow-sm transition hover:bg-[#008B8B]/5 disabled:opacity-50 dark:bg-card"
               onClick={() => {
-                if (!noUserRequests) setAssignedDialogOpen(true);
+                if (!assignActionDisabled) setAssignedDialogOpen(true);
               }}
             >
               Assign mission
@@ -631,18 +1005,34 @@ export function AssignPilotDroneView() {
                 Compatible drones
               </h2>
               <span className="shrink-0 rounded-full bg-[#e1e3e4] px-3 py-1 text-xs font-medium text-slate-600 dark:bg-muted dark:text-muted-foreground">
-                {DRONES.length} found
+                {fleetLoading ? "…" : `${dronesForUi.length} found`}
               </span>
             </div>
+            {fleetLoading ? (
+              <p className="text-sm text-muted-foreground">Loading drones…</p>
+            ) : dronesForUi.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-slate-300 bg-white/60 p-4 text-sm text-muted-foreground dark:border-border dark:bg-card/50">
+                No drones found in Pilot Profile yet. Add drone details on the
+                pilot profile page and they will appear here.
+              </p>
+            ) : (
             <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2">
-              {DRONES.map((drone) => {
+              {dronesForUi.map((drone) => {
                 const selected = selectedDroneId === drone.id;
                 const best = drone.matchPercent >= 90;
                 return (
-                  <button
+                  <div
                     key={drone.id}
-                    type="button"
                     onClick={() => setSelectedDroneId(drone.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedDroneId(drone.id);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Select drone ${drone.model}`}
                     className={cn(
                       "group relative overflow-hidden rounded-xl text-left shadow-sm transition-all hover:shadow-md",
                       selected
@@ -671,16 +1061,44 @@ export function AssignPilotDroneView() {
                       />
                     </div>
                     <div className="p-4">
-                      <h3
-                        className="mb-1 font-[family-name:var(--font-assign-headline)] text-lg font-bold dark:text-foreground"
-                        style={{
-                          fontFamily: "var(--font-assign-headline), sans-serif",
-                        }}
-                      >
-                        {drone.model}
-                      </h3>
+                      <div className="mb-1 flex items-start justify-between gap-2">
+                        <h3
+                          className="font-[family-name:var(--font-assign-headline)] text-lg font-bold dark:text-foreground"
+                          style={{
+                            fontFamily: "var(--font-assign-headline), sans-serif",
+                          }}
+                        >
+                          {drone.model}
+                        </h3>
+                        <button
+                          type="button"
+                          aria-label={`Delete ${drone.model}`}
+                          disabled={deletingDroneId === drone.id}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleDeleteDrone(drone);
+                          }}
+                          className="inline-flex items-center gap-1 rounded border border-red-400 px-2 py-1 text-[10px] font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-400/70 dark:text-red-300 dark:hover:bg-red-950/40"
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                          {deletingDroneId === drone.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
                       <p className="mb-4 text-xs font-medium text-slate-600 dark:text-muted-foreground">
                         {drone.subtitle}
+                      </p>
+                      <p className="mb-3 text-[11px] text-slate-500 dark:text-muted-foreground">
+                        Pilot:{" "}
+                        <span className="font-semibold text-slate-700 dark:text-foreground">
+                          {drone.pilotName}
+                        </span>{" "}
+                        · ID:{" "}
+                        <span className="font-mono text-[10px] font-semibold text-slate-700 dark:text-foreground">
+                          {drone.pilotBadgeId}
+                        </span>
+                      </p>
+                      <p className="mb-3 text-[10px] font-medium uppercase tracking-wide text-[#006767] dark:text-primary">
+                        Mission fit: {drone.matchNote}
                       </p>
                       <div className="grid grid-cols-2 gap-x-2 gap-y-3">
                         <div className="flex items-center gap-2">
@@ -735,10 +1153,11 @@ export function AssignPilotDroneView() {
                         )}
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
+            )}
           </section>
 
           <section
@@ -754,13 +1173,23 @@ export function AssignPilotDroneView() {
                 Available pilots
               </h2>
               <span className="shrink-0 rounded-full bg-[#e1e3e4] px-3 py-1 text-xs font-medium text-slate-600 dark:bg-muted dark:text-muted-foreground">
-                Top candidates
+                {fleetLoading ? "…" : `${pilotsForUi.length} in directory`}
               </span>
             </div>
+            {fleetLoading ? (
+              <p className="text-sm text-muted-foreground">Loading pilots…</p>
+            ) : pilotsForUi.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-slate-300 bg-white/60 p-4 text-sm text-muted-foreground dark:border-border dark:bg-card/50">
+                No pilots in the database. Register pilots via{" "}
+                <span className="font-semibold">Pilot registration</span> or
+                insert rows into the <span className="font-mono text-xs">pilots</span>{" "}
+                table.
+              </p>
+            ) : (
             <div className="flex flex-col gap-4">
-              {PILOTS.map((pilot) => {
+              {pilotsForUi.map((pilot) => {
                 const selected = selectedPilotId === pilot.id;
-                const optimal = pilot.id === "elena";
+                const optimal = pilot.id === optimalPilotId;
                 return (
                   <button
                     key={pilot.id}
@@ -814,6 +1243,9 @@ export function AssignPilotDroneView() {
                           {pilot.certBadge}
                         </span>
                       </div>
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[#006767] dark:text-primary">
+                        Match {pilot.matchScore}% · {pilot.matchNote}
+                      </p>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <div className="flex items-center gap-1">
                           <User
@@ -839,6 +1271,7 @@ export function AssignPilotDroneView() {
                 );
               })}
             </div>
+            )}
           </section>
         </div>
 
@@ -879,10 +1312,10 @@ export function AssignPilotDroneView() {
             </div>
             <button
               type="button"
-              disabled={noUserRequests}
+              disabled={assignActionDisabled}
               className="rounded-lg bg-[#008B8B] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
               onClick={() => {
-                if (!noUserRequests) setAssignedDialogOpen(true);
+                if (!assignActionDisabled) setAssignedDialogOpen(true);
               }}
             >
               Launch
@@ -936,11 +1369,11 @@ export function AssignPilotDroneView() {
                 </span>
                 , assign{" "}
                 <span className="font-semibold text-foreground">
-                  {selectedPilot.name}
+                  {selectedPilot?.name ?? "—"}
                 </span>{" "}
                 with{" "}
                 <span className="font-semibold text-foreground">
-                  {selectedDrone.model}
+                  {selectedDrone?.model ?? "—"}
                 </span>
                 ?
               </p>
@@ -950,7 +1383,7 @@ export function AssignPilotDroneView() {
                     Pilot
                   </p>
                   <p className="mt-1.5 text-sm font-semibold text-foreground sm:text-base">
-                    {selectedPilot.name}
+                    {selectedPilot?.name ?? "—"}
                   </p>
                 </div>
                 <div className="min-w-0 border-t border-border/90 pt-4 sm:border-t-0 sm:px-6 sm:pt-0">
@@ -958,7 +1391,7 @@ export function AssignPilotDroneView() {
                     Drone
                   </p>
                   <p className="mt-1.5 text-sm font-semibold text-foreground sm:text-base">
-                    {selectedDrone.model}
+                    {selectedDrone?.model ?? "—"}
                   </p>
                 </div>
               </div>
@@ -966,7 +1399,8 @@ export function AssignPilotDroneView() {
             <div className="flex flex-wrap items-center justify-center gap-3 border-t border-border/80 bg-muted/40 px-6 py-4 sm:gap-4 sm:px-10 sm:py-5">
               <button
                 type="button"
-                className="inline-flex min-w-[6rem] items-center justify-center rounded-full border-2 border-[#008B8B] bg-card px-5 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/5 active:scale-[0.98] sm:min-w-[6.5rem] sm:px-6"
+                disabled={!selectedPilot || !selectedDrone}
+                className="inline-flex min-w-[6rem] items-center justify-center rounded-full border-2 border-[#008B8B] bg-card px-5 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/5 active:scale-[0.98] disabled:opacity-50 sm:min-w-[6.5rem] sm:px-6"
                 onClick={confirmAssignment}
               >
                 OK

@@ -2,6 +2,21 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 
+// Fetch all user requests from DB (admin dashboard)
+router.get("/requests", async (_req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT *
+       FROM drone_hire_requests
+       ORDER BY id DESC`
+    );
+    res.status(200).json({ data: result.rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
 // Submit request API
 router.post("/submit-request", async (req, res) => {
   try {

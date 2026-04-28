@@ -19,12 +19,15 @@ import {
 import {
   normalizePilotSkillsForSnapshot,
   parsePilotProfileSnapshot,
-  PILOT_PROFILE_STORAGE_KEY,
   PILOT_PROFILE_UPDATED_EVENT,
   replaceAbcPlaceholder,
   type PilotProfileDrone,
   type PilotProfileSnapshot,
 } from "@/lib/pilot-profile-snapshot";
+import {
+  activePilotProfileSnapshotStorageKey,
+  readPilotProfileSnapshotRawFromBrowser,
+} from "@/lib/pilot-profile-browser-storage";
 import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 
@@ -256,7 +259,7 @@ export function PilotRegistrationView() {
         if (consumePilotRegistrationForceBlankNextOpen()) {
           resetForm();
         }
-        const rawProf = localStorage.getItem(PILOT_PROFILE_STORAGE_KEY);
+        const rawProf = readPilotProfileSnapshotRawFromBrowser();
         const snap = parsePilotProfileSnapshot(rawProf);
         if (!snap) {
           router.replace("/pilot-profile");
@@ -473,9 +476,7 @@ export function PilotRegistrationView() {
     const dronesForSnapshot = skipFromSkills ? [] : drones;
 
     const existingSnap = parsePilotProfileSnapshot(
-      typeof window !== "undefined"
-        ? localStorage.getItem(PILOT_PROFILE_STORAGE_KEY)
-        : null
+      typeof window !== "undefined" ? readPilotProfileSnapshotRawFromBrowser() : null
     );
 
     const snapshot: PilotProfileSnapshot = {
@@ -529,12 +530,20 @@ export function PilotRegistrationView() {
     }
 
     const json = JSON.stringify(snapshot);
+    const profileKey =
+      typeof window !== "undefined"
+        ? activePilotProfileSnapshotStorageKey()
+        : null;
     try {
-      localStorage.setItem(PILOT_PROFILE_STORAGE_KEY, json);
+      if (profileKey) {
+        localStorage.setItem(profileKey, json);
+      }
     } catch {
       /* quota */
     }
-    sessionStorage.setItem(PILOT_PROFILE_STORAGE_KEY, json);
+    if (profileKey) {
+      sessionStorage.setItem(profileKey, json);
+    }
     markPilotRegistrationSubmittedNextOpenBlank();
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
@@ -546,55 +555,79 @@ export function PilotRegistrationView() {
     if (!profileReturnTo || profileReturnTo !== "/pilot-profile") return;
     setSubmitError(null);
     setStepError(null);
-    const name = fullName.trim();
-    const c = city.trim();
-    const st = state.trim();
-    if (!name || !c || !st || aadhaarDigits.length !== 12) {
-      setSubmitError(
-        "Your profile is missing required fields. Open Personal info from step 1 or update your profile first."
-      );
-      return;
-    }
-    if (selectedSkills.length === 0) {
-      setSubmitError("Select at least one skill (use Back to open the Skills step).");
-      return;
-    }
 
     const hrsRaw = Number(flightHours);
     const hrs = Number.isFinite(hrsRaw)
       ? Math.max(0, Math.min(50000, Math.floor(hrsRaw)))
       : 0;
-    const skills = normalizePilotSkillsForSnapshot([...selectedSkills]);
+    const skills = normalizePilotSkillsForSnapshot(
+      selectedSkills.length > 0
+        ? [...selectedSkills]
+        : []
+    );
     const bioOut = replaceAbcPlaceholder(bio.trim());
 
     const existingSnap = parsePilotProfileSnapshot(
-      typeof window !== "undefined"
-        ? localStorage.getItem(PILOT_PROFILE_STORAGE_KEY)
-        : null
+      typeof window !== "undefined" ? readPilotProfileSnapshotRawFromBrowser() : null
     );
 
+    const mergedName =
+      replaceAbcPlaceholder(fullName.trim()) ||
+      existingSnap?.fullName?.trim() ||
+      "Pilot";
+    const mergedEmail =
+      email.trim() || existingSnap?.email?.trim() || undefined;
+    const mergedPhone =
+      phone.trim() || existingSnap?.phone?.trim() || undefined;
+    const mergedCity =
+      city.trim() || existingSnap?.city?.trim() || "";
+    const mergedState =
+      state.trim() || existingSnap?.state?.trim() || "";
+    const mergedAadhaar =
+      aadhaarDigits.length === 12
+        ? aadhaarDigits
+        : existingSnap?.aadhaar;
+    const mergedFlightHours =
+      hrs > 0 ? hrs : (existingSnap?.flightHours ?? 0);
+    const mergedBio =
+      bioOut || existingSnap?.bio?.trim() || "";
+    const mergedSkills =
+      skills.length > 0
+        ? skills
+        : normalizePilotSkillsForSnapshot(existingSnap?.skills ?? []);
+    const mergedDgca =
+      dgca.trim() || existingSnap?.dgca?.trim() || "";
+
     const snapshot: PilotProfileSnapshot = {
-      fullName: replaceAbcPlaceholder(name),
-      email: email.trim() || undefined,
-      phone: phone.trim() || undefined,
-      city: c,
-      state: st,
-      aadhaar: aadhaarDigits,
-      flightHours: hrs,
-      bio: bioOut,
-      skills,
+      fullName: mergedName,
+      email: mergedEmail,
+      phone: mergedPhone,
+      city: mergedCity,
+      state: mergedState,
+      aadhaar: mergedAadhaar,
+      flightHours: mergedFlightHours,
+      bio: mergedBio,
+      skills: mergedSkills,
       drones: [...drones],
-      dgca: dgca.trim(),
+      dgca: mergedDgca,
       photoDataUrl: existingSnap?.photoDataUrl,
     };
 
     const json = JSON.stringify(snapshot);
+    const profileKey =
+      typeof window !== "undefined"
+        ? activePilotProfileSnapshotStorageKey()
+        : null;
     try {
-      localStorage.setItem(PILOT_PROFILE_STORAGE_KEY, json);
+      if (profileKey) {
+        localStorage.setItem(profileKey, json);
+      }
     } catch {
       /* quota */
     }
-    sessionStorage.setItem(PILOT_PROFILE_STORAGE_KEY, json);
+    if (profileKey) {
+      sessionStorage.setItem(profileKey, json);
+    }
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
     }

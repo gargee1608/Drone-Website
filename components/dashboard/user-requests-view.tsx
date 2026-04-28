@@ -20,8 +20,11 @@ import { UserRequestTable } from "@/components/dashboard/user-request-table";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
   demoAdminRowToAssignPilotRow,
+  setAssignInspectRow,
   upsertDemoAcceptedForAssign,
+  userRequestAdminRowToAssignPilotRow,
 } from "@/lib/assign-demo-bridge";
+import { apiUrl } from "@/lib/api-url";
 import {
   loadUserRequests,
   mapUserRequestToAdminRow,
@@ -88,6 +91,16 @@ const REQUESTS: UserRequestRow[] = [
 
 const DEMO_ADMIN_STORAGE_KEY = "aerolaminar_user_request_demo_admin_v1";
 
+type BackendRequestRow = {
+  id?: number | string;
+  reason_or_title?: string;
+  pickup_location?: string;
+  drop_location?: string;
+  payload_weight?: number | string;
+  cargo_type?: string;
+  mission_urgency?: string;
+};
+
 function staticRequestToAdminRow(
   r: UserRequestRow,
   adminStatus: UserMissionAdminStatus = "pending"
@@ -126,6 +139,42 @@ function staticRequestToAdminRow(
   };
 }
 
+function mapBackendRequestToAdminRow(r: BackendRequestRow): UserRequestAdminRow {
+  const urgency = String(r.mission_urgency ?? "")
+    .trim()
+    .toLowerCase();
+  let badge: UserRequestAdminRow["badge"] = "NORMAL";
+  let badgeClass = "bg-[#cde5ff] text-[#001d32]";
+  let barColor = "#006195";
+
+  if (urgency === "critical" || urgency === "urgent") {
+    badge = "CRITICAL";
+    badgeClass = "bg-[#ffdad6] text-[#93000a]";
+    barColor = "#ba1a1a";
+  } else if (urgency === "standard" || urgency === "routine") {
+    badge = "ROUTINE";
+    badgeClass = "bg-[#008B8B]/14 text-[#0a3030]";
+    barColor = "#008B8B";
+  }
+
+  const payloadWeight = String(r.payload_weight ?? "").trim();
+  const cargoType = String(r.cargo_type ?? "").trim();
+  const pickupLocation = String(r.pickup_location ?? "").trim();
+  const dropLocation = String(r.drop_location ?? "").trim();
+
+  return {
+    key: String(r.id ?? `${Date.now()}-${Math.random()}`),
+    title: String(r.reason_or_title ?? "").trim() || "Mission request",
+    badge,
+    badgeClass,
+    barColor,
+    desc: `Payload: ${cargoType || "General cargo"} (${payloadWeight || "0"}kg) | Target: ${
+      dropLocation || pickupLocation || "—"
+    }`,
+    adminStatus: "pending",
+  };
+}
+
 export function UserRequestsView({
   showPageTitle = true,
   pilotTables = false,
@@ -149,6 +198,35 @@ export function UserRequestsView({
   const [storedRequestsSnapshot, setStoredRequestsSnapshot] = useState<
     UserMissionRequest[]
   >([]);
+  const [backendRequests, setBackendRequests] = useState<UserRequestAdminRow[]>([]);
+
+  useEffect(() => {
+    if (pilotTables) return;
+    let cancelled = false;
+    const loadBackendRequests = async () => {
+      try {
+        const response = await fetch(apiUrl("/api/requests"), {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const payload: unknown = await response.json();
+        const data = Array.isArray((payload as { data?: unknown[] })?.data)
+          ? ((payload as { data?: unknown[] }).data as BackendRequestRow[])
+          : [];
+        if (!cancelled) {
+          setBackendRequests(data.map(mapBackendRequestToAdminRow));
+        }
+      } catch {
+        if (!cancelled) {
+          setBackendRequests([]);
+        }
+      }
+    };
+    void loadBackendRequests();
+    return () => {
+      cancelled = true;
+    };
+  }, [pilotTables]);
 
   useEffect(() => {
     pruneDuplicateMarketplaceInquiries();
@@ -195,6 +273,13 @@ export function UserRequestsView({
   }, []);
 
   const { primaryTableRows, additionalInquireTableRows } = useMemo(() => {
+    if (!pilotTables) {
+      return {
+        primaryTableRows: backendRequests,
+        additionalInquireTableRows: [] as UserRequestAdminRow[],
+      };
+    }
+
     const primaryStored: UserRequestAdminRow[] = [];
     const additionalStored: UserRequestAdminRow[] = [];
     for (const req of storedRequestsSnapshot) {
@@ -215,7 +300,14 @@ export function UserRequestsView({
       primaryTableRows: [...primaryStored, ...demoRows],
       additionalInquireTableRows: additionalStored,
     };
-  }, [storedRequestsSnapshot, demoAdminByKey]);
+  }, [pilotTables, storedRequestsSnapshot, demoAdminByKey, backendRequests]);
+
+  function closePilotDetailIfOpen(row: UserRequestAdminRow) {
+    if (!pilotTables) return;
+    setDetailModal((prev) =>
+      prev && detailPayloadMatchesRow(prev, row) ? null : prev
+    );
+  }
 
   /**
    * Accepted / Rejected / Pending = exact counts from the two tables below:
@@ -243,26 +335,30 @@ export function UserRequestsView({
   }, [primaryTableRows, additionalInquireTableRows]);
 
   const openRequestDetails = (row: UserRequestAdminRow) => {
-    const p = resolveUserRequestDetail(row);
-    if (p) setDetailModal(p);
+    if (pilotTables) {
+      const p = resolveUserRequestDetail(row);
+      if (p) setDetailModal(p);
+      return;
+    }
+    setAssignInspectRow(userRequestAdminRowToAssignPilotRow(row));
+    router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
   };
 
   const handleAcceptRow = (row: UserRequestAdminRow) => {
     if (row.key.startsWith("demo-")) {
       setDemoAdminByKey((prev) => ({ ...prev, [row.key]: "accepted" }));
-      upsertDemoAcceptedForAssign(demoAdminRowToAssignPilotRow(row));
-      setDetailModal((prev) =>
-        prev && detailPayloadMatchesRow(prev, row) ? null : prev
-      );
+      const assignRow = demoAdminRowToAssignPilotRow(row);
+      upsertDemoAcceptedForAssign(assignRow);
+      setAssignInspectRow(assignRow);
+      closePilotDetailIfOpen(row);
       router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
       return;
     }
     updateUserRequestAdminStatus(row.key, "accepted");
     setUserRequestRefresh((n) => n + 1);
-    setDetailModal((prev) =>
-      prev && detailPayloadMatchesRow(prev, row) ? null : prev
-    );
     if (row.requestSource !== "marketplace_inquiry") {
+      setAssignInspectRow(userRequestAdminRowToAssignPilotRow(row));
+      closePilotDetailIfOpen(row);
       router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
     }
   };
@@ -270,26 +366,26 @@ export function UserRequestsView({
   const handleRejectRow = (row: UserRequestAdminRow) => {
     if (row.key.startsWith("demo-")) {
       setDemoAdminByKey((prev) => ({ ...prev, [row.key]: "rejected" }));
-      setDetailModal((prev) =>
-        prev && detailPayloadMatchesRow(prev, row) ? null : prev
-      );
+      closePilotDetailIfOpen(row);
       return;
     }
     updateUserRequestAdminStatus(row.key, "rejected");
     setUserRequestRefresh((n) => n + 1);
-    setDetailModal((prev) =>
-      prev && detailPayloadMatchesRow(prev, row) ? null : prev
-    );
+    closePilotDetailIfOpen(row);
   };
 
   return (
     <div className="mx-auto w-full max-w-6xl">
       {showPageTitle ? <h1 className={ADMIN_PAGE_TITLE_CLASS}>User Request</h1> : null}
       <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
-        Summary figures count every request in{" "}
-        <span className="font-semibold text-foreground">User requests</span> and{" "}
-        <span className="font-semibold text-foreground">Additional Inquires</span>{" "}
-        below.
+        {pilotTables ? (
+          <>
+            Summary figures count every request in{" "}
+            <span className="font-semibold text-foreground">User requests</span> and{" "}
+            <span className="font-semibold text-foreground">Additional Inquires</span>{" "}
+            below.
+          </>
+        ) : null}
       </p>
 
       <section
@@ -340,24 +436,28 @@ export function UserRequestsView({
           />
         </section>
 
-        <section aria-label="Additional product inquiries">
-          <UserRequestTable
-            title="Additional Inquires"
-            rows={additionalInquireTableRows}
-            showTitle
-            showTotalSubtitle
-            columnPreset={tablePreset}
-            onViewDetails={openRequestDetails}
-            onAcceptRow={handleAcceptRow}
-            onRejectRow={handleRejectRow}
-          />
-        </section>
+        {pilotTables ? (
+          <section aria-label="Additional product inquiries">
+            <UserRequestTable
+              title="Additional Inquires"
+              rows={additionalInquireTableRows}
+              showTitle
+              showTotalSubtitle
+              columnPreset={tablePreset}
+              onViewDetails={openRequestDetails}
+              onAcceptRow={handleAcceptRow}
+              onRejectRow={handleRejectRow}
+            />
+          </section>
+        ) : null}
       </div>
 
-      <UserRequestDetailModal
-        payload={detailModal}
-        onClose={() => setDetailModal(null)}
-      />
+      {pilotTables ? (
+        <UserRequestDetailModal
+          payload={detailModal}
+          onClose={() => setDetailModal(null)}
+        />
+      ) : null}
     </div>
   );
 }

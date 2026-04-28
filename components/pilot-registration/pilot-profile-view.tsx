@@ -20,7 +20,10 @@ import {
   X,
 } from "lucide-react";
 
-import { patchPilotFlightHours } from "@/app/services/pilotServices";
+import {
+  patchPilotDroneDetails,
+  patchPilotFlightHours,
+} from "@/app/services/pilotServices";
 import { fetchPilotSessionRow } from "@/lib/fetch-pilot-session-row";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -248,6 +251,7 @@ export function PilotProfileView({
   const [editError, setEditError] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const photoFileInputRef = useRef<HTMLInputElement>(null);
+  const lastSyncedDronesRef = useRef<string>("");
   const [backendDuty, setBackendDuty] = useState<
     "ACTIVE" | "INACTIVE" | null
   >(null);
@@ -437,6 +441,7 @@ export function PilotProfileView({
     sessionStorage.setItem(storeKey, json);
     window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
     refreshFromStorage();
+    syncPilotDronesToBackend(snapshot);
     setEditOpen(false);
 
     if (variant === "dashboard") {
@@ -479,6 +484,20 @@ export function PilotProfileView({
     }
   }
 
+  function syncPilotDronesToBackend(snapshot: PilotProfileSnapshot) {
+    if (variant !== "dashboard") return;
+    const tok =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!tok || jwtPayloadRole(tok) !== "pilot") return;
+    const raw = jwtPayloadSub(tok);
+    const pid = raw ? Number.parseInt(raw, 10) : NaN;
+    if (!Number.isFinite(pid)) return;
+    const payloadKey = JSON.stringify(snapshot.drones ?? []);
+    if (lastSyncedDronesRef.current === payloadKey) return;
+    lastSyncedDronesRef.current = payloadKey;
+    void patchPilotDroneDetails(pid, snapshot.drones ?? []);
+  }
+
   function persistProfileSnapshot(snapshot: PilotProfileSnapshot) {
     const json = JSON.stringify(snapshotForSharedStorage(snapshot));
     const storeKey = activePilotProfileSnapshotStorageKey();
@@ -491,7 +510,14 @@ export function PilotProfileView({
     window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
     setData(snapshot);
     refreshFromStorage();
+    syncPilotDronesToBackend(snapshot);
   }
+
+  useEffect(() => {
+    if (!ready || !data) return;
+    syncPilotDronesToBackend(data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, data, variant]);
 
   function handleDroneDelete(index: number) {
     const snap = readSnapshotForPilotProfile(variant);

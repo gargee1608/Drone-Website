@@ -1,4 +1,5 @@
 import { readPilotProfileSnapshotRawFromBrowser } from "@/lib/pilot-profile-browser-storage";
+import { jwtPayloadSub } from "@/lib/pilot-display-name";
 import { parsePilotProfileSnapshot } from "@/lib/pilot-profile-snapshot";
 
 export const PILOT_MISSION_NOTIFICATIONS_STORAGE_KEY =
@@ -20,6 +21,8 @@ export type PilotMissionNotification = {
   dropoff: string;
   pilotName: string;
   pilotBadgeId: string;
+  /** `pilots.id` (JWT `sub`) for exact pilot targeting. */
+  pilotSub?: string;
   droneModel: string;
   assignedAt: string;
 };
@@ -41,7 +44,10 @@ function isPilotMissionNotification(v: unknown): v is PilotMissionNotification {
     "droneModel",
     "assignedAt",
   ] as const;
-  return keys.every((k) => typeof v[k] === "string");
+  return (
+    keys.every((k) => typeof v[k] === "string") &&
+    (v.pilotSub === undefined || typeof v.pilotSub === "string")
+  );
 }
 
 export function loadPilotMissionNotifications(): PilotMissionNotification[] {
@@ -103,9 +109,30 @@ function pilotProfileFullName(): string | null {
   return n || null;
 }
 
-/** Missions the signed-in pilot should see (by profile name), or all if no profile name. */
+function signedInPilotSub(): string | null {
+  if (typeof window === "undefined") return null;
+  const token = localStorage.getItem("token");
+  if (!token) return null;
+  return jwtPayloadSub(token);
+}
+
+/**
+ * Missions the signed-in pilot should see.
+ * Primary filter: exact `pilotSub` match (selected pilot from admin assignment).
+ * Fallback for older rows (without `pilotSub`): profile full-name match.
+ */
 export function notificationsVisibleToPilot(): PilotMissionNotification[] {
   const all = loadPilotMissionNotifications();
+  const sub = signedInPilotSub();
+  if (sub) {
+    const bySub = all.filter((n) => (n.pilotSub ?? "").trim() === sub);
+    if (bySub.length > 0) {
+      return bySub.sort(
+        (a, b) =>
+          new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime()
+      );
+    }
+  }
   const name = pilotProfileFullName();
   if (!name) {
     return [...all].sort(
@@ -135,6 +162,22 @@ export function markPilotMissionNotificationIdsSeen(ids: string[]): void {
   persistSeenIds(next);
 }
 
+/** Remove one mission notification after pilot marks it complete. */
+export function removePilotMissionNotificationById(id: string): void {
+  if (typeof window === "undefined") return;
+  if (!id) return;
+  const prev = loadPilotMissionNotifications();
+  const next = prev.filter((row) => row.id !== id);
+  if (next.length === prev.length) return;
+  persistNotifications(next);
+  const seen = loadSeenIds();
+  if (seen.has(id)) {
+    seen.delete(id);
+    persistSeenIds(seen);
+  }
+  window.dispatchEvent(new Event(PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT));
+}
+
 /**
  * Called when admin confirms an assignment so the pilot inbox can show it.
  */
@@ -145,6 +188,7 @@ export function pushPilotMissionNotification(payload: {
   dropoff: string;
   pilotName: string;
   pilotBadgeId: string;
+  pilotSub?: string;
   droneModel: string;
 }): void {
   if (typeof window === "undefined") return;
@@ -154,6 +198,7 @@ export function pushPilotMissionNotification(payload: {
     id,
     assignedAt,
     ...payload,
+    pilotSub: payload.pilotSub?.trim() || undefined,
   };
   const prev = loadPilotMissionNotifications();
   const next = [nextRow, ...prev].slice(0, MAX_STORED);

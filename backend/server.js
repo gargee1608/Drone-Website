@@ -18,8 +18,10 @@ app.use(express.json());
 const serviceRoute = require("./routes/serviceRoute");
 
 const pilotRoutes = require("./routes/pilotRoutes");
+const droneRoutes = require("./routes/droneRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 const contactRoutes = require("./routes/contact");
+const missionRoutes = require("./routes/missionRoutes");
 
 const requestRoutes = require("./routes/request");
 app.use("/api", requestRoutes);
@@ -29,6 +31,8 @@ app.use("/api", contactRoutes);
 app.use("/api/blogs", blogRoutes);
 
 app.use("/api/pilots", pilotRoutes);
+app.use("/api/drones", droneRoutes);
+app.use("/api/missions", missionRoutes);
 
 /** Non-production (or AUTH_SIGNIN_DETAIL=true): include DB/API error text on 500 signin responses. */
 function signinErrorDetail(err) {
@@ -154,6 +158,9 @@ async function ensureAuthSchema() {
     await pool.query(
       "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS experience_rank TEXT"
     );
+    await pool.query(
+      "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS drone_details JSONB NOT NULL DEFAULT '[]'::jsonb"
+    );
     await pool.query(`
       UPDATE pilots
       SET flight_hours = trim(experience::text)::integer
@@ -176,6 +183,149 @@ async function ensureAuthSchema() {
     `);
   } catch (e) {
     console.warn("[auth] pilots column ensure skipped:", e.message);
+  }
+}
+
+async function ensureDroneSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS drones (
+      id BIGSERIAL PRIMARY KEY,
+      pilot_id BIGINT REFERENCES pilots(id) ON DELETE SET NULL,
+      model_name TEXT NOT NULL,
+      serial_number TEXT,
+      max_payload_kg NUMERIC(10, 2) NOT NULL DEFAULT 15,
+      max_range_km NUMERIC(10, 2) NOT NULL DEFAULT 80,
+      flight_time_min INTEGER NOT NULL DEFAULT 40,
+      battery_percent INTEGER NOT NULL DEFAULT 90,
+      firmware TEXT,
+      image_url TEXT,
+      status TEXT NOT NULL DEFAULT 'ready',
+      subtitle TEXT
+    );
+  `);
+}
+
+async function ensureMissionSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS missions (
+      id BIGSERIAL PRIMARY KEY,
+      request_ref TEXT NOT NULL,
+      customer TEXT NOT NULL,
+      service TEXT,
+      dropoff TEXT,
+      pilot_name TEXT,
+      pilot_badge_id TEXT,
+      pilot_sub TEXT,
+      drone_model TEXT,
+      assigned_at TIMESTAMPTZ,
+      completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      status TEXT NOT NULL DEFAULT 'completed'
+    );
+  `);
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS id BIGSERIAL"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS request_ref TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS customer TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS service TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS dropoff TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS pilot_name TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS pilot_badge_id TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS pilot_sub TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS drone_model TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMPTZ"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'completed'"
+  );
+}
+
+/** Dev: seed a few fleet drones when the table is empty so Assign UI has rows. */
+async function seedDevDronesIfEmpty() {
+  if (process.env.NODE_ENV === "production") return;
+  if (process.env.DISABLE_DEV_DRONE_SEED === "true") return;
+  try {
+    const c = await pool.query("SELECT COUNT(*)::int AS n FROM drones");
+    if (c.rows[0]?.n > 0) return;
+    const p = await pool.query("SELECT id FROM pilots ORDER BY id ASC LIMIT 3");
+    const ids = p.rows.map((r) => r.id);
+    const pilot0 = ids[0] ?? null;
+    const pilot1 = ids[1] ?? pilot0;
+    const inserts = [
+      [
+        pilot0,
+        "SkyFreight M-1",
+        "4409-TX",
+        15,
+        118,
+        38,
+        94,
+        "FW 4.1.0",
+        "https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=1200&q=80",
+        "ready",
+        "Long-range logistics",
+      ],
+      [
+        pilot0,
+        "Atlas Heavy-Lift",
+        "8821-HL",
+        50,
+        95,
+        52,
+        45,
+        "FW 3.9.2",
+        "/drones/atlas-heavy-lift.png",
+        "charging",
+        "Heavy lift platform",
+      ],
+      [
+        pilot1,
+        "AeroScout V2",
+        "2214-AS",
+        8,
+        64,
+        28,
+        78,
+        "FW 4.0.8",
+        "https://images.unsplash.com/photo-1579829366248-204fe8413f31?auto=format&fit=crop&w=1200&q=80",
+        "ready",
+        "Survey & inspection",
+      ],
+    ];
+    for (const row of inserts) {
+      await pool.query(
+        `INSERT INTO drones (
+          pilot_id, model_name, serial_number, max_payload_kg, max_range_km,
+          flight_time_min, battery_percent, firmware, image_url, status, subtitle
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        row
+      );
+    }
+    if (inserts.length > 0) {
+      console.log("[drones] Seeded demo drone fleet (dev only).");
+    }
+  } catch (e) {
+    console.warn("[drones] Dev seed skipped:", e.message);
   }
 }
 
@@ -425,7 +575,10 @@ app.post("/send-otp", async (req, res) => {
 // Pilot registration: POST /api/pilots/register (with password) — see routes/pilotRoutes.js
 
 ensureAuthSchema()
+  .then(() => ensureDroneSchema())
+  .then(() => ensureMissionSchema())
   .then(() => seedDevAdminIfEmpty())
+  .then(() => seedDevDronesIfEmpty())
   .then(() => {
     jwtSecret();
     app.listen(4000, () => {

@@ -46,6 +46,22 @@ export const patchPilotFlightHours = async (id, flightHours) => {
   }
 };
 
+/** Sync drone details from Pilot Profile into `pilots.drone_details` JSON column. */
+export const patchPilotDroneDetails = async (id, drones) => {
+  try {
+    const response = await fetch(apiUrl(`/api/pilots/${id}/drones`), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ drones }),
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch (error) {
+    console.error("Patch pilot drone details failed:", error);
+    return null;
+  }
+};
+
 export const updatePilotStatus = async (id, dutyStatus) => {
   try {
     const response = await fetch(apiUrl(`/api/pilots/${id}/status`), {
@@ -76,6 +92,21 @@ export const incrementPilotMissionsCompleted = async (id, delta = 1) => {
     return response.json();
   } catch (error) {
     console.error("Mission increment failed:", error);
+    return null;
+  }
+};
+
+export const saveCompletedMission = async (payload) => {
+  try {
+    const response = await fetch(apiUrl("/api/missions"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch (error) {
+    console.error("Save completed mission failed:", error);
     return null;
   }
 };

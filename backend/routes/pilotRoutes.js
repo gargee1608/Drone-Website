@@ -39,6 +39,38 @@ async function pilotPasswordMatches(plain, stored) {
   return plain === s;
 }
 
+async function ensurePilotDroneDetailsColumn() {
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS drone_details JSONB NOT NULL DEFAULT '[]'::jsonb"
+  );
+}
+
+function normalizePilotDroneDetails(value) {
+  if (!Array.isArray(value)) return [];
+  const out = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const o = item;
+    const useCasesRaw = Array.isArray(o.useCases) ? o.useCases : [];
+    const useCases = useCasesRaw
+      .map((v) => String(v ?? "").trim())
+      .filter(Boolean)
+      .slice(0, 12);
+    out.push({
+      id: String(o.id ?? "").trim().slice(0, 120),
+      modelName: String(o.modelName ?? "").trim().slice(0, 120),
+      type: String(o.type ?? "").trim().slice(0, 120),
+      camera: String(o.camera ?? "").trim().slice(0, 120),
+      payloadKg: String(o.payloadKg ?? "").trim().slice(0, 40),
+      flightTimeMin: String(o.flightTimeMin ?? "").trim().slice(0, 40),
+      rangeKm: String(o.rangeKm ?? "").trim().slice(0, 40),
+      useCases,
+    });
+    if (out.length >= 50) break;
+  }
+  return out;
+}
+
 router.post("/register", async (req, res) => {
     try {
       const { name, email, phone, experience, license_number, password } = req.body;
@@ -258,6 +290,32 @@ router.patch("/:id/details", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+/** Save Pilot Dashboard profile drone details onto the `pilots` row. */
+router.patch("/:id/drones", async (req, res) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ error: "Invalid pilot id" });
+    }
+    const normalized = normalizePilotDroneDetails(req.body?.drones);
+    await ensurePilotDroneDetailsColumn();
+    const result = await pool.query(
+      `UPDATE pilots
+       SET drone_details = $1::jsonb
+       WHERE id = $2
+       RETURNING *`,
+      [JSON.stringify(normalized), id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Pilot not found" });
+    }
+    return res.json({ success: true, data: pilotRowForJson(result.rows[0]) });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
   }
 });
 
