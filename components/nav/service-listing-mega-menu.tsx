@@ -2,11 +2,21 @@
 
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
+import { useAdminServicesCatalog } from "@/hooks/use-admin-services-catalog";
+import { apiUrl } from "@/lib/api-url";
+import { serviceSlugFromTitle } from "@/lib/service-catalog";
 import { cn } from "@/lib/utils";
 
 /** Flat list — each service opens its detail page */
-export const serviceMegaMenuItems = [
+export type ServiceMegaMenuItem = {
+  href: string;
+  title: string;
+  description: string;
+};
+
+const staticServiceMegaMenuItems: ServiceMegaMenuItem[] = [
   {
     href: "/services/medical-logistics",
     title: "Medical Logistics",
@@ -31,7 +41,82 @@ export const serviceMegaMenuItems = [
     description:
       "LiDAR scanning and structural reporting for facilities and assets.",
   },
-] as const;
+];
+
+type DbServiceRow = {
+  id: number;
+  title?: string;
+  description?: string;
+};
+
+export function useServiceMegaMenuItems(): ServiceMegaMenuItem[] {
+  const adminExtras = useAdminServicesCatalog();
+  const [dbServices, setDbServices] = useState<DbServiceRow[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(apiUrl("/api/services"))
+      .then(async (res) => {
+        const data: unknown = await res.json().catch(() => null);
+        if (!res.ok || !Array.isArray(data) || cancelled) {
+          if (!cancelled) setDbServices([]);
+          return;
+        }
+        setDbServices(data as DbServiceRow[]);
+      })
+      .catch(() => {
+        if (!cancelled) setDbServices([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return useMemo(() => {
+    const dedupe = new Set<string>();
+    const out: ServiceMegaMenuItem[] = [];
+
+    const pushUnique = (item: ServiceMegaMenuItem) => {
+      const key = item.title.trim().toLowerCase();
+      if (!key || dedupe.has(key)) return;
+      dedupe.add(key);
+      out.push(item);
+    };
+
+    staticServiceMegaMenuItems.forEach(pushUnique);
+
+    adminExtras.forEach((item) => {
+      const title = item.title.trim();
+      if (!title) return;
+      pushUnique({
+        href: `/services/${serviceSlugFromTitle(title)}`,
+        title,
+        description: item.description.trim() || "Custom service added from admin.",
+      });
+    });
+
+    dbServices.forEach((item) => {
+      const title = String(item.title ?? "").trim();
+      if (!title) return;
+      pushUnique({
+        href: `/services/${serviceSlugFromTitle(title)}`,
+        title,
+        description:
+          String(item.description ?? "").trim() ||
+          "Custom service added from admin.",
+      });
+    });
+
+    return out.map((item) => {
+      if (!item.href.includes("/user-dashboard/create-request")) return item;
+      return {
+        ...item,
+        href: `/services/${serviceSlugFromTitle(item.title)}`,
+      };
+    });
+  }, [adminExtras, dbServices]);
+}
 
 type ServiceListingMegaMenuProps = {
   triggerClassName?: string;
@@ -44,6 +129,7 @@ export function ServiceListingMegaMenu({
   label = "Service Listing",
   variant = "site",
 }: ServiceListingMegaMenuProps) {
+  const serviceMegaMenuItems = useServiceMegaMenuItems();
   const triggerBase =
     variant === "landing"
       ? "inline-flex items-center gap-1 text-sm font-medium text-slate-600 transition-colors duration-300 hover:text-[#008B8B] dark:text-white dark:hover:text-white"

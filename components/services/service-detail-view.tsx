@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronRight } from "lucide-react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
+import { RequestServiceModalTrigger } from "@/components/services/request-service-modal-trigger";
 import { type ServiceCatalogItem } from "@/lib/service-catalog";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
@@ -15,8 +16,6 @@ type ServiceDetailViewProps = {
 };
 
 export function ServiceDetailView({ item }: ServiceDetailViewProps) {
-  const requestHref = `/user-dashboard/create-request?reason=${encodeURIComponent(item.title)}`;
-
   return (
     <div
       className={cn(
@@ -150,16 +149,14 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
               <p className={cn(body, "mt-2 text-sm leading-relaxed text-slate-500")}>
                 Final quote may vary by scope, region, and compliance.
               </p>
-              <Link
-                href={requestHref}
+              <RequestServiceModalTrigger
+                reasonTitle={item.title}
+                label="Request this service"
                 className={cn(
                   headline,
                   "mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-[#008B8B] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#007a7a]"
                 )}
-              >
-                Request this service
-                <ArrowRight className="size-4 shrink-0" aria-hidden />
-              </Link>
+              />
             </div>
           </div>
         </div>

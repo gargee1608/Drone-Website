@@ -30,6 +30,20 @@ function isEmailOrPhone(value: string) {
   return digits.length === 10;
 }
 
+function normalizePhoneForOtpInput(value: string) {
+  const input = value.trim();
+  if (!input) return null;
+  if (input.startsWith("+")) {
+    const digits = input.slice(1).replace(/\D/g, "");
+    if (digits.length < 8 || digits.length > 15) return null;
+    return `+${digits}`;
+  }
+  const digits = input.replace(/\D/g, "");
+  if (digits.length === 10) return `+91${digits}`;
+  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`;
+  return null;
+}
+
 function validateAdmin(identity: string, password: string) {
   const errors: { identity?: string; password?: string } = {};
   const id = identity.trim();
@@ -103,21 +117,31 @@ export function LoginView() {
   }
 
   const sendOtp = async () => {
-    const email = identity.trim().toLowerCase();
-  
-    if (!emailPattern.test(email)) {
-      alert("Enter valid email first");
+    const value = identity.trim();
+    const email = value.toLowerCase();
+    const phone = normalizePhoneForOtpInput(value);
+
+    if (!emailPattern.test(email) && !phone) {
+      alert("Enter valid email or mobile number first");
       return;
     }
-  
+
     try {
-      const res = await fetch("http://localhost:4000/send-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
+      const res = emailPattern.test(email)
+        ? await fetch("http://localhost:4000/send-otp", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email }),
+          })
+        : await fetch(apiUrl("/api/auth/send-phone-otp"), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ phone }),
+          });
 
       const body = await readResponseJson(res);
       if (!body.okParse) {
@@ -134,9 +158,17 @@ export function LoginView() {
 
       if (res.ok) {
         setOtpSent(true);
-        alert("OTP sent to Mailtrap successfully");
+        alert(
+          emailPattern.test(email)
+            ? "OTP sent to Mailtrap successfully"
+            : "OTP sent to your mobile successfully"
+        );
       } else {
-        alert(data.error || "Failed to send OTP");
+        const dataWithMessage =
+          body.data && typeof body.data === "object" && body.data !== null
+            ? (body.data as { error?: string; message?: string })
+            : {};
+        alert(dataWithMessage.message || data.error || "Failed to send OTP");
       }
     } catch (err) {
       console.log(err);
@@ -293,13 +325,47 @@ export function LoginView() {
   onSubmit={async (e) => {
     e.preventDefault();
 
-    // ✅ USER OTP FLOW (no backend)
+    // ✅ USER OTP FLOW (email flow unchanged; phone flow verifies via backend)
     if (mode === "user" && userAuthMethod === "otp") {
       const next = validateUserOtp(identity, otp, otpSent);
       setErrors(next);
       if (Object.keys(next).length > 0) return;
 
-      router.push("/user-dashboard");
+      const id = identity.trim();
+      if (emailPattern.test(id)) {
+        router.push("/user-dashboard");
+        return;
+      }
+      try {
+        const phone = normalizePhoneForOtpInput(id);
+        if (!phone) {
+          alert("Enter a valid mobile number.");
+          return;
+        }
+        const res = await fetch(apiUrl("/api/auth/verify-phone-otp"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, otp }),
+        });
+        const body = await readResponseJson(res);
+        if (!body.okParse) {
+          alert("Invalid server response");
+          return;
+        }
+        const data =
+          body.data && typeof body.data === "object" && body.data !== null
+            ? (body.data as { token?: string; message?: string; error?: string })
+            : {};
+        if (!res.ok || !data.token) {
+          alert(data.message || data.error || "OTP verification failed");
+          return;
+        }
+        localStorage.setItem("token", data.token);
+        router.push("/user-dashboard");
+      } catch (error) {
+        console.error(error);
+        alert("Could not verify mobile OTP.");
+      }
       return;
     }
 

@@ -7,12 +7,13 @@ import { Bell, Menu, Search, Settings, User, X } from "lucide-react";
 
 import {
   ServiceListingMegaMenu,
-  serviceMegaMenuItems,
+  useServiceMegaMenuItems,
 } from "@/components/nav/service-listing-mega-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function LandingHeader() {
+  const serviceMegaMenuItems = useServiceMegaMenuItems();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const hideRegisterPilotCta =
@@ -37,7 +38,7 @@ export function LandingHeader() {
     );
 
   return (
-    <header className="fixed top-0 z-50 w-full border-b border-slate-100 bg-white/80 backdrop-blur-xl">
+    <header className="fixed top-0 z-50 w-full border-b border-slate-100 bg-white">
       <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-8 lg:gap-12">
           <Link

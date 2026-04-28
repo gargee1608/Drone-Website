@@ -519,14 +519,6 @@ export function PilotProfileView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, data, variant]);
 
-  function handleDroneDelete(index: number) {
-    const snap = readSnapshotForPilotProfile(variant);
-    if (!snap) return;
-    if (!snap.drones[index]) return;
-    const nextDrones = snap.drones.filter((_, i) => i !== index);
-    persistProfileSnapshot({ ...snap, drones: nextDrones });
-  }
-
   function goToPilotRegistrationDroneStep() {
     router.push(DRONE_STEP_REGISTRATION_HREF);
   }
@@ -1211,9 +1203,9 @@ export function PilotProfileView({
               </div>
             ) : (
               <div className="space-y-3">
-                {data.drones.map((drone, idx) => (
+                {data.drones.map((drone, index) => (
                   <div
-                    key={drone.id || `${drone.modelName}-${idx}`}
+                    key={drone.id || `${drone.modelName}-${index}`}
                     className="rounded-xl border border-border p-3.5"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1233,14 +1225,6 @@ export function PilotProfileView({
                           className="h-8 rounded-lg px-3 text-xs"
                         >
                           Edit
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => handleDroneDelete(idx)}
-                          className="h-8 rounded-lg px-3 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-white dark:hover:bg-red-950/40 dark:hover:text-white"
-                        >
-                          Delete
                         </Button>
                       </div>
                     </div>

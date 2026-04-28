@@ -5,6 +5,7 @@ import { useEffect, useReducer, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { DetailField } from "@/components/dashboard/user-request-detail-modal";
+import { apiUrl } from "@/lib/api-url";
 import {
   ADMIN_PILOT_REG_STATE_STORAGE_KEY,
   getDefaultPilotRegState,
@@ -14,8 +15,104 @@ import {
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
-/** Base count so initial approved list (3) displays as 1,282. */
-const REGISTERED_PILOTS_COUNT_BASE = 1279;
+/** No hardcoded approved-pilot baseline. */
+const REGISTERED_PILOTS_COUNT_BASE = 0;
+
+type DashboardPilotDbRow = {
+  id?: number | string;
+  name?: string | null;
+  license_number?: string | null;
+  duty_status?: string | null;
+  experience?: string | number | null;
+  flight_hours?: string | number | null;
+  city?: string | null;
+  state?: string | null;
+  drone_details?: unknown;
+};
+
+function droneDetailsMissing(droneDetails: unknown): boolean {
+  if (Array.isArray(droneDetails)) return droneDetails.length === 0;
+  if (typeof droneDetails === "string") {
+    const raw = droneDetails.trim();
+    if (!raw) return true;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return !Array.isArray(parsed) || parsed.length === 0;
+    } catch {
+      return true;
+    }
+  }
+  return true;
+}
+
+function droneDetailsCount(droneDetails: unknown): number {
+  if (Array.isArray(droneDetails)) return droneDetails.length;
+  if (typeof droneDetails === "string") {
+    const raw = droneDetails.trim();
+    if (!raw) return 0;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.length : 0;
+    } catch {
+      return 0;
+    }
+  }
+  return 0;
+}
+
+function mapDbPilotToPendingCard(row: DashboardPilotDbRow): PilotRegCard {
+  const id = String(row.id ?? "").trim() || `pilot-${Math.random().toString(36).slice(2, 9)}`;
+  const name = String(row.name ?? "").trim() || "Pilot";
+  const license = String(row.license_number ?? "").trim() || "—";
+  const flightHoursRaw = String(row.flight_hours ?? row.experience ?? "").trim();
+  const region = [String(row.city ?? "").trim(), String(row.state ?? "").trim()]
+    .filter(Boolean)
+    .join(", ");
+
+  return {
+    id: `db-pending-${id}`,
+    name,
+    badge: "Pending drone details",
+    submitted: "From database",
+    rows: [
+      { k: "License Type", v: license, vClass: "text-[#008B8B]" },
+      { k: "Flight Experience", v: flightHoursRaw ? `${flightHoursRaw} Hours` : "—" },
+      { k: "Region", v: region || "—" },
+      { k: "Pilot ID", v: id, vClass: "font-mono text-xs" },
+    ],
+  };
+}
+
+function mapDbPilotToApprovedCard(row: DashboardPilotDbRow): PilotRegCard {
+  const id = String(row.id ?? "").trim() || `pilot-${Math.random().toString(36).slice(2, 9)}`;
+  const name = String(row.name ?? "").trim() || "Pilot";
+  const license = String(row.license_number ?? "").trim() || "—";
+  const region = [String(row.city ?? "").trim(), String(row.state ?? "").trim()]
+    .filter(Boolean)
+    .join(", ");
+  const status = String(row.duty_status ?? "ACTIVE").trim().toUpperCase() || "ACTIVE";
+  const drones = droneDetailsCount(row.drone_details);
+
+  return {
+    id: `db-approved-${id}`,
+    name,
+    badge: "Registered Pilot",
+    submitted: "From database",
+    rows: [
+      { k: "License ID", v: license, vClass: "font-mono text-xs" },
+      {
+        k: "Status",
+        v: status,
+        vClass:
+          status === "ACTIVE"
+            ? "font-semibold text-green-700 dark:text-green-400"
+            : "font-semibold text-amber-700 dark:text-amber-300",
+      },
+      { k: "Region", v: region || "—" },
+      { k: "Drones registered", v: String(drones) },
+    ],
+  };
+}
 
 function makePilotLicenseId(): string {
   const mid = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -95,6 +192,10 @@ export function DashboardHomeContent() {
     initialPilotRegState
   );
   const [pilotRegStorageReady, setPilotRegStorageReady] = useState(false);
+  const [dbPendingPilots, setDbPendingPilots] = useState<PilotRegCard[]>([]);
+  const [dbApprovedPilots, setDbApprovedPilots] = useState<PilotRegCard[]>([]);
+  const [dbTotalPilots, setDbTotalPilots] = useState(0);
+  const [dbTotalDrones, setDbTotalDrones] = useState(0);
 
   useEffect(() => {
     const stored = loadPilotRegStateFromStorage();
@@ -103,6 +204,7 @@ export function DashboardHomeContent() {
     }
     setPilotRegStorageReady(true);
   }, []);
+
 
   useEffect(() => {
     const onPendingUpdated = () => {
@@ -115,6 +217,68 @@ export function DashboardHomeContent() {
         "aerolaminar-pending-pilots-updated",
         onPendingUpdated
       );
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadDbPending = async () => {
+      try {
+        const response = await fetch(apiUrl("/api/pilots"), { cache: "no-store" });
+        if (!response.ok) {
+          if (!cancelled) {
+            setDbPendingPilots([]);
+            setDbApprovedPilots([]);
+            setDbTotalPilots(0);
+            setDbTotalDrones(0);
+          }
+          return;
+        }
+        const data: unknown = await response.json();
+        const list = Array.isArray(data) ? (data as DashboardPilotDbRow[]) : [];
+        const pilotsCount = list.length;
+        const dronesFromPilots = list.reduce(
+          (sum, row) => sum + droneDetailsCount(row.drone_details),
+          0
+        );
+        let dronesCount = dronesFromPilots;
+        try {
+          const dronesResponse = await fetch(apiUrl("/api/drones"), {
+            cache: "no-store",
+          });
+          if (dronesResponse.ok) {
+            const dronesData: unknown = await dronesResponse.json();
+            if (Array.isArray(dronesData)) {
+              dronesCount = dronesData.length;
+            }
+          }
+        } catch {
+          // Fallback remains drones count inferred from pilots.drone_details
+        }
+        const pending = list
+          .filter((row) => droneDetailsMissing(row.drone_details))
+          .map(mapDbPilotToPendingCard);
+        const approved = list
+          .filter((row) => !droneDetailsMissing(row.drone_details))
+          .map(mapDbPilotToApprovedCard);
+        if (!cancelled) {
+          setDbTotalPilots(pilotsCount);
+          setDbTotalDrones(dronesCount);
+          setDbPendingPilots(pending);
+          setDbApprovedPilots(approved);
+        }
+      } catch {
+        if (!cancelled) {
+          setDbTotalPilots(0);
+          setDbTotalDrones(0);
+          setDbPendingPilots([]);
+          setDbApprovedPilots([]);
+        }
+      }
+    };
+    void loadDbPending();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -140,8 +304,10 @@ export function DashboardHomeContent() {
     return () => window.clearTimeout(t);
   }, []);
 
-  const pendingPilots = pilotRegState.pending;
-  const approvedPilots = pilotRegState.approved;
+  const pendingPilots =
+    dbPendingPilots.length > 0 ? dbPendingPilots : pilotRegState.pending;
+  const approvedPilots =
+    dbApprovedPilots.length > 0 ? dbApprovedPilots : pilotRegState.approved;
 
   const registeredTotalDisplay = (
     REGISTERED_PILOTS_COUNT_BASE + approvedPilots.length
@@ -152,7 +318,13 @@ export function DashboardHomeContent() {
   };
 
   const handleRejectPilot = (id: string) => {
-    dispatchPilotReg({ type: "reject", id });
+    const pending = pendingPilots.find((p) => p.id === id);
+    const pilotId = pending?.rows.find((r) => r.k === "Pilot ID")?.v?.trim();
+    const query =
+      pilotId && /^[0-9]+$/.test(pilotId)
+        ? `?step=3&pilotId=${encodeURIComponent(pilotId)}`
+        : "?step=3";
+    window.location.href = `/pilot-registration${query}`;
   };
 
   return (
@@ -162,14 +334,14 @@ export function DashboardHomeContent() {
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           title="Total Pilots"
-          value="1,284"
+          value={dbTotalPilots.toLocaleString()}
           icon={Users}
           iconClassName="text-[#008B8B]"
           iconBg="bg-[#008B8B]/5"
         />
         <KpiCard
           title="Total Drones"
-          value="4,512"
+          value={dbTotalDrones.toLocaleString()}
           icon={Plane}
           iconClassName="text-[#008B8B]"
           iconBg="bg-[#008B8B]/5"
@@ -403,7 +575,7 @@ function PendingPilotCard({
           <Button
             type="button"
             size="sm"
-            className="bg-[#008B8B] text-xs font-bold text-white hover:bg-[#006b6b]"
+            className="border border-[#008B8B] bg-transparent text-xs font-bold text-[#008B8B] hover:bg-[#008B8B]/10"
             onClick={onAccept}
           >
             Accept
@@ -411,11 +583,11 @@ function PendingPilotCard({
           <Button
             type="button"
             size="sm"
-            variant="secondary"
-            className="bg-muted text-xs font-bold text-foreground hover:bg-muted/80"
+            variant="outline"
+            className="border border-[#008B8B] bg-transparent text-xs font-bold text-[#008B8B] hover:bg-[#008B8B]/10"
             onClick={onReject}
           >
-            Reject
+            Add Drone Details
           </Button>
         </div>
       )}

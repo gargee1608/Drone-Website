@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -198,6 +198,13 @@ export function PilotRegistrationView() {
   const [draftUseCases, setDraftUseCases] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    dgca: string;
+    dronesAdded: string;
+  } | null>(null);
   const [profileReturnTo, setProfileReturnTo] = useState<string | null>(null);
 
   const resetForm = useCallback(() => {
@@ -224,6 +231,7 @@ export function PilotRegistrationView() {
     setDraftUseCases([]);
     setSubmitError(null);
     setStepError(null);
+    setSubmitSuccess(null);
   }, []);
 
   function hydrateFromPilotProfileSnapshot(snap: PilotProfileSnapshot) {
@@ -255,6 +263,12 @@ export function PilotRegistrationView() {
       const params = new URLSearchParams(window.location.search);
       const ret = params.get("returnTo");
       const stepQ = params.get("step");
+      if (stepQ === "3" && ret !== "/pilot-profile") {
+        setStep(3);
+        setStepError(null);
+        setSubmitError(null);
+        return;
+      }
       if (ret === "/pilot-profile" && stepQ === "3") {
         if (consumePilotRegistrationForceBlankNextOpen()) {
           resetForm();
@@ -547,8 +561,21 @@ export function PilotRegistrationView() {
     markPilotRegistrationSubmittedNextOpenBlank();
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
+      const dronesAdded =
+        snapshot.drones.length > 0
+          ? snapshot.drones
+              .map((drone) => drone.modelName?.trim())
+              .filter(Boolean)
+              .join(", ")
+          : "None";
+      setSubmitSuccess({
+        name: snapshot.fullName || "-",
+        email: snapshot.email || "-",
+        phone: snapshot.phone || "-",
+        dgca: snapshot.dgca || "-",
+        dronesAdded,
+      });
     }
-    router.replace("/dashboard#pilot-registrations");
   }
 
   function saveDronesToPilotProfile() {
@@ -1030,20 +1057,6 @@ export function PilotRegistrationView() {
                               {droneListSubtitle(d)}
                             </p>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="shrink-0 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            aria-label={`Remove ${d.modelName || "drone"}`}
-                            onClick={() =>
-                              setDrones((prev) =>
-                                prev.filter((x) => x.id !== d.id)
-                              )
-                            }
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
                         </li>
                       ))}
                     </ul>
@@ -1345,7 +1358,7 @@ export function PilotRegistrationView() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-10 rounded-lg border-slate-300 bg-white px-4 font-medium text-slate-700 hover:bg-slate-50"
+                      className="h-10 rounded-lg border-[#008B8B] bg-transparent px-4 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
                       onClick={goNext}
                     >
                       Next
@@ -1354,7 +1367,7 @@ export function PilotRegistrationView() {
                     <Button
                       type="button"
                       onClick={submitRegistration}
-                      className="h-10 rounded-lg bg-[#008B8B] px-6 font-semibold text-white shadow-sm hover:bg-[#006b6b]"
+                      className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
                     >
                       Submit
                     </Button>
@@ -1390,7 +1403,7 @@ export function PilotRegistrationView() {
                       <Button
                         type="button"
                         onClick={goNext}
-                        className="h-10 rounded-lg bg-[#008B8B] px-6 font-semibold text-white shadow-sm hover:bg-[#006b6b]"
+                        className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
                       >
                         Next
                         <ArrowRight
@@ -1402,7 +1415,7 @@ export function PilotRegistrationView() {
                   ) : (
                     <Button
                       type="button"
-                      className="h-10 rounded-lg bg-[#008B8B] px-6 font-semibold text-white shadow-sm hover:bg-[#006b6b]"
+                      className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
                       onClick={submitRegistration}
                     >
                       Submit Registration
@@ -1415,6 +1428,71 @@ export function PilotRegistrationView() {
           </form>
         </div>
       </div>
+      {submitSuccess ? (
+        <div className="fixed inset-0 z-[120] flex items-end justify-center bg-slate-900/50 p-4 backdrop-blur-[1px] sm:items-center">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pilot-registration-success-title"
+            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6"
+          >
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex size-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                  <CheckCircle2 className="size-4.5" aria-hidden />
+                </span>
+                <h2
+                  id="pilot-registration-success-title"
+                  className="text-base font-semibold text-slate-900"
+                >
+                  Registration saved successfully
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Close success popup"
+                onClick={() => setSubmitSuccess(null)}
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-sm">
+              <p className="text-slate-700">
+                <span className="font-semibold text-slate-900">Name:</span>{" "}
+                {submitSuccess.name}
+              </p>
+              <p className="text-slate-700">
+                <span className="font-semibold text-slate-900">Email:</span>{" "}
+                {submitSuccess.email}
+              </p>
+              <p className="text-slate-700">
+                <span className="font-semibold text-slate-900">Phone:</span>{" "}
+                {submitSuccess.phone}
+              </p>
+              <p className="text-slate-700">
+                <span className="font-semibold text-slate-900">DGCA:</span>{" "}
+                {submitSuccess.dgca}
+              </p>
+              <p className="text-slate-700">
+                <span className="font-semibold text-slate-900">Drones Added:</span>{" "}
+                {submitSuccess.dronesAdded}
+              </p>
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <Button
+                type="button"
+                className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-5 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                onClick={() => setSubmitSuccess(null)}
+              >
+                OK
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

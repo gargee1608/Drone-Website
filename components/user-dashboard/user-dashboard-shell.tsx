@@ -30,11 +30,6 @@ const sidebarNav = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/user-dashboard" },
   { label: "My Request", icon: ClipboardList, href: MY_REQUESTS_HREF },
   {
-    label: "Request Monitoring",
-    icon: Activity,
-    href: "/user-dashboard/request-monitoring",
-  },
-  {
     label: "Profile",
     icon: UserRound,
     href: "/user-dashboard/profile",
@@ -63,12 +58,21 @@ function userShellNavItemIsActive(pathname: string | null, href: string) {
   return pathname === base;
 }
 
-function SidebarNavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarNavLinks({
+  onNavigate,
+  hideRequestMonitoring,
+}: {
+  onNavigate?: () => void;
+  hideRequestMonitoring?: boolean;
+}) {
   const pathname = usePathname();
+  const navItems = hideRequestMonitoring
+    ? sidebarNav.filter((item) => item.label !== "Request Monitoring")
+    : sidebarNav;
 
   return (
     <nav className="flex flex-col gap-2">
-      {sidebarNav.map((item) => {
+      {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = userShellNavItemIsActive(pathname, item.href);
         return (
@@ -110,11 +114,20 @@ function LogoutControl({ onAfterClick }: { onAfterClick?: () => void }) {
 }
 
 /** Mobile drawer: nav + divider + logout */
-function MobileSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function MobileSidebarContent({
+  onNavigate,
+  hideRequestMonitoring,
+}: {
+  onNavigate?: () => void;
+  hideRequestMonitoring?: boolean;
+}) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="min-h-0 flex-1 basis-0 overflow-y-auto">
-        <SidebarNavLinks onNavigate={onNavigate} />
+        <SidebarNavLinks
+          onNavigate={onNavigate}
+          hideRequestMonitoring={hideRequestMonitoring}
+        />
       </div>
       <div className="mt-auto shrink-0 border-t border-slate-200 pt-4 pb-2 dark:border-white/15">
         <LogoutControl onAfterClick={onNavigate} />
@@ -133,6 +146,10 @@ export type UserDashboardShellProps = {
   pageTitleBarClassName?: string;
   /** Override default `max-w-[1280px]` on the main content column. */
   mainMaxWidthClassName?: string;
+  /** Optional custom page background color for shell content area. */
+  contentBackgroundClassName?: string;
+  /** Hide Request Monitoring item for this page sidebar only. */
+  hideRequestMonitoringInSidebar?: boolean;
   children: ReactNode;
 };
 
@@ -142,6 +159,8 @@ export function UserDashboardShell({
   pageTitleClassName,
   pageTitleBarClassName,
   mainMaxWidthClassName,
+  contentBackgroundClassName,
+  hideRequestMonitoringInSidebar,
   children,
 }: UserDashboardShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -174,8 +193,18 @@ export function UserDashboardShell({
   }, [sidebarExpanded]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-[#f8f9fa] pt-20 text-[#191c1d] sm:pt-22 dark:bg-[#111315] dark:text-white">
-      <div className="flex items-center gap-2 border-b border-slate-200 bg-[#f8f9fa] px-4 py-1.5 lg:hidden dark:border-white/15 dark:bg-[#111315]">
+    <div
+      className={cn(
+        "flex min-h-0 flex-1 flex-col overflow-x-hidden pt-20 text-[#191c1d] sm:pt-22 dark:text-white",
+        contentBackgroundClassName ?? "bg-white dark:bg-[#111315]"
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center gap-2 border-b border-slate-200 px-4 py-1.5 lg:hidden dark:border-white/15",
+          contentBackgroundClassName ?? "bg-white dark:bg-[#111315]"
+        )}
+      >
         <button
           type="button"
           className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-[#eceff1] dark:text-white dark:hover:bg-white/10"
@@ -216,6 +245,7 @@ export function UserDashboardShell({
             <div className="flex min-h-0 flex-1 flex-col">
               <MobileSidebarContent
                 onNavigate={() => setMobileNavOpen(false)}
+                hideRequestMonitoring={hideRequestMonitoringInSidebar}
               />
             </div>
           </aside>
@@ -248,7 +278,9 @@ export function UserDashboardShell({
             </div>
           ) : null}
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pt-2 lg:px-3 lg:pb-3 lg:pt-0">
-            <SidebarNavLinks />
+            <SidebarNavLinks
+              hideRequestMonitoring={hideRequestMonitoringInSidebar}
+            />
           </div>
           {sidebarExpanded ? (
             <div className="mt-auto flex w-full shrink-0 flex-col">

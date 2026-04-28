@@ -98,6 +98,89 @@ export function getServiceBySlug(slug: string): ServiceCatalogItem | undefined {
   return bySlug.get(slug);
 }
 
+export function serviceSlugFromTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+type BackendServiceRow = {
+  id?: number | string;
+  title?: string;
+  description?: string;
+  price?: number | string;
+  image?: string;
+};
+
+function backendServicesApiCandidates(): string[] {
+  const rawBase =
+    process.env.NEXT_PUBLIC_API_URL?.trim() || process.env.BACKEND_URL?.trim() || "";
+  const base = rawBase.replace(/\/$/, "");
+  if (base) {
+    if (base.endsWith("/api")) return [`${base}/services`];
+    return [`${base}/api/services`];
+  }
+  return ["http://localhost:4000/api/services", "http://127.0.0.1:4000/api/services"];
+}
+
+async function fetchBackendServices(): Promise<BackendServiceRow[]> {
+  const urls = backendServicesApiCandidates();
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) continue;
+      const data: unknown = await res.json().catch(() => null);
+      if (Array.isArray(data)) return data as BackendServiceRow[];
+    } catch {
+      // Try next candidate URL.
+    }
+  }
+  return [];
+}
+
+function mapBackendServiceToCatalogItem(row: BackendServiceRow): ServiceCatalogItem | null {
+  const title = String(row.title ?? "").trim();
+  if (!title) return null;
+  const description = String(row.description ?? "").trim();
+  const priceRaw = Number(row.price);
+  const priceText = Number.isFinite(priceRaw) ? `₹${priceRaw}` : "Custom";
+  return {
+    slug: serviceSlugFromTitle(title),
+    title,
+    description:
+      description || "Custom drone service added from the admin dashboard.",
+    detailSections: [
+      description || "Custom drone service added from the admin dashboard.",
+      "Mission scope, route, payload, and turnaround are finalized after request submission.",
+    ],
+    highlights: [
+      "Configured and published from admin services",
+      "Suitable for custom mission requirements",
+      "Request this service to receive a tailored quote",
+    ],
+    image: row.image?.trim() || "/service-added-default.png",
+    imageAlt: title,
+    topBadge: { text: priceText, variant: "light" },
+  };
+}
+
+export async function getServiceBySlugExtended(
+  slug: string
+): Promise<ServiceCatalogItem | undefined> {
+  const staticItem = getServiceBySlug(slug);
+  if (staticItem) return staticItem;
+
+  const backendRows = await fetchBackendServices();
+  for (const row of backendRows) {
+    const mapped = mapBackendServiceToCatalogItem(row);
+    if (!mapped) continue;
+    if (mapped.slug === slug) return mapped;
+  }
+  return undefined;
+}
+
 export function serviceCatalogBadgeClasses(
   variant: ServiceCatalogBadgeVariant
 ): string {

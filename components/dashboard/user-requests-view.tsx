@@ -16,15 +16,22 @@ import {
   UserRequestDetailModal,
   type UserRequestDetailPayload,
 } from "@/components/dashboard/user-request-detail-modal";
-import { UserRequestTable } from "@/components/dashboard/user-request-table";
+import {
+  parsePayloadAndTarget,
+  UserRequestTable,
+} from "@/components/dashboard/user-request-table";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
+  ASSIGN_INSPECT_STORAGE_KEY,
+  ASSIGN_INSPECT_UPDATED_EVENT,
+  loadAssignInspectRow,
   demoAdminRowToAssignPilotRow,
   setAssignInspectRow,
   upsertDemoAcceptedForAssign,
   userRequestAdminRowToAssignPilotRow,
 } from "@/lib/assign-demo-bridge";
 import { apiUrl } from "@/lib/api-url";
+import { readResponseJson } from "@/lib/read-response-json";
 import {
   loadUserRequests,
   mapUserRequestToAdminRow,
@@ -199,6 +206,7 @@ export function UserRequestsView({
     UserMissionRequest[]
   >([]);
   const [backendRequests, setBackendRequests] = useState<UserRequestAdminRow[]>([]);
+  const [backendRefresh, setBackendRefresh] = useState(0);
 
   useEffect(() => {
     if (pilotTables) return;
@@ -226,7 +234,7 @@ export function UserRequestsView({
     return () => {
       cancelled = true;
     };
-  }, [pilotTables]);
+  }, [pilotTables, backendRefresh]);
 
   useEffect(() => {
     pruneDuplicateMarketplaceInquiries();
@@ -374,6 +382,78 @@ export function UserRequestsView({
     closePilotDetailIfOpen(row);
   };
 
+  const handleEditRow = async (row: UserRequestAdminRow) => {
+    if (pilotTables) return;
+    const nextTitle = window.prompt("Edit requirement title", row.title)?.trim();
+    if (!nextTitle) return;
+    const nextDestination = window.prompt(
+      "Edit destination",
+      parsePayloadAndTarget(row.desc).target
+    )?.trim();
+    if (!nextDestination) return;
+    const nextUrgency = window
+      .prompt("Edit urgency (urgent / express / standard)", "express")
+      ?.trim()
+      .toLowerCase();
+    if (!nextUrgency) return;
+
+    try {
+      const response = await fetch(apiUrl(`/api/requests/${encodeURIComponent(row.key)}`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason_or_title: nextTitle,
+          drop_location: nextDestination,
+          mission_urgency: nextUrgency,
+        }),
+      });
+      const body = await readResponseJson(response);
+      if (!body.okParse || !response.ok) {
+        window.alert("Could not update request. Please try again.");
+        return;
+      }
+      const updatedData =
+        body.data && typeof body.data === "object"
+          ? (body.data as { data?: BackendRequestRow }).data
+          : undefined;
+      if (updatedData && typeof updatedData === "object") {
+        const updatedRow = mapBackendRequestToAdminRow(updatedData);
+        if (String(updatedRow.key) === String(row.key)) {
+          const inspect = loadAssignInspectRow();
+          if (inspect && inspect.requestRef === String(row.key)) {
+            setAssignInspectRow(userRequestAdminRowToAssignPilotRow(updatedRow));
+          }
+        }
+      }
+      setBackendRefresh((n) => n + 1);
+    } catch {
+      window.alert("Could not update request. Please try again.");
+    }
+  };
+
+  const handleDeleteRow = async (row: UserRequestAdminRow) => {
+    if (pilotTables) return;
+    const ok = window.confirm("Delete this request?");
+    if (!ok) return;
+    try {
+      const response = await fetch(apiUrl(`/api/requests/${encodeURIComponent(row.key)}`), {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        window.alert("Could not delete request. Please try again.");
+        return;
+      }
+      const inspect = loadAssignInspectRow();
+      if (inspect && inspect.requestRef === String(row.key)) {
+        localStorage.removeItem(ASSIGN_INSPECT_STORAGE_KEY);
+        window.dispatchEvent(new Event(ASSIGN_INSPECT_UPDATED_EVENT));
+      }
+      setBackendRefresh((n) => n + 1);
+    } catch {
+      window.alert("Could not delete request. Please try again.");
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-6xl">
       {showPageTitle ? <h1 className={ADMIN_PAGE_TITLE_CLASS}>User Request</h1> : null}
@@ -433,6 +513,8 @@ export function UserRequestsView({
             onViewDetails={openRequestDetails}
             onAcceptRow={handleAcceptRow}
             onRejectRow={handleRejectRow}
+            onEditRow={!pilotTables ? handleEditRow : undefined}
+            onDeleteRow={!pilotTables ? handleDeleteRow : undefined}
           />
         </section>
 

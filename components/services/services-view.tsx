@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
+import { RequestServiceModalTrigger } from "@/components/services/request-service-modal-trigger";
 import { apiUrl } from "@/lib/api-url";
 import { useAdminServicesCatalog } from "@/hooks/use-admin-services-catalog";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
@@ -114,12 +115,10 @@ export function ServicesView({
                     <h3 className="mt-3 font-bold">{item.title}</h3>
                     <p className="text-sm text-slate-600">{item.description}</p>
 
-                    <Link
-                      href={`/user-dashboard/create-request?reason=${encodeURIComponent(item.title)}`}
-                      className="mt-3 block rounded bg-[#008B8B] p-2 text-center text-white"
-                    >
-                      Request
-                    </Link>
+                    <RequestServiceModalTrigger
+                      reasonTitle={item.title}
+                      className="mt-3 block w-full rounded bg-[#008B8B] p-2 text-center text-white"
+                    />
                   </article>
                 </li>
               ))}
@@ -143,12 +142,10 @@ export function ServicesView({
                     <h3 className="mt-3 font-bold">{item.title}</h3>
                     <p className="text-sm text-slate-600">{item.description}</p>
 
-                    <Link
-                      href={`/user-dashboard/create-request?reason=${encodeURIComponent(item.title)}`}
-                      className="mt-3 block rounded bg-[#008B8B] p-2 text-center text-white"
-                    >
-                      Request
-                    </Link>
+                    <RequestServiceModalTrigger
+                      reasonTitle={item.title}
+                      className="mt-3 block w-full rounded bg-[#008B8B] p-2 text-center text-white"
+                    />
                   </article>
                 </li>
               ))}
@@ -180,12 +177,10 @@ export function ServicesView({
   ₹{service.price}
 </p>
 
-      <Link
-        href={`/user-dashboard/create-request?reason=${encodeURIComponent(service.title)}`}
-       className="mt-3 block rounded bg-[#006D6D] p-2 text-center text-white hover:bg-[#005a5a] transition"
-      >
-        Request
-      </Link>
+      <RequestServiceModalTrigger
+        reasonTitle={String(service.title ?? "")}
+        className="mt-3 block w-full rounded bg-[#006D6D] p-2 text-center text-white transition hover:bg-[#005a5a]"
+      />
 
     </article>
   </li>

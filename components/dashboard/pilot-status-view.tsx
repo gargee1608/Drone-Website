@@ -194,12 +194,9 @@ export function PilotStatusView({
             <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
               Total registered
             </span>
-            <div className="flex items-end gap-3">
+            <div className="flex items-end">
               <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
                 {kpi.totalRegistered}
-              </span>
-              <span className="mb-1 font-mono text-xs font-bold text-[#006a6e] dark:text-white">
-                Live from DB
               </span>
             </div>
           </div>
@@ -207,13 +204,9 @@ export function PilotStatusView({
             <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
               Currently active
             </span>
-            <div className="flex items-end gap-3">
+            <div className="flex items-end">
               <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
                 {kpi.currentlyActive}
-              </span>
-              <span className="mb-1 flex items-center text-[10px] font-bold text-[#1a1c1e] dark:text-white">
-                <span className="mr-2 size-2 animate-pulse rounded-full bg-foreground dark:bg-white" />
-                IN-FLIGHT
               </span>
             </div>
           </div>
@@ -221,12 +214,9 @@ export function PilotStatusView({
             <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
               Inactive / On-leave
             </span>
-            <div className="flex items-end gap-3">
+            <div className="flex items-end">
               <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
                 {kpi.inactiveOnLeave}
-              </span>
-              <span className="mb-1 font-mono text-xs text-muted-foreground/80 dark:text-white/90">
-                {kpi.inactivePct}
               </span>
             </div>
           </div>
@@ -234,12 +224,9 @@ export function PilotStatusView({
             <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
               Pending approval
             </span>
-            <div className="flex items-end gap-3">
+            <div className="flex items-end">
               <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
                 {kpi.pendingApproval}
-              </span>
-              <span className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#1a1c1e] dark:text-white">
-                Needs review
               </span>
             </div>
           </div>

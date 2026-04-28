@@ -11,7 +11,7 @@ import { HeaderThemeModeToggle } from "@/components/nav/header-theme-mode-toggle
 import { useHasRegisteredPilot } from "@/hooks/use-has-registered-pilot";
 import {
   ServiceListingMegaMenu,
-  serviceMegaMenuItems,
+  useServiceMegaMenuItems,
 } from "@/components/nav/service-listing-mega-menu";
 import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav-context";
 import { SidebarMenuGlyph } from "@/components/nav/sidebar-menu-glyph";
@@ -78,6 +78,7 @@ export function SiteHeader({
   ctaHref = "/pilot-registration",
   showNotifications = false,
 }: SiteHeaderProps = {}) {
+  const serviceMegaMenuItems = useServiceMegaMenuItems();
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -112,7 +113,7 @@ export function SiteHeader({
   const showDashboardAccountChrome = isUserDashboard || isAdminDashboard;
 
   const profileHref = isUserDashboard
-    ? "/settings?from=user"
+    ? "/user-dashboard/profile"
     : "/dashboard/profile";
 
   const whiteHeaderChrome =

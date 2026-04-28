@@ -8,7 +8,7 @@ import { LogOut, Menu, Plane, Search, Settings, User, X } from "lucide-react";
 import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav-context";
 import {
   ServiceListingMegaMenu,
-  serviceMegaMenuItems,
+  useServiceMegaMenuItems,
 } from "@/components/nav/service-listing-mega-menu";
 import { SidebarMenuGlyph } from "@/components/nav/sidebar-menu-glyph";
 import { usePilotDashboardNav } from "@/components/pilot-dashboard/pilot-dashboard-nav-context";
@@ -23,6 +23,7 @@ const landingOutlineButtonClassName =
   "inline-flex h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-4 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase transition hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent dark:border-white dark:text-white dark:hover:border-white/85 dark:hover:text-white";
 
 export function LandingHeader() {
+  const serviceMegaMenuItems = useServiceMegaMenuItems();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -121,7 +122,7 @@ export function LandingHeader() {
       ? "/pilot-profile"
       : isAdminDashboard || settingsFrom === "admin"
         ? "/dashboard/profile"
-        : "/settings?from=user";
+        : "/user-dashboard/profile";
 
   const showAccountMenu =
     isAdminDashboard ||

@@ -43,8 +43,8 @@ export function ConditionalSiteFooter() {
   if (isDashboardShellFooter) {
     return (
       <>
-        <div className="h-px w-full shrink-0 bg-border" aria-hidden />
-        <SiteFooter className="bg-background text-foreground" />
+        <div className="h-px w-full shrink-0 bg-slate-200 dark:bg-white/15" aria-hidden />
+        <SiteFooter className="bg-white text-foreground dark:bg-[#111315] dark:text-white" />
       </>
     );
   }

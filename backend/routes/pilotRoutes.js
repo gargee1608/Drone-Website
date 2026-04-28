@@ -45,6 +45,51 @@ async function ensurePilotDroneDetailsColumn() {
   );
 }
 
+async function ensurePilotAssignDroneColumns() {
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS drone_id TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS drone_name TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS camera TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS use_cases TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS payload TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS flight_time TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS range_km TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ALTER COLUMN drone_id TYPE TEXT USING drone_id::text"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ALTER COLUMN drone_name TYPE TEXT USING drone_name::text"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ALTER COLUMN camera TYPE TEXT USING camera::text"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ALTER COLUMN use_cases TYPE TEXT USING use_cases::text"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ALTER COLUMN payload TYPE TEXT USING payload::text"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ALTER COLUMN flight_time TYPE TEXT USING flight_time::text"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ALTER COLUMN range_km TYPE TEXT USING range_km::text"
+  );
+}
+
 function normalizePilotDroneDetails(value) {
   if (!Array.isArray(value)) return [];
   const out = [];
@@ -69,6 +114,54 @@ function normalizePilotDroneDetails(value) {
     if (out.length >= 50) break;
   }
   return out;
+}
+
+function pilotDroneIdentityKey(drone) {
+  const id = String(drone?.id ?? "").trim();
+  if (id) return `id:${id}`;
+  const useCases = Array.isArray(drone?.useCases)
+    ? drone.useCases.map((v) => String(v ?? "").trim().toLowerCase()).join("|")
+    : "";
+  return [
+    "f",
+    String(drone?.modelName ?? "").trim().toLowerCase(),
+    String(drone?.type ?? "").trim().toLowerCase(),
+    String(drone?.camera ?? "").trim().toLowerCase(),
+    String(drone?.payloadKg ?? "").trim().toLowerCase(),
+    String(drone?.flightTimeMin ?? "").trim().toLowerCase(),
+    String(drone?.rangeKm ?? "").trim().toLowerCase(),
+    useCases,
+  ].join("::");
+}
+
+function mergePilotDroneDetails(existingValue, incomingValue) {
+  const existing = normalizePilotDroneDetails(existingValue);
+  const incoming = normalizePilotDroneDetails(incomingValue);
+  if (incoming.length === 0) return existing;
+  if (existing.length === 0) return incoming;
+
+  const merged = [];
+  const keyToIndex = new Map();
+
+  for (const drone of existing) {
+    const key = pilotDroneIdentityKey(drone);
+    if (keyToIndex.has(key)) continue;
+    keyToIndex.set(key, merged.length);
+    merged.push(drone);
+  }
+
+  for (const drone of incoming) {
+    const key = pilotDroneIdentityKey(drone);
+    const idx = keyToIndex.get(key);
+    if (idx == null) {
+      keyToIndex.set(key, merged.length);
+      merged.push(drone);
+      continue;
+    }
+    merged[idx] = drone;
+  }
+
+  return merged.slice(0, 50);
 }
 
 router.post("/register", async (req, res) => {
@@ -300,15 +393,63 @@ router.patch("/:id/drones", async (req, res) => {
     if (!Number.isFinite(id)) {
       return res.status(400).json({ error: "Invalid pilot id" });
     }
-    const normalized = normalizePilotDroneDetails(req.body?.drones);
     await ensurePilotDroneDetailsColumn();
+    const existing = await pool.query(
+      `SELECT drone_details FROM pilots WHERE id = $1`,
+      [id]
+    );
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: "Pilot not found" });
+    }
+    const merged = mergePilotDroneDetails(
+      existing.rows[0]?.drone_details,
+      req.body?.drones
+    );
     const result = await pool.query(
       `UPDATE pilots
        SET drone_details = $1::jsonb
        WHERE id = $2
        RETURNING *`,
-      [JSON.stringify(normalized), id]
+      [JSON.stringify(merged), id]
     );
+    return res.json({ success: true, data: pilotRowForJson(result.rows[0]) });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+/** Save selected drone columns onto the assigned pilot row when admin clicks Assign Mission. */
+router.patch("/:id/assign-drone", async (req, res) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ error: "Invalid pilot id" });
+    }
+
+    const droneId = String(req.body?.drone_id ?? "").trim().slice(0, 120);
+    const droneName = String(req.body?.drone_name ?? "").trim().slice(0, 120);
+    const camera = String(req.body?.camera ?? "").trim().slice(0, 120);
+    const useCases = String(req.body?.use_cases ?? "").trim().slice(0, 500);
+    const payload = String(req.body?.payload ?? "").trim().slice(0, 40);
+    const flightTime = String(req.body?.flight_time ?? "").trim().slice(0, 40);
+    const rangeKm = String(req.body?.range_km ?? "").trim().slice(0, 40);
+
+    await ensurePilotAssignDroneColumns();
+    const result = await pool.query(
+      `UPDATE pilots
+       SET drone_id = $1,
+           drone_name = $2,
+           camera = $3,
+           use_cases = $4,
+           payload = $5,
+           flight_time = $6,
+           range_km = $7
+       WHERE id = $8
+       RETURNING *`,
+      [droneId, droneName, camera, useCases, payload, flightTime, rangeKm, id]
+    );
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Pilot not found" });
     }

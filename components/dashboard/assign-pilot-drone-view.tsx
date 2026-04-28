@@ -10,7 +10,6 @@ import {
   Navigation,
   Package,
   Scale,
-  Trash2,
   User,
   UserRound,
   Zap,
@@ -20,7 +19,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { tableRequestId } from "@/components/dashboard/user-request-table";
 import {
   loadCompletedAssignments,
-  normalizeToLatestCompleted,
   saveCompletedAssignments,
   type CompletedAssignment,
 } from "@/lib/completed-assignments";
@@ -100,6 +98,9 @@ type DroneCard = {
   maxPayloadKg: number;
   pilotName: string;
   pilotBadgeId: string;
+  pilotSub: string | null;
+  camera: string;
+  useCasesText: string;
   sourceSnapshotKey: string;
   sourceDroneId: string;
   sourceIndex: number;
@@ -180,6 +181,7 @@ function mapProfileDroneToCard(
   drone: PilotProfileDrone,
   owner: string,
   pilotBadgeId: string,
+  pilotSub: string | null,
   idx: number,
   snapshotKey: string
 ): DroneCard {
@@ -188,6 +190,10 @@ function mapProfileDroneToCard(
   const flightMin = Math.round(toPositiveNumber(drone.flightTimeMin, 30));
   const model = drone.modelName.trim() || "Profile Drone";
   const camera = drone.camera.trim();
+  const useCasesText = (drone.useCases ?? [])
+    .map((x) => String(x ?? "").trim())
+    .filter(Boolean)
+    .join(", ");
   const serial = drone.id?.trim() || `profile-${owner}-${idx + 1}`;
   const useCase = drone.useCases?.[0]?.trim() || drone.type.trim();
   return {
@@ -202,6 +208,8 @@ function mapProfileDroneToCard(
     estFlight: `${flightMin} min`,
     lastInspection: "Profile entry",
     firmware: camera || "—",
+    camera: camera || "—",
+    useCasesText: useCasesText || "—",
     subtitle: `${owner}${useCase ? ` · ${useCase}` : ""}`,
     imageUrl: "/hero-drone-platform.png",
     matchPercent: 70,
@@ -209,6 +217,7 @@ function mapProfileDroneToCard(
     maxPayloadKg: payload,
     pilotName: owner,
     pilotBadgeId,
+    pilotSub,
     sourceSnapshotKey: snapshotKey,
     sourceDroneId: drone.id?.trim() || "",
     sourceIndex: idx,
@@ -263,7 +272,7 @@ function loadProfileDronesFromBrowser(
     const badgeId = pilotFromApi?.badgeId || (sub ? `PLT-${sub}` : "—");
     for (let i = 0; i < snap.drones.length; i += 1) {
       const d = snap.drones[i];
-      out.push(mapProfileDroneToCard(d, owner, badgeId, i, key));
+      out.push(mapProfileDroneToCard(d, owner, badgeId, sub, i, key));
     }
   }
   return dedupeDrones(out);
@@ -441,7 +450,6 @@ export function AssignPilotDroneView() {
   const [fleetDrones, setFleetDrones] = useState<DroneCard[]>([]);
   const [fleetLoading, setFleetLoading] = useState(true);
   const [fleetError, setFleetError] = useState<string | null>(null);
-  const [deletingDroneId, setDeletingDroneId] = useState<string | null>(null);
   const [assignQueue, setAssignQueue] = useState<AssignPilotRequestRow[]>([]);
   const [completedAssignments, setCompletedAssignments] = useState<
     CompletedAssignment[]
@@ -466,6 +474,9 @@ export function AssignPilotDroneView() {
         if (cancelled) return;
         const pilotsArr = Array.isArray(pilotsRaw) ? pilotsRaw : [];
         const pilotCards = pilotsArr.map((row) => mapApiPilotToCard(row as ApiPilotRow));
+        const activePilotCards = pilotCards.filter((pilot) =>
+          pilot.tags.some((tag) => tag.toUpperCase() === "ACTIVE")
+        );
         const pilotBySub = pilotCards.reduce<
           Record<string, { name: string; badgeId: string }>
         >((acc, row) => {
@@ -473,7 +484,7 @@ export function AssignPilotDroneView() {
           return acc;
         }, {});
         const profileDrones = loadProfileDronesFromBrowser(pilotBySub);
-        setFleetPilots(pilotCards);
+        setFleetPilots(activePilotCards);
         setFleetDrones(profileDrones);
       } catch (e) {
         if (!cancelled) {
@@ -532,8 +543,14 @@ export function AssignPilotDroneView() {
     pruneAssignPilotDoneRefs(ids);
 
     const raw = loadCompletedAssignments();
-    const latest = normalizeToLatestCompleted(raw);
-    const kept = latest.filter((c) => ids.has(c.requestRef));
+    const seen = new Set<string>();
+    const deduped = raw.filter((row) => {
+      if (!row.requestRef || seen.has(row.requestRef)) return false;
+      seen.add(row.requestRef);
+      return true;
+    });
+    /** Keep mission history rows (past assignments) visible in Assign To history table. */
+    const kept = deduped.slice(0, 20);
     saveCompletedAssignments(kept);
     setCompletedAssignments(kept);
     if (kept[0] && !loadAssignPilotDoneRefs().includes(kept[0].requestRef)) {
@@ -705,8 +722,34 @@ export function AssignPilotDroneView() {
     !selectedPilot ||
     !selectedDrone;
 
-  const confirmAssignment = () => {
+  const confirmAssignment = async () => {
     if (!currentRequest || !selectedPilot || !selectedDrone) return;
+    try {
+      const persistRes = await fetch(
+        apiUrl(`/api/pilots/${encodeURIComponent(selectedPilot.id)}/assign-drone`),
+        {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          drone_id: selectedDrone.sn,
+          drone_name: selectedDrone.model,
+          camera: selectedDrone.camera,
+          use_cases: selectedDrone.useCasesText,
+          payload: selectedDrone.cargo,
+          flight_time: selectedDrone.estFlight,
+          range_km: selectedDrone.maxRange,
+        }),
+        }
+      );
+      if (!persistRes.ok) {
+        window.alert("Could not save assigned drone details to pilots table.");
+        return;
+      }
+    } catch {
+      window.alert("Could not save assigned drone details to pilots table.");
+      return;
+    }
+
     const row: CompletedAssignment = {
       requestRef: currentRequest.requestRef,
       customer: currentRequest.customer,
@@ -717,7 +760,10 @@ export function AssignPilotDroneView() {
       pilotBadgeId: selectedPilot.pilotId,
       droneModel: selectedDrone.model,
     };
-    const next = [row];
+    const existing = loadCompletedAssignments().filter(
+      (r) => r.requestRef !== row.requestRef
+    );
+    const next = [row, ...existing].slice(0, 20);
     appendAssignPilotDoneRef(row.requestRef);
     saveCompletedAssignments(next);
     setCompletedAssignments(next);
@@ -752,51 +798,6 @@ export function AssignPilotDroneView() {
     inter.variable,
     "font-[family-name:var(--font-assign-body)] text-[#191c1d] antialiased"
   );
-
-  async function handleDeleteDrone(drone: DroneCard) {
-    if (typeof window === "undefined") return;
-    const snapshotKey = drone.sourceSnapshotKey;
-    if (!snapshotKey) return;
-    const raw =
-      sessionStorage.getItem(snapshotKey) ??
-      localStorage.getItem(snapshotKey) ??
-      null;
-    const snap = parsePilotProfileSnapshot(raw);
-    if (!snap || !Array.isArray(snap.drones)) return;
-
-    const nextDrones = snap.drones.filter((d, index) => {
-      if (drone.sourceDroneId) {
-        return (d.id?.trim() || "") !== drone.sourceDroneId;
-      }
-      return index !== drone.sourceIndex;
-    });
-    if (nextDrones.length === snap.drones.length) return;
-
-    setDeletingDroneId(drone.id);
-    try {
-      const nextSnap = { ...snap, drones: nextDrones };
-      const encoded = JSON.stringify(nextSnap);
-      try {
-        localStorage.setItem(snapshotKey, encoded);
-      } catch {
-        /* ignore localStorage quota/write */
-      }
-      sessionStorage.setItem(snapshotKey, encoded);
-
-      const sub = snapshotKey.split("::pilot::")[1]?.trim();
-      if (sub && /^[0-9]+$/.test(sub)) {
-        await fetch(apiUrl(`/api/pilots/${sub}/drones`), {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ drones: nextDrones }),
-        });
-      }
-
-      window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
-    } finally {
-      setDeletingDroneId(null);
-    }
-  }
 
   return (
     <div
@@ -917,10 +918,13 @@ export function AssignPilotDroneView() {
               ? assignRequestDetailDomId(currentRequest.requestRef)
               : undefined
           }
-          className={cn("relative overflow-hidden rounded-xl p-6 sm:p-8", glassCard)}
+          className={cn(
+            "relative mx-auto max-w-6xl overflow-hidden rounded-xl p-4 sm:p-5",
+            glassCard
+          )}
         >
           <div
-            className="pointer-events-none absolute -right-32 -top-32 size-64 rounded-full bg-[#008B8B]/5"
+            className="pointer-events-none absolute -right-20 -top-20 size-44 rounded-full bg-[#008B8B]/5"
             aria-hidden
           />
           <div className="relative z-10">
@@ -989,6 +993,68 @@ export function AssignPilotDroneView() {
             </div>
           </div>
         </section>
+
+        {completedAssignments.length > 0 ? (
+          <section className="rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-border dark:bg-card/80">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Last Mission History
+              </h3>
+            </div>
+            <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-border">
+              <table className="w-full table-fixed border-collapse text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-border dark:bg-muted/40">
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
+                      Request ID
+                    </th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
+                      User Requirement
+                    </th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
+                      Pilot
+                    </th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
+                      Drone
+                    </th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
+                      Destination
+                    </th>
+                    <th className="px-3 py-2 text-center font-semibold uppercase tracking-wide text-muted-foreground">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {completedAssignments.slice(0, 5).map((row, idx) => (
+                    <tr
+                      key={`${row.requestRef}-${idx}`}
+                      className="border-b border-slate-200 bg-white last:border-b-0 dark:border-border dark:bg-card"
+                    >
+                      <td className="px-3 py-2 font-mono text-[11px] text-[#006767] dark:text-primary">
+                        {userRequestQueueDisplayId(row.requestRef)}
+                      </td>
+                      <td className="px-3 py-2 text-foreground">{row.customer}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{row.pilotName}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{row.droneModel}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{row.dropoff}</td>
+                      <td className="px-3 py-2 text-center">
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 rounded border border-[#008B8B] px-2.5 py-1 text-[11px] font-semibold text-[#008B8B] transition hover:bg-[#008B8B]/10"
+                          onClick={() => setHistoryDetailIndex(idx)}
+                        >
+                          <Eye className="size-3.5" aria-hidden />
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
 
         {/* Compatible drones + Available pilots — equal columns, sticky pilots on wide viewports */}
         <div className="grid grid-cols-1 items-start gap-x-0 gap-y-10 border-t border-slate-200/80 pt-10 lg:grid-cols-2 lg:gap-x-10 lg:border-t-0 lg:pt-0 xl:gap-x-12 dark:border-border">
@@ -1070,19 +1136,6 @@ export function AssignPilotDroneView() {
                         >
                           {drone.model}
                         </h3>
-                        <button
-                          type="button"
-                          aria-label={`Delete ${drone.model}`}
-                          disabled={deletingDroneId === drone.id}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void handleDeleteDrone(drone);
-                          }}
-                          className="inline-flex items-center gap-1 rounded border border-red-400 px-2 py-1 text-[10px] font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-400/70 dark:text-red-300 dark:hover:bg-red-950/40"
-                        >
-                          <Trash2 className="size-3.5" aria-hidden />
-                          {deletingDroneId === drone.id ? "Deleting..." : "Delete"}
-                        </button>
                       </div>
                       <p className="mb-4 text-xs font-medium text-slate-600 dark:text-muted-foreground">
                         {drone.subtitle}
@@ -1274,34 +1327,6 @@ export function AssignPilotDroneView() {
             )}
           </section>
         </div>
-
-        {/* Last completed + details */}
-        {latestCompleted ? (
-          <div className="rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-border dark:bg-card/80">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Last Assigned
-                </p>
-                <p className="mt-1 font-semibold text-foreground">
-                  {userRequestQueueDisplayId(latestCompleted.requestRef)} ·{" "}
-                  {latestCompleted.customer}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {latestCompleted.pilotName} · {latestCompleted.droneModel}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-full border-2 border-[#008B8B] px-4 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B] hover:text-white"
-                onClick={() => setHistoryDetailIndex(latestCompletedIndex)}
-              >
-                <Eye className="size-4" aria-hidden />
-                View details
-              </button>
-            </div>
-          </div>
-        ) : null}
 
         {/* Mobile sticky CTA */}
         <div className="fixed bottom-6 left-4 right-4 z-40 md:hidden">

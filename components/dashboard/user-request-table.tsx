@@ -197,6 +197,10 @@ export type UserRequestTableProps = {
   onAcceptRow?: (row: UserRequestAdminRow) => void;
   /** Reject action (e.g. remove request). If omitted, Reject is disabled. */
   onRejectRow?: (row: UserRequestAdminRow) => void;
+  /** Edit action for admin table rows. */
+  onEditRow?: (row: UserRequestAdminRow) => void;
+  /** Delete action for admin table rows. */
+  onDeleteRow?: (row: UserRequestAdminRow) => void;
   /** Optional title override (default: "User Request"). */
   title?: string;
   /** Show the title heading inside the card (default true). */
@@ -210,6 +214,8 @@ export type UserRequestTableProps = {
 export function UserRequestTable({
   rows,
   onViewDetails,
+  onEditRow,
+  onDeleteRow,
   title = "User Request",
   showTitle = true,
   showTotalSubtitle = false,
@@ -267,11 +273,12 @@ export function UserRequestTable({
             </colgroup>
           ) : (
             <colgroup>
-              <col className="w-[14%]" />
-              <col className="w-[26%]" />
-              <col className="w-[10%]" />
-              <col className="w-[24%]" />
               <col className="w-[12%]" />
+              <col className="w-[24%]" />
+              <col className="w-[9%]" />
+              <col className="w-[21%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" />
               <col className="w-[14%]" />
             </colgroup>
           )}
@@ -317,6 +324,9 @@ export function UserRequestTable({
                   </th>
                   <th scope="col" className={cn(thBase, "text-center")}>
                     Status
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-center")}>
+                    Action
                   </th>
                 </>
               )}
@@ -486,6 +496,26 @@ export function UserRequestTable({
                       />
                       <span className="min-w-0 break-words">{statusUi.label}</span>
                     </span>
+                  </td>
+                  <td className={cn(tdBase, "text-center")}>
+                    <div className="inline-flex items-center justify-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => onEditRow?.(m)}
+                        disabled={!onEditRow}
+                        className="rounded border border-[#008B8B] px-2 py-1 text-[9px] font-semibold text-[#008B8B] transition hover:bg-[#008B8B]/10 disabled:cursor-not-allowed disabled:opacity-45 sm:text-[10px]"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteRow?.(m)}
+                        disabled={!onDeleteRow}
+                        className="rounded border border-red-600 px-2 py-1 text-[9px] font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-45 sm:text-[10px]"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

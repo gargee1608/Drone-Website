@@ -59,50 +59,12 @@ const PENDING_SEED = [
   },
 ] as const;
 
-const APPROVED_SEED = [
-  {
-    name: "Elena Lourd",
-    badge: "Registered Pilot",
-    submitted: "Feb 8, 2026",
-    rows: [
-      { k: "License ID", v: "AL-110943-XP", vClass: "font-mono text-xs" },
-      {
-        k: "Status",
-        v: "Active",
-        vClass: "font-semibold text-green-700 dark:text-green-400",
-      },
-      { k: "Region", v: "Sector 7G North" },
-    ],
-  },
-  {
-    name: "Marcus Kael",
-    badge: "Registered Pilot",
-    submitted: "Jan 22, 2026",
-    rows: [
-      { k: "License ID", v: "AL-445129-L1", vClass: "font-mono text-xs" },
-      {
-        k: "Status",
-        v: "Active",
-        vClass: "font-semibold text-green-700 dark:text-green-400",
-      },
-      { k: "Region", v: "Port of Aerolia" },
-    ],
-  },
-  {
-    name: "Nora Quinn",
-    badge: "Registered Pilot",
-    submitted: "Mar 1, 2026",
-    rows: [
-      { k: "License ID", v: "AL-882301-K9", vClass: "font-mono text-xs" },
-      {
-        k: "Status",
-        v: "Active",
-        vClass: "font-semibold text-green-700 dark:text-green-400",
-      },
-      { k: "Region", v: "Eastern Corridor" },
-    ],
-  },
-] as const;
+const APPROVED_SEED: readonly {
+  name: string;
+  badge: string;
+  submitted: string;
+  rows: readonly { k: string; v: string; vClass?: string }[];
+}[] = [];
 
 function newSubmissionId() {
   return `sub-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;

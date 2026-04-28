@@ -263,6 +263,7 @@ export function CompletedDeliveriesView({
       "User Requirement",
       "Service",
       "Drone",
+      "Pilot Name",
       "Assigned At",
       "Destination",
       "Completed At",
@@ -273,6 +274,7 @@ export function CompletedDeliveriesView({
       row.customer,
       row.service,
       row.droneUnit,
+      row.pilot,
       formatDateTime(row.assignedAt),
       row.dropoff,
       formatDateTime(row.completedAt),
@@ -350,8 +352,8 @@ export function CompletedDeliveriesView({
 
       <section className="rounded-xl border border-border bg-card shadow-sm dark:border-white/20">
         <div className="p-4 sm:p-6">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] border-collapse text-left text-xs">
+          <div className="overflow-hidden">
+            <table className="w-full table-fixed border-collapse text-left text-[11px]">
               <thead>
                 <tr className="border-b border-border bg-muted/50 dark:border-white/20 dark:bg-white/10">
                   {[
@@ -359,6 +361,7 @@ export function CompletedDeliveriesView({
                     "User Requirement",
                     "Service",
                     "Drone",
+                    "Pilot Name",
                     "Assigned At",
                     "Destination",
                     "Completed At",
@@ -377,7 +380,7 @@ export function CompletedDeliveriesView({
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-4 py-10 text-center text-xs text-muted-foreground dark:text-white"
                     >
                       Loading completed missions...
@@ -404,6 +407,9 @@ export function CompletedDeliveriesView({
                       {row.droneUnit}
                     </td>
                     <td className="px-4 py-4 text-muted-foreground dark:text-white">
+                      {row.pilot}
+                    </td>
+                    <td className="px-4 py-4 text-muted-foreground dark:text-white">
                       {formatDateTime(row.assignedAt)}
                     </td>
                     <td className="px-4 py-4 text-muted-foreground dark:text-white">{row.dropoff}</td>
@@ -422,7 +428,7 @@ export function CompletedDeliveriesView({
                 {!loading && paginatedRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-4 py-10 text-center text-xs text-muted-foreground dark:text-white"
                     >
                       No completed missions yet.

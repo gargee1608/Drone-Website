@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const twilio = require("twilio");
 const transporter = require("./email");
 const pool = require("./db");
 
@@ -416,6 +417,174 @@ function userPayloadForResponse(user, role) {
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000);
 }
+
+function normalizePhoneForOtp(raw) {
+  const input = String(raw ?? "").trim();
+  if (!input) return null;
+  if (input.startsWith("+")) {
+    const digits = input.slice(1).replace(/\D/g, "");
+    if (digits.length < 8 || digits.length > 15) return null;
+    return `+${digits}`;
+  }
+  const digits = input.replace(/\D/g, "");
+  if (digits.length === 10) return `+91${digits}`;
+  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`;
+  return null;
+}
+
+function phoneDigitsOnly(raw) {
+  return String(raw ?? "").replace(/\D/g, "");
+}
+
+async function ensurePhoneOtpSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS phone_otps (
+      id BIGSERIAL PRIMARY KEY,
+      phone TEXT NOT NULL,
+      otp_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used BOOLEAN NOT NULL DEFAULT FALSE,
+      attempt_count INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(
+    "ALTER TABLE phone_otps ADD COLUMN IF NOT EXISTS phone TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE phone_otps ADD COLUMN IF NOT EXISTS otp_hash TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE phone_otps ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ"
+  );
+  await pool.query(
+    "ALTER TABLE phone_otps ADD COLUMN IF NOT EXISTS used BOOLEAN NOT NULL DEFAULT FALSE"
+  );
+  await pool.query(
+    "ALTER TABLE phone_otps ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0"
+  );
+  await pool.query(
+    "ALTER TABLE phone_otps ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()"
+  );
+}
+
+app.post("/api/auth/send-phone-otp", async (req, res) => {
+  try {
+    await ensurePhoneOtpSchema();
+    const phone = normalizePhoneForOtp(req.body?.phone);
+    if (!phone) {
+      return res.status(400).json({
+        message:
+          "Enter a valid mobile number (10 digits for India, or international with country code).",
+      });
+    }
+
+    const sid = process.env.TWILIO_ACCOUNT_SID;
+    const token = process.env.TWILIO_AUTH_TOKEN;
+    const from = process.env.TWILIO_FROM_NUMBER;
+    if (!sid || !token || !from) {
+      return res.status(500).json({
+        message:
+          "SMS provider not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER.",
+      });
+    }
+
+    const otp = String(generateOTP());
+    const otpHash = await bcrypt.hash(otp, 10);
+    await pool.query(
+      `UPDATE phone_otps SET used = TRUE WHERE phone = $1 AND used = FALSE`,
+      [phone]
+    );
+    await pool.query(
+      `INSERT INTO phone_otps (phone, otp_hash, expires_at, used, attempt_count)
+       VALUES ($1, $2, NOW() + INTERVAL '5 minutes', FALSE, 0)`,
+      [phone, otpHash]
+    );
+
+    const client = twilio(sid, token);
+    await client.messages.create({
+      body: `Your OTP is ${otp}. It expires in 5 minutes.`,
+      from,
+      to: phone,
+    });
+
+    return res.json({ ok: true, message: "OTP sent successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Failed to send OTP" });
+  }
+});
+
+app.post("/api/auth/verify-phone-otp", async (req, res) => {
+  try {
+    await ensurePhoneOtpSchema();
+    const phone = normalizePhoneForOtp(req.body?.phone);
+    const otp = String(req.body?.otp ?? "").replace(/\D/g, "");
+    if (!phone || otp.length < 4 || otp.length > 6) {
+      return res.status(400).json({ message: "Phone and OTP are required" });
+    }
+
+    const rowRes = await pool.query(
+      `SELECT id, otp_hash, attempt_count
+       FROM phone_otps
+       WHERE phone = $1
+         AND used = FALSE
+         AND expires_at > NOW()
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [phone]
+    );
+    if (rowRes.rows.length === 0) {
+      return res.status(400).json({ message: "OTP expired or not found" });
+    }
+
+    const otpRow = rowRes.rows[0];
+    const ok = await bcrypt.compare(otp, String(otpRow.otp_hash));
+    if (!ok) {
+      const attempts = Number(otpRow.attempt_count ?? 0) + 1;
+      await pool.query(
+        `UPDATE phone_otps
+         SET attempt_count = $1,
+             used = CASE WHEN $1 >= 5 THEN TRUE ELSE used END
+         WHERE id = $2`,
+        [attempts, otpRow.id]
+      );
+      return res.status(401).json({ message: "Invalid OTP" });
+    }
+
+    await pool.query(`UPDATE phone_otps SET used = TRUE WHERE id = $1`, [otpRow.id]);
+
+    let user = null;
+    try {
+      const userRes = await pool.query(
+        `SELECT * FROM users
+         WHERE regexp_replace(COALESCE(phone::text,''), '\D', '', 'g') = $1
+         LIMIT 1`,
+        [phoneDigitsOnly(phone)]
+      );
+      user = userRes.rows[0] ?? null;
+    } catch {
+      user = null;
+    }
+
+    const sub = user
+      ? String(jsonSafe(user.id) ?? user.id ?? "")
+      : `phone:${phoneDigitsOnly(phone)}`;
+    const token = jwt.sign({ sub, role: "user", phone }, jwtSecret(), {
+      expiresIn: "7d",
+    });
+
+    return res.json({
+      ok: true,
+      token,
+      role: "user",
+      user: user ? userPayloadForResponse(user, "user") : { id: sub, role: "user", phone },
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Failed to verify OTP" });
+  }
+});
 
 /** Same path/shape as `server/` auth API — used by Next proxy + pilot login. */
 app.post("/api/auth/signin", async (req, res) => {

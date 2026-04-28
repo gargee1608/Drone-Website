@@ -54,4 +54,68 @@ router.post("/submit-request", async (req, res) => {
   }
 });
 
+// Edit request row by id (admin user request table)
+router.put("/requests/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      reason_or_title,
+      pickup_location,
+      drop_location,
+      payload_weight,
+      cargo_type,
+      mission_urgency,
+    } = req.body ?? {};
+
+    const result = await pool.query(
+      `UPDATE drone_hire_requests
+       SET reason_or_title = COALESCE($1, reason_or_title),
+           pickup_location = COALESCE($2, pickup_location),
+           drop_location = COALESCE($3, drop_location),
+           payload_weight = COALESCE($4, payload_weight),
+           cargo_type = COALESCE($5, cargo_type),
+           mission_urgency = COALESCE($6, mission_urgency)
+       WHERE id = $7
+       RETURNING *`,
+      [
+        reason_or_title ?? null,
+        pickup_location ?? null,
+        drop_location ?? null,
+        payload_weight ?? null,
+        cargo_type ?? null,
+        mission_urgency ?? null,
+        id,
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    res.status(200).json({ message: "Request updated", data: result.rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Delete request row by id (admin user request table)
+router.delete("/requests/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `DELETE FROM drone_hire_requests
+       WHERE id = $1
+       RETURNING id`,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    res.status(200).json({ message: "Request deleted", data: result.rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
 module.exports = router;

@@ -4,6 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { appendUserRequest } from "@/lib/user-requests";
+import { apiUrl } from "@/lib/api-url";
+import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 
 export function CreateMissionRequestForm() {
@@ -30,15 +32,35 @@ export function CreateMissionRequestForm() {
   const [requestType, setRequestType] = useState("");
   const [requestPriority, setRequestPriority] = useState("");
 
-  function handleSubmitRequest(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmitRequest(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const payload = {
+      reason_or_title: reasonOrTitle.trim(),
+      pickup_location: pickupLocation.trim(),
+      drop_location: dropLocation.trim(),
+      payload_weight: payloadWeightKg.trim() || "0",
+      cargo_type: requestType.trim(),
+      mission_urgency: requestPriority.trim(),
+    };
+
+    const response = await fetch(apiUrl("/api/submit-request"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const body = await readResponseJson(response);
+    if (!body.okParse || !response.ok) {
+      window.alert("Could not submit request to backend. Please try again.");
+      return;
+    }
+
     appendUserRequest({
-      reasonOrTitle: reasonOrTitle.trim(),
-      pickupLocation: pickupLocation.trim(),
-      dropLocation: dropLocation.trim(),
-      payloadWeightKg: payloadWeightKg.trim() || "0",
-      requestType: requestType.trim(),
-      requestPriority: requestPriority.trim(),
+      reasonOrTitle: payload.reason_or_title,
+      pickupLocation: payload.pickup_location,
+      dropLocation: payload.drop_location,
+      payloadWeightKg: payload.payload_weight,
+      requestType: payload.cargo_type,
+      requestPriority: payload.mission_urgency,
     });
     setReasonOrTitle("");
     setPickupLocation("");
@@ -46,7 +68,7 @@ export function CreateMissionRequestForm() {
     setPayloadWeightKg("0.0");
     setRequestType("");
     setRequestPriority("");
-    router.push("/user-dashboard/my-requests");
+    window.alert("Request submitted successfully.");
   }
 
   return (
