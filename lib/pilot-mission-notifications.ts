@@ -155,6 +155,12 @@ export function countUnreadPilotMissionNotifications(): number {
   return notificationsVisibleToPilot().filter((n) => !seen.has(n.id)).length;
 }
 
+/** Mission notifications not yet marked read in the bell menu. */
+export function pilotMissionNotificationsUnread(): PilotMissionNotification[] {
+  const seen = loadSeenIds();
+  return notificationsVisibleToPilot().filter((n) => !seen.has(n.id));
+}
+
 export function markPilotMissionNotificationIdsSeen(ids: string[]): void {
   if (ids.length === 0) return;
   const next = loadSeenIds();

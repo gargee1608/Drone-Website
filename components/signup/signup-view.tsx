@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Lock, Mail, User } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { ArrowRight, CheckCircle2, Lock, Mail, User } from "lucide-react";
+import { useState, type FormEvent } from "react";
 
+import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -23,6 +24,7 @@ function validateSignup(
     email?: string;
     password?: string;
     confirm?: string;
+    form?: string;
   } = {};
   const fn = firstName.trim();
   const ln = lastName.trim();
@@ -46,19 +48,88 @@ function validateSignup(
 }
 
 export function SignUpView() {
-  const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{
     firstName?: string;
     lastName?: string;
     email?: string;
     password?: string;
     confirm?: string;
+    form?: string;
   }>({});
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const next = validateSignup(
+      firstName,
+      lastName,
+      email,
+      password,
+      confirm
+    );
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
+    setSubmitting(true);
+    setErrors((p) => ({ ...p, form: undefined }));
+    try {
+      const res = await fetch(apiUrl("/api/auth/register"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim().toLowerCase(),
+          password: password.trim(),
+        }),
+      });
+      const parsed = await readResponseJson(res);
+      let formMessage = "Registration failed.";
+      if (!parsed.okParse) {
+        formMessage =
+          parsed.bodyPreview && parsed.bodyPreview.length > 0
+            ? `Server returned an unexpected response (${res.status}).`
+            : `Could not read server response (${res.status}).`;
+      } else if (
+        parsed.data &&
+        typeof parsed.data === "object" &&
+        parsed.data !== null
+      ) {
+        const d = parsed.data as Record<string, unknown>;
+        const m = d.message ?? d.error ?? d.detail ?? d.hint;
+        if (typeof m === "string" && m.trim()) formMessage = m.trim();
+        else if (res.status === 502)
+          formMessage =
+            "Could not reach the API (502). Start the backend on port 4000 or set BACKEND_URL.";
+      } else if (res.status === 502) {
+        formMessage =
+          "Could not reach the API (502). Start the backend on port 4000 or set BACKEND_URL.";
+      }
+
+      if (!res.ok) {
+        setErrors((p) => ({ ...p, form: formMessage }));
+        return;
+      }
+      setSuccessOpen(true);
+      setPassword("");
+      setConfirm("");
+      setShowPassword(false);
+    } catch {
+      setErrors((p) => ({
+        ...p,
+        form: "Could not reach the server. Try again later.",
+      }));
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-background text-foreground">
@@ -85,19 +156,7 @@ export function SignUpView() {
           <form
             className="space-y-2 sm:space-y-2.5"
             noValidate
-            onSubmit={(e) => {
-              e.preventDefault();
-              const next = validateSignup(
-                firstName,
-                lastName,
-                email,
-                password,
-                confirm
-              );
-              setErrors(next);
-              if (Object.keys(next).length > 0) return;
-              router.push("/login");
-            }}
+            onSubmit={handleSubmit}
           >
             <div className="grid gap-2 sm:grid-cols-2 sm:gap-2.5">
               <div className="space-y-1.5">
@@ -254,7 +313,7 @@ export function SignUpView() {
                 <input
                   id="signup-password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="••••••••"
                   value={password}
@@ -298,7 +357,7 @@ export function SignUpView() {
                 <input
                   id="signup-confirm"
                   name="confirm"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="••••••••"
                   value={confirm}
@@ -327,13 +386,40 @@ export function SignUpView() {
               ) : null}
             </div>
 
+            <div className="flex items-center gap-1.5 px-1 pt-0.5">
+              <input
+                id="signup-show-password"
+                type="checkbox"
+                checked={showPassword}
+                onChange={(e) => setShowPassword(e.target.checked)}
+                className="size-4 shrink-0 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-0 sm:size-[18px]"
+              />
+              <label
+                htmlFor="signup-show-password"
+                className="cursor-pointer text-xs font-medium text-[#414755] sm:text-sm"
+              >
+                Show password
+              </label>
+            </div>
+
+            {errors.form ? (
+              <p
+                role="alert"
+                className="rounded-md border border-red-200 bg-red-50 px-2 py-2 text-center text-xs font-medium text-red-700 sm:text-sm dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200"
+              >
+                {errors.form}
+              </p>
+            ) : null}
+
             <button
               type="submit"
+              disabled={submitting}
               className={cn(
-                "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#008B8B] to-[#006b6b] py-2 px-3 text-sm font-bold text-white shadow-md shadow-[#008B8B]/20 transition-all hover:shadow-[#008B8B]/35 active:scale-[0.99] sm:py-2.5"
+                "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#008B8B] to-[#006b6b] py-2 px-3 text-sm font-bold text-white shadow-md shadow-[#008B8B]/20 transition-all hover:shadow-[#008B8B]/35 active:scale-[0.99] sm:py-2.5",
+                submitting && "pointer-events-none opacity-70"
               )}
             >
-              Create account
+              {submitting ? "Creating account…" : "Create account"}
               <ArrowRight className="size-3.5 sm:size-4" aria-hidden />
             </button>
           </form>
@@ -342,7 +428,7 @@ export function SignUpView() {
             <p className="text-xs font-medium text-[#414755] sm:text-sm">
               Already have an account?{" "}
               <Link
-                href="/login"
+                href="/pilot-login?panel=user"
                 className="ml-1 font-bold text-[#008B8B] hover:underline"
               >
                 Sign In
@@ -351,6 +437,43 @@ export function SignUpView() {
           </div>
         </div>
       </main>
+
+      {successOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="signup-success-title"
+        >
+          <div className="w-full max-w-[360px] rounded-xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6 dark:border-white/15 dark:bg-[#161a1d]">
+            <div className="mb-4 flex justify-center">
+              <div className="flex size-14 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/40">
+                <CheckCircle2
+                  className="size-9 text-emerald-600 dark:text-emerald-400"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+              </div>
+            </div>
+            <h2
+              id="signup-success-title"
+              className="text-center text-lg font-bold tracking-tight text-[#191c1d] sm:text-xl dark:text-white"
+            >
+              Account Created Successfully
+            </h2>
+            <p className="mt-2 text-center text-sm text-slate-600 dark:text-white/75">
+              You can sign in with your email and password.
+            </p>
+            <button
+              type="button"
+              className="mt-6 flex w-full items-center justify-center rounded-lg bg-[#008B8B] py-3 text-sm font-semibold text-white transition hover:bg-[#006f6f]"
+              onClick={() => setSuccessOpen(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

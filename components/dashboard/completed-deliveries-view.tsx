@@ -161,6 +161,14 @@ export function CompletedDeliveriesView({
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<DeliveryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  /** `missions` table count (completed); null until loaded or on error. */
+  const [completedDeliveriesDbCount, setCompletedDeliveriesDbCount] = useState<
+    number | null
+  >(null);
+  /** `pilots` table count (duty_status ACTIVE); null until loaded or on error. */
+  const [activePilotsDbCount, setActivePilotsDbCount] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -232,6 +240,77 @@ export function CompletedDeliveriesView({
     };
   }, [pilotScoped]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCompletedCount() {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const pilotSub = pilotScoped && token ? jwtPayloadSub(token) : null;
+      const pilotName = pilotScoped && token ? jwtPayloadPilotFullName(token) : null;
+      const nameTrim = pilotName?.trim() || "";
+
+      if (pilotScoped && !pilotSub && !nameTrim) {
+        if (!cancelled) setCompletedDeliveriesDbCount(0);
+        return;
+      }
+
+      const url =
+        pilotScoped && (pilotSub || nameTrim)
+          ? apiUrl(
+              `/api/missions/completed-deliveries-count?pilotSub=${encodeURIComponent(pilotSub ?? "")}&pilotName=${encodeURIComponent(nameTrim)}`
+            )
+          : apiUrl("/api/missions/completed-deliveries-count");
+
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) throw new Error("bad response");
+        const payload: unknown = await response.json();
+        const raw =
+          payload &&
+          typeof payload === "object" &&
+          "count" in payload &&
+          (payload as { count: unknown }).count;
+        const n = typeof raw === "number" ? raw : Number(raw);
+        if (!cancelled) {
+          setCompletedDeliveriesDbCount(Number.isFinite(n) ? n : null);
+        }
+      } catch {
+        if (!cancelled) setCompletedDeliveriesDbCount(null);
+      }
+    }
+    void loadCompletedCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [pilotScoped]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadActivePilotsCount() {
+      try {
+        const response = await fetch(apiUrl("/api/pilots/active-count"), {
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("bad response");
+        const payload: unknown = await response.json();
+        const raw =
+          payload &&
+          typeof payload === "object" &&
+          "count" in payload &&
+          (payload as { count: unknown }).count;
+        const n = typeof raw === "number" ? raw : Number(raw);
+        if (!cancelled) {
+          setActivePilotsDbCount(Number.isFinite(n) ? n : null);
+        }
+      } catch {
+        if (!cancelled) setActivePilotsDbCount(null);
+      }
+    }
+    void loadActivePilotsCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [pilotScoped]);
+
   const filteredRows = useMemo(() => rows, [rows]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
@@ -249,13 +328,16 @@ export function CompletedDeliveriesView({
     return filteredRows.slice(start, start + PAGE_SIZE);
   }, [filteredRows, page]);
 
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const completedToday = filteredRows.filter(
-    (row) => row.completedAt.slice(0, 10) === todayKey
-  ).length;
-  const uniquePilots = new Set(
+  const completedDeliveriesStat =
+    completedDeliveriesDbCount !== null
+      ? completedDeliveriesDbCount
+      : filteredRows.length;
+
+  const uniquePilotsFromRows = new Set(
     filteredRows.map((row) => row.pilot).filter((name) => name !== "—")
   ).size;
+  const activePilotsStat =
+    activePilotsDbCount !== null ? activePilotsDbCount : uniquePilotsFromRows;
 
   function handleExportCsv() {
     const header = [
@@ -332,10 +414,10 @@ export function CompletedDeliveriesView({
 
           <article className="mx-auto w-full max-w-[250px] rounded-lg border border-border bg-card px-4 py-3.5 text-center shadow-sm dark:border-white/20">
             <p className="font-[family-name:var(--font-landing-headline)] text-[10px] font-normal uppercase tracking-[0.13em] text-muted-foreground dark:text-white">
-              Completed Today
+              Completed Deliveries
             </p>
             <p className="mt-1.5 font-[family-name:var(--font-landing-headline)] text-[1.9rem] font-normal leading-none tracking-tight text-foreground sm:text-[2rem] dark:text-white">
-              {formatNumber(completedToday)}
+              {formatNumber(completedDeliveriesStat)}
             </p>
           </article>
 
@@ -344,7 +426,7 @@ export function CompletedDeliveriesView({
               Active Pilots
             </p>
             <p className="mt-1.5 font-[family-name:var(--font-landing-headline)] text-[1.9rem] font-normal leading-none tracking-tight text-foreground sm:text-[2rem] dark:text-white">
-              {formatNumber(uniquePilots)}
+              {formatNumber(activePilotsStat)}
             </p>
           </article>
         </div>

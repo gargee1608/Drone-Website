@@ -17,6 +17,7 @@ import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav
 import { SidebarMenuGlyph } from "@/components/nav/sidebar-menu-glyph";
 import { usePilotDashboardNav } from "@/components/pilot-dashboard/pilot-dashboard-nav-context";
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
+import { clearStoredUserSession } from "@/lib/user-session-browser";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -361,7 +362,20 @@ export function SiteHeader({
                       className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-[#191c1d] transition-colors hover:bg-slate-50"
                       onClick={() => {
                         setAccountMenuOpen(false);
-                        router.replace("/login");
+                        try {
+                          localStorage.removeItem("token");
+                          if (isUserDashboard) {
+                            localStorage.removeItem("pilot");
+                            clearStoredUserSession();
+                          }
+                        } catch {
+                          /* ignore */
+                        }
+                        router.replace(
+                          isUserDashboard
+                            ? "/pilot-login?panel=user"
+                            : "/login"
+                        );
                       }}
                     >
                       <LogOut className="size-4 shrink-0 text-slate-600" aria-hidden />
@@ -495,7 +509,20 @@ export function SiteHeader({
                 className="inline-flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-medium text-[#191c1d] transition-colors hover:bg-muted"
                 onClick={() => {
                   setOpen(false);
-                  router.replace("/login");
+                  try {
+                    localStorage.removeItem("token");
+                    if (isUserDashboard) {
+                      localStorage.removeItem("pilot");
+                      clearStoredUserSession();
+                    }
+                  } catch {
+                    /* ignore */
+                  }
+                  router.replace(
+                    isUserDashboard
+                      ? "/pilot-login?panel=user"
+                      : "/login"
+                  );
                 }}
               >
                 <LogOut className="size-4 shrink-0 text-slate-600" aria-hidden />

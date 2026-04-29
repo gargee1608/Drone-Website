@@ -19,12 +19,16 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import { clearStoredUserSession } from "@/lib/user-session-browser";
 import { cn } from "@/lib/utils";
 
 /** Same CSS var as admin `DashboardLayout` so `SiteFooter` aligns with the sidebar. */
 const FOOTER_SIDEBAR_INSET_VAR = "--admin-sidebar-footer-inset";
 
 const MY_REQUESTS_HREF = "/user-dashboard/my-requests";
+
+/** Same page as embedded user sign-in (`LoginView userOnly`); `panel=user` selects the User tab. */
+const USER_LOGIN_HREF = "/pilot-login?panel=user";
 
 const sidebarNav = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/user-dashboard" },
@@ -103,7 +107,14 @@ function LogoutControl({ onAfterClick }: { onAfterClick?: () => void }) {
       type="button"
       onClick={() => {
         onAfterClick?.();
-        router.replace("/login");
+        try {
+          localStorage.removeItem("token");
+          localStorage.removeItem("pilot");
+          clearStoredUserSession();
+        } catch {
+          /* ignore */
+        }
+        router.replace(USER_LOGIN_HREF);
       }}
       className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400/50 dark:text-white dark:hover:bg-white/10 dark:focus-visible:outline-white/35"
     >

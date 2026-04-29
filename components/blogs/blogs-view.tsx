@@ -37,7 +37,7 @@ import {
   saveBlogOverrides,
 } from "@/lib/blog-admin-storage";
 import { getMergedGridPosts, getMergedPostBySlug } from "@/lib/blog-merge";
-import { ADMIN_PAGE_TITLE_ON_DARK_CLASS } from "@/lib/page-heading";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 const filterLabels = [
@@ -326,39 +326,36 @@ export function BlogsView({
       )}
     >
     <div className="mx-auto max-w-7xl px-6 py-12">
-      <section className="group relative mb-12 overflow-hidden rounded-xl shadow-lg sm:mb-14">
-        <div className="absolute inset-0 z-10 bg-gradient-to-r from-slate-900 via-slate-900/40 to-transparent" />
-        <div className="relative h-[min(280px,50vh)] w-full sm:h-[min(320px,45vh)] md:h-[340px] lg:h-[360px]">
-          <Image
-            src={featuredHero.image}
-            alt={featuredHero.imageAlt}
-            fill
-            priority
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
-            sizes="100vw"
-          />
-        </div>
-        <div className="absolute inset-0 z-20 flex max-w-2xl flex-col justify-end p-5 sm:p-7 md:p-8">
-          <span className="mb-2 inline-block rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#a1faff] backdrop-blur-md sm:mb-3 sm:px-3 sm:py-1 sm:text-[10px]">
-            Featured Publication
-          </span>
-          <h1
-            className={cn("mb-3 sm:mb-4", ADMIN_PAGE_TITLE_ON_DARK_CLASS)}
-          >
-            {featuredHero.headlineLead}{" "}
-            <span className="bg-gradient-to-r from-[#a1faff] to-emerald-400 bg-clip-text text-transparent">
-              {featuredHero.headlineGradient}
+      <section className="group relative mb-12 overflow-hidden rounded-xl border border-[#c1c7cf]/40 bg-white shadow-lg sm:mb-14">
+        <div className="flex flex-col md:flex-row md:items-stretch md:min-h-[min(320px,45vh)] lg:min-h-[360px]">
+          <div className="flex w-full max-w-2xl flex-col justify-center p-5 sm:p-7 md:p-8 md:w-[min(100%,26rem)] md:max-w-[48%] md:flex-shrink-0 lg:w-[min(100%,28rem)]">
+            <span className="mb-2 inline-block w-fit rounded-full border border-[#006a6e]/25 bg-[#006a6e]/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#006a6e] sm:mb-3 sm:px-3 sm:py-1 sm:text-[10px]">
+              Featured Publication
             </span>
-          </h1>
-          <p className="mb-5 max-w-xl font-[family-name:var(--font-landing-body)] text-sm leading-relaxed text-slate-200 sm:mb-6 sm:text-base md:max-w-2xl">
-            {featuredPost?.excerpt ?? featuredHero.subhead}
-          </p>
-          <Link
-            href={`/blogs/${FEATURED_SLUG}`}
-            className="inline-flex w-fit items-center justify-center rounded-md bg-white px-6 py-2.5 text-center font-[family-name:var(--font-landing-headline)] text-xs font-bold uppercase tracking-widest text-[#006a6e] transition-all hover:bg-slate-100 active:scale-95 sm:px-7 sm:py-3 sm:text-sm"
-          >
-            Read this blog
-          </Link>
+            <h1 className={cn("mb-3 sm:mb-4", ADMIN_PAGE_TITLE_CLASS, "text-black")}>
+              {featuredHero.headlineLead}{" "}
+              <span className="text-black">{featuredHero.headlineGradient}</span>
+            </h1>
+            <p className="mb-5 max-w-xl font-[family-name:var(--font-landing-body)] text-sm leading-relaxed text-slate-600 sm:mb-6 sm:text-base md:max-w-2xl">
+              {featuredPost?.excerpt ?? featuredHero.subhead}
+            </p>
+            <Link
+              href={`/blogs/${FEATURED_SLUG}`}
+              className="inline-flex w-fit items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-6 py-2.5 text-center font-[family-name:var(--font-landing-headline)] text-xs font-bold uppercase tracking-widest text-[#006a6e] transition-all hover:bg-[#006a6e]/10 active:scale-95 sm:px-7 sm:py-3 sm:text-sm"
+            >
+              Read this blog
+            </Link>
+          </div>
+          <div className="relative h-[min(240px,42vh)] w-full bg-white md:h-auto md:min-h-[280px] md:flex-1">
+            <Image
+              src={featuredHero.image}
+              alt={featuredHero.imageAlt}
+              fill
+              priority
+              className="object-contain object-center p-4 transition-transform duration-700 group-hover:scale-[1.02] md:object-right"
+              sizes="(min-width: 768px) 50vw, 100vw"
+            />
+          </div>
         </div>
       </section>
 
@@ -436,7 +433,7 @@ export function BlogsView({
                     type="button"
                     onClick={() => openEditor(post)}
                     className={cn(
-                      "inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#006a6e]/10 px-3 py-2 text-center font-[family-name:var(--font-landing-headline)] text-xs font-semibold text-[#006a6e] transition hover:bg-[#006a6e]/18"
+                      "inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-[#006a6e] bg-transparent px-3 py-2 text-center font-[family-name:var(--font-landing-headline)] text-xs font-semibold text-[#006a6e] transition hover:bg-[#006a6e]/10"
                     )}
                   >
                     <Pencil className="size-3.5 shrink-0" aria-hidden />
@@ -445,7 +442,7 @@ export function BlogsView({
                   <button
                     type="button"
                     onClick={() => void deletePost(post)}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50/90 px-3 py-2 font-[family-name:var(--font-landing-headline)] text-xs font-semibold text-red-700 transition hover:bg-red-100"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-red-600 bg-transparent px-3 py-2 font-[family-name:var(--font-landing-headline)] text-xs font-semibold text-red-700 transition hover:bg-red-600/10"
                   >
                     <Trash2 className="size-3.5 shrink-0" aria-hidden />
                     Delete

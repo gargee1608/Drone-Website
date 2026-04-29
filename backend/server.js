@@ -117,6 +117,14 @@ async function ensureAuthSchema() {
     );
   `);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS admins (
+      id BIGSERIAL PRIMARY KEY,
+      email TEXT NOT NULL,
+      password TEXT NOT NULL,
+      name TEXT
+    );
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS pilots (
       id BIGSERIAL PRIMARY KEY,
       name TEXT,
@@ -330,24 +338,24 @@ async function seedDevDronesIfEmpty() {
   }
 }
 
-/** Dev-only: one admin so Admin Login works out of the box (see login page hint). */
-async function seedDevAdminIfEmpty() {
+/** Dev-only: one row in `admins` so Admin Login works (see login page hint). */
+async function seedDevAdminsIfEmpty() {
   if (process.env.NODE_ENV === "production") return;
   if (process.env.DISABLE_DEV_ADMIN_SEED === "true") return;
 
   try {
     const hash = await bcrypt.hash("test123", 10);
     const ins = await pool.query(
-      `INSERT INTO users (email, password, name, role)
-       SELECT $1::text, $2::text, $3::text, $4::text
+      `INSERT INTO admins (email, password, name)
+       SELECT $1::text, $2::text, $3::text
        WHERE NOT EXISTS (
-         SELECT 1 FROM users u
-         WHERE LOWER(TRIM(COALESCE(u.email::text, ''))) = LOWER(TRIM($1::text))
+         SELECT 1 FROM admins a
+         WHERE LOWER(TRIM(COALESCE(a.email::text, ''))) = LOWER(TRIM($1::text))
        )`,
-      ["test@gmail.com", hash, "Test Admin", "admin"]
+      ["test@gmail.com", hash, "Test Admin"]
     );
     if (ins.rowCount > 0) {
-      console.log("[auth] Seeded dev admin: test@gmail.com / test123");
+      console.log("[auth] Seeded dev admin in `admins`: test@gmail.com / test123");
     }
   } catch (e) {
     console.warn("[auth] Dev admin seed skipped:", signinErrorDetail(e));
@@ -410,6 +418,10 @@ function userPayloadForResponse(user, role) {
     role: String(role),
   };
   if (userName) payload.fullName = userName;
+  const phoneRaw = user.phone ?? user.Phone;
+  if (phoneRaw != null && String(phoneRaw).trim() !== "") {
+    payload.phone = String(phoneRaw).trim();
+  }
   return payload;
 }
 
@@ -586,6 +598,68 @@ app.post("/api/auth/verify-phone-otp", async (req, res) => {
   }
 });
 
+/** Public signup — stores `role = user` with bcrypt password (same verification as sign-in). */
+app.post("/api/auth/register", async (req, res) => {
+  const firstName = String(req.body?.firstName ?? "").trim();
+  const lastName = String(req.body?.lastName ?? "").trim();
+  const email = String(req.body?.email ?? "")
+    .trim()
+    .toLowerCase();
+  const password = String(req.body?.password ?? "");
+
+  if (!firstName || !lastName) {
+    return res.status(400).json({ message: "First and last name are required." });
+  }
+  if (!email) {
+    return res.status(400).json({ message: "Email is required." });
+  }
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!emailOk) {
+    return res.status(400).json({ message: "Enter a valid email address." });
+  }
+  if (!password || password.length < 8) {
+    return res
+      .status(400)
+      .json({ message: "Password must be at least 8 characters." });
+  }
+
+  const name = `${firstName} ${lastName}`.replace(/\s+/g, " ").trim();
+
+  try {
+    const existing = await pool.query(
+      `SELECT id FROM users WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1 LIMIT 1`,
+      [email]
+    );
+    if (existing.rows.length > 0) {
+      return res.status(409).json({
+        message: "An account with this email already exists. Sign in instead.",
+      });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    const ins = await pool.query(
+      `INSERT INTO users (email, password, name, role)
+       VALUES ($1::text, $2::text, $3::text, 'user')
+       RETURNING id, email, name, role`,
+      [email, hash, name]
+    );
+    const row = ins.rows[0];
+    return res.status(201).json({
+      success: true,
+      message: "Account created.",
+      user: userPayloadForResponse(row, "user"),
+    });
+  } catch (err) {
+    console.error("[auth] register:", err);
+    if (err && err.code === "23505") {
+      return res.status(409).json({
+        message: "An account with this email already exists. Sign in instead.",
+      });
+    }
+    return signinFailureResponse(res, err);
+  }
+});
+
 /** Same path/shape as `server/` auth API — used by Next proxy + pilot login. */
 app.post("/api/auth/signin", async (req, res) => {
   const email = String(req.body.email ?? "")
@@ -643,6 +717,49 @@ app.post("/api/auth/signin", async (req, res) => {
     }
   }
 
+  /** Admin dashboard: credentials live in `admins` only (email + bcrypt password). */
+  if (wantedRole === "admin") {
+    try {
+      const adminRes = await pool.query(
+        "SELECT * FROM admins WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1",
+        [email]
+      );
+      if (adminRes.rows.length === 0) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      const admin = adminRes.rows[0];
+      const stored = storedPasswordFromUser(admin);
+      const ok = await passwordMatches(password, stored);
+      if (!ok) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      const fullName = String(admin.name ?? "")
+        .replace(/\s+/g, " ")
+        .trim();
+      const displayName = fullName || "Admin";
+      const sub = String(jsonSafe(admin.id) ?? admin.id ?? "");
+      const token = jwt.sign(
+        { sub, role: "admin", name: displayName },
+        jwtSecret(),
+        { expiresIn: "7d" }
+      );
+      return res.json({
+        ok: true,
+        token,
+        role: "admin",
+        user: {
+          id: sub,
+          email: admin.email == null ? "" : String(admin.email),
+          name: displayName,
+          fullName: displayName,
+          role: "admin",
+        },
+      });
+    } catch (e) {
+      return signinFailureResponse(res, e);
+    }
+  }
+
   try {
     const result = await pool.query(
       "SELECT * FROM users WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1",
@@ -663,9 +780,6 @@ app.post("/api/auth/signin", async (req, res) => {
     const role = String(user.role || "user").toLowerCase();
     if (wantedRole === "pilot" && role !== "pilot") {
       return res.status(403).json({ message: "Not a pilot account" });
-    }
-    if (wantedRole === "admin" && role !== "admin") {
-      return res.status(403).json({ message: "Not an admin account" });
     }
     if (wantedRole === "user" && role === "admin") {
       return res.status(403).json({ message: "Use Admin Login for this account" });
@@ -746,7 +860,7 @@ app.post("/send-otp", async (req, res) => {
 ensureAuthSchema()
   .then(() => ensureDroneSchema())
   .then(() => ensureMissionSchema())
-  .then(() => seedDevAdminIfEmpty())
+  .then(() => seedDevAdminsIfEmpty())
   .then(() => seedDevDronesIfEmpty())
   .then(() => {
     jwtSecret();

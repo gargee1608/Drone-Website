@@ -93,7 +93,7 @@ function userRequestSubtitle(r: {
   const meta = [r.requestType.trim(), r.requestPriority.trim()]
     .filter(Boolean)
     .join(" · ");
-  return [route, meta].filter(Boolean).join(" · ") || "Pending admin review";
+  return [route, meta].filter(Boolean).join(" · ") || "Pending";
 }
 
 function previewMessage(message: string, email: string): string {
@@ -105,4 +105,10 @@ function previewMessage(message: string, email: string): string {
 export function countUnreadAdminInbox(): number {
   const seen = loadSeenKeys();
   return buildAdminInboxRows().filter((r) => !seen.has(r.key)).length;
+}
+
+/** Rows not yet dismissed in the notifications panel (same basis as the unread badge). */
+export function buildUnreadAdminInboxRows(): AdminInboxRow[] {
+  const seen = loadSeenKeys();
+  return buildAdminInboxRows().filter((r) => !seen.has(r.key));
 }

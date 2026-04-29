@@ -253,6 +253,39 @@ router.get("/", async (req, res) => {
   }
 });
 
+/** Count of pilots with `duty_status` ACTIVE (matches command center / assign views). */
+router.get("/active-count", async (_req, res) => {
+  try {
+    await pool.query(
+      "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS duty_status TEXT DEFAULT 'ACTIVE'"
+    );
+    const result = await pool.query(
+      `SELECT COUNT(*)::int AS count
+       FROM pilots
+       WHERE UPPER(TRIM(COALESCE(duty_status, 'ACTIVE'))) = 'ACTIVE'`
+    );
+    const count = Number(result.rows[0]?.count ?? 0);
+    return res.status(200).json({ success: true, count });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+/** Total rows in `pilots` (all duty statuses). */
+router.get("/total-count", async (_req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM pilots`
+    );
+    const count = Number(result.rows[0]?.count ?? 0);
+    return res.status(200).json({ success: true, count });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
     const id = Number.parseInt(req.params.id, 10);

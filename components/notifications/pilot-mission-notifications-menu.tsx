@@ -8,7 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   countUnreadPilotMissionNotifications,
   markPilotMissionNotificationIdsSeen,
-  notificationsVisibleToPilot,
+  pilotMissionNotificationsUnread,
   PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT,
   type PilotMissionNotification,
 } from "@/lib/pilot-mission-notifications";
@@ -168,7 +168,9 @@ export function PilotMissionNotificationsMenu() {
                 size="sm"
                 className="h-8 w-full text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => {
-                  markPilotMissionNotificationIdsSeen(rows.map((r) => r.id));
+                  markPilotMissionNotificationIdsSeen(
+                    pilotMissionNotificationsUnread().map((r) => r.id)
+                  );
                   sync();
                 }}
               >

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { UserDashboardFleetDashboard } from "@/components/user-dashboard/user-dashboard-fleet-dashboard";
 import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-shell";
 import {
-  loadUserRequests,
+  loadUserRequestsForCurrentUser,
   USER_REQUESTS_UPDATED_EVENT,
   type UserMissionRequest,
 } from "@/lib/user-requests";
@@ -16,7 +16,7 @@ export function UserDashboardView() {
 
   useEffect(() => {
     const refresh = () => {
-      const sorted = [...loadUserRequests()].sort(
+      const sorted = [...loadUserRequestsForCurrentUser()].sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );

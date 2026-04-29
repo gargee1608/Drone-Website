@@ -3,9 +3,8 @@
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getPilots } from "@/app/services/pilotServices";
+import { apiUrl } from "@/lib/api-url";
 import {
-  experienceSubtitleFromPilotRow,
-  experienceYearsFromPilotRow,
   flightHoursFromPilotRow,
   missionsCompletedFromPilotRow,
 } from "@/lib/pilot-db-metrics";
@@ -18,14 +17,9 @@ type PilotRow = {
   id: string;
   name: string;
   certLevel: number;
-  experienceYears: number;
-  experienceRank: string;
   flightHours: number;
   flightCount: number;
   dutyStatus: DutyStatus;
-  lastDate: string;
-  lastTimeUtc: string;
-  isPendingApproval: boolean;
 };
 
 const PAGE_SIZE = 4;
@@ -79,6 +73,10 @@ export function PilotStatusView({
 } = {}) {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [apiPilots, setApiPilots] = useState<PilotRow[]>([]);
+  /** `SELECT COUNT(*) FROM pilots` — preferred over `apiPilots.length` for the KPI. */
+  const [totalPilotsFromDb, setTotalPilotsFromDb] = useState<number | null>(
+    null
+  );
   const [page, setPage] = useState(1);
 
   const filteredRows = useMemo(() => {
@@ -110,29 +108,22 @@ export function PilotStatusView({
   }, [filteredRows, page]);
 
   const kpi = useMemo(() => {
-    const totalRegistered = apiPilots.length;
+    const totalRegistered = totalPilotsFromDb ?? apiPilots.length;
     const currentlyActive = apiPilots.filter(
       (p) => p.dutyStatus === "ACTIVE"
     ).length;
-    const inactiveOnLeave = totalRegistered - currentlyActive;
-    const pendingApproval = apiPilots.filter((p) => p.isPendingApproval).length;
-    const inactivePct =
-      totalRegistered > 0
-        ? `${Math.round((inactiveOnLeave / totalRegistered) * 100)}% of total`
-        : "0% of total";
+    const inactiveOnLeave = Math.max(0, totalRegistered - currentlyActive);
     return {
       totalRegistered,
       currentlyActive,
       inactiveOnLeave,
-      pendingApproval,
-      inactivePct,
     };
-  }, [apiPilots]);
+  }, [apiPilots, totalPilotsFromDb]);
 
   useEffect(() => {
     const fetchPilots = async () => {
       const data = await getPilots();
-      const rows = Array.isArray(data) ? data : [];
+      const rows = data != null && Array.isArray(data) ? data : [];
 
       // map backend data -> UI format and derive status counts from available fields
       const formatted = rows.map((pilot: Record<string, unknown>) => {
@@ -145,26 +136,13 @@ export function PilotStatusView({
           rawStatus === "ON_LEAVE"
             ? "INACTIVE"
             : "ACTIVE";
-        const approvalStatus = String(
-          pilot.approval_status ?? pilot.admin_status ?? pilot.status ?? ""
-        ).toLowerCase();
-
         return {
           id: pilot.id?.toString() || "",
           name: String(pilot.name ?? "Unknown pilot"),
           certLevel: Number(pilot.cert_level ?? 3),
-          experienceYears: experienceYearsFromPilotRow(pilot),
-          experienceRank: experienceSubtitleFromPilotRow(pilot),
           flightHours: flightHoursFromPilotRow(pilot),
           flightCount: missionsCompletedFromPilotRow(pilot),
           dutyStatus,
-          lastDate: String(pilot.last_date ?? "N/A"),
-          lastTimeUtc: String(pilot.last_time_utc ?? "N/A"),
-          isPendingApproval:
-            approvalStatus === "pending" ||
-            approvalStatus === "pending approval" ||
-            approvalStatus === "needs review" ||
-            approvalStatus === "awaiting approval",
         };
       });
 
@@ -172,6 +150,33 @@ export function PilotStatusView({
     };
   
     fetchPilots();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(apiUrl("/api/pilots/total-count"), {
+          cache: "no-store",
+        });
+        if (!res.ok || cancelled) return;
+        const data: unknown = await res.json();
+        if (
+          data &&
+          typeof data === "object" &&
+          "count" in data &&
+          typeof (data as { count: unknown }).count === "number"
+        ) {
+          const n = Number((data as { count: number }).count);
+          if (!cancelled && Number.isFinite(n)) setTotalPilotsFromDb(n);
+        }
+      } catch {
+        /* keep null; KPI falls back to apiPilots.length */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -189,7 +194,7 @@ export function PilotStatusView({
           <div className="mb-5 md:mb-6" />
         )}
 
-        <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:mb-10 lg:grid-cols-4">
+        <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:mb-10 lg:grid-cols-3">
           <div className="flex flex-col rounded-2xl border border-border bg-card p-6">
             <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
               Total registered
@@ -217,16 +222,6 @@ export function PilotStatusView({
             <div className="flex items-end">
               <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
                 {kpi.inactiveOnLeave}
-              </span>
-            </div>
-          </div>
-          <div className="flex flex-col rounded-2xl border border-[#006a6e]/20 bg-muted/40 p-6">
-            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
-              Pending approval
-            </span>
-            <div className="flex items-end">
-              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-                {kpi.pendingApproval}
               </span>
             </div>
           </div>
@@ -262,11 +257,9 @@ export function PilotStatusView({
                   {[
                     "Pilot personnel",
                     "Certification",
-                    "Experience",
                     "Flight hours",
                     "Missions",
                     "Duty status",
-                    "Last Mission",
                   ].map((h) => (
                     <th
                       key={h}
@@ -281,7 +274,7 @@ export function PilotStatusView({
                 {paginatedRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={5}
                       className="px-6 py-12 text-center text-sm text-muted-foreground dark:text-white"
                     >
                       No pilots match your filters.
@@ -304,16 +297,6 @@ export function PilotStatusView({
                       <td className="px-6 py-5">
                         <CertificationBadge level={row.certLevel} />
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="text-sm font-medium text-[#1a1c1e] dark:text-white">
-                          {row.experienceYears > 0
-                            ? `${row.experienceYears} Years`
-                            : "—"}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground/80 dark:text-white/85">
-                          {row.experienceRank}
-                        </div>
-                      </td>
                       <td className="px-6 py-5 font-mono text-sm tabular-nums text-[#1a1c1e] dark:text-white">
                         {row.flightHours.toLocaleString("en-US")} hrs
                       </td>
@@ -322,14 +305,6 @@ export function PilotStatusView({
                       </td>
                       <td className="px-6 py-5">
                         <DutyBadge status={row.dutyStatus} />
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="text-xs font-medium text-[#1a1c1e] dark:text-white">
-                          {row.lastDate}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground/80 dark:text-white/85">
-                          {row.lastTimeUtc}
-                        </div>
                       </td>
                     </tr>
                   ))

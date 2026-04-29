@@ -16,7 +16,7 @@ export async function fetchPilotSessionRow(
   }
 
   const data = await getPilots();
-  const rows = Array.isArray(data) ? data : [];
+  const rows = data != null && Array.isArray(data) ? data : [];
   const row = rows.find(
     (p: { id?: unknown }) => String(p.id) === String(subStr)
   );

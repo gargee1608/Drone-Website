@@ -46,6 +46,43 @@ async function ensureMissionColumns() {
   );
 }
 
+/**
+ * Count of mission rows treated as completed (same rule and optional pilot filter as GET /).
+ * Query: pilotSub, pilotName — when both absent, counts all completed missions.
+ */
+router.get("/completed-deliveries-count", async (req, res) => {
+  try {
+    await ensureMissionColumns();
+    const pilotSub = toTrimmed(req.query?.pilotSub);
+    const pilotName = toTrimmed(req.query?.pilotName).toLowerCase();
+    const result = pilotSub || pilotName
+      ? await pool.query(
+          `SELECT COUNT(*)::int AS count
+           FROM missions
+           WHERE LOWER(COALESCE(status, 'completed')) = 'completed'
+             AND (
+               TRIM(COALESCE(pilot_sub, '')) = $1
+               OR (
+                 $2 <> ''
+                 AND TRIM(COALESCE(pilot_sub, '')) = ''
+                 AND LOWER(TRIM(COALESCE(pilot_name, ''))) = $2
+               )
+             )`,
+          [pilotSub, pilotName]
+        )
+      : await pool.query(
+          `SELECT COUNT(*)::int AS count
+           FROM missions
+           WHERE LOWER(COALESCE(status, 'completed')) = 'completed'`
+        );
+    const count = Number(result.rows[0]?.count ?? 0);
+    return res.status(200).json({ success: true, count });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.get("/", async (req, res) => {
   try {
     await ensureMissionColumns();
@@ -151,6 +188,19 @@ router.post("/", async (req, res) => {
     const droneModel = toTrimmed(req.body?.droneModel);
     const assignedAtRaw = toTrimmed(req.body?.assignedAt);
     const assignedAt = assignedAtRaw ? new Date(assignedAtRaw) : new Date();
+    const statusNorm = toTrimmed(req.body?.status).toLowerCase().replace(/\s+/g, "_");
+    let status = "completed";
+    if (statusNorm === "in_progress") status = "in_progress";
+    else if (statusNorm === "pending") status = "pending";
+    else if (
+      statusNorm === "rejected" ||
+      statusNorm === "cancelled" ||
+      statusNorm === "canceled"
+    ) {
+      status = "rejected";
+    } else if (statusNorm === "completed" || statusNorm === "") {
+      status = "completed";
+    }
 
     if (!requestRef) {
       return res.status(400).json({ error: "requestRef is required" });
@@ -175,7 +225,7 @@ router.post("/", async (req, res) => {
         assigned_at,
         completed_at,
         status
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),'completed')
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),$10)
       RETURNING *`,
       [
         requestRef,
@@ -187,6 +237,7 @@ router.post("/", async (req, res) => {
         pilotSub || null,
         droneModel || null,
         assignedAt.toISOString(),
+        status,
       ]
     );
 

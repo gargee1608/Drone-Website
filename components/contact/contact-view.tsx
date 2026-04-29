@@ -32,7 +32,6 @@ export function ContactView() {
     const fullName = String(fd.get("fullName") ?? "").trim();
     const email = String(fd.get("email") ?? "").trim();
     const phone = String(fd.get("phone") ?? "").trim() || undefined;
-    const company = String(fd.get("company") ?? "").trim() || undefined;
     const message = String(fd.get("message") ?? "").trim();
     if (!fullName || !email || !message) return;
 
@@ -48,7 +47,6 @@ export function ContactView() {
           full_name: fullName,
           email,
           phone,
-          company,
           message,
         }),
       });
@@ -70,7 +68,6 @@ export function ContactView() {
         fullName,
         email,
         phone,
-        company,
         message,
       });
 
@@ -95,8 +92,8 @@ export function ContactView() {
       <section className="contact-hud-grid relative py-8 sm:py-10 lg:py-12">
         <div className="container mx-auto grid items-center gap-8 px-6 md:grid-cols-2 md:gap-10 lg:px-8">
           <div className="w-full">
-            <h1 className={cn("mb-4", ADMIN_PAGE_TITLE_CLASS)}>
-              Get in <span className="text-[#006a6e]">Touch</span> with Us
+            <h1 className={cn("mb-4", ADMIN_PAGE_TITLE_CLASS, "text-black")}>
+              Get in Touch with Us
             </h1>
             <p className="max-w-xl text-base leading-relaxed text-[#43484e] sm:text-lg">
               Have questions or need drone services? We&apos;re here to help.
@@ -119,7 +116,7 @@ export function ContactView() {
 
       {/* Inquiry + contact details side-by-side */}
       <section className="container mx-auto mb-20 px-6 pt-2 sm:mb-24 lg:px-8">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6">
             <h2 className="mb-2 font-[family-name:var(--font-landing-headline)] text-xl font-bold tracking-tight text-[#1a2027] sm:text-2xl">
               Send an Inquiry
@@ -157,31 +154,17 @@ export function ContactView() {
                 </label>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
-                    Phone (optional)
-                  </span>
-                  <input
-                    type="tel"
-                    name="phone"
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-[#1a2027] outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
-                    placeholder="+1 (555) 000-0000"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
-                    Company (optional)
-                  </span>
-                  <input
-                    type="text"
-                    name="company"
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-[#1a2027] outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
-                    placeholder="Company name"
-                  />
-                </label>
-              </div>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
+                  Phone (optional)
+                </span>
+                <input
+                  type="tel"
+                  name="phone"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-[#1a2027] outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
+                  placeholder="+1 (555) 000-0000"
+                />
+              </label>
 
               <label className="block">
                 <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
@@ -200,8 +183,10 @@ export function ContactView() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex items-center justify-center rounded-lg px-5 py-2.5 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-white uppercase transition hover:opacity-90 sm:ml-auto"
-                  style={{ backgroundColor: primary }}
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-lg border-2 border-[#006a6e] bg-transparent px-5 py-2.5 font-[family-name:var(--font-landing-headline)] text-xs font-bold uppercase tracking-wider text-[#006a6e] transition hover:bg-[#006a6e]/10 sm:ml-auto",
+                    submitting && "cursor-not-allowed opacity-60"
+                  )}
                 >
                   {submitting ? "Submitting..." : "Submit inquiry"}
                 </button>

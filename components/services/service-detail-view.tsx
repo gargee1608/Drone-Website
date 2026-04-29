@@ -56,7 +56,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
             <p
               className={cn(
                 body,
-                "mt-3 text-[0.9375rem] leading-relaxed text-slate-600 sm:text-base"
+                "mt-3 whitespace-pre-line text-[0.9375rem] leading-relaxed text-slate-600 sm:text-base"
               )}
             >
               {item.description}
@@ -129,7 +129,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
               </div>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-3 sm:mt-4">
               <p
                 className={cn(
                   headline,
@@ -141,7 +141,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
               <p
                 className={cn(
                   headline,
-                  "mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+                  "mt-0.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
                 )}
               >
                 {item.topBadge.text}
@@ -154,7 +154,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
                 label="Request this service"
                 className={cn(
                   headline,
-                  "mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-[#008B8B] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#007a7a]"
+                  "mt-5 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[#008B8B] bg-transparent px-4 py-2.5 text-sm font-semibold text-[#008B8B] transition hover:bg-[#008B8B]/10"
                 )}
               />
             </div>

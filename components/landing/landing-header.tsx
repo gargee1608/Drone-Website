@@ -17,6 +17,7 @@ import { AdminInboxMenu } from "@/components/notifications/admin-inbox-menu";
 import { PilotMissionNotificationsMenu } from "@/components/notifications/pilot-mission-notifications-menu";
 import { HeaderThemeModeToggle } from "@/components/nav/header-theme-mode-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { clearStoredUserSession } from "@/lib/user-session-browser";
 import { cn } from "@/lib/utils";
 
 const landingOutlineButtonClassName =
@@ -137,6 +138,12 @@ export function LandingHeader() {
     isSettingsPage && settingsFrom === "admin";
   const isUserSettingsContext =
     isSettingsPage && settingsFrom === "user";
+  /** Includes `/settings` without `from` (user shell) and `?from=user`. */
+  const isUserLogoutContext =
+    isUserDashboard ||
+    (isSettingsPage &&
+      settingsFrom !== "pilot" &&
+      settingsFrom !== "admin");
 
   const showHeaderSettingsIcon = !(
     isPilotDashboard ||
@@ -327,13 +334,12 @@ export function LandingHeader() {
               New Registration
             </Link>
             {showHeaderLoginButton ? (
-              <button
-                type="button"
-                onClick={() => router.replace("/login")}
+              <Link
+                href="/pilot-login"
                 className={cn("hidden sm:inline-flex", landingOutlineButtonClassName)}
               >
                 Login
-              </button>
+              </Link>
             ) : null}
             {!isHomePage &&
             !isPilotRegistration &&
@@ -398,10 +404,21 @@ export function LandingHeader() {
                       className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
                       onClick={() => {
                         setAccountMenuOpen(false);
+                        try {
+                          localStorage.removeItem("token");
+                          localStorage.removeItem("pilot");
+                          if (isUserLogoutContext) {
+                            clearStoredUserSession();
+                          }
+                        } catch {
+                          /* ignore */
+                        }
                         router.replace(
                           isPilotDashboard || settingsFrom === "pilot"
                             ? "/pilot-login"
-                            : "/login"
+                            : isUserLogoutContext
+                              ? "/pilot-login?panel=user"
+                              : "/login"
                         );
                       }}
                     >
@@ -413,7 +430,7 @@ export function LandingHeader() {
               </div>
             ) : !hideLoginIcon && !isHomePage ? (
               <Link
-                href="/login"
+                href="/pilot-login"
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon" }),
                   "shrink-0 text-slate-500 hover:text-[#008B8B] dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
@@ -509,7 +526,25 @@ export function LandingHeader() {
                   className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
                   onClick={() => {
                     setOpen(false);
-                    router.replace("/login");
+                    try {
+                      localStorage.removeItem("token");
+                      localStorage.removeItem("pilot");
+                      if (isUserLogoutContext) {
+                        clearStoredUserSession();
+                      }
+                    } catch {
+                      /* ignore */
+                    }
+                    if (
+                      isPilotDashboard ||
+                      settingsFrom === "pilot"
+                    ) {
+                      router.replace("/pilot-login");
+                    } else if (isUserLogoutContext) {
+                      router.replace("/pilot-login?panel=user");
+                    } else {
+                      router.replace("/login");
+                    }
                   }}
                 >
                   Logout
@@ -517,7 +552,7 @@ export function LandingHeader() {
               </div>
             ) : (
               <Link
-                href="/login"
+                href="/pilot-login"
                 className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 onClick={() => setOpen(false)}
               >
@@ -547,16 +582,13 @@ export function LandingHeader() {
           </div>
         )}
         {isHomePage ? (
-          <button
-            type="button"
+          <Link
+            href="/pilot-login"
             className="mt-4 flex h-11 w-full items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent"
-            onClick={() => {
-              router.replace("/login");
-              setOpen(false);
-            }}
+            onClick={() => setOpen(false)}
           >
             Login
-          </button>
+          </Link>
         ) : null}
         {!hideRegisterPilotCta ? (
           <Link

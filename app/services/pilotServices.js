@@ -1,18 +1,37 @@
 import { apiUrl } from "@/lib/api-url";
 
+/**
+ * @returns {Promise<unknown[] | null>} Pilot rows from `GET /api/pilots`, or `null` if the request failed.
+ * A **502** from the app usually means the Next proxy could not reach Express (backend not running or wrong `BACKEND_URL`).
+ */
 export const getPilots = async () => {
   try {
     const response = await fetch(apiUrl("/api/pilots"), {
       cache: "no-store",
     });
     if (!response.ok) {
-      console.error("Failed to fetch pilots:", response.status);
-      return [];
+      let hint = "";
+      try {
+        const errBody = await response.json();
+        if (typeof errBody?.hint === "string") hint = errBody.hint;
+        else if (typeof errBody?.detail === "string") hint = errBody.detail;
+      } catch {
+        /* ignore non-JSON error bodies */
+      }
+      const suffix = hint ? ` — ${hint}` : "";
+      console.error(
+        "Failed to fetch pilots:",
+        response.status,
+        response.status === 502
+          ? "Backend unreachable (start Express on port 4000 or set BACKEND_URL)."
+          : suffix || ""
+      );
+      return null;
     }
     return response.json();
   } catch (error) {
     console.error("Fetch error:", error);
-    return [];
+    return null;
   }
 };
 

@@ -5,6 +5,10 @@ import { Pencil } from "lucide-react";
 
 import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-shell";
 import { jwtPayloadRole } from "@/lib/pilot-display-name";
+import {
+  readStoredUserSession,
+  splitDisplayNameToFirstLast,
+} from "@/lib/user-session-browser";
 
 type UserProfileDraft = {
   firstName: string;
@@ -41,6 +45,40 @@ function readSavedUserProfile(): UserProfileDraft | null {
   }
 }
 
+/** Profile row data: signed-in user identity + saved extras when emails match. */
+function buildProfileFromSessionAndSaved(): UserProfileDraft {
+  const session = readStoredUserSession();
+  const saved = readSavedUserProfile();
+
+  if (!session) {
+    return saved ?? DEFAULT_USER_PROFILE;
+  }
+
+  const email = String(session.email ?? "").trim();
+  const display = String(session.fullName ?? session.name ?? "").trim();
+  let { firstName, lastName } = splitDisplayNameToFirstLast(display);
+  if (!firstName && email) {
+    firstName = email.split("@")[0] || "User";
+  }
+
+  const sameSaved =
+    saved &&
+    email &&
+    saved.email.trim().toLowerCase() === email.toLowerCase();
+
+  const phoneFromSession = String(session.phone ?? "").trim();
+
+  return {
+    firstName: firstName || "User",
+    lastName,
+    email: email || DEFAULT_USER_PROFILE.email,
+    phone: phoneFromSession || (sameSaved ? saved.phone : ""),
+    city: sameSaved ? saved.city : "",
+    state: sameSaved ? saved.state : "",
+    country: sameSaved ? saved.country : "",
+  };
+}
+
 export function UserProfileView() {
   const [profile, setProfile] = useState<UserProfileDraft>(DEFAULT_USER_PROFILE);
   const [draft, setDraft] = useState<UserProfileDraft>(DEFAULT_USER_PROFILE);
@@ -52,17 +90,21 @@ export function UserProfileView() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = readSavedUserProfile();
-    if (saved) {
-      setProfile(saved);
-      setDraft(saved);
-    }
+    const merged = buildProfileFromSessionAndSaved();
+    setProfile(merged);
+    setDraft(merged);
 
     const token = localStorage.getItem("token");
+    const session = readStoredUserSession();
+    const roleFromSession =
+      typeof session?.role === "string" && session.role.trim()
+        ? session.role
+        : null;
     const tokenRole = token ? jwtPayloadRole(token) : null;
-    if (tokenRole) {
+    const rawRole = roleFromSession ?? tokenRole;
+    if (rawRole) {
       setRoleLabel(
-        tokenRole.charAt(0).toUpperCase() + tokenRole.slice(1).toLowerCase()
+        rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase()
       );
     }
     const savedAvatar = localStorage.getItem(USER_PROFILE_PHOTO_STORAGE_KEY);
@@ -107,7 +149,13 @@ export function UserProfileView() {
     .replace(/[^A-Z]/g, "") || "UA";
 
   if (!hydrated) {
-    return <UserDashboardShell pageTitle="Profile" pageTitleBarClassName="text-xs" />;
+    return (
+      <UserDashboardShell pageTitle="Profile" pageTitleBarClassName="text-xs">
+        <div className="mx-auto max-w-5xl px-4 py-10 text-sm text-slate-500">
+          Loading profile…
+        </div>
+      </UserDashboardShell>
+    );
   }
 
   return (

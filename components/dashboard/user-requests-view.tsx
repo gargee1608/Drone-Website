@@ -1,7 +1,7 @@
 "use client";
 
-import { CheckCircle2, ClipboardList, Clock, XCircle } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { CheckCircle2, ClipboardList, Clock, PackageCheck } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   useEffect,
   useMemo,
@@ -11,33 +11,27 @@ import {
 } from "react";
 
 import {
-  detailPayloadMatchesRow,
   resolveUserRequestDetail,
   UserRequestDetailModal,
   type UserRequestDetailPayload,
 } from "@/components/dashboard/user-request-detail-modal";
-import {
-  parsePayloadAndTarget,
-  UserRequestTable,
-} from "@/components/dashboard/user-request-table";
+import { UserRequestTable } from "@/components/dashboard/user-request-table";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
-  ASSIGN_INSPECT_STORAGE_KEY,
-  ASSIGN_INSPECT_UPDATED_EVENT,
-  loadAssignInspectRow,
-  demoAdminRowToAssignPilotRow,
   setAssignInspectRow,
-  upsertDemoAcceptedForAssign,
   userRequestAdminRowToAssignPilotRow,
 } from "@/lib/assign-demo-bridge";
 import { apiUrl } from "@/lib/api-url";
-import { readResponseJson } from "@/lib/read-response-json";
+import {
+  COMPLETED_ASSIGNMENTS_UPDATED_EVENT,
+} from "@/lib/completed-assignments";
 import {
   loadUserRequests,
   mapUserRequestToAdminRow,
+  MISSIONS_DB_UPDATED_EVENT,
+  isUserRequestCompletedDelivery,
   normalizeUserMissionAdminStatus,
   pruneDuplicateMarketplaceInquiries,
-  updateUserRequestAdminStatus,
   USER_REQUESTS_UPDATED_EVENT,
   type UserMissionAdminStatus,
   type UserMissionRequest,
@@ -106,7 +100,24 @@ type BackendRequestRow = {
   payload_weight?: number | string;
   cargo_type?: string;
   mission_urgency?: string;
+  admin_status?: string;
+  adminStatus?: string;
+  mission_status?: string | null;
+  missionStatus?: string | null;
 };
+
+function pickBackendAdminStatus(r: BackendRequestRow): string | undefined {
+  if (typeof r.admin_status === "string") return r.admin_status;
+  if (typeof r.adminStatus === "string") return r.adminStatus;
+  return undefined;
+}
+
+function pickBackendMissionStatus(r: BackendRequestRow): string | null | undefined {
+  if (typeof r.mission_status === "string") return r.mission_status;
+  if (typeof r.missionStatus === "string") return r.missionStatus;
+  if (r.mission_status === null || r.missionStatus === null) return null;
+  return undefined;
+}
 
 function staticRequestToAdminRow(
   r: UserRequestRow,
@@ -178,7 +189,8 @@ function mapBackendRequestToAdminRow(r: BackendRequestRow): UserRequestAdminRow 
     desc: `Payload: ${cargoType || "General cargo"} (${payloadWeight || "0"}kg) | Target: ${
       dropLocation || pickupLocation || "—"
     }`,
-    adminStatus: "pending",
+    adminStatus: normalizeUserMissionAdminStatus(pickBackendAdminStatus(r)),
+    missionStatus: pickBackendMissionStatus(r) ?? null,
   };
 }
 
@@ -191,6 +203,8 @@ export function UserRequestsView({
   pilotTables?: boolean;
 } = {}) {
   const router = useRouter();
+  const pathname = usePathname();
+  const prevPathnameRef = useRef<string | null>(null);
   const tablePreset = pilotTables ? "pilot" : "admin";
   const demoAdminHydrated = useRef(false);
   /** Client-only review outcome for built-in demo table rows (localStorage keys use `demo-…`). */
@@ -207,6 +221,9 @@ export function UserRequestsView({
   >([]);
   const [backendRequests, setBackendRequests] = useState<UserRequestAdminRow[]>([]);
   const [backendRefresh, setBackendRefresh] = useState(0);
+  /** From `missions` table (admin only); falls back to derived stat if fetch fails. */
+  const [missionsCompletedDeliveriesCount, setMissionsCompletedDeliveriesCount] =
+    useState<number | null>(null);
 
   useEffect(() => {
     if (pilotTables) return;
@@ -231,6 +248,36 @@ export function UserRequestsView({
       }
     };
     void loadBackendRequests();
+    return () => {
+      cancelled = true;
+    };
+  }, [pilotTables, backendRefresh]);
+
+  useEffect(() => {
+    if (pilotTables) return;
+    let cancelled = false;
+    const loadCompletedDeliveriesCount = async () => {
+      try {
+        const response = await fetch(
+          apiUrl("/api/missions/completed-deliveries-count"),
+          { cache: "no-store" }
+        );
+        if (!response.ok) throw new Error("bad response");
+        const payload: unknown = await response.json();
+        const raw =
+          payload &&
+          typeof payload === "object" &&
+          "count" in payload &&
+          (payload as { count: unknown }).count;
+        const n = typeof raw === "number" ? raw : Number(raw);
+        if (!cancelled) {
+          setMissionsCompletedDeliveriesCount(Number.isFinite(n) ? n : null);
+        }
+      } catch {
+        if (!cancelled) setMissionsCompletedDeliveriesCount(null);
+      }
+    };
+    void loadCompletedDeliveriesCount();
     return () => {
       cancelled = true;
     };
@@ -280,6 +327,40 @@ export function UserRequestsView({
       window.removeEventListener(USER_REQUESTS_UPDATED_EVENT, onUpdate);
   }, []);
 
+  useEffect(() => {
+    const onAssignments = () => {
+      if (pilotTables) setUserRequestRefresh((n) => n + 1);
+      else setBackendRefresh((n) => n + 1);
+    };
+    window.addEventListener(COMPLETED_ASSIGNMENTS_UPDATED_EVENT, onAssignments);
+    return () =>
+      window.removeEventListener(
+        COMPLETED_ASSIGNMENTS_UPDATED_EVENT,
+        onAssignments
+      );
+  }, [pilotTables]);
+
+  useEffect(() => {
+    const onMissionsDb = () => {
+      if (pilotTables) setUserRequestRefresh((n) => n + 1);
+      else setBackendRefresh((n) => n + 1);
+    };
+    window.addEventListener(MISSIONS_DB_UPDATED_EVENT, onMissionsDb);
+    return () =>
+      window.removeEventListener(MISSIONS_DB_UPDATED_EVENT, onMissionsDb);
+  }, [pilotTables]);
+
+  /** Refetch DB rows when navigating back to this page (e.g. after Assign To updates `admin_status`). */
+  useEffect(() => {
+    if (pilotTables) return;
+    const prev = prevPathnameRef.current;
+    prevPathnameRef.current = pathname;
+    if (pathname !== "/dashboard/user-requests") return;
+    if (prev !== null && prev !== pathname) {
+      setBackendRefresh((n) => n + 1);
+    }
+  }, [pathname, pilotTables]);
+
   const { primaryTableRows, additionalInquireTableRows } = useMemo(() => {
     if (!pilotTables) {
       return {
@@ -310,37 +391,43 @@ export function UserRequestsView({
     };
   }, [pilotTables, storedRequestsSnapshot, demoAdminByKey, backendRequests]);
 
-  function closePilotDetailIfOpen(row: UserRequestAdminRow) {
-    if (!pilotTables) return;
-    setDetailModal((prev) =>
-      prev && detailPayloadMatchesRow(prev, row) ? null : prev
-    );
-  }
-
   /**
-   * Accepted / Rejected / Pending = exact counts from the two tables below:
-   * `User requests` (stored missions + demo rows) + `Additional Inquires` (marketplace).
+   * Summary counts from `User requests` + `Additional Inquires` (when pilot).
+   * Active / Assigned = accepted but not yet delivered; Completed Deliveries = completed (admin or mission).
    */
   const stats = useMemo(() => {
     const rows = [...primaryTableRows, ...additionalInquireTableRows];
     let pending = 0;
-    let accepted = 0;
-    let rejected = 0;
+    let activeAssigned = 0;
+    let completedDeliveries = 0;
     for (const row of rows) {
       const s = normalizeUserMissionAdminStatus(
         typeof row.adminStatus === "string" ? row.adminStatus : undefined
       );
-      if (s === "accepted") accepted += 1;
-      else if (s === "rejected") rejected += 1;
-      else pending += 1;
+      const delivered = isUserRequestCompletedDelivery(row);
+
+      if (s === "rejected") {
+        /* excluded from the three workflow buckets; still in total */
+      } else if (delivered) {
+        completedDeliveries += 1;
+      } else if (s === "accepted") {
+        activeAssigned += 1;
+      } else {
+        pending += 1;
+      }
     }
     return {
       total: rows.length,
       pending,
-      accepted,
-      rejected,
+      activeAssigned,
+      completedDeliveries,
     };
   }, [primaryTableRows, additionalInquireTableRows]);
+
+  const completedDeliveriesDisplay =
+    !pilotTables && missionsCompletedDeliveriesCount !== null
+      ? missionsCompletedDeliveriesCount
+      : stats.completedDeliveries;
 
   const openRequestDetails = (row: UserRequestAdminRow) => {
     if (pilotTables) {
@@ -350,108 +437,6 @@ export function UserRequestsView({
     }
     setAssignInspectRow(userRequestAdminRowToAssignPilotRow(row));
     router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
-  };
-
-  const handleAcceptRow = (row: UserRequestAdminRow) => {
-    if (row.key.startsWith("demo-")) {
-      setDemoAdminByKey((prev) => ({ ...prev, [row.key]: "accepted" }));
-      const assignRow = demoAdminRowToAssignPilotRow(row);
-      upsertDemoAcceptedForAssign(assignRow);
-      setAssignInspectRow(assignRow);
-      closePilotDetailIfOpen(row);
-      router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
-      return;
-    }
-    updateUserRequestAdminStatus(row.key, "accepted");
-    setUserRequestRefresh((n) => n + 1);
-    if (row.requestSource !== "marketplace_inquiry") {
-      setAssignInspectRow(userRequestAdminRowToAssignPilotRow(row));
-      closePilotDetailIfOpen(row);
-      router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
-    }
-  };
-
-  const handleRejectRow = (row: UserRequestAdminRow) => {
-    if (row.key.startsWith("demo-")) {
-      setDemoAdminByKey((prev) => ({ ...prev, [row.key]: "rejected" }));
-      closePilotDetailIfOpen(row);
-      return;
-    }
-    updateUserRequestAdminStatus(row.key, "rejected");
-    setUserRequestRefresh((n) => n + 1);
-    closePilotDetailIfOpen(row);
-  };
-
-  const handleEditRow = async (row: UserRequestAdminRow) => {
-    if (pilotTables) return;
-    const nextTitle = window.prompt("Edit requirement title", row.title)?.trim();
-    if (!nextTitle) return;
-    const nextDestination = window.prompt(
-      "Edit destination",
-      parsePayloadAndTarget(row.desc).target
-    )?.trim();
-    if (!nextDestination) return;
-    const nextUrgency = window
-      .prompt("Edit urgency (urgent / express / standard)", "express")
-      ?.trim()
-      .toLowerCase();
-    if (!nextUrgency) return;
-
-    try {
-      const response = await fetch(apiUrl(`/api/requests/${encodeURIComponent(row.key)}`), {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reason_or_title: nextTitle,
-          drop_location: nextDestination,
-          mission_urgency: nextUrgency,
-        }),
-      });
-      const body = await readResponseJson(response);
-      if (!body.okParse || !response.ok) {
-        window.alert("Could not update request. Please try again.");
-        return;
-      }
-      const updatedData =
-        body.data && typeof body.data === "object"
-          ? (body.data as { data?: BackendRequestRow }).data
-          : undefined;
-      if (updatedData && typeof updatedData === "object") {
-        const updatedRow = mapBackendRequestToAdminRow(updatedData);
-        if (String(updatedRow.key) === String(row.key)) {
-          const inspect = loadAssignInspectRow();
-          if (inspect && inspect.requestRef === String(row.key)) {
-            setAssignInspectRow(userRequestAdminRowToAssignPilotRow(updatedRow));
-          }
-        }
-      }
-      setBackendRefresh((n) => n + 1);
-    } catch {
-      window.alert("Could not update request. Please try again.");
-    }
-  };
-
-  const handleDeleteRow = async (row: UserRequestAdminRow) => {
-    if (pilotTables) return;
-    const ok = window.confirm("Delete this request?");
-    if (!ok) return;
-    try {
-      const response = await fetch(apiUrl(`/api/requests/${encodeURIComponent(row.key)}`), {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        window.alert("Could not delete request. Please try again.");
-        return;
-      }
-      const inspect = loadAssignInspectRow();
-      if (inspect && inspect.requestRef === String(row.key)) {
-        localStorage.removeItem(ASSIGN_INSPECT_STORAGE_KEY);
-        window.dispatchEvent(new Event(ASSIGN_INSPECT_UPDATED_EVENT));
-      }
-      setBackendRefresh((n) => n + 1);
-    } catch {
-      window.alert("Could not delete request. Please try again.");
-    }
   };
 
   return (
@@ -470,7 +455,7 @@ export function UserRequestsView({
 
       <section
         className={`grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4 ${showPageTitle ? "mt-6" : "mt-4"}`}
-        aria-label="Request summary: User requests and Additional Inquires combined"
+        aria-label="Request summary: total, pending requests, active or assigned, and completed deliveries"
       >
         <UserRequestStatCard
           label="Total requests"
@@ -480,25 +465,25 @@ export function UserRequestsView({
           iconWrapClassName="bg-[#008B8B]/10"
         />
         <UserRequestStatCard
-          label="Pending"
+          label="Pending Request"
           value={stats.pending}
           icon={Clock}
           iconClassName="text-amber-700"
           iconWrapClassName="bg-amber-100"
         />
         <UserRequestStatCard
-          label="Accepted"
-          value={stats.accepted}
+          label="Active / Assigned"
+          value={stats.activeAssigned}
           icon={CheckCircle2}
           iconClassName="text-emerald-700"
           iconWrapClassName="bg-emerald-100"
         />
         <UserRequestStatCard
-          label="Rejected"
-          value={stats.rejected}
-          icon={XCircle}
-          iconClassName="text-red-700"
-          iconWrapClassName="bg-red-100"
+          label="Completed Deliveries"
+          value={completedDeliveriesDisplay}
+          icon={PackageCheck}
+          iconClassName="text-sky-800"
+          iconWrapClassName="bg-sky-100"
         />
       </section>
 
@@ -511,10 +496,6 @@ export function UserRequestsView({
             showTotalSubtitle
             columnPreset={tablePreset}
             onViewDetails={openRequestDetails}
-            onAcceptRow={handleAcceptRow}
-            onRejectRow={handleRejectRow}
-            onEditRow={!pilotTables ? handleEditRow : undefined}
-            onDeleteRow={!pilotTables ? handleDeleteRow : undefined}
           />
         </section>
 
@@ -527,8 +508,6 @@ export function UserRequestsView({
               showTotalSubtitle
               columnPreset={tablePreset}
               onViewDetails={openRequestDetails}
-              onAcceptRow={handleAcceptRow}
-              onRejectRow={handleRejectRow}
             />
           </section>
         ) : null}

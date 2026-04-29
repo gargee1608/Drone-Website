@@ -21,6 +21,7 @@ export function ConditionalSiteHeader() {
     pathname === "/blogs" ||
     pathname?.startsWith("/blogs/") ||
     pathname === "/contact" ||
+    pathname === "/matching-hub" ||
     pathname === "/settings" ||
     pathname?.startsWith("/settings/") ||
     pathname === "/dashboard" ||

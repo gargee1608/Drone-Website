@@ -662,11 +662,16 @@ export function PilotRegistrationView() {
   }
 
   return (
-    <div className="relative min-h-dvh bg-slate-100/80 pt-22 text-foreground sm:pt-24">
-      <div className="mx-auto max-w-lg px-4 pb-14 pt-4 sm:px-5 sm:pt-6">
+    <div className="relative min-h-dvh bg-white pt-22 text-foreground sm:pt-24">
+      <div className="mx-auto max-w-3xl px-4 pb-14 pt-4 sm:px-5 sm:pt-6">
         <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-lg ring-1 ring-slate-900/5">
           <div className="border-b border-slate-100 px-5 py-5 sm:px-6 sm:py-6">
-            <h1 className={cn(ADMIN_PAGE_TITLE_CLASS, "text-[#008B8B]")}>
+            <h1
+              className={cn(
+                ADMIN_PAGE_TITLE_CLASS,
+                "font-normal text-[#008B8B]"
+              )}
+            >
               Pilot &amp; Drone Registration
             </h1>
             <p className="mt-1 text-sm text-slate-500">

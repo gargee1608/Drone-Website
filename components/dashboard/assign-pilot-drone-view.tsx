@@ -37,6 +37,9 @@ import {
   pruneAssignPilotDoneRefs,
 } from "@/lib/assign-pilot-done-refs";
 import {
+  loadUserRequests,
+  MISSIONS_DB_UPDATED_EVENT,
+  updateUserRequestAdminStatus,
   USER_REQUESTS_STORAGE_KEY,
   USER_REQUESTS_UPDATED_EVENT,
   userRequestQueueDisplayId,
@@ -768,6 +771,47 @@ export function AssignPilotDroneView() {
     saveCompletedAssignments(next);
     setCompletedAssignments(next);
     setDoneRefs(loadAssignPilotDoneRefs());
+
+    const ref = row.requestRef;
+    if (loadUserRequests().some((r) => r.id === ref)) {
+      updateUserRequestAdminStatus(ref, "completed");
+    }
+    const numericId = String(ref).replace(/^#/, "");
+    if (/^\d+$/.test(numericId)) {
+      void fetch(
+        apiUrl(`/api/requests/${encodeURIComponent(numericId)}`),
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ admin_status: "completed" }),
+        }
+      );
+    }
+
+    try {
+      const missionRes = await fetch(apiUrl("/api/missions"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestRef: row.requestRef,
+          customer: row.customer,
+          service: row.service,
+          dropoff: row.dropoff,
+          pilotName: row.pilotName,
+          pilotBadgeId: row.pilotBadgeId,
+          pilotSub: selectedPilot.id,
+          droneModel: row.droneModel,
+          assignedAt: new Date().toISOString(),
+          status: "completed",
+        }),
+      });
+      if (missionRes.ok) {
+        window.dispatchEvent(new Event(MISSIONS_DB_UPDATED_EVENT));
+      }
+    } catch {
+      /* mission row optional for offline API */
+    }
+
     pushPilotMissionNotification({
       requestRef: row.requestRef,
       customer: row.customer,

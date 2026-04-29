@@ -7,12 +7,15 @@ import {
   ShoppingBag,
   Stethoscope,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
+import { COMPLETED_ASSIGNMENTS_UPDATED_EVENT } from "@/lib/completed-assignments";
 import {
   loadUserRequests,
-  type UserMissionAdminStatus,
+  MISSIONS_DB_UPDATED_EVENT,
   type UserRequestAdminRow,
   userRequestQueueDisplayId,
+  USER_REQUESTS_UPDATED_EVENT,
 } from "@/lib/user-requests";
 import { cn } from "@/lib/utils";
 
@@ -69,26 +72,6 @@ export function requirementTypeIcon(title: string) {
     return Map;
   }
   return Package;
-}
-
-type RequestRowStatusLabel =
-  | "Pending"
-  | "Accepted"
-  | "Rejected";
-
-function statusLabelForAdminStatus(
-  s: UserMissionAdminStatus
-): RequestRowStatusLabel {
-  switch (s) {
-    case "pending":
-      return "Pending";
-    case "accepted":
-      return "Accepted";
-    case "rejected":
-      return "Rejected";
-    default:
-      return "Pending";
-  }
 }
 
 function pilotTableCells(m: UserRequestAdminRow): {
@@ -155,33 +138,69 @@ function pilotTableCells(m: UserRequestAdminRow): {
   };
 }
 
-function statusDisplayForRow(m: UserRequestAdminRow): {
-  label: RequestRowStatusLabel;
+type AdminStatusLabel =
+  | "Pending Request"
+  | "In process"
+  | "Completed"
+  | "Rejected";
+
+/** Map `missions.status` from Postgres to table UI. */
+function displayFromMissionDb(raw: string): {
+  label: AdminStatusLabel;
   dotClass: string;
   textClass: string;
-} {
-  if (m.adminStatus !== undefined) {
-    const label = statusLabelForAdminStatus(m.adminStatus);
-    if (label === "Pending") {
-      return {
-        label,
-        dotClass: "bg-muted-foreground/50",
-        textClass: "text-muted-foreground",
-      };
-    }
-    if (label === "Accepted") {
-      return {
-        label,
-        dotClass: "bg-emerald-600",
-        textClass: "text-emerald-700",
-      };
-    }
+} | null {
+  const s = raw.trim().toLowerCase().replace(/\s+/g, "_");
+  if (!s) return null;
+  if (s === "completed") {
+    return {
+      label: "Completed",
+      dotClass: "bg-sky-600",
+      textClass: "text-sky-800 dark:text-sky-300",
+    };
+  }
+  if (s === "in_progress" || s === "assigned" || s === "active") {
+    return {
+      label: "In process",
+      dotClass: "bg-amber-500",
+      textClass: "text-amber-800 dark:text-amber-300",
+    };
+  }
+  if (s === "pending") {
+    return {
+      label: "Pending Request",
+      dotClass: "bg-muted-foreground/50",
+      textClass: "text-muted-foreground",
+    };
+  }
+  if (s === "rejected" || s === "cancelled" || s === "canceled") {
     return {
       label: "Rejected",
       dotClass: "bg-red-500",
       textClass: "text-red-700",
     };
   }
+  return null;
+}
+
+/** Status column: latest row in `missions` only (`/api/requests` → `mission_status`). */
+function statusDisplayForAdminRow(m: UserRequestAdminRow): {
+  label: AdminStatusLabel | string;
+  dotClass: string;
+  textClass: string;
+} {
+  const missionRaw =
+    typeof m.missionStatus === "string" ? m.missionStatus.trim() : "";
+  if (missionRaw) {
+    const fromMission = displayFromMissionDb(missionRaw);
+    if (fromMission) return fromMission;
+    return {
+      label: missionRaw,
+      dotClass: "bg-muted-foreground/50",
+      textClass: "text-muted-foreground",
+    };
+  }
+
   return {
     label: "Pending",
     dotClass: "bg-muted-foreground/50",
@@ -193,35 +212,38 @@ export type UserRequestTableProps = {
   rows: UserRequestAdminRow[];
   /** Opens detail view (e.g. modal). If omitted, the View button is inert. */
   onViewDetails?: (row: UserRequestAdminRow) => void;
-  /** Accept action (e.g. clear from queue). If omitted, Accept is disabled. */
-  onAcceptRow?: (row: UserRequestAdminRow) => void;
-  /** Reject action (e.g. remove request). If omitted, Reject is disabled. */
-  onRejectRow?: (row: UserRequestAdminRow) => void;
-  /** Edit action for admin table rows. */
-  onEditRow?: (row: UserRequestAdminRow) => void;
-  /** Delete action for admin table rows. */
-  onDeleteRow?: (row: UserRequestAdminRow) => void;
   /** Optional title override (default: "User Request"). */
   title?: string;
   /** Show the title heading inside the card (default true). */
   showTitle?: boolean;
   /** Show count subtitle under title. */
   showTotalSubtitle?: boolean;
-  /** Pilot dashboard: User Id, User Name, User Requirement, Payload, Destinations (+ Status). */
+  /** Pilot dashboard: User Id, User Name, User Requirement, Payload, Destinations. */
   columnPreset?: "admin" | "pilot";
 };
 
 export function UserRequestTable({
   rows,
   onViewDetails,
-  onEditRow,
-  onDeleteRow,
   title = "User Request",
   showTitle = true,
   showTotalSubtitle = false,
   columnPreset = "admin",
 }: UserRequestTableProps) {
   const isPilot = columnPreset === "pilot";
+  const [statusSync, setStatusSync] = useState(0);
+
+  useEffect(() => {
+    const bump = () => setStatusSync((n) => n + 1);
+    window.addEventListener(USER_REQUESTS_UPDATED_EVENT, bump);
+    window.addEventListener(COMPLETED_ASSIGNMENTS_UPDATED_EVENT, bump);
+    window.addEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
+    return () => {
+      window.removeEventListener(USER_REQUESTS_UPDATED_EVENT, bump);
+      window.removeEventListener(COMPLETED_ASSIGNMENTS_UPDATED_EVENT, bump);
+      window.removeEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
+    };
+  }, []);
 
   const thBase =
     "px-3 py-3 align-middle text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-4 sm:py-3.5 sm:text-[10px] sm:tracking-wider";
@@ -229,7 +251,10 @@ export function UserRequestTable({
     "min-w-0 px-3 py-3 align-middle text-foreground sm:px-4 sm:py-3.5";
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm sm:p-6">
+    <div
+      className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm sm:p-6"
+      data-status-sync={statusSync}
+    >
       {showTitle ? (
         <h2
           className={cn(
@@ -259,27 +284,25 @@ export function UserRequestTable({
         <table
           className={cn(
             "w-full table-fixed border-collapse text-left text-[10px] leading-snug sm:text-[11px]",
-            isPilot && "min-w-[720px]"
+            isPilot && "min-w-[640px]"
           )}
         >
           {isPilot ? (
             <colgroup>
-              <col className="w-[11%]" />
               <col className="w-[12%]" />
-              <col className="w-[22%]" />
-              <col className="w-[10%]" />
-              <col className="w-[30%]" />
-              <col className="w-[15%]" />
+              <col className="w-[13%]" />
+              <col className="w-[25%]" />
+              <col className="w-[12%]" />
+              <col className="w-[38%]" />
             </colgroup>
           ) : (
             <colgroup>
               <col className="w-[12%]" />
-              <col className="w-[24%]" />
-              <col className="w-[9%]" />
-              <col className="w-[21%]" />
+              <col className="w-[26%]" />
               <col className="w-[10%]" />
-              <col className="w-[10%]" />
-              <col className="w-[14%]" />
+              <col className="w-[22%]" />
+              <col className="w-[11%]" />
+              <col className="w-[19%]" />
             </colgroup>
           )}
           <thead>
@@ -300,9 +323,6 @@ export function UserRequestTable({
                   </th>
                   <th scope="col" className={cn(thBase, "text-left")}>
                     Destinations
-                  </th>
-                  <th scope="col" className={cn(thBase, "text-center")}>
-                    Status
                   </th>
                 </>
               ) : (
@@ -325,9 +345,6 @@ export function UserRequestTable({
                   <th scope="col" className={cn(thBase, "text-center")}>
                     Status
                   </th>
-                  <th scope="col" className={cn(thBase, "text-center")}>
-                    Action
-                  </th>
                 </>
               )}
             </tr>
@@ -337,9 +354,9 @@ export function UserRequestTable({
               const { payload, target } = parsePayloadAndTarget(m.desc);
               const weightDisplay = extractPayloadWeightDisplay(payload);
               const ReqIcon = requirementTypeIcon(m.title);
-              const statusUi = statusDisplayForRow(m);
               const highlightRow = m.title === "Industrial Part Delivery";
               const pilotCells = isPilot ? pilotTableCells(m) : null;
+              const adminStatusUi = !isPilot ? statusDisplayForAdminRow(m) : null;
 
               if (isPilot && pilotCells) {
                 return (
@@ -398,23 +415,6 @@ export function UserRequestTable({
                       <div className="break-words leading-snug font-medium">
                         {pilotCells.destinations}
                       </div>
-                    </td>
-                    <td className={cn(tdBase, "text-center")}>
-                      <span
-                        className={cn(
-                          "inline-flex min-w-0 max-w-full items-center justify-center gap-1.5 text-[9px] font-medium leading-snug sm:text-[10px]",
-                          statusUi.textClass
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "size-1.5 shrink-0 rounded-full",
-                            statusUi.dotClass
-                          )}
-                          aria-hidden
-                        />
-                        <span className="min-w-0 break-words">{statusUi.label}</span>
-                      </span>
                     </td>
                   </tr>
                 );
@@ -484,38 +484,25 @@ export function UserRequestTable({
                     </span>
                   </td>
                   <td className={cn(tdBase, "text-center")}>
-                    <span
-                      className={cn(
-                        "inline-flex min-w-0 max-w-full items-center justify-center gap-1.5 text-[9px] font-medium leading-snug sm:text-[10px]",
-                        statusUi.textClass
-                      )}
-                    >
+                    {adminStatusUi ? (
                       <span
-                        className={cn("size-1.5 shrink-0 rounded-full", statusUi.dotClass)}
-                        aria-hidden
-                      />
-                      <span className="min-w-0 break-words">{statusUi.label}</span>
-                    </span>
-                  </td>
-                  <td className={cn(tdBase, "text-center")}>
-                    <div className="inline-flex items-center justify-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => onEditRow?.(m)}
-                        disabled={!onEditRow}
-                        className="rounded border border-[#008B8B] px-2 py-1 text-[9px] font-semibold text-[#008B8B] transition hover:bg-[#008B8B]/10 disabled:cursor-not-allowed disabled:opacity-45 sm:text-[10px]"
+                        className={cn(
+                          "inline-flex min-w-0 max-w-full items-center justify-center gap-1.5 text-[9px] font-medium leading-snug sm:text-[10px]",
+                          adminStatusUi.textClass
+                        )}
                       >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDeleteRow?.(m)}
-                        disabled={!onDeleteRow}
-                        className="rounded border border-red-600 px-2 py-1 text-[9px] font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-45 sm:text-[10px]"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                        <span
+                          className={cn(
+                            "size-1.5 shrink-0 rounded-full",
+                            adminStatusUi.dotClass
+                          )}
+                          aria-hidden
+                        />
+                        <span className="min-w-0 break-words">
+                          {adminStatusUi.label}
+                        </span>
+                      </span>
+                    ) : null}
                   </td>
                 </tr>
               );

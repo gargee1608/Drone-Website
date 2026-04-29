@@ -576,7 +576,7 @@ export function AdminBlogsView() {
                         <button
                           type="button"
                           onClick={() => openEdit(post)}
-                          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#008B8B]/10 px-3 py-2 text-xs font-semibold text-[#008B8B] transition hover:bg-[#008B8B]/18 min-[360px]:flex-none"
+                          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#008B8B] bg-transparent px-3 py-2 text-xs font-semibold text-[#008B8B] transition hover:border-[#006f73] hover:text-[#006f73] min-[360px]:flex-none"
                         >
                           <Pencil className="size-3.5" aria-hidden />
                           Edit
@@ -585,7 +585,7 @@ export function AdminBlogsView() {
                           <button
                             type="button"
                             onClick={() => void deleteDbBlog(post.dbId!)}
-                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50/80 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 min-[360px]:flex-none"
+                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 min-[360px]:flex-none"
                             aria-label={`Delete ${post.title}`}
                           >
                             <Trash2 className="size-3.5" aria-hidden />
@@ -595,7 +595,7 @@ export function AdminBlogsView() {
                           <button
                             type="button"
                             onClick={() => deleteExtra(extra.internalId)}
-                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50/80 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 min-[360px]:flex-none"
+                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 min-[360px]:flex-none"
                           >
                             <Trash2 className="size-3.5" aria-hidden />
                             Delete
@@ -604,7 +604,7 @@ export function AdminBlogsView() {
                           <button
                             type="button"
                             onClick={() => deleteBuiltin(post.slug)}
-                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50/80 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 min-[360px]:flex-none"
+                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 min-[360px]:flex-none"
                             aria-label={`Delete ${post.title}`}
                           >
                             <Trash2 className="size-3.5" aria-hidden />

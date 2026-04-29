@@ -37,6 +37,7 @@ export function ConditionalSiteFooter() {
     pathname?.startsWith("/blogs/") ||
     pathname === "/contact" ||
     pathname?.startsWith("/contact/") ||
+    pathname === "/matching-hub" ||
     pathname === "/dashboard" ||
     pathname?.startsWith("/dashboard/");
 

@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import {
   BatteryCharging,
@@ -101,6 +100,14 @@ function statusCell(status: UserMissionAdminStatus) {
       </span>
     );
   }
+  if (status === "completed") {
+    return (
+      <span className="flex items-center justify-end gap-1.5 text-[11px] font-bold text-sky-700 dark:text-sky-300">
+        <CheckCircle2 className="size-4 shrink-0" strokeWidth={2.5} aria-hidden />
+        COMPLETED
+      </span>
+    );
+  }
   if (status === "pending") {
     return (
       <span className="text-right text-[11px] font-bold text-amber-600 dark:text-amber-400">
@@ -125,7 +132,6 @@ export function UserDashboardFleetDashboard({
   allRequests: UserMissionRequest[];
   tableRequests: UserMissionRequest[];
 }) {
-  const router = useRouter();
   const headingFont = { fontFamily: "var(--font-user-fleet-heading), sans-serif" };
 
   const [missionTitle, setMissionTitle] = useState("");
@@ -137,6 +143,7 @@ export function UserDashboardFleetDashboard({
   );
   const [urgency, setUrgency] = useState<Urgency>("express");
   const [submittingRequest, setSubmittingRequest] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const totalMissions = allRequests.length;
 
@@ -146,7 +153,11 @@ export function UserDashboardFleetDashboard({
   );
 
   const completedMissions = useMemo(
-    () => allRequests.filter((r) => r.adminStatus === "accepted").length,
+    () =>
+      allRequests.filter(
+        (r) =>
+          r.adminStatus === "accepted" || r.adminStatus === "completed"
+      ).length,
     [allRequests]
   );
 
@@ -160,6 +171,7 @@ export function UserDashboardFleetDashboard({
     const missionUrgency = urgencyToPriority(urgency);
 
     setSubmittingRequest(true);
+    setSubmitSuccess(false);
     try {
       const res = await fetch(apiUrl("/api/submit-request"), {
         method: "POST",
@@ -199,7 +211,7 @@ export function UserDashboardFleetDashboard({
       });
 
       setMissionTitle("");
-      router.push("/dashboard/user-requests");
+      setSubmitSuccess(true);
     } catch (error) {
       console.error(error);
       alert("Could not connect to backend. Please ensure API is running on port 4000.");
@@ -330,6 +342,32 @@ export function UserDashboardFleetDashboard({
               </button>
             </div>
             <form className="flex flex-grow flex-col space-y-5 p-6" onSubmit={onDeployMission}>
+              {submitSuccess ? (
+                <div
+                  role="status"
+                  className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 dark:border-emerald-500/35 dark:bg-emerald-500/15 dark:text-emerald-100"
+                >
+                  <CheckCircle2
+                    className="size-5 shrink-0 text-emerald-600 dark:text-emerald-300"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold">Request submitted</p>
+                    <p className="mt-1 text-xs text-emerald-900/85 dark:text-emerald-100/80">
+                      Your mission request was saved. You can track it under{" "}
+                      <span className="font-medium">My Request</span> in the sidebar.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSubmitSuccess(false)}
+                    className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100/80 dark:text-emerald-200 dark:hover:bg-emerald-500/25"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              ) : null}
               <div>
                 <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/55">
                   Mission title / reason

@@ -223,12 +223,32 @@ export function DashboardHomeContent() {
     let cancelled = false;
     const loadDbPending = async () => {
       try {
-        const response = await fetch(apiUrl("/api/pilots"), { cache: "no-store" });
+        const [response, totalCountResponse] = await Promise.all([
+          fetch(apiUrl("/api/pilots"), { cache: "no-store" }),
+          fetch(apiUrl("/api/pilots/total-count"), { cache: "no-store" }),
+        ]);
+        let pilotsTotalFromDb: number | null = null;
+        if (totalCountResponse.ok) {
+          try {
+            const tc: unknown = await totalCountResponse.json();
+            if (
+              tc &&
+              typeof tc === "object" &&
+              "count" in tc &&
+              typeof (tc as { count: unknown }).count === "number"
+            ) {
+              const n = Number((tc as { count: number }).count);
+              if (Number.isFinite(n)) pilotsTotalFromDb = n;
+            }
+          } catch {
+            /* ignore */
+          }
+        }
         if (!response.ok) {
           if (!cancelled) {
             setDbPendingPilots([]);
             setDbApprovedPilots([]);
-            setDbTotalPilots(0);
+            setDbTotalPilots(pilotsTotalFromDb ?? 0);
             setDbTotalDrones(0);
           }
           return;
@@ -236,24 +256,11 @@ export function DashboardHomeContent() {
         const data: unknown = await response.json();
         const list = Array.isArray(data) ? (data as DashboardPilotDbRow[]) : [];
         const pilotsCount = list.length;
-        const dronesFromPilots = list.reduce(
+        /** Total drones registered on pilot profiles (`pilots.drone_details` JSON arrays). */
+        const dronesCount = list.reduce(
           (sum, row) => sum + droneDetailsCount(row.drone_details),
           0
         );
-        let dronesCount = dronesFromPilots;
-        try {
-          const dronesResponse = await fetch(apiUrl("/api/drones"), {
-            cache: "no-store",
-          });
-          if (dronesResponse.ok) {
-            const dronesData: unknown = await dronesResponse.json();
-            if (Array.isArray(dronesData)) {
-              dronesCount = dronesData.length;
-            }
-          }
-        } catch {
-          // Fallback remains drones count inferred from pilots.drone_details
-        }
         const pending = list
           .filter((row) => droneDetailsMissing(row.drone_details))
           .map(mapDbPilotToPendingCard);
@@ -261,7 +268,9 @@ export function DashboardHomeContent() {
           .filter((row) => !droneDetailsMissing(row.drone_details))
           .map(mapDbPilotToApprovedCard);
         if (!cancelled) {
-          setDbTotalPilots(pilotsCount);
+          setDbTotalPilots(
+            pilotsTotalFromDb !== null ? pilotsTotalFromDb : pilotsCount
+          );
           setDbTotalDrones(dronesCount);
           setDbPendingPilots(pending);
           setDbApprovedPilots(approved);
@@ -429,13 +438,10 @@ function PendingRegistrationsSection({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-bold text-foreground">
-            Pilot registrations
+            {pilotRegView === "approved"
+              ? "Registered Pilot"
+              : "Pilot Registrations Pending"}
           </h3>
-          <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
-            {pilotRegView === "pending"
-              ? "Pilots awaiting review — accept or reject each application."
-              : "Pilots who have completed registration and are cleared to operate."}
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button

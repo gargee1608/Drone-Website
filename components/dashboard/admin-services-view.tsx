@@ -70,16 +70,35 @@ export function AdminServicesView() {
       return;
     }
 
-    await fetch("http://localhost:4000/api/services", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        description,
-        price: Number(price),
-        image,
-      }),
-    });
+    setFormError(null);
+    try {
+      const res = await fetch(apiUrl("/api/services"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          price: Number(price),
+          image,
+        }),
+      });
+      const body = await readResponseJson(res);
+      if (!res.ok) {
+        const msg =
+          body.okParse &&
+          body.data &&
+          typeof body.data === "object" &&
+          "error" in body.data &&
+          typeof (body.data as { error?: unknown }).error === "string"
+            ? (body.data as { error: string }).error
+            : "Could not save service";
+        setFormError(msg);
+        return;
+      }
+    } catch {
+      setFormError("Network error while saving service");
+      return;
+    }
 
     resetForm();
     fetchServices();
@@ -183,7 +202,13 @@ export function AdminServicesView() {
 
             <div className="flex gap-2">
               {formMode === "add" ? (
-                <Button onClick={addService}>Save</Button>
+                <Button
+                  onClick={addService}
+                  variant="outline"
+                  className="border-[#0D9488] bg-transparent text-[#0D9488] hover:bg-transparent hover:border-[#0f766e] hover:text-[#0f766e]"
+                >
+                  Save
+                </Button>
               ) : (
                 <Button onClick={updateService}>Update</Button>
               )}

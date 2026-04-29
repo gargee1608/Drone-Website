@@ -11,10 +11,16 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { readResponseJson } from "@/lib/read-response-json";
+import {
+  clearStoredUserSession,
+  writeStoredUserSession,
+  type StoredUserSession,
+} from "@/lib/user-session-browser";
 import { cn } from "@/lib/utils";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -87,9 +93,31 @@ function validateUserOtp(identity: string, otp: string, otpSent: boolean) {
   return errors;
 }
 
-export function LoginView() {
+export function LoginView({
+  userOnly = false,
+  adminOnly = false,
+  embedded = false,
+  hideWelcomeHeader = false,
+  plainCard = false,
+}: {
+  /** Hide Admin login; use on pages that only offer user sign-in (e.g. next to Pilot login). */
+  userOnly?: boolean;
+  /** `/login`: admin sign-in only (no User tab or user flows). */
+  adminOnly?: boolean;
+  /** Omit outer page shell — parent supplies layout (e.g. sliding panel). */
+  embedded?: boolean;
+  /** Hide icon, “User Login”, and “Welcome Back” — parent shows shared title (e.g. pilot login page). */
+  hideWelcomeHeader?: boolean;
+  /** No inner card chrome — sits inside a parent box (e.g. pilot login outer shell). */
+  plainCard?: boolean;
+} = {}) {
   const router = useRouter();
-  const [mode, setMode] = useState<LoginMode>("admin");
+  const [mode, setMode] = useState<LoginMode>(
+    userOnly ? "user" : "admin"
+  );
+  const showAdminUserTabs = !userOnly && !adminOnly;
+  const isAdminMode = adminOnly || mode === "admin";
+  const isUserMode = !adminOnly && mode === "user";
   const [userAuthMethod, setUserAuthMethod] = useState<UserAuthMethod>("password");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
@@ -115,6 +143,18 @@ export function LoginView() {
     }
     setResetNote("Reset link request submitted.");
   }
+
+  useEffect(() => {
+    if (!forgotOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setForgotOpen(false);
+        setResetNote("");
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [forgotOpen]);
 
   const sendOtp = async () => {
     const value = identity.trim();
@@ -177,10 +217,10 @@ export function LoginView() {
   };
 
   useEffect(() => {
-    if (mode === "user" && userAuthMethod === "otp" && otpSent) {
+    if (isUserMode && userAuthMethod === "otp" && otpSent) {
       otpInputRef.current?.focus();
     }
-  }, [mode, userAuthMethod, otpSent]);
+  }, [isUserMode, userAuthMethod, otpSent]);
 
   const signInWithBackend = async (emailRaw: string, passRaw: string) => {
     const email = emailRaw.trim().toLowerCase();
@@ -192,7 +232,7 @@ export function LoginView() {
       body: JSON.stringify({
         email,
         password,
-        role: mode === "admin" ? "admin" : "user",
+        role: isAdminMode ? "admin" : "user",
       }),
     });
 
@@ -205,7 +245,7 @@ export function LoginView() {
     let data: {
       token?: string;
       role?: string;
-      user?: { role?: string };
+      user?: StoredUserSession;
       message?: string;
       error?: string;
       detail?: string;
@@ -236,89 +276,117 @@ export function LoginView() {
 
     localStorage.setItem("token", data.token);
     if (data.role === "admin") {
+      clearStoredUserSession();
       router.push("/dashboard");
     } else {
+      if (data.user && typeof data.user === "object") {
+        writeStoredUserSession(data.user);
+      }
       router.push("/user-dashboard");
     }
   };
 
-  return (
-    <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-background text-foreground">
-      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-14">
-        <div className="login-glass-card relative w-full max-w-[min(100%,360px)] overflow-hidden rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md sm:max-w-[420px] sm:p-5">
-          <div className="mb-2 text-center sm:mb-2.5">
-            <div className="mb-1.5 flex justify-center sm:mb-2">
-              <div className="flex size-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 shadow-sm sm:size-11">
-                <User
-                  className="size-[22px] text-[#008B8B] sm:size-6"
-                  strokeWidth={1.75}
-                />
+  const card = (
+        <div
+          className={cn(
+            "relative w-full overflow-hidden",
+            plainCard
+              ? "border-0 bg-transparent p-0 shadow-none"
+              : "login-glass-card rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md sm:p-5",
+            !embedded && !plainCard && "max-w-[min(100%,360px)] sm:max-w-[420px]"
+          )}
+        >
+          {!hideWelcomeHeader ? (
+            <div className="mb-2 text-center sm:mb-2.5">
+              <div className="mb-1.5 flex justify-center sm:mb-2">
+                <div className="flex size-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 shadow-sm sm:size-11">
+                  <User
+                    className="size-[22px] text-[#008B8B] sm:size-6"
+                    strokeWidth={1.75}
+                  />
+                </div>
               </div>
-            </div>
-            <h1 className={cn("mb-1.5", ADMIN_PAGE_TITLE_CLASS)}>
-              Welcome Back
-            </h1>
-            <div
-              className="mb-1.5 flex rounded-lg border border-slate-200 bg-slate-100/80 p-0.5"
-              role="tablist"
-              aria-label="Login type"
-            >
-              <button
-                type="button"
-                role="tab"
-                id="login-tab-admin"
-                aria-selected={mode === "admin"}
-                aria-controls="login-panel"
-                tabIndex={mode === "admin" ? 0 : -1}
-                onClick={() => {
-                  setMode("admin");
-                  setOtp("");
-                  setOtpSent(false);
-                  setErrors({});
-                }}
-                className={cn(
-                  "min-h-8 flex-1 rounded-md px-2 py-1 text-xs font-semibold tracking-wide transition-all sm:min-h-9 sm:px-2.5 sm:text-sm",
-                  mode === "admin"
-                    ? "border border-slate-300 bg-white text-[#191c1d] shadow-sm"
-                    : "text-[#414755] hover:text-[#191c1d]"
-                )}
+              {userOnly ? (
+                <p
+                  id="login-user-caption"
+                  className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-[#008B8B]"
+                >
+                  User Login
+                </p>
+              ) : null}
+              <h1 className={cn("mb-1.5", ADMIN_PAGE_TITLE_CLASS)}>
+                Welcome Back
+              </h1>
+              {showAdminUserTabs ? (
+                <div
+                  className="mb-1.5 flex rounded-lg border border-slate-200 bg-slate-100/80 p-0.5"
+                  role="tablist"
+                  aria-label="Login type"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    id="login-tab-admin"
+                    aria-selected={mode === "admin"}
+                    aria-controls="login-panel"
+                    tabIndex={mode === "admin" ? 0 : -1}
+                    onClick={() => {
+                      setMode("admin");
+                      setOtp("");
+                      setOtpSent(false);
+                      setErrors({});
+                    }}
+                    className={cn(
+                      "min-h-8 flex-1 rounded-md px-2 py-1 text-xs font-semibold tracking-wide transition-all sm:min-h-9 sm:px-2.5 sm:text-sm",
+                      mode === "admin"
+                        ? "border border-slate-300 bg-white text-[#191c1d] shadow-sm"
+                        : "text-[#414755] hover:text-[#191c1d]"
+                    )}
+                  >
+                    Admin Login
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    id="login-tab-user"
+                    aria-selected={mode === "user"}
+                    aria-controls="login-panel"
+                    tabIndex={mode === "user" ? 0 : -1}
+                    onClick={() => {
+                      setMode("user");
+                      setOtp("");
+                      setOtpSent(false);
+                      setErrors({});
+                    }}
+                    className={cn(
+                      "min-h-8 flex-1 rounded-md px-2 py-1 text-xs font-semibold tracking-wide transition-all sm:min-h-9 sm:px-2.5 sm:text-sm",
+                      mode === "user"
+                        ? "border border-slate-300 bg-white text-[#191c1d] shadow-sm"
+                        : "text-[#414755] hover:text-[#191c1d]"
+                    )}
+                  >
+                    User Login
+                  </button>
+                </div>
+              ) : null}
+              <p
+                id="login-panel"
+                role={showAdminUserTabs ? "tabpanel" : undefined}
+                aria-labelledby={
+                  userOnly
+                    ? "login-user-caption"
+                    : adminOnly
+                      ? undefined
+                      : mode === "admin"
+                        ? "login-tab-admin"
+                        : "login-tab-user"
+                }
+                className="text-xs font-medium leading-snug text-[#414755] sm:text-sm"
               >
-                Admin Login
-              </button>
-              <button
-                type="button"
-                role="tab"
-                id="login-tab-user"
-                aria-selected={mode === "user"}
-                aria-controls="login-panel"
-                tabIndex={mode === "user" ? 0 : -1}
-                onClick={() => {
-                  setMode("user");
-                  setOtp("");
-                  setOtpSent(false);
-                  setErrors({});
-                }}
-                className={cn(
-                  "min-h-8 flex-1 rounded-md px-2 py-1 text-xs font-semibold tracking-wide transition-all sm:min-h-9 sm:px-2.5 sm:text-sm",
-                  mode === "user"
-                    ? "border border-slate-300 bg-white text-[#191c1d] shadow-sm"
-                    : "text-[#414755] hover:text-[#191c1d]"
-                )}
-              >
-                User Login
-              </button>
+                {isAdminMode ? "Admin dashboard" : "User dashboard"}
+              </p>
             </div>
-            <p
-              id="login-panel"
-              role="tabpanel"
-              aria-labelledby={
-                mode === "admin" ? "login-tab-admin" : "login-tab-user"
-              }
-              className="text-xs font-medium leading-snug text-[#414755] sm:text-sm"
-            >
-              {mode === "admin" ? "Admin dashboard" : "User Dashboard"}
-            </p>
-          </div>
+          ) : null}
 <form
   className="space-y-2 sm:space-y-2.5"
   noValidate
@@ -326,7 +394,7 @@ export function LoginView() {
     e.preventDefault();
 
     // ✅ USER OTP FLOW (email flow unchanged; phone flow verifies via backend)
-    if (mode === "user" && userAuthMethod === "otp") {
+    if (!adminOnly && mode === "user" && userAuthMethod === "otp") {
       const next = validateUserOtp(identity, otp, otpSent);
       setErrors(next);
       if (Object.keys(next).length > 0) return;
@@ -354,13 +422,21 @@ export function LoginView() {
         }
         const data =
           body.data && typeof body.data === "object" && body.data !== null
-            ? (body.data as { token?: string; message?: string; error?: string })
+            ? (body.data as {
+                token?: string;
+                message?: string;
+                error?: string;
+                user?: StoredUserSession;
+              })
             : {};
         if (!res.ok || !data.token) {
           alert(data.message || data.error || "OTP verification failed");
           return;
         }
         localStorage.setItem("token", data.token);
+        if (data.user && typeof data.user === "object") {
+          writeStoredUserSession(data.user);
+        }
         router.push("/user-dashboard");
       } catch (error) {
         console.error(error);
@@ -370,7 +446,7 @@ export function LoginView() {
     }
 
     // ✅ ADMIN LOGIN (API: test@gmail.com / test123 → token + role)
-    if (mode === "admin") {
+    if (adminOnly || mode === "admin") {
       const next = validateAdmin(identity, password);
       setErrors(next);
       if (Object.keys(next).length > 0) return;
@@ -412,7 +488,7 @@ export function LoginView() {
     router.push("/user-dashboard");
   }}
 >
-            {mode === "user" ? (
+            {isUserMode ? (
               <div
                 className="flex w-full rounded-lg border border-slate-200 bg-slate-100/80 p-0.5"
                 role="tablist"
@@ -467,14 +543,14 @@ export function LoginView() {
                 htmlFor="login-identity"
                 className="block px-1 text-xs font-semibold text-[#414755] sm:text-sm"
               >
-                {mode === "user" && userAuthMethod === "otp"
+                {isUserMode && userAuthMethod === "otp"
                   ? "Email or mobile"
-                  : mode === "admin"
+                  : isAdminMode
                     ? "Email Address"
                     : "Email or mobile"}
               </label>
               <div className="relative">
-                {mode === "admin" ? (
+                {isAdminMode ? (
                   <Mail
                     className="pointer-events-none absolute left-2.5 top-1/2 size-[15px] -translate-y-1/2 text-[#717786] sm:left-3 sm:size-4"
                     aria-hidden
@@ -488,10 +564,10 @@ export function LoginView() {
                 <input
                   id="login-identity"
                   name="identity"
-                  type={mode === "admin" ? "email" : "text"}
-                  autoComplete={mode === "admin" ? "email" : "username"}
+                  type={isAdminMode ? "email" : "text"}
+                  autoComplete={isAdminMode ? "email" : "username"}
                   placeholder={
-                    mode === "admin"
+                    isAdminMode
                       ? "you@company.com"
                       : "email or 10-digit mobile"
                   }
@@ -524,7 +600,7 @@ export function LoginView() {
               ) : null}
             </div>
 
-            {mode === "user" && userAuthMethod === "otp" ? (
+            {isUserMode && userAuthMethod === "otp" ? (
               <div className="space-y-2">
                <button
   type="button"
@@ -685,100 +761,130 @@ export function LoginView() {
                 "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#008B8B] to-[#006b6b] py-2 px-3 text-sm font-bold text-white shadow-md shadow-[#008B8B]/20 transition-all hover:shadow-[#008B8B]/35 active:scale-[0.99] sm:py-2.5"
               )}
             >
-              {mode === "admin"
+              {isAdminMode
                 ? "Sign in to Admin Dashboard"
                 : "Sign in to User Dashboard"}
               <ArrowRight className="size-3.5 sm:size-4" />
             </button>
           </form>
 
-          <div className="mt-3 text-center sm:mt-4">
-            <p className="text-xs font-medium text-[#414755] sm:text-sm">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/signup"
-                className="ml-1 font-bold text-[#008B8B] hover:underline"
-              >
-                Sign Up
-              </Link>
-            </p>
-          </div>
-        </div>
-      </main>
-
-      {forgotOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Forgot your password"
-        >
-          <div className="w-full max-w-[360px] rounded-xl border border-slate-200 bg-white p-4 shadow-lg sm:p-5 dark:border-white/15 dark:bg-[#161a1d]">
-            <h2 className="text-lg font-bold tracking-tight text-[#191c1d] sm:text-xl dark:text-white">
-              Forgot your password
-            </h2>
-            <p className="mt-2 text-xs font-medium text-slate-600 sm:text-sm dark:text-white/75">
-              Please enter the email address you&apos;d like your password reset
-              information sent to
-            </p>
-
-            <div className="mt-5">
-              <label
-                htmlFor="login-reset-email"
-                className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#0c4a6e] dark:text-teal-200/90"
-              >
-                Enter email address
-              </label>
-              <input
-                id="login-reset-email"
-                type="email"
-                autoComplete="email"
-                value={resetEmail}
-                onChange={(e) => {
-                  setResetEmail(e.target.value);
-                  if (resetNote) setResetNote("");
-                }}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-[#191c1d] outline-none ring-[#008B8B]/25 transition focus:ring-2 sm:text-sm dark:border-white/15 dark:bg-[#111315] dark:text-white"
-                placeholder="name@example.com"
-              />
-            </div>
-
-            {resetNote ? (
-              <p
-                className={cn(
-                  "mt-2 text-[11px] font-semibold sm:text-xs",
-                  resetNote.toLowerCase().includes("valid")
-                    ? "text-red-600 dark:text-red-400"
-                    : "text-slate-600 dark:text-white/75"
-                )}
-              >
-                {resetNote}
+          {!adminOnly ? (
+            <div className="mt-3 text-center sm:mt-4">
+              <p className="text-xs font-medium text-[#414755] sm:text-sm">
+                Don&apos;t have an account?{" "}
+                <Link
+                  href="/signup"
+                  className="ml-1 font-bold text-[#008B8B] hover:underline"
+                >
+                  Sign Up
+                </Link>
               </p>
-            ) : null}
+            </div>
+          ) : null}
+        </div>
+  );
 
-            <button
-              type="button"
-              onClick={submitLoginResetRequest}
-              className="mt-4 flex w-full items-center justify-center rounded-lg bg-[#008B8B] py-2.5 text-xs font-semibold text-white transition hover:bg-[#006f6f] sm:text-sm"
+  /** Portaled so `position: fixed` is not trapped by parent `transform` (e.g. pilot/user tab slider). */
+  const forgotPortal =
+    forgotOpen && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4 sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Forgot your password"
+            onClick={() => {
+              setForgotOpen(false);
+              setResetNote("");
+            }}
+          >
+            <div
+              className="w-full max-w-[min(100%,22rem)] rounded-xl border border-slate-200 bg-white p-4 shadow-xl sm:max-w-md sm:p-5 dark:border-white/15 dark:bg-[#161a1d]"
+              onClick={(e) => e.stopPropagation()}
             >
-              Request reset link
-            </button>
+              <h2 className="text-lg font-bold tracking-tight text-[#191c1d] sm:text-xl dark:text-white">
+                Forgot your password
+              </h2>
+              <p className="mt-2 text-xs font-medium text-slate-600 sm:text-sm dark:text-white/75">
+                Please enter the email address you&apos;d like your password
+                reset information sent to
+              </p>
 
-            <div className="mt-4 text-center">
+              <div className="mt-5">
+                <label
+                  htmlFor="login-reset-email"
+                  className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#0c4a6e] dark:text-teal-200/90"
+                >
+                  Enter email address
+                </label>
+                <input
+                  id="login-reset-email"
+                  type="email"
+                  autoComplete="email"
+                  value={resetEmail}
+                  onChange={(e) => {
+                    setResetEmail(e.target.value);
+                    if (resetNote) setResetNote("");
+                  }}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-[#191c1d] outline-none ring-[#008B8B]/25 transition focus:ring-2 sm:text-sm dark:border-white/15 dark:bg-[#111315] dark:text-white"
+                  placeholder="name@example.com"
+                />
+              </div>
+
+              {resetNote ? (
+                <p
+                  className={cn(
+                    "mt-2 text-[11px] font-semibold sm:text-xs",
+                    resetNote.toLowerCase().includes("valid")
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-slate-600 dark:text-white/75"
+                  )}
+                >
+                  {resetNote}
+                </p>
+              ) : null}
+
               <button
                 type="button"
-                onClick={() => {
-                  setForgotOpen(false);
-                  setResetNote("");
-                }}
-                className="text-[11px] font-semibold text-[#008B8B] underline-offset-2 hover:underline sm:text-xs"
+                onClick={submitLoginResetRequest}
+                className="mt-4 flex w-full items-center justify-center rounded-lg bg-[#008B8B] py-2.5 text-xs font-semibold text-white transition hover:bg-[#006f6f] sm:text-sm"
               >
-                Back To Login
+                Request reset link
               </button>
+
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotOpen(false);
+                    setResetNote("");
+                  }}
+                  className="text-[11px] font-semibold text-[#008B8B] underline-offset-2 hover:underline sm:text-xs"
+                >
+                  Back To Login
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      ) : null}
+          </div>,
+          document.body
+        )
+      : null;
+
+  if (embedded) {
+    return (
+      <>
+        {card}
+        {forgotPortal}
+      </>
+    );
+  }
+
+  return (
+    <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-background text-foreground">
+      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-14">
+        {card}
+      </main>
+      {forgotPortal}
     </div>
   );
 }

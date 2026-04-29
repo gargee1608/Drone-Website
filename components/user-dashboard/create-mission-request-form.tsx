@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { CheckCircle2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { appendUserRequest } from "@/lib/user-requests";
@@ -9,7 +10,6 @@ import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 
 export function CreateMissionRequestForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const reasonPrefilled = useRef(false);
   const [reasonOrTitle, setReasonOrTitle] = useState("");
@@ -31,9 +31,11 @@ export function CreateMissionRequestForm() {
   const [payloadWeightKg, setPayloadWeightKg] = useState("0.0");
   const [requestType, setRequestType] = useState("");
   const [requestPriority, setRequestPriority] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   async function handleSubmitRequest(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setSubmitSuccess(false);
     const payload = {
       reason_or_title: reasonOrTitle.trim(),
       pickup_location: pickupLocation.trim(),
@@ -68,11 +70,37 @@ export function CreateMissionRequestForm() {
     setPayloadWeightKg("0.0");
     setRequestType("");
     setRequestPriority("");
-    window.alert("Request submitted successfully.");
+    setSubmitSuccess(true);
   }
 
   return (
     <form className="space-y-4" onSubmit={handleSubmitRequest}>
+      {submitSuccess ? (
+        <div
+          role="status"
+          className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 dark:border-emerald-500/35 dark:bg-emerald-500/15 dark:text-emerald-100"
+        >
+          <CheckCircle2
+            className="size-5 shrink-0 text-emerald-600 dark:text-emerald-300"
+            strokeWidth={2}
+            aria-hidden
+          />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">Request submitted</p>
+            <p className="mt-1 text-xs text-emerald-900/85 dark:text-emerald-100/80">
+              Your request was saved. View it anytime under{" "}
+              <span className="font-medium">My Request</span>.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSubmitSuccess(false)}
+            className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100/80 dark:text-emerald-200 dark:hover:bg-emerald-500/25"
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
       <div className="space-y-1.5">
         <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/65">
           Reason or title

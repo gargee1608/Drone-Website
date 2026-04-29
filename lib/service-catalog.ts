@@ -16,7 +16,7 @@ export const serviceCatalogItems: ServiceCatalogItem[] = [
     slug: "medical-logistics",
     title: "Medical Logistics",
     description:
-      "Critical time-sensitive transport for medical cargo including specimens, organs, and pharmaceuticals.",
+      "Critical time-sensitive transport for medical cargo\nincluding specimens, organs, and pharmaceuticals.",
     detailSections: [
       "Our medical logistics network is built for cold-chain integrity, chain-of-custody documentation, and predictable handoffs between hospitals, labs, and distribution hubs.",
       "Flights are planned around weather, airspace, and hospital receiving windows so high-value payloads arrive within the window you specify—not “as soon as possible,” but when your clinicians need them.",

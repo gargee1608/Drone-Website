@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, Mail, Plane } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { Lock, Mail, Plane, User } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
 
+import { LoginView } from "@/components/login/login-view";
 import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { readResponseJson } from "@/lib/read-response-json";
@@ -22,8 +23,21 @@ function validatePilotLogin(email: string, password: string) {
   return errors;
 }
 
+type LoginPanel = "pilot" | "user";
+
 export function PilotLoginView() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const panelFromUrl = searchParams.get("panel");
+  const [loginPanel, setLoginPanel] = useState<LoginPanel>(() =>
+    panelFromUrl === "user" ? "user" : "pilot"
+  );
+
+  useEffect(() => {
+    const p = searchParams.get("panel");
+    if (p === "user") setLoginPanel("user");
+    else if (p === "pilot") setLoginPanel("pilot");
+  }, [searchParams]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -123,31 +137,75 @@ export function PilotLoginView() {
   return (
     <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-background text-foreground">
       <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-14">
-        <div className="login-glass-card relative w-full max-w-[min(100%,360px)] overflow-hidden rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md sm:max-w-[420px] sm:p-5">
-          <div className="mb-2 text-center sm:mb-2.5">
-            <div className="mb-1.5 flex justify-center sm:mb-2">
-              <div className="flex size-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 shadow-sm sm:size-11">
-                <Plane
-                  className="size-[22px] text-[#008B8B] sm:size-6"
-                  strokeWidth={1.75}
-                  aria-hidden
-                />
-              </div>
-            </div>
+        <div className="w-full max-w-[min(100%,440px)]">
+          <div className="login-glass-card relative w-full overflow-hidden rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md sm:p-6">
+          <div className="mb-4 text-center">
             <h1
               className={cn(
                 ADMIN_PAGE_TITLE_CLASS,
                 "text-center text-xl sm:text-2xl"
               )}
             >
-              Pilot login
+              Welcome Back
             </h1>
             <p className="mt-1 text-sm text-slate-600 dark:text-white/75">
-              Sign in to open your pilot dashboard.
+              {loginPanel === "pilot"
+                ? "Sign in to open your pilot dashboard."
+                : "Sign in to your user dashboard."}
             </p>
           </div>
 
-          <form className="mt-4 space-y-3 sm:space-y-4" noValidate onSubmit={onSubmit}>
+          <div
+            className="mb-4 flex justify-center"
+            role="tablist"
+            aria-label="Choose pilot or user sign-in"
+          >
+            <div className="inline-flex w-full rounded-xl border border-slate-200 bg-slate-100/80 p-1">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={loginPanel === "pilot"}
+                id="pilot-login-tab-pilot"
+                onClick={() => setLoginPanel("pilot")}
+                className={cn(
+                  "inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all sm:min-h-11 sm:text-sm",
+                  loginPanel === "pilot"
+                    ? "border border-slate-300 bg-white text-[#191c1d] shadow-sm"
+                    : "text-[#414755] hover:text-[#191c1d]"
+                )}
+              >
+                <Plane className="size-4 shrink-0 text-[#008B8B]" aria-hidden />
+                Pilot Login
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={loginPanel === "user"}
+                id="pilot-login-tab-user"
+                onClick={() => setLoginPanel("user")}
+                className={cn(
+                  "inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all sm:min-h-11 sm:text-sm",
+                  loginPanel === "user"
+                    ? "border border-slate-300 bg-white text-[#191c1d] shadow-sm"
+                    : "text-[#414755] hover:text-[#191c1d]"
+                )}
+              >
+                <User className="size-4 shrink-0 text-[#008B8B]" aria-hidden />
+                User Login
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-hidden">
+            <div
+              className={cn(
+                "flex w-[200%] transition-transform duration-500 ease-out",
+                loginPanel === "pilot" ? "translate-x-0" : "-translate-x-1/2"
+              )}
+            >
+              <div className="w-1/2 shrink-0 pr-1 sm:pr-1.5">
+        <div className="relative w-full">
+          <form className="space-y-3 sm:space-y-4" noValidate onSubmit={onSubmit}>
             <div>
               <label
                 htmlFor="pilot-login-email"
@@ -284,9 +342,22 @@ export function PilotLoginView() {
               href="/pilot-registration"
               className="font-semibold text-[#008B8B] underline-offset-2 hover:underline"
             >
-              New Pilot Register
+              New Pilot Register ? Click here.
             </Link>
           </p>
+        </div>
+              </div>
+              <div className="w-1/2 shrink-0 pl-1 sm:pl-1.5">
+                <LoginView
+                  userOnly
+                  embedded
+                  hideWelcomeHeader
+                  plainCard
+                />
+              </div>
+            </div>
+          </div>
+          </div>
         </div>
       </main>
       {forgotOpen ? (

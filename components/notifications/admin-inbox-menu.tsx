@@ -6,7 +6,7 @@ import { Bell, ClipboardList, Mail } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
-  buildAdminInboxRows,
+  buildUnreadAdminInboxRows,
   countUnreadAdminInbox,
   markAdminInboxKeysSeen,
   type AdminInboxRow,
@@ -24,7 +24,7 @@ export function AdminInboxMenu() {
   const rootRef = useRef<HTMLDivElement>(null);
 
   const sync = useCallback(() => {
-    setRows(buildAdminInboxRows().slice(0, MAX_ROWS));
+    setRows(buildUnreadAdminInboxRows().slice(0, MAX_ROWS));
     setUnread(countUnreadAdminInbox());
   }, []);
 
@@ -152,7 +152,9 @@ export function AdminInboxMenu() {
                 size="sm"
                 className="h-8 w-full text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => {
-                  markAdminInboxKeysSeen(rows.map((r) => r.key));
+                  markAdminInboxKeysSeen(
+                    buildUnreadAdminInboxRows().map((r) => r.key)
+                  );
                   sync();
                 }}
               >
