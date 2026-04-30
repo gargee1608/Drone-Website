@@ -256,7 +256,7 @@ async function migrateServicesSchema() {
 // ─── 8. seed admin ─────────────────────────────────────────────────────────────
 async function seedAdmin() {
   console.log("\n[migrate] → seed admin user");
-  const bcrypt = require("bcrypt");
+  const bcrypt = require("bcryptjs");
   const hash = await bcrypt.hash("admin123", 10);
   const ins = await pool.query(
     `INSERT INTO admins (email, password, name)
