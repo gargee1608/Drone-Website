@@ -6,28 +6,26 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Force development so devDependencies (tailwind, postcss, typescript, etc.) are installed
-ENV NODE_ENV=development
-
 # Copy package files
 COPY package.json package-lock.json* ./
 
 # Install ALL dependencies including devDependencies
-RUN npm install --include=dev
+# Use NODE_ENV=development to ensure devDependencies are installed
+# Override any external NODE_ENV that might be set (e.g., by CI/CD)
+RUN NODE_ENV=development npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
 
-# Keep NODE_ENV=development during build so build tools are available
-ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build the Next.js application
-RUN npm run build
+# Use NODE_ENV=development during build so TypeScript, Tailwind, etc. are available
+RUN NODE_ENV=development npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner
