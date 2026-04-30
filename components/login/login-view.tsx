@@ -11,8 +11,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-
+import { ForgotPasswordModal } from "@/components/login/forgot-password-modal";
 import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { readResponseJson } from "@/lib/read-response-json";
@@ -132,29 +131,7 @@ export function LoginView({
   }>({});
   const otpInputRef = useRef<HTMLInputElement>(null);
   const [forgotOpen, setForgotOpen] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
-  const [resetNote, setResetNote] = useState("");
-
-  function submitLoginResetRequest() {
-    const normalized = resetEmail.trim().toLowerCase();
-    if (!emailPattern.test(normalized)) {
-      setResetNote("Please enter a valid email address.");
-      return;
-    }
-    setResetNote("Reset link request submitted.");
-  }
-
-  useEffect(() => {
-    if (!forgotOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setForgotOpen(false);
-        setResetNote("");
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [forgotOpen]);
+  const [forgotInitialEmail, setForgotInitialEmail] = useState("");
 
   const sendOtp = async () => {
     const value = identity.trim();
@@ -717,10 +694,9 @@ export function LoginView({
                       className="shrink-0 text-[11px] font-semibold text-[#008B8B] transition-colors hover:text-[#006b6b] sm:text-xs"
                       onClick={() => {
                         const id = identity.trim();
-                        setResetEmail(
+                        setForgotInitialEmail(
                           emailPattern.test(id) ? id.toLowerCase() : ""
                         );
-                        setResetNote("");
                         setForgotOpen(true);
                       }}
                     >
@@ -784,97 +760,20 @@ export function LoginView({
         </div>
   );
 
-  /** Portaled so `position: fixed` is not trapped by parent `transform` (e.g. pilot/user tab slider). */
-  const forgotPortal =
-    forgotOpen && typeof document !== "undefined"
-      ? createPortal(
-          <div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4 sm:p-6"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Forgot your password"
-            onClick={() => {
-              setForgotOpen(false);
-              setResetNote("");
-            }}
-          >
-            <div
-              className="w-full max-w-[min(100%,22rem)] rounded-xl border border-slate-200 bg-white p-4 shadow-xl sm:max-w-md sm:p-5 dark:border-white/15 dark:bg-[#161a1d]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className="text-lg font-bold tracking-tight text-[#191c1d] sm:text-xl dark:text-white">
-                Forgot your password
-              </h2>
-              <p className="mt-2 text-xs font-medium text-slate-600 sm:text-sm dark:text-white/75">
-                Please enter the email address you&apos;d like your password
-                reset information sent to
-              </p>
-
-              <div className="mt-5">
-                <label
-                  htmlFor="login-reset-email"
-                  className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#0c4a6e] dark:text-teal-200/90"
-                >
-                  Enter email address
-                </label>
-                <input
-                  id="login-reset-email"
-                  type="email"
-                  autoComplete="email"
-                  value={resetEmail}
-                  onChange={(e) => {
-                    setResetEmail(e.target.value);
-                    if (resetNote) setResetNote("");
-                  }}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-[#191c1d] outline-none ring-[#008B8B]/25 transition focus:ring-2 sm:text-sm dark:border-white/15 dark:bg-[#111315] dark:text-white"
-                  placeholder="name@example.com"
-                />
-              </div>
-
-              {resetNote ? (
-                <p
-                  className={cn(
-                    "mt-2 text-[11px] font-semibold sm:text-xs",
-                    resetNote.toLowerCase().includes("valid")
-                      ? "text-red-600 dark:text-red-400"
-                      : "text-slate-600 dark:text-white/75"
-                  )}
-                >
-                  {resetNote}
-                </p>
-              ) : null}
-
-              <button
-                type="button"
-                onClick={submitLoginResetRequest}
-                className="mt-4 flex w-full items-center justify-center rounded-lg bg-[#008B8B] py-2.5 text-xs font-semibold text-white transition hover:bg-[#006f6f] sm:text-sm"
-              >
-                Request reset link
-              </button>
-
-              <div className="mt-4 text-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForgotOpen(false);
-                    setResetNote("");
-                  }}
-                  className="text-[11px] font-semibold text-[#008B8B] underline-offset-2 hover:underline sm:text-xs"
-                >
-                  Back To Login
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )
-      : null;
+  const forgotModal = (
+    <ForgotPasswordModal
+      open={forgotOpen}
+      onClose={() => setForgotOpen(false)}
+      initialEmail={forgotInitialEmail}
+      role={isAdminMode ? "admin" : "user"}
+    />
+  );
 
   if (embedded) {
     return (
       <>
         {card}
-        {forgotPortal}
+        {forgotModal}
       </>
     );
   }
@@ -884,7 +783,7 @@ export function LoginView({
       <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-14">
         {card}
       </main>
-      {forgotPortal}
+      {forgotModal}
     </div>
   );
 }

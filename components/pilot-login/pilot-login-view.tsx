@@ -5,6 +5,7 @@ import { Lock, Mail, Plane, User } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 
+import { ForgotPasswordModal } from "@/components/login/forgot-password-modal";
 import { LoginView } from "@/components/login/login-view";
 import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
@@ -43,8 +44,7 @@ export function PilotLoginView() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
-  const [resetNote, setResetNote] = useState("");
+  const [forgotInitialEmail, setForgotInitialEmail] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {}
   );
@@ -123,15 +123,6 @@ export function PilotLoginView() {
     } finally {
       setSubmitting(false);
     }
-  }
-
-  function submitResetRequest() {
-    const normalized = resetEmail.trim().toLowerCase();
-    if (!emailPattern.test(normalized)) {
-      setResetNote("Please enter a valid email address.");
-      return;
-    }
-    setResetNote("Reset link request submitted.");
   }
 
   return (
@@ -295,8 +286,7 @@ export function PilotLoginView() {
                   type="button"
                   className="shrink-0 text-xs font-semibold text-[#008B8B] underline-offset-2 hover:underline"
                   onClick={() => {
-                    setResetEmail(email.trim().toLowerCase());
-                    setResetNote("");
+                    setForgotInitialEmail(email.trim().toLowerCase());
                     setForgotOpen(true);
                   }}
                 >
@@ -360,68 +350,12 @@ export function PilotLoginView() {
           </div>
         </div>
       </main>
-      {forgotOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Forgot your password"
-        >
-          <div className="w-full max-w-[360px] rounded-xl border border-slate-200 bg-white p-4 shadow-lg sm:p-5 dark:border-white/15 dark:bg-[#161a1d]">
-            <h2 className="text-lg font-bold tracking-tight text-[#191c1d] sm:text-xl dark:text-white">
-              Forgot your password
-            </h2>
-            <p className="mt-2 text-xs font-medium text-slate-600 sm:text-sm dark:text-white/75">
-              Please enter the email address you&apos;d like your password reset
-              information sent to
-            </p>
-
-            <div className="mt-5">
-              <label
-                htmlFor="pilot-reset-email"
-                className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-white/70"
-              >
-                Enter email address
-              </label>
-              <input
-                id="pilot-reset-email"
-                type="email"
-                value={resetEmail}
-                onChange={(ev) => {
-                  setResetEmail(ev.target.value);
-                  if (resetNote) setResetNote("");
-                }}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-[#191c1d] outline-none ring-[#008B8B]/25 transition focus:ring-2 sm:text-sm dark:border-white/15 dark:bg-[#111315] dark:text-white"
-                placeholder="name@example.com"
-              />
-            </div>
-
-            {resetNote ? (
-              <p className="mt-2 text-[11px] font-semibold text-slate-600 dark:text-white/75">
-                {resetNote}
-              </p>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={submitResetRequest}
-              className="mt-4 flex w-full items-center justify-center rounded-lg bg-[#008B8B] py-2.5 text-xs font-semibold text-white transition hover:bg-[#006f6f] sm:text-sm"
-            >
-              Request reset link
-            </button>
-
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                onClick={() => setForgotOpen(false)}
-                className="text-[11px] font-semibold text-[#008B8B] underline-offset-2 hover:underline sm:text-xs"
-              >
-                Back To Login
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ForgotPasswordModal
+        open={forgotOpen}
+        onClose={() => setForgotOpen(false)}
+        initialEmail={forgotInitialEmail}
+        role="pilot"
+      />
     </div>
   );
 }

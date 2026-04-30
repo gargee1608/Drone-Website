@@ -55,6 +55,7 @@ export function LandingHeader() {
     isPilotDashboard ||
     isSettingsPage;
   const isHomePage = pathname === "/" || pathname === "";
+  const isMatchingHub = pathname === "/matching-hub";
   const isPilotRegistration =
     pathname === "/pilot-registration" ||
     (pathname?.startsWith("/pilot-registration/") ?? false);
@@ -98,7 +99,8 @@ export function LandingHeader() {
     (pathname?.startsWith("/services/") ?? false) ||
     pathname === "/blogs" ||
     (pathname?.startsWith("/blogs/") ?? false) ||
-    pathname === "/contact";
+    pathname === "/contact" ||
+    isMatchingHub;
 
   const settingsHref =
     isPilotDashboard || isPilotSettingsContext
@@ -428,7 +430,7 @@ export function LandingHeader() {
                   </div>
                 ) : null}
               </div>
-            ) : !hideLoginIcon && !isHomePage ? (
+            ) : !hideLoginIcon && !isHomePage && !isMatchingHub ? (
               <Link
                 href="/pilot-login"
                 className={cn(
@@ -550,7 +552,7 @@ export function LandingHeader() {
                   Logout
                 </button>
               </div>
-            ) : (
+            ) : !isMatchingHub ? (
               <Link
                 href="/pilot-login"
                 className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -558,7 +560,7 @@ export function LandingHeader() {
               >
                 Login
               </Link>
-            )}
+            ) : null}
           </div>
         ) : (
           <div className="flex flex-col gap-1">

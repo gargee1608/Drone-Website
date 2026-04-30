@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   countUnreadPilotMissionNotifications,
   markPilotMissionNotificationIdsSeen,
+  notificationsVisibleToPilot,
   pilotMissionNotificationsUnread,
   PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT,
   type PilotMissionNotification,

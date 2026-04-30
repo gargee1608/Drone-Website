@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, MapPin, Plane, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import {
+  getPilotPendingMissionAssignments,
   incrementPilotMissionsCompleted,
   saveCompletedMission,
 } from "@/app/services/pilotServices";
@@ -32,19 +33,97 @@ function formatAssignedAt(iso: string): string {
   }
 }
 
+function assignmentKey(n: PilotMissionNotification): string {
+  return `${(n.pilotSub ?? "").trim()}::${n.requestRef.trim()}`;
+}
+
+function dbMissionRowToNotification(
+  row: Record<string, unknown>
+): PilotMissionNotification | null {
+  const requestRef = String(row.request_ref ?? row.requestRef ?? "").trim();
+  if (!requestRef) return null;
+  const idRaw = row.id;
+  const id = `db:${String(idRaw ?? "")}`;
+  const assignedRaw = row.assigned_at ?? row.assignedAt;
+  let assignedAt = new Date().toISOString();
+  if (assignedRaw) {
+    const d = new Date(String(assignedRaw));
+    if (!Number.isNaN(d.getTime())) assignedAt = d.toISOString();
+  }
+  return {
+    id,
+    requestRef,
+    customer: String(row.customer ?? ""),
+    service: String(row.service ?? ""),
+    dropoff: String(row.dropoff ?? ""),
+    pilotName: String(row.pilot_name ?? row.pilotName ?? ""),
+    pilotBadgeId: String(row.pilot_badge_id ?? row.pilotBadgeId ?? ""),
+    pilotSub: String(row.pilot_sub ?? row.pilotSub ?? "").trim() || undefined,
+    droneModel: String(row.drone_model ?? row.droneModel ?? ""),
+    assignedAt,
+  };
+}
+
+function mergePilotMissionRows(
+  fromApi: PilotMissionNotification[],
+  fromLocal: PilotMissionNotification[]
+): PilotMissionNotification[] {
+  const keys = new Set(fromApi.map(assignmentKey));
+  const extra = fromLocal.filter((n) => !keys.has(assignmentKey(n)));
+  return [...fromApi, ...extra].sort(
+    (a, b) =>
+      new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime()
+  );
+}
+
 export function AssignMissionView() {
   const router = useRouter();
-  const [rows, setRows] = useState<PilotMissionNotification[]>([]);
+  const [apiRows, setApiRows] = useState<PilotMissionNotification[]>([]);
+  const [localVers, setLocalVers] = useState(0);
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
 
+  const rows = useMemo(
+    () =>
+      mergePilotMissionRows(apiRows, notificationsVisibleToPilot()),
+    [apiRows, localVers]
+  );
+
+  const loadFromApi = useCallback(async () => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const sub = token ? jwtPayloadSub(token) : null;
+    if (!sub) {
+      setApiRows([]);
+      return;
+    }
+    const data = await getPilotPendingMissionAssignments(sub);
+    if (!data) {
+      setApiRows([]);
+      return;
+    }
+    const mapped = data
+      .map((r: Record<string, unknown>) => dbMissionRowToNotification(r))
+      .filter((x): x is PilotMissionNotification => x != null);
+    setApiRows(mapped);
+  }, []);
+
   useEffect(() => {
-    const sync = () => setRows(notificationsVisibleToPilot());
-    sync();
-    window.addEventListener(PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT, sync);
-    window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, sync);
+    void loadFromApi();
+    const onFocus = () => void loadFromApi();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [loadFromApi]);
+
+  useEffect(() => {
+    const bump = () => setLocalVers((v) => v + 1);
+    window.addEventListener(PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT, bump);
+    window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, bump);
     return () => {
-      window.removeEventListener(PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT, sync);
-      window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, sync);
+      window.removeEventListener(
+        PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT,
+        bump
+      );
+      window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, bump);
     };
   }, []);
 
@@ -91,7 +170,7 @@ export function AssignMissionView() {
 
       if (!saveResult?.success) {
         removePilotMissionNotificationById(row.id);
-        setRows((prev) => prev.filter((item) => item.id !== row.id));
+        setLocalVers((v) => v + 1);
         alert("Could not save mission to database. Redirecting to Completed Deliveries.");
         router.push("/pilot-dashboard/completed-deliveries");
         return;
@@ -101,8 +180,11 @@ export function AssignMissionView() {
         await incrementPilotMissionsCompleted(effectivePilotSub, 1);
       }
 
-      removePilotMissionNotificationById(row.id);
-      setRows((prev) => prev.filter((item) => item.id !== row.id));
+      if (!row.id.startsWith("db:")) {
+        removePilotMissionNotificationById(row.id);
+      }
+      await loadFromApi();
+      setLocalVers((v) => v + 1);
       router.push("/pilot-dashboard/completed-deliveries");
     } finally {
       setSavingRowId(null);

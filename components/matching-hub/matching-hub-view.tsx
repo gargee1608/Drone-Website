@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import {
   ArrowRight,
   Briefcase,
@@ -11,15 +10,17 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
-import { getPilots } from "@/app/services/pilotServices";
+import { assignHubMissionToPilot, getPilots } from "@/app/services/pilotServices";
+import { apiUrl } from "@/lib/api-url";
 import {
   experienceSubtitleFromPilotRow,
   missionsCompletedFromPilotRow,
   safetyRatingFromPilotRow,
 } from "@/lib/pilot-db-metrics";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 
 type HubTab = "missions" | "pilots";
@@ -105,7 +106,8 @@ function mapApiRowToHubPilotCard(
   };
 }
 
-const missionRows: HubMission[] = [
+/** Default rows (also used if `/api/missions-requests` is unavailable). Same payload seeded into `mission_requests`. */
+const FALLBACK_MATCHING_HUB_MISSIONS: HubMission[] = [
   {
     id: "ML-9021",
     title: "Arctic Supply Drop",
@@ -170,11 +172,29 @@ const missionRows: HubMission[] = [
 
 function MissionDetailDialog({
   mission,
+  pilots,
+  pilotsLoading,
+  pilotsError,
   onClose,
 }: {
   mission: HubMission;
+  pilots: HubPilotCard[];
+  pilotsLoading: boolean;
+  pilotsError: string | null;
   onClose: () => void;
 }) {
+  const [selectedPilotId, setSelectedPilotId] = useState("");
+  const [selectFeedback, setSelectFeedback] = useState<string | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [assignSubmitting, setAssignSubmitting] = useState(false);
+
+  useEffect(() => {
+    setSelectedPilotId("");
+    setSelectFeedback(null);
+    setAssignError(null);
+    setAssignSubmitting(false);
+  }, [mission.id]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -190,6 +210,57 @@ function MissionDetailDialog({
       document.body.style.overflow = prev;
     };
   }, []);
+
+  const sortedPilots = useMemo(
+    () =>
+      [...pilots].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+      ),
+    [pilots]
+  );
+
+  const onSubmitSelection = (e: FormEvent) => {
+    e.preventDefault();
+    if (!selectedPilotId || assignSubmitting) return;
+    const p = pilots.find((x) => x.id === selectedPilotId);
+    if (!p) return;
+
+    setAssignError(null);
+    setSelectFeedback(null);
+    setAssignSubmitting(true);
+
+    void (async () => {
+      const service = [mission.payout, mission.aircraftClass]
+        .filter(Boolean)
+        .join(" · ")
+        .slice(0, 240);
+      const res = await assignHubMissionToPilot({
+        requestRef: mission.id,
+        customer: mission.title,
+        service: service || mission.payout,
+        dropoff: mission.clearance || mission.distance || "—",
+        pilotName: p.name,
+        pilotBadgeId: p.id,
+        pilotSub: p.id,
+        droneModel: "—",
+        assignedAt: new Date().toISOString(),
+      });
+      setAssignSubmitting(false);
+      if (!res?.ok) {
+        setAssignError(
+          typeof res?.detail === "string" && res.detail
+            ? res.detail
+            : "Could not assign mission. Is the backend running?"
+        );
+        return;
+      }
+      setSelectFeedback(
+        res.alreadyAssigned
+          ? `${p.name} already has this mission assigned.`
+          : `${mission.title} is assigned to ${p.name}. They will see it on the pilot dashboard.`
+      );
+    })();
+  };
 
   return (
     <div
@@ -294,10 +365,84 @@ function MissionDetailDialog({
           </p>
         </div>
 
+        <form
+          className="mt-6 border-t border-slate-100 pt-5 dark:border-white/10"
+          onSubmit={onSubmitSelection}
+        >
+          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+            Select this mission
+          </h3>
+          <p className="mt-1 text-xs text-slate-600 dark:text-white/70">
+            Pick a pilot from your roster to pair with this listing.
+          </p>
+          {pilotsLoading ? (
+            <p className="mt-3 text-sm text-slate-500" role="status">
+              Loading pilots…
+            </p>
+          ) : pilotsError ? (
+            <p className="mt-3 text-sm text-red-600" role="alert">
+              {pilotsError}
+            </p>
+          ) : sortedPilots.length === 0 ? (
+            <p className="mt-3 text-sm text-slate-500">
+              No pilots are available to assign yet.
+            </p>
+          ) : (
+            <>
+              <label
+                htmlFor="mission-assign-pilot"
+                className="mt-3 block text-xs font-semibold text-slate-700 dark:text-white/85"
+              >
+                Pilot
+              </label>
+              <select
+                id="mission-assign-pilot"
+                value={selectedPilotId}
+                onChange={(ev) => {
+                  setSelectedPilotId(ev.target.value);
+                  setSelectFeedback(null);
+                  setAssignError(null);
+                }}
+                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-[#191c1d] outline-none ring-[#0D9488]/25 focus:ring-2 dark:border-white/15 dark:bg-[#111315] dark:text-white"
+              >
+                <option value="">Choose a pilot…</option>
+                {sortedPilots.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — {p.role}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                disabled={!selectedPilotId || assignSubmitting}
+                className="mt-3 w-full rounded-lg bg-[#0D9488] py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0f7669] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {assignSubmitting ? "Saving…" : "Select this mission"}
+              </button>
+            </>
+          )}
+          {assignError ? (
+            <p
+              className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-900 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-100"
+              role="alert"
+            >
+              {assignError}
+            </p>
+          ) : null}
+          {selectFeedback ? (
+            <p
+              className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100"
+              role="status"
+            >
+              {selectFeedback}
+            </p>
+          ) : null}
+        </form>
+
         <button
           type="button"
           onClick={onClose}
-          className="mt-6 w-full rounded-lg border border-[#0D9488] bg-transparent py-2.5 text-sm font-semibold text-[#0D9488] transition hover:border-[#0f7669] hover:text-[#0f7669] dark:border-[#0D9488] dark:text-[#5eead4] dark:hover:border-[#2dd4bf] dark:hover:text-[#2dd4bf]"
+          className="mt-4 w-full rounded-lg border border-[#0D9488] bg-transparent py-2.5 text-sm font-semibold text-[#0D9488] transition hover:border-[#0f7669] hover:text-[#0f7669] dark:border-[#0D9488] dark:text-[#5eead4] dark:hover:border-[#2dd4bf] dark:hover:text-[#2dd4bf]"
         >
           Close
         </button>
@@ -379,9 +524,40 @@ export function MatchingHubView() {
   const [hubPilots, setHubPilots] = useState<HubPilotCard[]>([]);
   const [pilotsLoading, setPilotsLoading] = useState(true);
   const [pilotsError, setPilotsError] = useState<string | null>(null);
+  const [missionRows, setMissionRows] = useState<HubMission[]>(
+    FALLBACK_MATCHING_HUB_MISSIONS
+  );
   const [detailMission, setDetailMission] = useState<HubMission | null>(null);
 
   const closeMissionDetail = useCallback(() => setDetailMission(null), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(apiUrl("/api/missions-requests"));
+        const body = await readResponseJson(res);
+        if (cancelled) return;
+        if (!body.okParse || body.data == null || typeof body.data !== "object") {
+          return;
+        }
+        const envelope = body.data as {
+          success?: boolean;
+          data?: unknown;
+        };
+        if (!res.ok || envelope.success === false) return;
+        const list = Array.isArray(envelope.data) ? envelope.data : [];
+        if (list.length > 0) {
+          setMissionRows(list as HubMission[]);
+        }
+      } catch {
+        /* keep FALLBACK_MATCHING_HUB_MISSIONS */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -426,8 +602,6 @@ export function MatchingHubView() {
 
   const sidebarPilots = useMemo(() => topRatedPilots.slice(0, 6), [topRatedPilots]);
 
-  const readyCount = hubPilots.length;
-
   return (
     <div className="min-h-dvh bg-white text-[#191c1d]">
       <main className="mx-auto max-w-[1440px] px-4 pb-10 pt-28 sm:px-6 lg:px-8">
@@ -445,8 +619,8 @@ export function MatchingHubView() {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors sm:px-4 sm:text-sm",
                 activeTab === "missions"
-                  ? "bg-white text-[#0058bc] shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-white text-[#0D9488] shadow-sm"
+                  : "text-[#0D9488]"
               )}
             >
               <MapPin className="size-3.5 sm:size-4" />
@@ -458,8 +632,8 @@ export function MatchingHubView() {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors sm:px-4 sm:text-sm",
                 activeTab === "pilots"
-                  ? "bg-white text-[#0058bc] shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-white text-[#0D9488] shadow-sm"
+                  : "text-[#0D9488]"
               )}
             >
               <Briefcase className="size-3.5 sm:size-4" />
@@ -525,59 +699,57 @@ export function MatchingHubView() {
                 Mobile: order puts missions title → cards → pilots title → cards.
               */}
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start lg:gap-x-4 lg:gap-y-3">
-                <h2 className="order-1 min-w-0 text-xl font-semibold tracking-tight sm:text-2xl lg:col-span-8">
+                <h2 className="order-1 min-w-0 text-base font-semibold tracking-tight sm:text-lg lg:col-span-8">
                   Available Missions
                 </h2>
-                <h2 className="order-3 min-w-0 text-xl font-semibold tracking-tight sm:text-2xl lg:order-2 lg:col-span-4">
+                <h2 className="order-3 min-w-0 text-base font-semibold tracking-tight sm:text-lg lg:order-2 lg:col-span-4 lg:pl-5 xl:pl-6">
                   Top Rated Pilots
                 </h2>
-                <div className="order-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:order-3 lg:col-span-8">
+                <div className="order-2 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5 lg:order-3 lg:col-span-8">
                   {missionRows.map((mission) => (
-                    <article
+                    <button
                       key={mission.id}
-                      className="rounded-lg border border-slate-200 bg-white/80 p-3 shadow-sm backdrop-blur-sm transition-all hover:border-[#0058bc]"
+                      type="button"
+                      onClick={() => setDetailMission(mission)}
+                      className="rounded-md border border-slate-200 bg-white/80 p-2 text-left shadow-sm backdrop-blur-sm transition-all hover:border-[#0D9488] sm:p-2.5"
                     >
-                      <div className="mb-2 flex items-start justify-between gap-2">
+                      <div className="mb-1.5 flex items-start justify-between gap-1.5">
                         <div className="min-w-0">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0058bc]">
+                          <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#0058bc]">
                             {mission.id}
                           </p>
-                          <h3 className="mt-0.5 text-lg font-semibold leading-snug tracking-tight sm:text-xl">
+                          <h3 className="mt-0.5 text-base font-semibold leading-snug tracking-tight sm:text-lg">
                             {mission.title}
                           </h3>
                         </div>
-                        <span className="shrink-0 rounded-full bg-[#0D9488] px-2 py-0.5 text-xs font-semibold text-white">
+                        <span className="shrink-0 rounded-full bg-[#0D9488] px-1.5 py-0.5 text-[10px] font-semibold text-white sm:text-xs">
                           {mission.payout}
                         </span>
                       </div>
-                      <p className="mb-2 line-clamp-2 text-xs text-slate-600">
+                      <p className="mb-1.5 line-clamp-2 text-[11px] text-slate-600 sm:text-xs">
                         {mission.description}
                       </p>
 
-                      <div className="mb-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-2">
+                      <div className="mb-1.5 grid grid-cols-2 gap-1.5 border-t border-slate-100 pt-1.5">
                         <div>
-                          <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400">
+                          <p className="mb-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-slate-400">
                             Payload
                           </p>
-                          <p className="text-sm font-medium">{mission.payload}</p>
+                          <p className="text-xs font-medium sm:text-sm">{mission.payload}</p>
                         </div>
                         <div>
-                          <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400">
+                          <p className="mb-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-slate-400">
                             Distance
                           </p>
-                          <p className="text-sm font-medium">{mission.distance}</p>
+                          <p className="text-xs font-medium sm:text-sm">{mission.distance}</p>
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setDetailMission(mission)}
-                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-slate-100 py-1.5 text-xs font-medium transition-all hover:bg-[#0D9488] hover:text-white sm:text-sm"
-                      >
-                        Review Details
-                        <ArrowRight className="size-3.5" />
-                      </button>
-                    </article>
+                      <span className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-slate-100 py-1 text-[11px] font-medium text-[#191c1d] sm:py-1.5 sm:text-xs">
+                        Open mission & assign pilot
+                        <ArrowRight className="size-3 sm:size-3.5" />
+                      </span>
+                    </button>
                   ))}
                 </div>
                 <aside className="order-4 min-w-0 lg:col-span-4">
@@ -592,11 +764,8 @@ export function MatchingHubView() {
 
             <section className="w-1/2 pl-0 lg:pl-2">
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start lg:gap-x-4 lg:gap-y-3">
-                <h2 className="order-1 flex min-w-0 flex-wrap items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl lg:col-span-8">
+                <h2 className="order-1 min-w-0 text-xl font-semibold tracking-tight sm:text-2xl lg:col-span-8">
                   Available Pilots
-                  <span className="rounded bg-[#0058bc] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
-                    {pilotsLoading ? "…" : pilotsError ? "—" : `${readyCount} Ready`}
-                  </span>
                 </h2>
                 <h2 className="order-3 min-w-0 text-xl font-semibold tracking-tight sm:text-2xl lg:order-2 lg:col-span-4">
                   Priority Missions
@@ -610,9 +779,11 @@ export function MatchingHubView() {
                 </div>
                 <aside className="order-4 min-w-0 space-y-2 lg:col-span-4">
                   {missionRows.slice(0, 3).map((mission) => (
-                    <article
+                    <button
                       key={`${mission.id}-priority`}
-                      className="rounded-lg border border-slate-200 bg-white/80 p-2 shadow-sm backdrop-blur-sm"
+                      type="button"
+                      onClick={() => setDetailMission(mission)}
+                      className="w-full rounded-lg border border-slate-200 bg-white/80 p-2 text-left shadow-sm backdrop-blur-sm transition-all hover:border-[#0D9488] hover:shadow-md"
                     >
                       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0058bc]">
                         {mission.id}
@@ -621,7 +792,7 @@ export function MatchingHubView() {
                         {mission.title}
                       </h3>
                       <p className="mt-0.5 text-[11px] text-slate-600">{mission.distance}</p>
-                    </article>
+                    </button>
                   ))}
                 </aside>
               </div>
@@ -629,18 +800,12 @@ export function MatchingHubView() {
           </div>
         </div>
 
-        <div className="mt-8">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-900"
-          >
-            Back to Home
-          </Link>
-        </div>
-
         {detailMission ? (
           <MissionDetailDialog
             mission={detailMission}
+            pilots={hubPilots}
+            pilotsLoading={pilotsLoading}
+            pilotsError={pilotsError}
             onClose={closeMissionDetail}
           />
         ) : null}

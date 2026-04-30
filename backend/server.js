@@ -23,6 +23,7 @@ const droneRoutes = require("./routes/droneRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 const contactRoutes = require("./routes/contact");
 const missionRoutes = require("./routes/missionRoutes");
+const missionsRequestRoutes = require("./routes/missionsRequestRoutes");
 
 const requestRoutes = require("./routes/request");
 app.use("/api", requestRoutes);
@@ -34,6 +35,7 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/pilots", pilotRoutes);
 app.use("/api/drones", droneRoutes);
 app.use("/api/missions", missionRoutes);
+app.use("/api/missions-requests", missionsRequestRoutes);
 
 /** Non-production (or AUTH_SIGNIN_DETAIL=true): include DB/API error text on 500 signin responses. */
 function signinErrorDetail(err) {
@@ -598,6 +600,315 @@ app.post("/api/auth/verify-phone-otp", async (req, res) => {
   }
 });
 
+async function ensureEmailPasswordResetSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_password_reset_otps (
+      id BIGSERIAL PRIMARY KEY,
+      email TEXT NOT NULL,
+      account_role TEXT NOT NULL,
+      otp_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used BOOLEAN NOT NULL DEFAULT FALSE,
+      attempt_count INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+}
+
+function normalizeEmailForAuth(raw) {
+  return String(raw ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+/** Sends a 6-digit OTP to the account email (Mailtrap / SMTP). */
+app.post("/api/auth/forgot-password-send-otp", async (req, res) => {
+  try {
+    await ensureEmailPasswordResetSchema();
+    const email = normalizeEmailForAuth(req.body?.email);
+    const role = String(req.body?.role ?? "user").toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: "Enter a valid email address." });
+    }
+    if (!["user", "pilot", "admin"].includes(role)) {
+      return res.status(400).json({ message: "Invalid account type." });
+    }
+
+    let accountRow = null;
+    if (role === "pilot") {
+      const r = await pool.query(
+        `SELECT id, email FROM pilots WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1 LIMIT 1`,
+        [email]
+      );
+      accountRow = r.rows[0] ?? null;
+    } else if (role === "admin") {
+      const r = await pool.query(
+        `SELECT id, email FROM admins WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1 LIMIT 1`,
+        [email]
+      );
+      accountRow = r.rows[0] ?? null;
+    } else {
+      const r = await pool.query(
+        `SELECT id, email, role FROM users WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1 LIMIT 1`,
+        [email]
+      );
+      accountRow = r.rows[0] ?? null;
+      if (accountRow) {
+        const ur = String(accountRow.role ?? "user").toLowerCase();
+        if (ur === "pilot") {
+          return res.status(400).json({
+            message:
+              "This email is registered as a pilot. Open Pilot Login to reset your password.",
+          });
+        }
+        if (ur === "admin") {
+          return res.status(400).json({
+            message:
+              "This is an admin account. Use Admin Login and forgot password there.",
+          });
+        }
+      }
+    }
+
+    if (!accountRow) {
+      if (role === "user") {
+        const pr = await pool.query(
+          `SELECT id FROM pilots WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1 LIMIT 1`,
+          [email]
+        );
+        if (pr.rows.length > 0) {
+          return res.status(404).json({
+            message:
+              "No user account with this email. If you registered as a pilot, open Pilot Login and use Forgot Password there.",
+          });
+        }
+      }
+      return res.status(404).json({
+        message: "No account found with this email.",
+      });
+    }
+
+    const otp = String(generateOTP());
+    const otpHash = await bcrypt.hash(otp, 10);
+    await pool.query(
+      `UPDATE email_password_reset_otps SET used = TRUE
+       WHERE LOWER(TRIM(email)) = $1 AND account_role = $2 AND used = FALSE`,
+      [email, role]
+    );
+    await pool.query(
+      `INSERT INTO email_password_reset_otps (email, account_role, otp_hash, expires_at, used, attempt_count)
+       VALUES ($1, $2, $3, NOW() + INTERVAL '10 minutes', FALSE, 0)`,
+      [email, role, otpHash]
+    );
+
+    const fromAddr = process.env.MAIL_FROM || "no-reply@test.com";
+    await transporter.sendMail({
+      from: fromAddr,
+      to: email,
+      subject: "Password reset OTP",
+      text: `Your password reset OTP is: ${otp}. It expires in 10 minutes.`,
+      html: `<p>Your password reset OTP is: <strong>${otp}</strong></p><p>It expires in 10 minutes.</p>`,
+    });
+
+    return res.json({ ok: true, message: "OTP sent to your email." });
+  } catch (err) {
+    console.error("[auth] forgot-password-send-otp:", err);
+    return res
+      .status(500)
+      .json({ message: "Could not send OTP. Try again later." });
+  }
+});
+
+app.post("/api/auth/forgot-password-verify-otp", async (req, res) => {
+  try {
+    await ensureEmailPasswordResetSchema();
+    const email = normalizeEmailForAuth(req.body?.email);
+    const role = String(req.body?.role ?? "user").toLowerCase();
+    const otp = String(req.body?.otp ?? "").replace(/\D/g, "");
+    if (!email || !["user", "pilot", "admin"].includes(role)) {
+      return res.status(400).json({ message: "Email and account type are required." });
+    }
+    if (otp.length !== 6) {
+      return res.status(400).json({ message: "Enter the 6-digit OTP." });
+    }
+
+    const rowRes = await pool.query(
+      `SELECT id, otp_hash, attempt_count
+       FROM email_password_reset_otps
+       WHERE LOWER(TRIM(email)) = $1
+         AND account_role = $2
+         AND used = FALSE
+         AND expires_at > NOW()
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [email, role]
+    );
+    if (rowRes.rows.length === 0) {
+      return res.status(400).json({ message: "OTP expired or not found. Request a new code." });
+    }
+
+    const otpRow = rowRes.rows[0];
+    const ok = await bcrypt.compare(otp, String(otpRow.otp_hash));
+    if (!ok) {
+      const attempts = Number(otpRow.attempt_count ?? 0) + 1;
+      await pool.query(
+        `UPDATE email_password_reset_otps
+         SET attempt_count = $1,
+             used = CASE WHEN $1 >= 5 THEN TRUE ELSE used END
+         WHERE id = $2`,
+        [attempts, otpRow.id]
+      );
+      return res.status(401).json({ message: "Invalid OTP" });
+    }
+
+    await pool.query(
+      `UPDATE email_password_reset_otps SET used = TRUE WHERE id = $1`,
+      [otpRow.id]
+    );
+
+    let accountId = null;
+    if (role === "pilot") {
+      const r = await pool.query(
+        `SELECT id FROM pilots WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1 LIMIT 1`,
+        [email]
+      );
+      accountId = r.rows[0]?.id ?? null;
+    } else if (role === "admin") {
+      const r = await pool.query(
+        `SELECT id FROM admins WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1 LIMIT 1`,
+        [email]
+      );
+      accountId = r.rows[0]?.id ?? null;
+    } else {
+      const r = await pool.query(
+        `SELECT id FROM users WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1 LIMIT 1`,
+        [email]
+      );
+      accountId = r.rows[0]?.id ?? null;
+    }
+
+    if (accountId == null) {
+      return res.status(400).json({ message: "Account not found." });
+    }
+
+    const sub = String(jsonSafe(accountId) ?? accountId ?? "");
+    const resetToken = jwt.sign(
+      { typ: "pwd_reset", email, role, sub },
+      jwtSecret(),
+      { expiresIn: "15m" }
+    );
+
+    return res.json({ ok: true, resetToken });
+  } catch (err) {
+    console.error("[auth] forgot-password-verify-otp:", err);
+    return res.status(500).json({ message: "Failed to verify OTP" });
+  }
+});
+
+app.post("/api/auth/forgot-password-complete", async (req, res) => {
+  try {
+    const resetToken = String(req.body?.resetToken ?? "");
+    const newPassword = String(req.body?.newPassword ?? "");
+    if (!resetToken || !newPassword) {
+      return res.status(400).json({ message: "Token and new password are required." });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters." });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, jwtSecret());
+    } catch {
+      return res.status(401).json({ message: "Reset session expired. Start again." });
+    }
+    if (
+      !decoded ||
+      typeof decoded !== "object" ||
+      decoded.typ !== "pwd_reset" ||
+      !decoded.sub ||
+      !decoded.role ||
+      !decoded.email
+    ) {
+      return res.status(401).json({ message: "Invalid reset token." });
+    }
+
+    const email = normalizeEmailForAuth(decoded.email);
+    const role = String(decoded.role).toLowerCase();
+    const sub = String(decoded.sub ?? "").trim();
+    const hash = await bcrypt.hash(newPassword, 10);
+
+    if (role === "pilot") {
+      /** Prefer id + email (tight match); fall back to email-only so `pilots.password` always updates after OTP. */
+      let u = { rowCount: 0 };
+      if (/^\d+$/.test(sub)) {
+        u = await pool.query(
+          `UPDATE pilots SET password = $1
+           WHERE id = $2::bigint
+             AND LOWER(TRIM(COALESCE(email::text, ''))) = $3`,
+          [hash, sub, email]
+        );
+      }
+      if (!u.rowCount) {
+        u = await pool.query(
+          `UPDATE pilots SET password = $1
+           WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $2`,
+          [hash, email]
+        );
+      }
+      if (u.rowCount === 0) {
+        return res.status(400).json({ message: "Could not update password." });
+      }
+    } else if (role === "admin") {
+      let u = { rowCount: 0 };
+      if (/^\d+$/.test(sub)) {
+        u = await pool.query(
+          `UPDATE admins SET password = $1
+           WHERE id = $2::bigint
+             AND LOWER(TRIM(COALESCE(email::text, ''))) = $3`,
+          [hash, sub, email]
+        );
+      }
+      if (!u.rowCount) {
+        u = await pool.query(
+          `UPDATE admins SET password = $1
+           WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $2`,
+          [hash, email]
+        );
+      }
+      if (u.rowCount === 0) {
+        return res.status(400).json({ message: "Could not update password." });
+      }
+    } else {
+      /** User Login — same pattern as pilot: `users.password` gets bcrypt hash. */
+      let u = { rowCount: 0 };
+      if (/^\d+$/.test(sub)) {
+        u = await pool.query(
+          `UPDATE users SET password = $1
+           WHERE id = $2::bigint
+             AND LOWER(TRIM(COALESCE(email::text, ''))) = $3`,
+          [hash, sub, email]
+        );
+      }
+      if (!u.rowCount) {
+        u = await pool.query(
+          `UPDATE users SET password = $1
+           WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $2`,
+          [hash, email]
+        );
+      }
+      if (u.rowCount === 0) {
+        return res.status(400).json({ message: "Could not update password." });
+      }
+    }
+
+    return res.json({ ok: true, message: "Password Updated" });
+  } catch (err) {
+    console.error("[auth] forgot-password-complete:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 /** Public signup — stores `role = user` with bcrypt password (same verification as sign-in). */
 app.post("/api/auth/register", async (req, res) => {
   const firstName = String(req.body?.firstName ?? "").trim();
@@ -862,6 +1173,11 @@ ensureAuthSchema()
   .then(() => ensureMissionSchema())
   .then(() => seedDevAdminsIfEmpty())
   .then(() => seedDevDronesIfEmpty())
+  .then(() =>
+    missionsRequestRoutes.bootstrapMissionRequests().catch((err) => {
+      console.warn("[mission-requests] bootstrap failed:", err);
+    })
+  )
   .then(() => {
     jwtSecret();
     app.listen(4000, () => {

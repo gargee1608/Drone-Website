@@ -129,3 +129,48 @@ export const saveCompletedMission = async (payload) => {
     return null;
   }
 };
+
+/** Matching Hub: assign a listing to a pilot (`status: assigned`). */
+export const assignHubMissionToPilot = async (payload) => {
+  try {
+    const response = await fetch(apiUrl("/api/missions"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, status: "assigned" }),
+    });
+    if (!response.ok) {
+      let detail = "";
+      try {
+        const errBody = await response.json();
+        if (typeof errBody?.error === "string") detail = errBody.error;
+      } catch {
+        /* ignore */
+      }
+      return { ok: false, status: response.status, detail };
+    }
+    const body = await response.json();
+    return { ok: true, ...body };
+  } catch (error) {
+    console.error("assignHubMissionToPilot failed:", error);
+    return { ok: false, detail: "Network error" };
+  }
+};
+
+/** Active assignments for the pilot workspace (not completed). */
+export const getPilotPendingMissionAssignments = async (pilotSub) => {
+  if (!pilotSub) return null;
+  try {
+    const q = new URLSearchParams({ pilotSub: String(pilotSub) });
+    const response = await fetch(
+      apiUrl(`/api/missions/pending-assignments?${q.toString()}`),
+      { cache: "no-store" }
+    );
+    if (!response.ok) return null;
+    const body = await response.json();
+    if (!body?.success || !Array.isArray(body.data)) return null;
+    return body.data;
+  } catch (error) {
+    console.error("getPilotPendingMissionAssignments failed:", error);
+    return null;
+  }
+};
