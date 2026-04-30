@@ -17,7 +17,8 @@ export function LandingHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const hideRegisterPilotCta =
-    pathname === "/login" ||
+    pathname === "/admin" ||
+    pathname === "/admin/" ||
     pathname === "/pilot-registration" ||
     pathname === "/blogs" ||
     pathname?.startsWith("/blogs/") ||
@@ -113,7 +114,7 @@ export function LandingHeader() {
             ) : null}
             {!hideLoginIcon ? (
               <Link
-                href="/login"
+                href="/admin"
                 className="rounded-md p-1.5 text-slate-500 transition-colors hover:text-[#008B8B]"
                 aria-label="Login"
               >
@@ -183,7 +184,7 @@ export function LandingHeader() {
             Contact Us
           </Link>
           <Link
-            href="/login"
+            href="/admin"
             className="rounded-lg py-2"
             onClick={() => setOpen(false)}
           >

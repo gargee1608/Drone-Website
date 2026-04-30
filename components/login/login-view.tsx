@@ -101,7 +101,7 @@ export function LoginView({
 }: {
   /** Hide Admin login; use on pages that only offer user sign-in (e.g. next to Pilot login). */
   userOnly?: boolean;
-  /** `/login`: admin sign-in only (no User tab or user flows). */
+  /** `/admin`: admin sign-in only (no User tab or user flows). */
   adminOnly?: boolean;
   /** Omit outer page shell — parent supplies layout (e.g. sliding panel). */
   embedded?: boolean;

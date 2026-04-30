@@ -12,7 +12,8 @@ export function ConditionalSiteHeader() {
   const isLandingChrome =
     pathname === "/" ||
     pathname === "" ||
-    pathname === "/login" ||
+    pathname === "/admin" ||
+    pathname === "/admin/" ||
     pathname === "/pilot-login" ||
     pathname === "/signup" ||
     pathname === "/pilot-registration" ||
