@@ -12,6 +12,8 @@ export function ConditionalSiteFooter() {
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
     (pathname?.startsWith("/dashboard/") ?? false);
+  const isAdminLoginPage =
+    pathname === "/admin" || pathname === "/admin/";
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
   const isPilotDashboard =
     pathname?.startsWith("/pilot-dashboard") ||
@@ -22,12 +24,15 @@ export function ConditionalSiteFooter() {
     pathname === "/settings/" ||
     (pathname?.startsWith("/settings/") ?? false);
   const isDashboardShellFooter =
-    isAdminDashboard || isUserDashboard || isPilotDashboard || isSettings;
-  const whiteFooterChrome = isDashboardShellFooter;
+    isUserDashboard || isPilotDashboard || isSettings;
+  const whiteFooterChrome =
+    isAdminDashboard ||
+    isUserDashboard ||
+    isPilotDashboard ||
+    isSettings;
   const isLandingChrome =
     pathname === "/" ||
     pathname === "" ||
-    pathname === "/login" ||
     pathname === "/pilot-login" ||
     pathname === "/signup" ||
     pathname === "/pilot-registration" ||
@@ -40,6 +45,10 @@ export function ConditionalSiteFooter() {
     pathname === "/matching-hub" ||
     pathname === "/dashboard" ||
     pathname?.startsWith("/dashboard/");
+
+  if (isAdminDashboard || isAdminLoginPage) {
+    return null;
+  }
 
   if (isDashboardShellFooter) {
     return (

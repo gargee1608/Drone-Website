@@ -43,7 +43,7 @@ export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
 ];
 
 export const commandCenterNavFooter: readonly CommandCenterNavItem[] = [
-  { href: "/login", label: "Logout", icon: LogOut },
+  { href: "/admin", label: "Logout", icon: LogOut },
 ];
 
 /** User-facing area — shown on Settings when `?from=user`. */

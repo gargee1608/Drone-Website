@@ -152,7 +152,7 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
               <Settings className="size-5" strokeWidth={1.75} />
             </Link>
             <Link
-              href="/login"
+              href="/admin"
               aria-label="Login"
               className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-200 text-slate-600 ring-0 transition hover:bg-slate-300/90 sm:h-10 sm:w-10"
             >

@@ -374,7 +374,7 @@ export function SiteHeader({
                         router.replace(
                           isUserDashboard
                             ? "/pilot-login?panel=user"
-                            : "/login"
+                            : "/admin"
                         );
                       }}
                     >
@@ -386,7 +386,7 @@ export function SiteHeader({
               </div>
             ) : (
               <Link
-                href="/login"
+                href="/admin"
                 aria-label="Login"
                 className={cn(
                   buttonVariants({ variant: "ghost" }),
@@ -521,7 +521,7 @@ export function SiteHeader({
                   router.replace(
                     isUserDashboard
                       ? "/pilot-login?panel=user"
-                      : "/login"
+                      : "/admin"
                   );
                 }}
               >
@@ -531,7 +531,7 @@ export function SiteHeader({
             </div>
           ) : (
             <Link
-              href="/login"
+              href="/admin"
               aria-label="Login"
               className="inline-flex w-fit items-center justify-center rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
               onClick={() => setOpen(false)}

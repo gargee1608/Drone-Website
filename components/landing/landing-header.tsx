@@ -35,6 +35,12 @@ export function LandingHeader() {
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
     (pathname?.startsWith("/dashboard/") ?? false);
+  const isAdminLoginPage =
+    pathname === "/admin" || pathname === "/admin/";
+  /** Home / Services / Blogs / Contact — hidden on admin dashboard and admin login. */
+  const showMarketingHeaderNav = !isAdminDashboard && !isAdminLoginPage;
+  /** Header search (desktop + mobile drawer) — hidden on admin dashboard and admin login. */
+  const showHeaderSearchBar = !isAdminDashboard && !isAdminLoginPage;
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
   const isPilotDashboard =
     pathname?.startsWith("/pilot-dashboard") ||
@@ -79,7 +85,7 @@ export function LandingHeader() {
     (pathname?.startsWith("/blogs/") ?? false) ||
     pathname === "/contact";
   const hideRegisterPilotCta =
-    pathname === "/login" ||
+    isAdminLoginPage ||
     pathname === "/pilot-login" ||
     pathname === "/pilot-registration" ||
     pathname === "/settings" ||
@@ -89,7 +95,7 @@ export function LandingHeader() {
     isPilotDashboard;
   const showHeaderLoginButton = isHomePage || isMarketingAuthPage;
   const hideLoginIcon =
-    pathname === "/login" ||
+    isAdminLoginPage ||
     pathname === "/pilot-login" ||
     pathname === "/pilot-registration" ||
     showHeaderLoginButton;
@@ -153,7 +159,8 @@ export function LandingHeader() {
     isAdminDashboard ||
     isUserDashboard ||
     isAdminSettingsContext ||
-    isUserSettingsContext
+    isUserSettingsContext ||
+    isAdminLoginPage
   );
 
   useEffect(() => {
@@ -272,7 +279,7 @@ export function LandingHeader() {
               <span>Drone Hire</span>
             </Link>
           </div>
-          {!isAdminDashboard ? (
+          {showMarketingHeaderNav ? (
             <div className="hidden items-center gap-8 md:flex">
               <Link href="/" className={linkClass("/")}>
                 Home
@@ -297,19 +304,21 @@ export function LandingHeader() {
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-4 lg:gap-6">
-          <div className="hidden min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 lg:flex">
-            <Search
-              className="mr-2 size-4 shrink-0 text-slate-500 dark:text-white"
-              aria-hidden
-            />
-            <input
-              type="search"
-              name="track-delivery"
-              placeholder="Search..."
-              className="w-40 min-w-0 border-0 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:ring-0 dark:text-white dark:placeholder:text-white/45 xl:w-48"
-              autoComplete="off"
-            />
-          </div>
+          {showHeaderSearchBar ? (
+            <div className="hidden min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 lg:flex">
+              <Search
+                className="mr-2 size-4 shrink-0 text-slate-500 dark:text-white"
+                aria-hidden
+              />
+              <input
+                type="search"
+                name="track-delivery"
+                placeholder="Search..."
+                className="w-40 min-w-0 border-0 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:ring-0 dark:text-white dark:placeholder:text-white/45 xl:w-48"
+                autoComplete="off"
+              />
+            </div>
+          ) : null}
           <div className="flex items-center gap-2 sm:gap-4">
             {!isSettingsPage ? (
               <Button
@@ -420,7 +429,7 @@ export function LandingHeader() {
                             ? "/pilot-login"
                             : isUserLogoutContext
                               ? "/pilot-login?panel=user"
-                              : "/login"
+                              : "/admin"
                         );
                       }}
                     >
@@ -453,67 +462,73 @@ export function LandingHeader() {
           open ? "block" : "hidden"
         )}
       >
-        <div className="mb-3 flex rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2">
-          <Search className="mr-2 size-4 shrink-0 text-slate-500" aria-hidden />
-          <input
-            type="search"
-            placeholder="Track delivery..."
-            className="min-w-0 flex-1 border-0 bg-transparent text-sm focus:ring-0"
-          />
-        </div>
+        {showHeaderSearchBar ? (
+          <div className="mb-3 flex rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2">
+            <Search className="mr-2 size-4 shrink-0 text-slate-500" aria-hidden />
+            <input
+              type="search"
+              placeholder="Track delivery..."
+              className="min-w-0 flex-1 border-0 bg-transparent text-sm focus:ring-0"
+            />
+          </div>
+        ) : null}
         {!isAdminDashboard ? (
           <div className="flex flex-col gap-1">
-            <Link
-              href="/"
-              className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              onClick={() => setOpen(false)}
-            >
-              Home
-            </Link>
-            <div className="px-3 pt-1 pb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Services
-            </div>
-            {serviceMegaMenuItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-lg py-2 pl-6 pr-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                onClick={() => setOpen(false)}
-              >
-                {item.title}
-              </Link>
-            ))}
-            <Link
-              href="/services"
-              className="rounded-lg px-3 py-2 text-sm font-semibold text-[#008B8B] hover:bg-slate-50"
-              onClick={() => setOpen(false)}
-            >
-              View all services
-            </Link>
-            <Link
-              href="/blogs"
-              className={cn(
-                "rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-slate-50",
-                pathname === "/blogs" || pathname?.startsWith("/blogs/")
-                  ? "font-semibold text-slate-900"
-                  : "text-slate-700"
-              )}
-              onClick={() => setOpen(false)}
-            >
-              Blogs
-            </Link>
-            <Link
-              href="/contact"
-              className={cn(
-                "rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-slate-50",
-                pathname === "/contact"
-                  ? "font-semibold text-slate-900"
-                  : "text-slate-700"
-              )}
-              onClick={() => setOpen(false)}
-            >
-              Contact Us
-            </Link>
+            {showMarketingHeaderNav ? (
+              <>
+                <Link
+                  href="/"
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => setOpen(false)}
+                >
+                  Home
+                </Link>
+                <div className="px-3 pt-1 pb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Services
+                </div>
+                {serviceMegaMenuItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="rounded-lg py-2 pl-6 pr-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    onClick={() => setOpen(false)}
+                  >
+                    {item.title}
+                  </Link>
+                ))}
+                <Link
+                  href="/services"
+                  className="rounded-lg px-3 py-2 text-sm font-semibold text-[#008B8B] hover:bg-slate-50"
+                  onClick={() => setOpen(false)}
+                >
+                  View all services
+                </Link>
+                <Link
+                  href="/blogs"
+                  className={cn(
+                    "rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-slate-50",
+                    pathname === "/blogs" || pathname?.startsWith("/blogs/")
+                      ? "font-semibold text-slate-900"
+                      : "text-slate-700"
+                  )}
+                  onClick={() => setOpen(false)}
+                >
+                  Blogs
+                </Link>
+                <Link
+                  href="/contact"
+                  className={cn(
+                    "rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-slate-50",
+                    pathname === "/contact"
+                      ? "font-semibold text-slate-900"
+                      : "text-slate-700"
+                  )}
+                  onClick={() => setOpen(false)}
+                >
+                  Contact Us
+                </Link>
+              </>
+            ) : null}
             {showAccountMenu && !isAdminDashboard ? (
               <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-3">
                 <Link
@@ -545,14 +560,14 @@ export function LandingHeader() {
                     } else if (isUserLogoutContext) {
                       router.replace("/pilot-login?panel=user");
                     } else {
-                      router.replace("/login");
+                      router.replace("/admin");
                     }
                   }}
                 >
                   Logout
                 </button>
               </div>
-            ) : !isMatchingHub ? (
+            ) : !isMatchingHub && !isAdminLoginPage ? (
               <Link
                 href="/pilot-login"
                 className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -576,7 +591,7 @@ export function LandingHeader() {
               className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
               onClick={() => {
                 setOpen(false);
-                router.replace("/login");
+                router.replace("/admin");
               }}
             >
               Logout

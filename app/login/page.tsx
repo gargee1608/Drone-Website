@@ -1,11 +1,6 @@
-import { LoginView } from "@/components/login/login-view";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Drone Hire — Admin Login",
-  description:
-    "Sign in as an administrator to access the AEROLAMINAR admin dashboard.",
-};
-
+/** Legacy URL; admin sign-in lives at `/admin`. */
 export default function LoginPage() {
-  return <LoginView adminOnly />;
+  redirect("/admin");
 }
