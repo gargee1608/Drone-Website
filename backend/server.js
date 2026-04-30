@@ -16,6 +16,65 @@ app.use(cors());
 app.use(express.json());
 
 
+/** Extract password string from user row (handles legacy fields). */
+function storedPasswordFromUser(user) {
+  if (!user) return "";
+  const p = user.password ?? user.password_hash ?? user.pwd ?? "";
+  return String(p ?? "");
+}
+
+/** Compare plaintext password against stored bcrypt hash. */
+async function passwordMatches(plaintext, stored) {
+  if (!plaintext || !stored) return false;
+  try {
+    return await bcrypt.compare(String(plaintext), String(stored));
+  } catch {
+    return false;
+  }
+}
+
+/** JSON-safe value (serialize BigInt safely). */
+function jsonSafe(value) {
+  if (value === null || value === undefined) return value;
+  if (typeof value === "bigint") return value.toString();
+  return value;
+}
+
+/** Build user payload for API responses. */
+function userPayloadForResponse(user, role) {
+  if (!user) return {};
+  return {
+    id: jsonSafe(user.id) != null ? String(jsonSafe(user.id)) : "",
+    email: user.email == null ? "" : String(user.email),
+    name: String(user.name ?? "").replace(/\s+/g, " ").trim(),
+    fullName: String(user.name ?? "").replace(/\s+/g, " ").trim(),
+    role: role || String(user.role ?? "user"),
+  };
+}
+
+/** Normalize phone for OTP (E.164-ish or 10-digit India). */
+function normalizePhoneForOtp(raw) {
+  const digits = String(raw ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+  // India 10-digit: prepend +91
+  if (digits.length === 10) return `+91${digits}`;
+  // If starts with country code (11+ digits), add + prefix if missing
+  if (digits.length >= 11) {
+    return digits.startsWith("+") ? digits : `+${digits}`;
+  }
+  return null;
+}
+
+/** Extract digits only from phone. */
+function phoneDigitsOnly(raw) {
+  return String(raw ?? "").replace(/\D/g, "");
+}
+
+/** Generate 6-digit OTP string. */
+function generateOTP() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
 const serviceRoute = require("./routes/serviceRoute");
 
 const pilotRoutes = require("./routes/pilotRoutes");
@@ -340,10 +399,7 @@ async function seedDevDronesIfEmpty() {
   }
 }
 
-/** Dev-only: one row in `admins` so Admin Login works (see login page hint). */
 async function seedDevAdminsIfEmpty() {
-  if (process.env.DISABLE_DEV_ADMIN_SEED === "true") return;
-
   try {
     const hash = await bcrypt.hash("admin123", 10);
     const ins = await pool.query(
