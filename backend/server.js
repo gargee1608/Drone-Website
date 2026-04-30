@@ -410,7 +410,9 @@ async function seedDevAdminsIfEmpty() {
         name TEXT
       )
     `);
-    const hash = await bcrypt.hash("admin123", 10);
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@gmail.com";
+    const adminPass = process.env.ADMIN_PASSWORD || "admin123";
+    const hash = await bcrypt.hash(adminPass, 10);
     const ins = await pool.query(
       `INSERT INTO admins (email, password, name)
        SELECT $1::text, $2::text, $3::text
@@ -418,10 +420,10 @@ async function seedDevAdminsIfEmpty() {
          SELECT 1 FROM admins a
          WHERE LOWER(TRIM(COALESCE(a.email::text, ''))) = LOWER(TRIM($1::text))
        )`,
-      ["admin@gmail.com", hash, "Admin"]
+      [adminEmail, hash, "Admin"]
     );
     if (ins.rowCount > 0) {
-      console.log("[auth] Seeded admin in `admins`: admin@gmail.com / admin123");
+      console.log(`[auth] Seeded admin in \`admins\`: ${adminEmail} / (password from .env)`);
     } else {
       console.log("[auth] Admin already exists, skipping seed");
     }
