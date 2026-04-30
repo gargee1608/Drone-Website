@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { PilotLoginView } from "@/components/pilot-login/pilot-login-view";
 
 export const metadata = {
@@ -6,5 +7,9 @@ export const metadata = {
 };
 
 export default function PilotLoginPage() {
-  return <PilotLoginView />;
+  return (
+    <Suspense fallback={null}>
+      <PilotLoginView />
+    </Suspense>
+  );
 }
