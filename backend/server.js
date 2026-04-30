@@ -401,6 +401,15 @@ async function seedDevDronesIfEmpty() {
 
 async function seedDevAdminsIfEmpty() {
   try {
+    // Ensure admins table exists before seeding
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS admins (
+        id BIGSERIAL PRIMARY KEY,
+        email TEXT NOT NULL,
+        password TEXT NOT NULL,
+        name TEXT
+      )
+    `);
     const hash = await bcrypt.hash("admin123", 10);
     const ins = await pool.query(
       `INSERT INTO admins (email, password, name)
@@ -413,12 +422,13 @@ async function seedDevAdminsIfEmpty() {
     );
     if (ins.rowCount > 0) {
       console.log("[auth] Seeded admin in `admins`: admin@gmail.com / admin123");
+    } else {
+      console.log("[auth] Admin already exists, skipping seed");
     }
   } catch (e) {
-    console.warn("[auth] Admin seed skipped:", signinErrorDetail(e));
+    console.warn("[auth] Admin seed failed:", e.message);
   }
 }
-
 
 // ✅ API route
 app.use("/api/services", serviceRoute);
@@ -1030,14 +1040,18 @@ app.post("/api/auth/signin", async (req, res) => {
         [email]
       );
       if (adminRes.rows.length === 0) {
+        console.log("[auth] Admin not found for email:", email);
         return res.status(401).json({ message: "Invalid email or password" });
       }
       const admin = adminRes.rows[0];
       const stored = storedPasswordFromUser(admin);
+      console.log("[auth] Admin found:", email, "has password:", !!stored);
       const ok = await passwordMatches(password, stored);
       if (!ok) {
+        console.log("[auth] Password mismatch for admin:", email);
         return res.status(401).json({ message: "Invalid email or password" });
       }
+      console.log("[auth] Admin login success:", email);
       const fullName = String(admin.name ?? "")
         .replace(/\s+/g, " ")
         .trim();
