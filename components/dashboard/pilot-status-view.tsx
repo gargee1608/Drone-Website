@@ -123,10 +123,10 @@ export function PilotStatusView({
   useEffect(() => {
     const fetchPilots = async () => {
       const data = await getPilots();
-      const rows = data != null && Array.isArray(data) ? data : [];
+      const rows: Record<string, unknown>[] = data != null && Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
 
       // map backend data -> UI format and derive status counts from available fields
-      const formatted = rows.map((pilot: Record<string, unknown>) => {
+      const formatted = rows.map((pilot) => {
         const rawStatus = String(
           pilot.duty_status ?? pilot.dutyStatus ?? pilot.status ?? "ACTIVE"
         ).toUpperCase();
