@@ -24,8 +24,10 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build the Next.js application
-# Use NODE_ENV=development during build so TypeScript, Tailwind, etc. are available
-RUN NODE_ENV=development npm run build
+# NODE_ENV must be production during build — Next.js expects this and React's
+# static generation breaks with NODE_ENV=development (useContext returns null).
+# DevDependencies are already installed from the deps stage.
+RUN npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner
