@@ -342,11 +342,10 @@ async function seedDevDronesIfEmpty() {
 
 /** Dev-only: one row in `admins` so Admin Login works (see login page hint). */
 async function seedDevAdminsIfEmpty() {
-  if (process.env.NODE_ENV === "production") return;
   if (process.env.DISABLE_DEV_ADMIN_SEED === "true") return;
 
   try {
-    const hash = await bcrypt.hash("test123", 10);
+    const hash = await bcrypt.hash("admin123", 10);
     const ins = await pool.query(
       `INSERT INTO admins (email, password, name)
        SELECT $1::text, $2::text, $3::text
@@ -354,13 +353,13 @@ async function seedDevAdminsIfEmpty() {
          SELECT 1 FROM admins a
          WHERE LOWER(TRIM(COALESCE(a.email::text, ''))) = LOWER(TRIM($1::text))
        )`,
-      ["test@gmail.com", hash, "Test Admin"]
+      ["admin@gmail.com", hash, "Admin"]
     );
     if (ins.rowCount > 0) {
-      console.log("[auth] Seeded dev admin in `admins`: test@gmail.com / test123");
+      console.log("[auth] Seeded admin in `admins`: admin@gmail.com / admin123");
     }
   } catch (e) {
-    console.warn("[auth] Dev admin seed skipped:", signinErrorDetail(e));
+    console.warn("[auth] Admin seed skipped:", signinErrorDetail(e));
   }
 }
 
@@ -377,77 +376,16 @@ function jwtSecret() {
   return "dev-insecure-jwt-secret";
 }
 
-
-function storedPasswordFromUser(row) {
-  if (!row || typeof row !== "object") return "";
-  const r = row;
-  const v = r.password ?? r.password_hash ?? r.pass ?? "";
-  return v === "" ? "" : String(v);
-}
-
-async function passwordMatches(plain, stored) {
-  if (stored == null || stored === "") return false;
-  const s = String(stored);
-  if (s.startsWith("$2")) {
-    try {
-      return await bcrypt.compare(plain, s);
-    } catch {
-      return false;
-    }
-  }
-  return plain === s;
-}
-
-/** Express `res.json` cannot serialize `bigint` (common for PG `id` columns). */
-function jsonSafe(value) {
-  if (value === null || value === undefined) return value;
-  if (typeof value === "bigint") return value.toString();
-  if (typeof value === "object" && value instanceof Date) {
-    return value.toISOString();
-  }
-  return value;
-}
-
-function userPayloadForResponse(user, role) {
-  const userName =
-    user.name != null && String(user.name).trim() !== ""
-      ? String(user.name).trim()
-      : "";
-  const payload = {
-    id: jsonSafe(user.id) != null ? String(jsonSafe(user.id)) : "",
-    email: user.email == null ? "" : String(user.email),
-    name: userName,
-    role: String(role),
-  };
-  if (userName) payload.fullName = userName;
-  const phoneRaw = user.phone ?? user.Phone;
-  if (phoneRaw != null && String(phoneRaw).trim() !== "") {
-    payload.phone = String(phoneRaw).trim();
-  }
-  return payload;
-}
-
-// STEP 6: OTP generator
-function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000);
-}
-
-function normalizePhoneForOtp(raw) {
-  const input = String(raw ?? "").trim();
-  if (!input) return null;
-  if (input.startsWith("+")) {
-    const digits = input.slice(1).replace(/\D/g, "");
-    if (digits.length < 8 || digits.length > 15) return null;
-    return `+${digits}`;
-  }
-  const digits = input.replace(/\D/g, "");
-  if (digits.length === 10) return `+91${digits}`;
-  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`;
-  return null;
-}
-
-function phoneDigitsOnly(raw) {
-  return String(raw ?? "").replace(/\D/g, "");
+async function ensureServicesSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS services (
+      id BIGSERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      price TEXT,
+      image TEXT
+    );
+  `);
 }
 
 async function ensurePhoneOtpSchema() {
@@ -1171,6 +1109,7 @@ app.post("/send-otp", async (req, res) => {
 ensureAuthSchema()
   .then(() => ensureDroneSchema())
   .then(() => ensureMissionSchema())
+  .then(() => ensureServicesSchema())
   .then(() => seedDevAdminsIfEmpty())
   .then(() => seedDevDronesIfEmpty())
   .then(() =>

@@ -238,6 +238,42 @@ async function migrateMissionRequestsSchema() {
   console.log("[migrate] ✓ mission_requests schema done");
 }
 
+// ─── 7. services ─────────────────────────────────────────────────────────────
+async function migrateServicesSchema() {
+  console.log("\n[migrate] → services table");
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS services (
+      id BIGSERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      price TEXT,
+      image TEXT
+    );
+  `);
+  console.log("[migrate] ✓ services schema done");
+}
+
+// ─── 8. seed admin ─────────────────────────────────────────────────────────────
+async function seedAdmin() {
+  console.log("\n[migrate] → seed admin user");
+  const bcrypt = require("bcrypt");
+  const hash = await bcrypt.hash("admin123", 10);
+  const ins = await pool.query(
+    `INSERT INTO admins (email, password, name)
+     SELECT $1::text, $2::text, $3::text
+     WHERE NOT EXISTS (
+       SELECT 1 FROM admins a
+       WHERE LOWER(TRIM(COALESCE(a.email::text, ''))) = LOWER(TRIM($1::text))
+     )`,
+    ["admin@gmail.com", hash, "Admin"]
+  );
+  if (ins.rowCount > 0) {
+    console.log("[migrate] ✓ seeded admin: admin@gmail.com / admin123");
+  } else {
+    console.log("[migrate] ✓ admin already exists, skipped");
+  }
+}
+
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 async function main() {
   console.log("=================================================");
@@ -254,6 +290,8 @@ async function main() {
     await migratePhoneOtpSchema();
     await migrateEmailResetSchema();
     await migrateMissionRequestsSchema();
+    await migrateServicesSchema();
+    await seedAdmin();
 
     console.log("\n✅  All migrations completed successfully!\n");
   } catch (err) {
