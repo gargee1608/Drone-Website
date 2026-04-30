@@ -7,26 +7,23 @@ import { Bell, Menu, Search, Settings, User, X } from "lucide-react";
 
 import {
   ServiceListingMegaMenu,
-  serviceMegaMenuItems,
+  useServiceMegaMenuItems,
 } from "@/components/nav/service-listing-mega-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function LandingHeader() {
+  const serviceMegaMenuItems = useServiceMegaMenuItems();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const hideRegisterPilotCta =
     pathname === "/login" ||
     pathname === "/pilot-registration" ||
-    pathname === "/marketplace" ||
-    pathname?.startsWith("/marketplace/") ||
     pathname === "/blogs" ||
     pathname?.startsWith("/blogs/") ||
     pathname === "/contact";
   const hideLoginIcon = pathname === "/pilot-registration";
   const hideNotificationsAndSettings =
-    pathname === "/marketplace" ||
-    (pathname?.startsWith("/marketplace/") ?? false) ||
     pathname === "/services" ||
     (pathname?.startsWith("/services/") ?? false) ||
     pathname === "/blogs" ||
@@ -41,12 +38,12 @@ export function LandingHeader() {
     );
 
   return (
-    <header className="fixed top-0 z-50 w-full border-b border-slate-100 bg-white/80 backdrop-blur-xl">
+    <header className="fixed top-0 z-50 w-full border-b border-slate-100 bg-white">
       <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-8 lg:gap-12">
           <Link
             href="/"
-            className="font-[family-name:var(--font-landing-display)] text-lg font-bold tracking-tighter text-[#008B8B] uppercase shrink-0"
+            className="font-[family-name:var(--font-landing-headline)] text-lg font-bold tracking-tighter text-[#008B8B] uppercase shrink-0"
           >
             Drone Hire
           </Link>
@@ -56,9 +53,6 @@ export function LandingHeader() {
           >
             <Link href="/" className={linkClass("/")}>
               Home
-            </Link>
-            <Link href="/marketplace" className={linkClass("/marketplace")}>
-              Marketplace
             </Link>
             <ServiceListingMegaMenu
               variant="landing"
@@ -93,11 +87,11 @@ export function LandingHeader() {
               href="/pilot-registration"
               className={cn(
                 "hidden h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-5 text-xs font-bold tracking-wider text-[#008B8B] uppercase transition hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent sm:inline-flex",
-                "font-[family-name:var(--font-landing-display)]",
+                "font-[family-name:var(--font-landing-headline)]",
                 hideRegisterPilotCta && "sm:hidden"
               )}
             >
-              Register a Pilot
+              New Registration
             </Link>
             {!hideNotificationsAndSettings ? (
               <>
@@ -154,13 +148,6 @@ export function LandingHeader() {
           >
             Home
           </Link>
-          <Link
-            href="/marketplace"
-            className="rounded-lg py-2"
-            onClick={() => setOpen(false)}
-          >
-            Marketplace
-          </Link>
           <div className="pt-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
             Services
           </div>
@@ -208,7 +195,7 @@ export function LandingHeader() {
               className="mt-2 rounded-md border-2 border-[#008B8B] bg-transparent py-3 text-center text-xs font-bold tracking-wider text-[#008B8B] uppercase hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent"
               onClick={() => setOpen(false)}
             >
-              Register a Pilot
+              New Registration
             </Link>
           ) : null}
         </nav>

@@ -5,147 +5,113 @@ import { useEffect, useReducer, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { DetailField } from "@/components/dashboard/user-request-detail-modal";
+import { apiUrl } from "@/lib/api-url";
+import {
+  ADMIN_PILOT_REG_STATE_STORAGE_KEY,
+  getDefaultPilotRegState,
+  loadPilotRegStateFromStorage,
+  type PilotRegCard,
+} from "@/lib/admin-pilot-registration-storage";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
-const cc = {
-  primary: "#008B8B",
-  primaryContainer: "#006b6b",
-  onSurface: "#191c1d",
-  secondaryLabel: "#4d5b7f",
-  surface: "#f8f9fa",
-  sidebar: "#f3f4f5",
-  outlineVariant: "#c1c6d7",
-  surfaceContainerHighest: "#e1e3e4",
-  surfaceContainerLowest: "#ffffff",
-  surfaceContainerHigh: "#e7e8e9",
-  error: "#ba1a1a",
-  errorContainer: "#ffdad6",
-  tertiary: "#006195",
-  tertiaryContainer: "#147ab8",
-  primaryFixed: "#cfe8e8",
-  onPrimaryFixed: "#0a3030",
-  tertiaryFixed: "#cde5ff",
-  onTertiaryFixed: "#001d32",
-  onSecondaryContainer: "#4d5b7f",
-  onErrorContainer: "#93000a",
-} as const;
+/** No hardcoded approved-pilot baseline. */
+const REGISTERED_PILOTS_COUNT_BASE = 0;
 
-/** Pilots awaiting registration review (shown under Pending Pilots). */
-const PENDING_PILOT_REGISTRATIONS = [
-  {
-    name: "Jonathan Reiss",
-    badge: "Pilot Candidate",
-    submitted: "2h ago",
-    rows: [
-      {
-        k: "License Type",
-        v: "Commercial Class B",
-        vClass: "text-[#008B8B]",
-      },
-      { k: "Flight Experience", v: "524 Hours" },
-      { k: "Region", v: "Sector 7G North" },
-    ],
-  },
-  {
-    name: "Sasha Greywell",
-    badge: "Pilot Candidate",
-    submitted: "5h ago",
-    rows: [
-      {
-        k: "License Type",
-        v: "Cargo Heavy Duty",
-        vClass: "text-[#008B8B]",
-      },
-      { k: "Flight Experience", v: "1,210 Hours" },
-      { k: "Region", v: "Global Logistics Hub" },
-    ],
-  },
-  {
-    name: "Priya Shah",
-    badge: "Pilot Candidate",
-    submitted: "1d ago",
-    rows: [
-      {
-        k: "License Type",
-        v: "Commercial Class A",
-        vClass: "text-[#008B8B]",
-      },
-      { k: "Flight Experience", v: "890 Hours" },
-      { k: "Region", v: "Eastern Corridor" },
-    ],
-  },
-] as const;
-
-/** Pilots who completed registration (shown under Approved Pilots). */
-const APPROVED_PILOT_REGISTRATIONS = [
-  {
-    name: "Elena Lourd",
-    badge: "Registered Pilot",
-    submitted: "Feb 8, 2026",
-    rows: [
-      { k: "License ID", v: "AL-110943-XP", vClass: "font-mono text-xs" },
-      {
-        k: "Status",
-        v: "Active",
-        vClass: "font-semibold text-green-700",
-      },
-      { k: "Region", v: "Sector 7G North" },
-    ],
-  },
-  {
-    name: "Marcus Kael",
-    badge: "Registered Pilot",
-    submitted: "Jan 22, 2026",
-    rows: [
-      { k: "License ID", v: "AL-445129-L1", vClass: "font-mono text-xs" },
-      {
-        k: "Status",
-        v: "Active",
-        vClass: "font-semibold text-green-700",
-      },
-      { k: "Region", v: "Port of Aerolia" },
-    ],
-  },
-  {
-    name: "Nora Quinn",
-    badge: "Registered Pilot",
-    submitted: "Mar 1, 2026",
-    rows: [
-      { k: "License ID", v: "AL-882301-K9", vClass: "font-mono text-xs" },
-      {
-        k: "Status",
-        v: "Active",
-        vClass: "font-semibold text-green-700",
-      },
-      { k: "Region", v: "Eastern Corridor" },
-    ],
-  },
-] as const;
-
-/** Base count so initial approved list (3) displays as 1,282. */
-const REGISTERED_PILOTS_COUNT_BASE = 1279;
-
-type PilotRegCard = {
-  name: string;
-  badge: string;
-  submitted: string;
-  rows: { k: string; v: string; vClass?: string }[];
+type DashboardPilotDbRow = {
+  id?: number | string;
+  name?: string | null;
+  license_number?: string | null;
+  duty_status?: string | null;
+  experience?: string | number | null;
+  flight_hours?: string | number | null;
+  city?: string | null;
+  state?: string | null;
+  drone_details?: unknown;
 };
 
-function clonePilotRegistrations(
-  source: readonly {
-    name: string;
-    badge: string;
-    submitted: string;
-    rows: readonly { k: string; v: string; vClass?: string }[];
-  }[]
-): PilotRegCard[] {
-  return source.map((p) => ({
-    name: p.name,
-    badge: p.badge,
-    submitted: p.submitted,
-    rows: p.rows.map((r) => ({ k: r.k, v: r.v, vClass: r.vClass })),
-  }));
+function droneDetailsMissing(droneDetails: unknown): boolean {
+  if (Array.isArray(droneDetails)) return droneDetails.length === 0;
+  if (typeof droneDetails === "string") {
+    const raw = droneDetails.trim();
+    if (!raw) return true;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return !Array.isArray(parsed) || parsed.length === 0;
+    } catch {
+      return true;
+    }
+  }
+  return true;
+}
+
+function droneDetailsCount(droneDetails: unknown): number {
+  if (Array.isArray(droneDetails)) return droneDetails.length;
+  if (typeof droneDetails === "string") {
+    const raw = droneDetails.trim();
+    if (!raw) return 0;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.length : 0;
+    } catch {
+      return 0;
+    }
+  }
+  return 0;
+}
+
+function mapDbPilotToPendingCard(row: DashboardPilotDbRow): PilotRegCard {
+  const id = String(row.id ?? "").trim() || `pilot-${Math.random().toString(36).slice(2, 9)}`;
+  const name = String(row.name ?? "").trim() || "Pilot";
+  const license = String(row.license_number ?? "").trim() || "—";
+  const flightHoursRaw = String(row.flight_hours ?? row.experience ?? "").trim();
+  const region = [String(row.city ?? "").trim(), String(row.state ?? "").trim()]
+    .filter(Boolean)
+    .join(", ");
+
+  return {
+    id: `db-pending-${id}`,
+    name,
+    badge: "Pending drone details",
+    submitted: "From database",
+    rows: [
+      { k: "License Type", v: license, vClass: "text-[#008B8B]" },
+      { k: "Flight Experience", v: flightHoursRaw ? `${flightHoursRaw} Hours` : "—" },
+      { k: "Region", v: region || "—" },
+      { k: "Pilot ID", v: id, vClass: "font-mono text-xs" },
+    ],
+  };
+}
+
+function mapDbPilotToApprovedCard(row: DashboardPilotDbRow): PilotRegCard {
+  const id = String(row.id ?? "").trim() || `pilot-${Math.random().toString(36).slice(2, 9)}`;
+  const name = String(row.name ?? "").trim() || "Pilot";
+  const license = String(row.license_number ?? "").trim() || "—";
+  const region = [String(row.city ?? "").trim(), String(row.state ?? "").trim()]
+    .filter(Boolean)
+    .join(", ");
+  const status = String(row.duty_status ?? "ACTIVE").trim().toUpperCase() || "ACTIVE";
+  const drones = droneDetailsCount(row.drone_details);
+
+  return {
+    id: `db-approved-${id}`,
+    name,
+    badge: "Registered Pilot",
+    submitted: "From database",
+    rows: [
+      { k: "License ID", v: license, vClass: "font-mono text-xs" },
+      {
+        k: "Status",
+        v: status,
+        vClass:
+          status === "ACTIVE"
+            ? "font-semibold text-green-700 dark:text-green-400"
+            : "font-semibold text-amber-700 dark:text-amber-300",
+      },
+      { k: "Region", v: region || "—" },
+      { k: "Drones registered", v: String(drones) },
+    ],
+  };
 }
 
 function makePilotLicenseId(): string {
@@ -169,6 +135,7 @@ function formatApprovedRegisteredDate(): string {
 function mapPendingToApproved(pilot: PilotRegCard): PilotRegCard {
   const region = pilot.rows.find((r) => r.k === "Region")?.v ?? "—";
   return {
+    id: `approved-${pilot.id}`,
     name: pilot.name,
     badge: "Registered Pilot",
     submitted: formatApprovedRegisteredDate(),
@@ -181,103 +148,36 @@ function mapPendingToApproved(pilot: PilotRegCard): PilotRegCard {
       {
         k: "Status",
         v: "Active",
-        vClass: "font-semibold text-green-700",
+        vClass: "font-semibold text-green-700 dark:text-green-400",
       },
       { k: "Region", v: region },
     ],
   };
 }
 
-const PILOT_REG_STATE_STORAGE_KEY =
-  "aerolaminar_dashboard_pilot_registrations_v1";
-
-function safeParsePilotCards(data: unknown): PilotRegCard[] | null {
-  if (!Array.isArray(data)) return null;
-  const out: PilotRegCard[] = [];
-  for (const item of data) {
-    if (
-      !item ||
-      typeof item !== "object" ||
-      typeof (item as PilotRegCard).name !== "string" ||
-      typeof (item as PilotRegCard).badge !== "string" ||
-      typeof (item as PilotRegCard).submitted !== "string" ||
-      !Array.isArray((item as PilotRegCard).rows)
-    ) {
-      return null;
-    }
-    const rows: PilotRegCard["rows"] = [];
-    for (const row of (item as PilotRegCard).rows) {
-      if (
-        !row ||
-        typeof row !== "object" ||
-        typeof row.k !== "string" ||
-        typeof row.v !== "string"
-      ) {
-        return null;
-      }
-      rows.push({
-        k: row.k,
-        v: row.v,
-        vClass:
-          typeof row.vClass === "string" ? row.vClass : undefined,
-      });
-    }
-    out.push({
-      name: (item as PilotRegCard).name,
-      badge: (item as PilotRegCard).badge,
-      submitted: (item as PilotRegCard).submitted,
-      rows,
-    });
-  }
-  return out;
-}
-
-function loadPilotRegStateFromStorage(): {
-  pending: PilotRegCard[];
-  approved: PilotRegCard[];
-} | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(PILOT_REG_STATE_STORAGE_KEY);
-    if (!raw) return null;
-    const o = JSON.parse(raw) as unknown;
-    if (!o || typeof o !== "object") return null;
-    const rec = o as Record<string, unknown>;
-    const pending = safeParsePilotCards(rec.pending);
-    const approved = safeParsePilotCards(rec.approved);
-    if (!pending || !approved) return null;
-    return { pending, approved };
-  } catch {
-    return null;
-  }
-}
-
 type PilotRegState = { pending: PilotRegCard[]; approved: PilotRegCard[] };
 
-const initialPilotRegState: PilotRegState = {
-  pending: clonePilotRegistrations(PENDING_PILOT_REGISTRATIONS),
-  approved: clonePilotRegistrations(APPROVED_PILOT_REGISTRATIONS),
-};
+const initialPilotRegState: PilotRegState = getDefaultPilotRegState();
 
 type PilotRegAction =
-  | { type: "accept"; name: string }
-  | { type: "reject"; name: string }
+  | { type: "accept"; id: string }
+  | { type: "reject"; id: string }
   | { type: "replace"; state: PilotRegState };
 
 function pilotRegReducer(state: PilotRegState, action: PilotRegAction): PilotRegState {
   switch (action.type) {
     case "accept": {
-      const pilot = state.pending.find((p) => p.name === action.name);
+      const pilot = state.pending.find((p) => p.id === action.id);
       if (!pilot) return state;
       return {
-        pending: state.pending.filter((p) => p.name !== action.name),
+        pending: state.pending.filter((p) => p.id !== action.id),
         approved: [mapPendingToApproved(pilot), ...state.approved],
       };
     }
     case "reject":
       return {
         ...state,
-        pending: state.pending.filter((p) => p.name !== action.name),
+        pending: state.pending.filter((p) => p.id !== action.id),
       };
     case "replace":
       return action.state;
@@ -292,6 +192,10 @@ export function DashboardHomeContent() {
     initialPilotRegState
   );
   const [pilotRegStorageReady, setPilotRegStorageReady] = useState(false);
+  const [dbPendingPilots, setDbPendingPilots] = useState<PilotRegCard[]>([]);
+  const [dbApprovedPilots, setDbApprovedPilots] = useState<PilotRegCard[]>([]);
+  const [dbTotalPilots, setDbTotalPilots] = useState(0);
+  const [dbTotalDrones, setDbTotalDrones] = useState(0);
 
   useEffect(() => {
     const stored = loadPilotRegStateFromStorage();
@@ -301,11 +205,96 @@ export function DashboardHomeContent() {
     setPilotRegStorageReady(true);
   }, []);
 
+
+  useEffect(() => {
+    const onPendingUpdated = () => {
+      const next = loadPilotRegStateFromStorage();
+      if (next) dispatchPilotReg({ type: "replace", state: next });
+    };
+    window.addEventListener("aerolaminar-pending-pilots-updated", onPendingUpdated);
+    return () =>
+      window.removeEventListener(
+        "aerolaminar-pending-pilots-updated",
+        onPendingUpdated
+      );
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadDbPending = async () => {
+      try {
+        const [response, totalCountResponse] = await Promise.all([
+          fetch(apiUrl("/api/pilots"), { cache: "no-store" }),
+          fetch(apiUrl("/api/pilots/total-count"), { cache: "no-store" }),
+        ]);
+        let pilotsTotalFromDb: number | null = null;
+        if (totalCountResponse.ok) {
+          try {
+            const tc: unknown = await totalCountResponse.json();
+            if (
+              tc &&
+              typeof tc === "object" &&
+              "count" in tc &&
+              typeof (tc as { count: unknown }).count === "number"
+            ) {
+              const n = Number((tc as { count: number }).count);
+              if (Number.isFinite(n)) pilotsTotalFromDb = n;
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+        if (!response.ok) {
+          if (!cancelled) {
+            setDbPendingPilots([]);
+            setDbApprovedPilots([]);
+            setDbTotalPilots(pilotsTotalFromDb ?? 0);
+            setDbTotalDrones(0);
+          }
+          return;
+        }
+        const data: unknown = await response.json();
+        const list = Array.isArray(data) ? (data as DashboardPilotDbRow[]) : [];
+        const pilotsCount = list.length;
+        /** Total drones registered on pilot profiles (`pilots.drone_details` JSON arrays). */
+        const dronesCount = list.reduce(
+          (sum, row) => sum + droneDetailsCount(row.drone_details),
+          0
+        );
+        const pending = list
+          .filter((row) => droneDetailsMissing(row.drone_details))
+          .map(mapDbPilotToPendingCard);
+        const approved = list
+          .filter((row) => !droneDetailsMissing(row.drone_details))
+          .map(mapDbPilotToApprovedCard);
+        if (!cancelled) {
+          setDbTotalPilots(
+            pilotsTotalFromDb !== null ? pilotsTotalFromDb : pilotsCount
+          );
+          setDbTotalDrones(dronesCount);
+          setDbPendingPilots(pending);
+          setDbApprovedPilots(approved);
+        }
+      } catch {
+        if (!cancelled) {
+          setDbTotalPilots(0);
+          setDbTotalDrones(0);
+          setDbPendingPilots([]);
+          setDbApprovedPilots([]);
+        }
+      }
+    };
+    void loadDbPending();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (!pilotRegStorageReady || typeof window === "undefined") return;
     try {
       localStorage.setItem(
-        PILOT_REG_STATE_STORAGE_KEY,
+        ADMIN_PILOT_REG_STATE_STORAGE_KEY,
         JSON.stringify(pilotRegState)
       );
     } catch {
@@ -313,38 +302,55 @@ export function DashboardHomeContent() {
     }
   }, [pilotRegState, pilotRegStorageReady]);
 
-  const pendingPilots = pilotRegState.pending;
-  const approvedPilots = pilotRegState.approved;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#pilot-registrations") return;
+    const t = window.setTimeout(() => {
+      document
+        .getElementById("pilot-registrations")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  const pendingPilots =
+    dbPendingPilots.length > 0 ? dbPendingPilots : pilotRegState.pending;
+  const approvedPilots =
+    dbApprovedPilots.length > 0 ? dbApprovedPilots : pilotRegState.approved;
 
   const registeredTotalDisplay = (
     REGISTERED_PILOTS_COUNT_BASE + approvedPilots.length
   ).toLocaleString();
 
-  const handleAcceptPilot = (name: string) => {
-    dispatchPilotReg({ type: "accept", name });
+  const handleAcceptPilot = (id: string) => {
+    dispatchPilotReg({ type: "accept", id });
   };
 
-  const handleRejectPilot = (name: string) => {
-    dispatchPilotReg({ type: "reject", name });
+  const handleRejectPilot = (id: string) => {
+    const pending = pendingPilots.find((p) => p.id === id);
+    const pilotId = pending?.rows.find((r) => r.k === "Pilot ID")?.v?.trim();
+    const query =
+      pilotId && /^[0-9]+$/.test(pilotId)
+        ? `?step=3&pilotId=${encodeURIComponent(pilotId)}`
+        : "?step=3";
+    window.location.href = `/pilot-registration${query}`;
   };
 
   return (
     <>
-      <h1 className="text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
-        Admin Dashboard
-      </h1>
+      <h1 className={ADMIN_PAGE_TITLE_CLASS}>Admin Dashboard</h1>
 
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           title="Total Pilots"
-          value="1,284"
+          value={dbTotalPilots.toLocaleString()}
           icon={Users}
           iconClassName="text-[#008B8B]"
           iconBg="bg-[#008B8B]/5"
         />
         <KpiCard
           title="Total Drones"
-          value="4,512"
+          value={dbTotalDrones.toLocaleString()}
           icon={Plane}
           iconClassName="text-[#008B8B]"
           iconBg="bg-[#008B8B]/5"
@@ -360,8 +366,8 @@ export function DashboardHomeContent() {
           title="Registered pilots"
           value={registeredTotalDisplay}
           icon={UserCheck}
-          iconClassName="text-green-700"
-          iconBg="bg-green-100"
+          iconClassName="text-green-700 dark:text-green-400"
+          iconBg="bg-green-100 dark:bg-green-950/40"
         />
       </section>
 
@@ -393,15 +399,12 @@ function KpiCard({
   iconBg: string;
 }) {
   return (
-    <div className="cc-glass-card flex items-center justify-between rounded-2xl border border-[#c1c6d7]/15 p-5 shadow-sm">
+    <div className="cc-glass-card flex items-center justify-between rounded-2xl border border-border/60 p-5 shadow-sm">
       <div>
-        <p
-          className="text-[11px] uppercase tracking-widest"
-          style={{ color: cc.onSecondaryContainer }}
-        >
+        <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
           {title}
         </p>
-        <h2 className="mt-1 text-2xl font-bold tabular-nums">
+        <h2 className="mt-1 text-2xl font-bold tabular-nums text-foreground">
           {value}
         </h2>
       </div>
@@ -420,8 +423,8 @@ function PendingRegistrationsSection({
 }: {
   pendingPilots: PilotRegCard[];
   approvedPilots: PilotRegCard[];
-  onAcceptPilot: (name: string) => void;
-  onRejectPilot: (name: string) => void;
+  onAcceptPilot: (id: string) => void;
+  onRejectPilot: (id: string) => void;
 }) {
   const [pilotRegView, setPilotRegView] = useState<"pending" | "approved">(
     "pending"
@@ -431,20 +434,14 @@ function PendingRegistrationsSection({
   const list = pilotRegView === "pending" ? pendingPilots : approvedPilots;
 
   return (
-    <section className="space-y-6">
+    <section id="pilot-registrations" className="scroll-mt-24 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-xl font-bold">
-            Pilot registrations
+          <h3 className="text-xl font-bold text-foreground">
+            {pilotRegView === "approved"
+              ? "Registered Pilot"
+              : "Pilot Registrations Pending"}
           </h3>
-          <p
-            className="mt-1 text-[13px] leading-snug"
-            style={{ color: cc.onSecondaryContainer }}
-          >
-            {pilotRegView === "pending"
-              ? "Pilots awaiting review — accept or reject each application."
-              : "Pilots who have completed registration and are cleared to operate."}
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -455,13 +452,8 @@ function PendingRegistrationsSection({
               "rounded-lg text-xs font-semibold",
               pilotRegView === "pending"
                 ? "bg-[#008B8B] text-white shadow-lg shadow-[#008B8B]/20 hover:bg-[#006b6b]"
-                : "bg-[#e7e8e9] hover:bg-[#c1c6d7]/30"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
             )}
-            style={
-              pilotRegView === "pending"
-                ? undefined
-                : { color: cc.onSecondaryContainer }
-            }
             onClick={() => setPilotRegView("pending")}
           >
             Pending Pilots
@@ -474,13 +466,8 @@ function PendingRegistrationsSection({
               "rounded-lg text-xs font-semibold",
               pilotRegView === "approved"
                 ? "bg-[#008B8B] text-white shadow-lg shadow-[#008B8B]/20 hover:bg-[#006b6b]"
-                : "bg-[#e7e8e9] hover:bg-[#c1c6d7]/30"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
             )}
-            style={
-              pilotRegView === "approved"
-                ? undefined
-                : { color: cc.onSecondaryContainer }
-            }
             onClick={() => setPilotRegView("approved")}
           >
             Approved Pilots
@@ -491,14 +478,14 @@ function PendingRegistrationsSection({
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {list.map((p) => (
           <PendingPilotCard
-            key={p.name}
+            key={p.id}
             variant={pilotRegView === "pending" ? "pending" : "approved"}
             name={p.name}
             badge={p.badge}
             submitted={p.submitted}
             rows={p.rows}
-            onAccept={() => onAcceptPilot(p.name)}
-            onReject={() => onRejectPilot(p.name)}
+            onAccept={() => onAcceptPilot(p.id)}
+            onReject={() => onRejectPilot(p.id)}
             onViewProfile={
               pilotRegView === "approved"
                 ? () => setProfilePilot(p)
@@ -538,43 +525,33 @@ function PendingPilotCard({
   const isApproved = variant === "approved";
 
   return (
-    <div className="rounded-xl border border-[#c1c6d7]/15 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="rounded-xl border border-border/80 bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="mb-3 flex items-start justify-between">
         <div className="flex items-center space-x-2.5">
           <div
-            className="flex size-11 shrink-0 items-center justify-center rounded-full border border-[#c1c6d7]/30 bg-[#e7e8e9]"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border bg-muted"
             aria-hidden
           >
             <User
-              className="size-5"
+              className="size-5 text-muted-foreground"
               strokeWidth={2}
-              style={{ color: cc.onSecondaryContainer }}
             />
           </div>
           <div>
-            <h4 className="text-sm font-bold">{name}</h4>
+            <h4 className="text-sm font-bold text-foreground">{name}</h4>
             <span
-              className="mt-0.5 inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase"
-              style={
+              className={cn(
+                "mt-0.5 inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase",
                 isApproved
-                  ? {
-                      background: "#dcfce7",
-                      color: "#166534",
-                    }
-                  : {
-                      background: cc.primaryFixed,
-                      color: cc.onPrimaryFixed,
-                    }
-              }
+                  ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
+                  : "bg-[#cfe8e8] text-[#0a3030] dark:bg-primary/25 dark:text-primary"
+              )}
             >
               {badge}
             </span>
           </div>
         </div>
-        <span
-          className="max-w-[10rem] text-right text-[9px] font-bold opacity-60 sm:max-w-none"
-          style={{ color: cc.onSecondaryContainer }}
-        >
+        <span className="max-w-[10rem] text-right text-[9px] font-bold text-muted-foreground sm:max-w-none">
           {isApproved ? "Registered: " : "Submitted: "}
           {submitted}
         </span>
@@ -582,8 +559,10 @@ function PendingPilotCard({
       <div className="mb-5 space-y-2.5">
         {rows.map(({ k, v, vClass }) => (
           <div key={k} className="flex justify-between gap-2 text-xs">
-            <span style={{ color: cc.onSecondaryContainer }}>{k}</span>
-            <span className={cn("text-right font-semibold", vClass)}>{v}</span>
+            <span className="text-muted-foreground">{k}</span>
+            <span className={cn("text-right font-semibold text-foreground", vClass)}>
+              {v}
+            </span>
           </div>
         ))}
       </div>
@@ -602,7 +581,7 @@ function PendingPilotCard({
           <Button
             type="button"
             size="sm"
-            className="bg-[#008B8B] text-xs font-bold text-white hover:bg-[#006b6b]"
+            className="border border-[#008B8B] bg-transparent text-xs font-bold text-[#008B8B] hover:bg-[#008B8B]/10"
             onClick={onAccept}
           >
             Accept
@@ -610,12 +589,11 @@ function PendingPilotCard({
           <Button
             type="button"
             size="sm"
-            variant="secondary"
-            className="bg-[#e7e8e9] text-xs font-bold hover:bg-[#c1c6d7]/30"
-            style={{ color: cc.onSecondaryContainer }}
+            variant="outline"
+            className="border border-[#008B8B] bg-transparent text-xs font-bold text-[#008B8B] hover:bg-[#008B8B]/10"
             onClick={onReject}
           >
-            Reject
+            Add Drone Details
           </Button>
         </div>
       )}
@@ -658,28 +636,27 @@ function ApprovedPilotProfileModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="approved-pilot-profile-title"
-        className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-[#c1c6d7]/20 bg-white shadow-2xl sm:rounded-2xl"
+        className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-border bg-card text-foreground shadow-2xl sm:rounded-2xl"
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#edeeef] px-5 py-4 sm:px-6">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <div
-              className="flex size-12 shrink-0 items-center justify-center rounded-full border border-[#c1c6d7]/30 bg-[#e7e8e9]"
+              className="flex size-12 shrink-0 items-center justify-center rounded-full border border-border bg-muted"
               aria-hidden
             >
               <User
-                className="size-6"
+                className="size-6 text-muted-foreground"
                 strokeWidth={2}
-                style={{ color: cc.onSecondaryContainer }}
               />
             </div>
             <div className="min-w-0">
               <h2
                 id="approved-pilot-profile-title"
-                className="truncate text-base font-bold text-[#191c1d] sm:text-lg"
+                className="truncate text-base font-bold text-foreground sm:text-lg"
               >
                 {pilot.name}
               </h2>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#166534]">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">
                 {pilot.badge}
               </p>
             </div>
@@ -687,17 +664,14 @@ function ApprovedPilotProfileModal({
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-lg p-2 text-[#414755] transition-colors hover:bg-[#f3f4f5]"
+            className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted"
             aria-label="Close"
           >
             <X className="size-5" />
           </button>
         </div>
         <div className="overflow-y-auto px-5 py-5 sm:px-6">
-          <p
-            className="mb-5 text-[11px] font-medium"
-            style={{ color: cc.onSecondaryContainer }}
-          >
+          <p className="mb-5 text-[11px] font-medium text-muted-foreground">
             Registered: {pilot.submitted}
           </p>
           <dl className="grid gap-4 sm:grid-cols-2">

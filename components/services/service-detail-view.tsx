@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronRight } from "lucide-react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
+import { RequestServiceModalTrigger } from "@/components/services/request-service-modal-trigger";
 import { type ServiceCatalogItem } from "@/lib/service-catalog";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 const headline = "font-[family-name:var(--font-landing-headline)]";
@@ -14,8 +16,6 @@ type ServiceDetailViewProps = {
 };
 
 export function ServiceDetailView({ item }: ServiceDetailViewProps) {
-  const requestHref = `/user-dashboard/create-request?reason=${encodeURIComponent(item.title)}`;
-
   return (
     <div
       className={cn(
@@ -52,18 +52,11 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
         {/* Copy left · image + indicative rate right (image first on narrow screens) */}
         <div className="mb-10 grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,11rem)] md:items-start md:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,12.5rem)] lg:gap-12">
           <div className="order-2 min-w-0 md:order-1">
-            <h1
-              className={cn(
-                headline,
-                "text-2xl font-bold leading-tight tracking-tight text-slate-900 sm:text-3xl"
-              )}
-            >
-              {item.title}
-            </h1>
+            <h1 className={ADMIN_PAGE_TITLE_CLASS}>{item.title}</h1>
             <p
               className={cn(
                 body,
-                "mt-3 text-[0.9375rem] leading-relaxed text-slate-600 sm:text-base"
+                "mt-3 whitespace-pre-line text-[0.9375rem] leading-relaxed text-slate-600 sm:text-base"
               )}
             >
               {item.description}
@@ -136,7 +129,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
               </div>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-3 sm:mt-4">
               <p
                 className={cn(
                   headline,
@@ -148,7 +141,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
               <p
                 className={cn(
                   headline,
-                  "mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+                  "mt-0.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
                 )}
               >
                 {item.topBadge.text}
@@ -156,16 +149,14 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
               <p className={cn(body, "mt-2 text-sm leading-relaxed text-slate-500")}>
                 Final quote may vary by scope, region, and compliance.
               </p>
-              <Link
-                href={requestHref}
+              <RequestServiceModalTrigger
+                reasonTitle={item.title}
+                label="Request this service"
                 className={cn(
                   headline,
-                  "mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-[#008B8B] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#007a7a]"
+                  "mt-5 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[#008B8B] bg-transparent px-4 py-2.5 text-sm font-semibold text-[#008B8B] transition hover:bg-[#008B8B]/10"
                 )}
-              >
-                Request this service
-                <ArrowRight className="size-4 shrink-0" aria-hidden />
-              </Link>
+              />
             </div>
           </div>
         </div>

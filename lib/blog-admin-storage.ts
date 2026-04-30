@@ -2,6 +2,7 @@ import type { BlogPost } from "@/components/blogs/blog-data";
 
 export const BLOG_OVERRIDES_STORAGE_KEY = "aerolaminar_blog_overrides_v1";
 export const BLOG_EXTRAS_STORAGE_KEY = "aerolaminar_blog_extras_v1";
+export const BLOG_DELETED_BUILTINS_KEY = "aerolaminar_blog_deleted_builtins_v1";
 export const BLOG_ADMIN_UPDATED_EVENT = "aerolaminar-blog-admin-updated";
 
 /** Partial edits on top of built-in `blog-data` posts (keyed by slug). */
@@ -84,6 +85,39 @@ export function saveBlogExtras(rows: AdminBlogExtra[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(BLOG_EXTRAS_STORAGE_KEY, JSON.stringify(rows));
   window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+}
+
+/** Built-in post slugs the admin chose to remove from the merged catalog. */
+export function loadBlogDeletedBuiltins(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(BLOG_DELETED_BUILTINS_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((x): x is string => typeof x === "string");
+  } catch {
+    return [];
+  }
+}
+
+export function saveBlogDeletedBuiltins(slugs: string[]): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(BLOG_DELETED_BUILTINS_KEY, JSON.stringify(slugs));
+  window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+}
+
+/** Hide a built-in post everywhere the merged list is used; clears overrides for that slug. */
+export function deleteBuiltinFromCatalog(slug: string): void {
+  if (typeof window === "undefined") return;
+  const dels = new Set(loadBlogDeletedBuiltins());
+  dels.add(slug);
+  saveBlogDeletedBuiltins([...dels]);
+  const ov = loadBlogOverrides();
+  if (ov[slug]) {
+    delete ov[slug];
+    saveBlogOverrides(ov);
+  }
 }
 
 export function createInternalId(): string {

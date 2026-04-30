@@ -1,19 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Lock, User } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { ArrowRight, CheckCircle2, Lock, Mail, User } from "lucide-react";
+import { useState, type FormEvent } from "react";
 
+import { apiUrl } from "@/lib/api-url";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validateSignup(email: string, password: string, confirm: string) {
-  const errors: { email?: string; password?: string; confirm?: string } = {};
+function validateSignup(
+  firstName: string,
+  lastName: string,
+  email: string,
+  password: string,
+  confirm: string
+) {
+  const errors: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    password?: string;
+    confirm?: string;
+    form?: string;
+  } = {};
+  const fn = firstName.trim();
+  const ln = lastName.trim();
   const e = email.trim();
   const p = password.trim();
   const c = confirm.trim();
+
+  if (!fn) errors.firstName = "First name is required.";
+  if (!ln) errors.lastName = "Last name is required.";
 
   if (!e) errors.email = "Email is required.";
   else if (!emailPattern.test(e)) errors.email = "Enter a valid email address.";
@@ -28,36 +48,104 @@ function validateSignup(email: string, password: string, confirm: string) {
 }
 
 export function SignUpView() {
-  const router = useRouter();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{
+    firstName?: string;
+    lastName?: string;
     email?: string;
     password?: string;
     confirm?: string;
+    form?: string;
   }>({});
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const next = validateSignup(
+      firstName,
+      lastName,
+      email,
+      password,
+      confirm
+    );
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
+    setSubmitting(true);
+    setErrors((p) => ({ ...p, form: undefined }));
+    try {
+      const res = await fetch(apiUrl("/api/auth/register"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim().toLowerCase(),
+          password: password.trim(),
+        }),
+      });
+      const parsed = await readResponseJson(res);
+      let formMessage = "Registration failed.";
+      if (!parsed.okParse) {
+        formMessage =
+          parsed.bodyPreview && parsed.bodyPreview.length > 0
+            ? `Server returned an unexpected response (${res.status}).`
+            : `Could not read server response (${res.status}).`;
+      } else if (
+        parsed.data &&
+        typeof parsed.data === "object" &&
+        parsed.data !== null
+      ) {
+        const d = parsed.data as Record<string, unknown>;
+        const m = d.message ?? d.error ?? d.detail ?? d.hint;
+        if (typeof m === "string" && m.trim()) formMessage = m.trim();
+        else if (res.status === 502)
+          formMessage =
+            "Could not reach the API (502). Start the backend on port 4000 or set BACKEND_URL.";
+      } else if (res.status === 502) {
+        formMessage =
+          "Could not reach the API (502). Start the backend on port 4000 or set BACKEND_URL.";
+      }
+
+      if (!res.ok) {
+        setErrors((p) => ({ ...p, form: formMessage }));
+        return;
+      }
+      setSuccessOpen(true);
+      setPassword("");
+      setConfirm("");
+      setShowPassword(false);
+    } catch {
+      setErrors((p) => ({
+        ...p,
+        form: "Could not reach the server. Try again later.",
+      }));
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-background text-foreground">
-      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-visible px-4 py-8 pb-12 sm:px-6 sm:py-10 sm:pb-16">
-        <div className="login-glass-card relative w-full max-w-[340px] rounded-xl p-5 shadow-lg shadow-[#4d5b7f]/8 sm:max-w-[400px] sm:p-6">
-          <div
-            className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 rounded-t-xl bg-gradient-to-r from-[#008B8B] via-[#006b6b] to-[#006195] shadow-[0_2px_10px_rgba(0,88,188,0.35)]"
-            aria-hidden
-          />
-
-          <div className="mb-4 pt-0.5 text-center sm:mb-5">
-            <div className="mb-2.5 flex justify-center sm:mb-3">
-              <div className="flex size-11 items-center justify-center rounded-lg border border-[#008B8B]/20 bg-[#008B8B]/10 shadow-sm sm:size-12">
-                <User className="size-6 text-[#008B8B] sm:size-7" strokeWidth={1.75} />
+      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-14">
+        <div className="login-glass-card relative w-full max-w-[min(100%,360px)] overflow-hidden rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md sm:max-w-[420px] sm:p-5">
+          <div className="mb-2 text-center sm:mb-2.5">
+            <div className="mb-1.5 flex justify-center sm:mb-2">
+              <div className="flex size-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 shadow-sm sm:size-11">
+                <User
+                  className="size-[22px] text-[#008B8B] sm:size-6"
+                  strokeWidth={1.75}
+                  aria-hidden
+                />
               </div>
             </div>
-            <h1
-              className={cn(
-                "mb-1.5 text-xl font-bold tracking-tight text-[#191c1d] sm:text-2xl"
-              )}
-            >
+            <h1 className={cn("mb-1.5", ADMIN_PAGE_TITLE_CLASS)}>
               Create account
             </h1>
             <p className="text-xs font-medium leading-snug text-[#414755] sm:text-sm">
@@ -66,32 +154,122 @@ export function SignUpView() {
           </div>
 
           <form
-            className="space-y-3 sm:space-y-4"
+            className="space-y-2 sm:space-y-2.5"
             noValidate
-            onSubmit={(e) => {
-              e.preventDefault();
-              const next = validateSignup(email, password, confirm);
-              setErrors(next);
-              if (Object.keys(next).length > 0) return;
-              router.push("/login");
-            }}
+            onSubmit={handleSubmit}
           >
+            <div className="grid gap-2 sm:grid-cols-2 sm:gap-2.5">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="signup-first-name"
+                  className="block px-1 text-xs font-semibold text-[#414755] sm:text-sm"
+                >
+                  First name
+                </label>
+                <div className="relative">
+                  <User
+                    className="pointer-events-none absolute left-2.5 top-1/2 size-[15px] -translate-y-1/2 text-[#717786] sm:left-3 sm:size-4"
+                    aria-hidden
+                  />
+                  <input
+                    id="signup-first-name"
+                    name="firstName"
+                    type="text"
+                    autoComplete="given-name"
+                    placeholder="Jane"
+                    value={firstName}
+                    onChange={(e) => {
+                      setFirstName(e.target.value);
+                      if (errors.firstName)
+                        setErrors((p) => ({ ...p, firstName: undefined }));
+                    }}
+                    aria-invalid={errors.firstName ? true : undefined}
+                    aria-describedby={
+                      errors.firstName ? "signup-first-name-error" : undefined
+                    }
+                    className={cn(
+                      "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
+                      errors.firstName
+                        ? "border-red-500 focus:border-red-500"
+                        : "focus:border-slate-500"
+                    )}
+                  />
+                </div>
+                {errors.firstName ? (
+                  <p
+                    id="signup-first-name-error"
+                    role="alert"
+                    className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
+                  >
+                    {errors.firstName}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="signup-last-name"
+                  className="block px-1 text-xs font-semibold text-[#414755] sm:text-sm"
+                >
+                  Last name
+                </label>
+                <div className="relative">
+                  <User
+                    className="pointer-events-none absolute left-2.5 top-1/2 size-[15px] -translate-y-1/2 text-[#717786] sm:left-3 sm:size-4"
+                    aria-hidden
+                  />
+                  <input
+                    id="signup-last-name"
+                    name="lastName"
+                    type="text"
+                    autoComplete="family-name"
+                    placeholder="Doe"
+                    value={lastName}
+                    onChange={(e) => {
+                      setLastName(e.target.value);
+                      if (errors.lastName)
+                        setErrors((p) => ({ ...p, lastName: undefined }));
+                    }}
+                    aria-invalid={errors.lastName ? true : undefined}
+                    aria-describedby={
+                      errors.lastName ? "signup-last-name-error" : undefined
+                    }
+                    className={cn(
+                      "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
+                      errors.lastName
+                        ? "border-red-500 focus:border-red-500"
+                        : "focus:border-slate-500"
+                    )}
+                  />
+                </div>
+                {errors.lastName ? (
+                  <p
+                    id="signup-last-name-error"
+                    role="alert"
+                    className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
+                  >
+                    {errors.lastName}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <label
                 htmlFor="signup-email"
                 className="block px-1 text-xs font-semibold text-[#414755] sm:text-sm"
               >
-                Email
+                Email Address
               </label>
               <div className="relative">
-                <User
+                <Mail
                   className="pointer-events-none absolute left-2.5 top-1/2 size-[15px] -translate-y-1/2 text-[#717786] sm:left-3 sm:size-4"
                   aria-hidden
                 />
                 <input
                   id="signup-email"
                   name="email"
-                  type="text"
+                  type="email"
                   autoComplete="email"
                   placeholder="you@company.com"
                   value={email}
@@ -102,10 +280,10 @@ export function SignUpView() {
                   aria-invalid={errors.email ? true : undefined}
                   aria-describedby={errors.email ? "signup-email-error" : undefined}
                   className={cn(
-                    "w-full rounded-md border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-all focus:ring-2 sm:py-2.5 sm:pl-10",
+                    "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
                     errors.email
-                      ? "ring-2 ring-red-500/80 focus:ring-red-500/50"
-                      : "focus:ring-[#008B8B]/20"
+                      ? "border-red-500 focus:border-red-500"
+                      : "focus:border-slate-500"
                   )}
                 />
               </div>
@@ -113,7 +291,7 @@ export function SignUpView() {
                 <p
                   id="signup-email-error"
                   role="alert"
-                  className="px-1 text-[11px] font-medium leading-snug text-red-600 sm:text-xs"
+                  className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
                 >
                   {errors.email}
                 </p>
@@ -135,7 +313,7 @@ export function SignUpView() {
                 <input
                   id="signup-password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="••••••••"
                   value={password}
@@ -146,10 +324,10 @@ export function SignUpView() {
                   aria-invalid={errors.password ? true : undefined}
                   aria-describedby={errors.password ? "signup-password-error" : undefined}
                   className={cn(
-                    "w-full rounded-md border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-all focus:ring-2 sm:py-2.5 sm:pl-10",
+                    "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
                     errors.password
-                      ? "ring-2 ring-red-500/80 focus:ring-red-500/50"
-                      : "focus:ring-[#008B8B]/20"
+                      ? "border-red-500 focus:border-red-500"
+                      : "focus:border-slate-500"
                   )}
                 />
               </div>
@@ -157,7 +335,7 @@ export function SignUpView() {
                 <p
                   id="signup-password-error"
                   role="alert"
-                  className="px-1 text-[11px] font-medium leading-snug text-red-600 sm:text-xs"
+                  className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
                 >
                   {errors.password}
                 </p>
@@ -179,7 +357,7 @@ export function SignUpView() {
                 <input
                   id="signup-confirm"
                   name="confirm"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="••••••••"
                   value={confirm}
@@ -190,10 +368,10 @@ export function SignUpView() {
                   aria-invalid={errors.confirm ? true : undefined}
                   aria-describedby={errors.confirm ? "signup-confirm-error" : undefined}
                   className={cn(
-                    "w-full rounded-md border border-[#c1c6d7] bg-transparent py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-all focus:ring-2 sm:py-2.5 sm:pl-10",
+                    "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
                     errors.confirm
-                      ? "ring-2 ring-red-500/80 focus:ring-red-500/50"
-                      : "focus:ring-[#008B8B]/20"
+                      ? "border-red-500 focus:border-red-500"
+                      : "focus:border-slate-500"
                   )}
                 />
               </div>
@@ -201,29 +379,56 @@ export function SignUpView() {
                 <p
                   id="signup-confirm-error"
                   role="alert"
-                  className="px-1 text-[11px] font-medium leading-snug text-red-600 sm:text-xs"
+                  className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
                 >
                   {errors.confirm}
                 </p>
               ) : null}
             </div>
 
+            <div className="flex items-center gap-1.5 px-1 pt-0.5">
+              <input
+                id="signup-show-password"
+                type="checkbox"
+                checked={showPassword}
+                onChange={(e) => setShowPassword(e.target.checked)}
+                className="size-4 shrink-0 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-0 sm:size-[18px]"
+              />
+              <label
+                htmlFor="signup-show-password"
+                className="cursor-pointer text-xs font-medium text-[#414755] sm:text-sm"
+              >
+                Show password
+              </label>
+            </div>
+
+            {errors.form ? (
+              <p
+                role="alert"
+                className="rounded-md border border-red-200 bg-red-50 px-2 py-2 text-center text-xs font-medium text-red-700 sm:text-sm dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200"
+              >
+                {errors.form}
+              </p>
+            ) : null}
+
             <button
               type="submit"
+              disabled={submitting}
               className={cn(
-                "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#008B8B] to-[#006b6b] py-2.5 px-3 text-sm font-bold text-white shadow-md shadow-[#008B8B]/20 transition-all hover:shadow-[#008B8B]/35 active:scale-[0.99] sm:py-3"
+                "flex w-full items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#008B8B] to-[#006b6b] py-2 px-3 text-sm font-bold text-white shadow-md shadow-[#008B8B]/20 transition-all hover:shadow-[#008B8B]/35 active:scale-[0.99] sm:py-2.5",
+                submitting && "pointer-events-none opacity-70"
               )}
             >
-              Create account
-              <ArrowRight className="size-3.5 sm:size-4" />
+              {submitting ? "Creating account…" : "Create account"}
+              <ArrowRight className="size-3.5 sm:size-4" aria-hidden />
             </button>
           </form>
 
-          <div className="mt-5 text-center sm:mt-6">
+          <div className="mt-3 text-center sm:mt-4">
             <p className="text-xs font-medium text-[#414755] sm:text-sm">
               Already have an account?{" "}
               <Link
-                href="/login"
+                href="/pilot-login?panel=user"
                 className="ml-1 font-bold text-[#008B8B] hover:underline"
               >
                 Sign In
@@ -232,6 +437,43 @@ export function SignUpView() {
           </div>
         </div>
       </main>
+
+      {successOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="signup-success-title"
+        >
+          <div className="w-full max-w-[360px] rounded-xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6 dark:border-white/15 dark:bg-[#161a1d]">
+            <div className="mb-4 flex justify-center">
+              <div className="flex size-14 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/40">
+                <CheckCircle2
+                  className="size-9 text-emerald-600 dark:text-emerald-400"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+              </div>
+            </div>
+            <h2
+              id="signup-success-title"
+              className="text-center text-lg font-bold tracking-tight text-[#191c1d] sm:text-xl dark:text-white"
+            >
+              Account Created Successfully
+            </h2>
+            <p className="mt-2 text-center text-sm text-slate-600 dark:text-white/75">
+              You can sign in with your email and password.
+            </p>
+            <button
+              type="button"
+              className="mt-6 flex w-full items-center justify-center rounded-lg bg-[#008B8B] py-3 text-sm font-semibold text-white transition hover:bg-[#006f6f]"
+              onClick={() => setSuccessOpen(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

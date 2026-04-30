@@ -4,6 +4,7 @@ import {
   sendOtp,
   verifyOtp,
   login,
+  signin,
   register,
 } from "../controllers/authController.js";
 
@@ -42,10 +43,23 @@ router.post(
     body("password").notEmpty().withMessage("Password is required"),
     body("role")
       .optional()
-      .isIn(["user", "admin"])
-      .withMessage("role must be user or admin"),
+      .isIn(["user", "admin", "pilot"])
+      .withMessage("role must be user, admin, or pilot"),
   ],
   login
+);
+
+router.post(
+  "/signin",
+  [
+    body("email").trim().isEmail().withMessage("Valid email is required"),
+    body("password").notEmpty().withMessage("Password is required"),
+    body("role")
+      .optional()
+      .isIn(["user", "admin", "pilot"])
+      .withMessage("role must be user, admin, or pilot"),
+  ],
+  signin
 );
 
 router.post(
@@ -58,7 +72,7 @@ router.post(
     body("password")
       .isLength({ min: 8 })
       .withMessage("Password must be at least 8 characters"),
-    body("role").optional().isIn(["user", "admin"]),
+    body("role").optional().isIn(["user", "admin", "pilot"]),
   ],
   register
 );

@@ -1,23 +1,31 @@
 "use client";
 
-import { Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { postsBySlug, type BlogPost } from "@/components/blogs/blog-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  fetchBlogsFromApi,
+  mapApiRowToBlogPost,
+} from "@/lib/blog-api";
+import { apiUrl } from "@/lib/api-url";
+import {
   BLOG_ADMIN_UPDATED_EVENT,
-  createInternalId,
+  deleteBuiltinFromCatalog,
   loadBlogExtras,
   loadBlogOverrides,
   saveBlogExtras,
   saveBlogOverrides,
-  slugifyTitle,
   type AdminBlogExtra,
 } from "@/lib/blog-admin-storage";
 import { getMergedBlogPostsList } from "@/lib/blog-merge";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
+
+type AdminBlogRow = BlogPost & { dbId?: number };
 
 const CATEGORIES: BlogPost["category"][] = [
   "Technology",
@@ -40,28 +48,16 @@ function textToBody(text: string): string[] {
   return parts.length > 0 ? parts : [text.trim() || " "];
 }
 
-function ensureUniqueSlug(candidate: string, excludeSlug?: string): string {
-  const slugs = new Set(
-    getMergedBlogPostsList().map((p) => p.slug).filter((s) => s !== excludeSlug)
-  );
-  let s = candidate;
-  let n = 0;
-  while (slugs.has(s)) {
-    n += 1;
-    s = `${candidate}-${n}`;
-  }
-  return s;
-}
-
 type EditorMode = "closed" | "add" | "edit";
 
 export function AdminBlogsView() {
-  const [rows, setRows] = useState<BlogPost[]>([]);
+  const [rows, setRows] = useState<AdminBlogRow[]>([]);
   const [extras, setExtras] = useState<AdminBlogExtra[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>("closed");
   const [editSlug, setEditSlug] = useState<string | null>(null);
   const [editInternalId, setEditInternalId] = useState<string | null>(null);
+  const [editDbId, setEditDbId] = useState<number | null>(null);
 
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
@@ -72,21 +68,31 @@ export function AdminBlogsView() {
   const [imageAlt, setImageAlt] = useState("");
   const [tagTone, setTagTone] = useState<BlogPost["tagTone"]>("primary");
   const [bodyText, setBodyText] = useState("");
-  const [slugManual, setSlugManual] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const openedEditSlugRef = useRef<string | null>(null);
 
-  const refresh = useCallback(() => {
-    setRows(getMergedBlogPostsList());
+  const refresh = useCallback(async () => {
+    let dbPosts: AdminBlogRow[] = [];
+    try {
+      const apiRows = await fetchBlogsFromApi();
+      dbPosts = apiRows.map((r) => ({
+        ...mapApiRowToBlogPost(r),
+        dbId: r.id,
+      }));
+    } catch {
+      dbPosts = [];
+    }
+    const merged = getMergedBlogPostsList();
+    setRows([...dbPosts, ...merged]);
     setExtras(loadBlogExtras());
   }, []);
 
   useEffect(() => {
-    refresh();
-    setHydrated(true);
+    void refresh().finally(() => setHydrated(true));
   }, [refresh]);
 
   useEffect(() => {
-    const fn = () => refresh();
+    const fn = () => void refresh();
     window.addEventListener(BLOG_ADMIN_UPDATED_EVENT, fn);
     return () => window.removeEventListener(BLOG_ADMIN_UPDATED_EVENT, fn);
   }, [refresh]);
@@ -97,6 +103,7 @@ export function AdminBlogsView() {
     setEditorMode("add");
     setEditSlug(null);
     setEditInternalId(null);
+    setEditDbId(null);
     setTitle("");
     setExcerpt("");
     setDate(
@@ -110,15 +117,15 @@ export function AdminBlogsView() {
     setImageAlt("");
     setTagTone("primary");
     setBodyText("");
-    setSlugManual("");
     setFormError(null);
   };
 
-  const openEdit = (post: BlogPost) => {
+  const openEdit = (post: AdminBlogRow) => {
     const extra = loadBlogExtras().find((e) => e.slug === post.slug);
     setEditorMode("edit");
     setEditSlug(post.slug);
     setEditInternalId(extra?.internalId ?? null);
+    setEditDbId(typeof post.dbId === "number" ? post.dbId : null);
     setTitle(post.title);
     setExcerpt(post.excerpt);
     setDate(post.date);
@@ -128,18 +135,40 @@ export function AdminBlogsView() {
     setImageAlt(post.imageAlt);
     setTagTone(post.tagTone);
     setBodyText(bodyToText(post.body));
-    setSlugManual(post.slug);
     setFormError(null);
   };
+
+  useEffect(() => {
+    if (!hydrated || rows.length === 0 || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get("editSlug");
+    if (!target) {
+      openedEditSlugRef.current = null;
+      return;
+    }
+    if (openedEditSlugRef.current === target) return;
+    const post = rows.find((r) => r.slug === target);
+    if (!post) return;
+    openedEditSlugRef.current = target;
+    openEdit(post);
+    params.delete("editSlug");
+    const q = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}${q ? `?${q}` : ""}`
+    );
+  }, [hydrated, rows]);
 
   const closeEditor = () => {
     setEditorMode("closed");
     setEditSlug(null);
     setEditInternalId(null);
+    setEditDbId(null);
     setFormError(null);
   };
 
-  const saveForm = (e: React.FormEvent) => {
+  const saveForm = async (e: React.FormEvent) => {
     e.preventDefault();
     const t = title.trim();
     if (!t) {
@@ -162,19 +191,59 @@ export function AdminBlogsView() {
     };
 
     if (editorMode === "add") {
-      const rawSlug = slugManual.trim() || slugifyTitle(t);
-      const slug = ensureUniqueSlug(rawSlug);
-      const row: AdminBlogExtra = {
-        ...baseFields,
-        slug,
-        internalId: createInternalId(),
-        createdAt: Date.now(),
-      };
-      const next = [...loadBlogExtras(), row];
-      saveBlogExtras(next);
-      setExtras(next);
-      refresh();
-      closeEditor();
+      const img =
+        image.trim() || "https://placehold.co/800x600/e2e8f0/64748b?text=Blog";
+      const content = bodyText.trim() || " ";
+      try {
+        const res = await fetch(apiUrl("/api/blogs"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: t, content, image: img }),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        if (!res.ok) {
+          setFormError(
+            typeof data.error === "string" ? data.error : "Save failed"
+          );
+          return;
+        }
+        await refresh();
+        window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+        closeEditor();
+      } catch {
+        setFormError("Network error — is the backend running?");
+      }
+      return;
+    }
+
+    if (editorMode === "edit" && editDbId != null) {
+      const img =
+        image.trim() || "https://placehold.co/800x600/e2e8f0/64748b?text=Blog";
+      const content = bodyText.trim() || " ";
+      try {
+        const res = await fetch(apiUrl(`/api/blogs/${editDbId}`), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: t, content, image: img }),
+          }
+        );
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        if (!res.ok) {
+          setFormError(
+            typeof data.error === "string" ? data.error : "Update failed"
+          );
+          return;
+        }
+        await refresh();
+        window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+        closeEditor();
+      } catch {
+        setFormError("Network error — is the backend running?");
+      }
       return;
     }
 
@@ -214,41 +283,45 @@ export function AdminBlogsView() {
           },
         });
       }
-      refresh();
+      await refresh();
       closeEditor();
     }
-  };
-
-  const revertBuiltin = (slug: string) => {
-    const ov = loadBlogOverrides();
-    delete ov[slug];
-    saveBlogOverrides(ov);
-    refresh();
   };
 
   const deleteExtra = (internalId: string) => {
     const next = loadBlogExtras().filter((r) => r.internalId !== internalId);
     saveBlogExtras(next);
-    refresh();
+    void refresh();
     if (editInternalId === internalId) closeEditor();
   };
 
-  const hasOverride = (slug: string) => Boolean(loadBlogOverrides()[slug]);
+  const deleteBuiltin = (slug: string) => {
+    if (editSlug === slug) closeEditor();
+    deleteBuiltinFromCatalog(slug);
+    void refresh();
+  };
+
+  const deleteDbBlog = async (id: number) => {
+    try {
+      const res = await fetch(apiUrl(`/api/blogs/${id}`), {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        return;
+      }
+      await refresh();
+      window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+      if (editDbId === id) closeEditor();
+    } catch {
+      /* ignore */
+    }
+  };
 
   return (
-    <div className="min-w-0 text-[#191c1d]">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="min-w-0 text-foreground">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="max-w-2xl">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#008B8B]">
-            Command center
-          </p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-            Blogs
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            Edit built-in Flight Log posts or publish new articles. Stored in
-            this browser for demo; public pages pick up changes after save.
-          </p>
+          <h1 className={ADMIN_PAGE_TITLE_CLASS}>Blogs</h1>
         </div>
         <Button
           type="button"
@@ -261,15 +334,15 @@ export function AdminBlogsView() {
       </div>
 
       {editorMode !== "closed" ? (
-        <section className="mb-10 rounded-2xl border-2 border-[#c1c6d7] bg-white p-5 shadow-sm sm:p-6">
+        <section className="mb-10 rounded-2xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-[#191c1d]">
+            <h2 className="text-base font-bold text-foreground">
               {editorMode === "add" ? "New article" : "Edit article"}
             </h2>
             <button
               type="button"
               onClick={closeEditor}
-              className="text-sm font-medium text-slate-500 hover:text-[#191c1d]"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               Cancel
             </button>
@@ -277,40 +350,35 @@ export function AdminBlogsView() {
           <form onSubmit={saveForm} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Title
                 </label>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="h-11 rounded-lg border-slate-200"
+                  className="h-11 rounded-lg border-border"
                   required
                 />
               </div>
               {editorMode === "add" ? (
                 <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">
-                    Slug (optional — auto from title if empty)
-                  </label>
-                  <Input
-                    value={slugManual}
-                    onChange={(e) => setSlugManual(e.target.value)}
-                    placeholder="e.g. fleet-safety-2024"
-                    className="h-11 rounded-lg border-slate-200 font-mono text-sm"
-                  />
+                  <p className="text-xs text-muted-foreground">
+                    New posts are saved to the database. The URL slug is set
+                    automatically (e.g. blog-1).
+                  </p>
                 </div>
               ) : (
                 <div className="sm:col-span-2">
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Slug:{" "}
-                    <span className="font-mono font-medium text-[#191c1d]">
+                    <span className="font-mono font-medium text-foreground">
                       {editSlug}
                     </span>
                   </p>
                 </div>
               )}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Category
                 </label>
                 <select
@@ -318,7 +386,7 @@ export function AdminBlogsView() {
                   onChange={(e) =>
                     setCategory(e.target.value as BlogPost["category"])
                   }
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>
@@ -328,27 +396,27 @@ export function AdminBlogsView() {
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Date
                 </label>
                 <Input
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="h-11 rounded-lg border-slate-200"
+                  className="h-11 rounded-lg border-border"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Author
                 </label>
                 <Input
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  className="h-11 rounded-lg border-slate-200"
+                  className="h-11 rounded-lg border-border"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Tag tone
                 </label>
                 <select
@@ -356,7 +424,7 @@ export function AdminBlogsView() {
                   onChange={(e) =>
                     setTagTone(e.target.value as BlogPost["tagTone"])
                   }
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
                 >
                   {TAG_TONES.map((tone) => (
                     <option key={tone} value={tone}>
@@ -366,46 +434,46 @@ export function AdminBlogsView() {
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Excerpt
                 </label>
                 <textarea
                   value={excerpt}
                   onChange={(e) => setExcerpt(e.target.value)}
                   rows={2}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Cover image URL
                 </label>
                 <Input
                   value={image}
                   onChange={(e) => setImage(e.target.value)}
-                  className="h-11 rounded-lg border-slate-200 font-mono text-xs"
+                  className="h-11 rounded-lg border-border font-mono text-xs"
                   placeholder="https://…"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Image alt text
                 </label>
                 <Input
                   value={imageAlt}
                   onChange={(e) => setImageAlt(e.target.value)}
-                  className="h-11 rounded-lg border-slate-200"
+                  className="h-11 rounded-lg border-border"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Body (paragraphs separated by a blank line)
                 </label>
                 <textarea
                   value={bodyText}
                   onChange={(e) => setBodyText(e.target.value)}
                   rows={10}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs leading-relaxed"
+                  className="w-full rounded-lg border border-border px-3 py-2 font-mono text-xs leading-relaxed"
                 />
               </div>
             </div>
@@ -424,100 +492,132 @@ export function AdminBlogsView() {
         </section>
       ) : null}
 
-      <section className="rounded-2xl border-2 border-[#c1c6d7] bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
-          <h2 className="text-base font-bold text-[#191c1d]">
+      <section className="rounded-2xl border-2 border-border bg-card shadow-sm">
+        <div className="border-b border-border px-5 py-4 sm:px-6">
+          <h2 className="text-base font-bold text-foreground">
             All posts ({hydrated ? rows.length : "…"})
           </h2>
         </div>
         {!hydrated ? (
-          <p className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
+          <p className="px-5 py-10 text-center text-sm text-muted-foreground sm:px-6">
             Loading…
           </p>
+        ) : rows.length === 0 ? (
+          <p className="px-5 py-10 text-center text-sm text-muted-foreground sm:px-6">
+            No posts yet. Use &quot;New blog&quot; to add one.
+          </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/90">
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:px-5">
-                    Title
-                  </th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:px-5">
-                    Slug
-                  </th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:px-5">
-                    Type
-                  </th>
-                  <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:px-5">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {rows.map((post) => {
-                  const isBuiltIn = builtinSlugs.has(post.slug);
-                  const extra = extras.find((e) => e.slug === post.slug);
-                  return (
-                    <tr key={post.slug} className="bg-white hover:bg-slate-50/80">
-                      <td className="max-w-[14rem] px-4 py-3 font-semibold text-[#191c1d] sm:px-5">
+          <ul className="grid list-none grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3 lg:gap-5">
+            {rows.map((post) => {
+              const isDb = typeof post.dbId === "number";
+              const isBuiltIn = builtinSlugs.has(post.slug);
+              const extra = extras.find((e) => e.slug === post.slug);
+              const typeLabel = isDb
+                ? "Database"
+                : extra
+                  ? "Custom"
+                  : isBuiltIn
+                    ? "Built-in"
+                    : "—";
+              const typeClass = isDb
+                ? "border-emerald-700/30 bg-emerald-700/10 text-emerald-900"
+                : extra
+                  ? "border-[#008B8B]/25 bg-[#008B8B]/10 text-[#006d6d]"
+                  : isBuiltIn
+                    ? "border-border bg-muted text-foreground"
+                    : "border-border bg-muted/50 text-muted-foreground";
+
+              return (
+                <li key={isDb ? `db-${post.dbId}` : post.slug}>
+                  <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:border-[#008B8B]/35 hover:shadow-md">
+                    <div className="relative aspect-[16/10] w-full shrink-0 bg-muted">
+                      <Image
+                        src={post.image}
+                        alt={post.imageAlt || post.title}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
+                    </div>
+                    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            "rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                            typeClass
+                          )}
+                        >
+                          {typeLabel}
+                        </span>
+                        <span className="rounded-full border border-border bg-card px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {post.category}
+                        </span>
+                      </div>
+                      <h3 className="line-clamp-2 text-base font-bold leading-snug text-foreground">
                         {post.title}
-                      </td>
-                      <td className="font-mono text-xs text-slate-600 sm:px-5">
+                      </h3>
+                      <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                        {post.excerpt}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        <span className="font-medium text-muted-foreground">
+                          {post.date}
+                        </span>
+                        <span className="mx-1.5 text-border" aria-hidden>
+                          ·
+                        </span>
+                        <span>{post.author}</span>
+                      </p>
+                      <p className="font-mono text-[10px] leading-tight text-muted-foreground break-all">
                         {post.slug}
-                      </td>
-                      <td className="text-xs text-slate-600 sm:px-5">
-                        {extra
-                          ? "Custom"
-                          : isBuiltIn
-                            ? "Built-in"
-                            : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right sm:px-5">
-                        <div className="flex flex-wrap justify-end gap-2">
+                      </p>
+                      <div className="mt-auto flex flex-wrap gap-2 border-t border-border pt-3">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(post)}
+                          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#008B8B] bg-transparent px-3 py-2 text-xs font-semibold text-[#008B8B] transition hover:border-[#006f73] hover:text-[#006f73] min-[360px]:flex-none"
+                        >
+                          <Pencil className="size-3.5" aria-hidden />
+                          Edit
+                        </button>
+                        {isDb ? (
                           <button
                             type="button"
-                            onClick={() => openEdit(post)}
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                            onClick={() => void deleteDbBlog(post.dbId!)}
+                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 min-[360px]:flex-none"
+                            aria-label={`Delete ${post.title}`}
                           >
-                            <Pencil className="size-3.5" aria-hidden />
-                            Edit
+                            <Trash2 className="size-3.5" aria-hidden />
+                            Delete
                           </button>
-                          {isBuiltIn ? (
-                            <button
-                              type="button"
-                              disabled={!hasOverride(post.slug)}
-                              onClick={() => revertBuiltin(post.slug)}
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100",
-                                !hasOverride(post.slug) && "opacity-40"
-                              )}
-                              title={
-                                hasOverride(post.slug)
-                                  ? "Discard edits"
-                                  : "No overrides"
-                              }
-                            >
-                              <RotateCcw className="size-3.5" aria-hidden />
-                              Revert
-                            </button>
-                          ) : extra ? (
-                            <button
-                              type="button"
-                              onClick={() => deleteExtra(extra.internalId)}
-                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="size-3.5" aria-hidden />
-                              Delete
-                            </button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        ) : extra ? (
+                          <button
+                            type="button"
+                            onClick={() => deleteExtra(extra.internalId)}
+                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 min-[360px]:flex-none"
+                          >
+                            <Trash2 className="size-3.5" aria-hidden />
+                            Delete
+                          </button>
+                        ) : isBuiltIn ? (
+                          <button
+                            type="button"
+                            onClick={() => deleteBuiltin(post.slug)}
+                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 min-[360px]:flex-none"
+                            aria-label={`Delete ${post.title}`}
+                          >
+                            <Trash2 className="size-3.5" aria-hidden />
+                            Delete
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
     </div>

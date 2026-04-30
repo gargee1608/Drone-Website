@@ -9,25 +9,76 @@ import {
 import { type FormEvent, useState } from "react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
+import { appendContactInquiry } from "@/lib/contact-inquiries";
+import { apiUrl } from "@/lib/api-url";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
-/** Brand palette aligned with contact mock (primary #006a6e, secondary #106e00, tertiary #0056cf) */
+/** Brand primary aligned with contact mock (#006a6e) */
 const primary = "#006a6e";
-const secondaryGreen = "#106e00";
 
 const HERO_DRONE_SRC =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuAd5Qx2LlWCZ9-TzvqoK7pqHmclSOHr17jAUqBID_gAtDBlz_woxh40RL0aYje_8Pq7fnTA43RQqObbP3Lut9zNeEcMA4UQPajuTicEqNLx4o65RfGnI1sjRz2gImY-2ybKjGr4pDw1vrJOoUzQ5ZohOV9HMGVTO09zg0gRB643966yyC2Adzdh-B1mV7TLLU1-YuPT5SOwLWrDWlE4FDEmzGVueL-k35aZm5SyMzREfwlNJJiBKjNXvn_ZhEjJYPbewfjqAxkP4X_7";
 
-const MAP_BG_SRC =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuAYin33I4RLGs36bM7VeBou6cWwS1NmSh9VJfVDjsnKe_UrmI9iOzGvwPffhjT6VfPeCmabuegMyJoTglDofzLWjM1eF1VqN8xebyYC5rWuF9acKu5la7Zf8dzGqnnRa9J25PbTZGsBakr4yaWVNDU0zSIPyiDmeOGRTTcZ0h7Phh0OkhmhQw-VyxAp7d6iuwU15aeg2c6qx-eUKpQmcmMMnQNjaGdLKxIkRL2lou3kYKuJpvsgXhNc4ZXAk_uUjmCKXmkBLlVt5PQm";
-
 export function ContactView() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleInquirySubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleInquirySubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitted(true);
-    event.currentTarget.reset();
+    if (submitting) return;
+    const form = event.currentTarget;
+    const fd = new FormData(form);
+    const fullName = String(fd.get("fullName") ?? "").trim();
+    const email = String(fd.get("email") ?? "").trim();
+    const phone = String(fd.get("phone") ?? "").trim() || undefined;
+    const message = String(fd.get("message") ?? "").trim();
+    if (!fullName || !email || !message) return;
+
+    setSubmitting(true);
+    setSubmitted(false);
+    try {
+      const res = await fetch(apiUrl("/api/submit-inquiry"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          full_name: fullName,
+          email,
+          phone,
+          message,
+        }),
+      });
+
+      let payload: { error?: string; message?: string } = {};
+      try {
+        payload = (await res.json()) as typeof payload;
+      } catch {
+        // ignore non-JSON response
+      }
+
+      if (!res.ok) {
+        alert(payload.error || payload.message || "Could not submit inquiry.");
+        return;
+      }
+
+      // Keep existing local dashboard widgets in sync.
+      appendContactInquiry({
+        fullName,
+        email,
+        phone,
+        message,
+      });
+
+      setSubmitted(true);
+      form.reset();
+    } catch (error) {
+      console.error(error);
+      alert("Could not connect to backend. Please ensure the API is running.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -41,8 +92,8 @@ export function ContactView() {
       <section className="contact-hud-grid relative py-8 sm:py-10 lg:py-12">
         <div className="container mx-auto grid items-center gap-8 px-6 md:grid-cols-2 md:gap-10 lg:px-8">
           <div className="w-full">
-            <h1 className="mb-4 font-[family-name:var(--font-landing-headline)] text-4xl font-bold leading-[1.02] tracking-tighter text-[#1a2027] sm:text-5xl md:text-6xl">
-              Get in <span className="text-[#006a6e]">Touch</span> with Us
+            <h1 className={cn("mb-4", ADMIN_PAGE_TITLE_CLASS, "text-black")}>
+              Get in Touch with Us
             </h1>
             <p className="max-w-xl text-base leading-relaxed text-[#43484e] sm:text-lg">
               Have questions or need drone services? We&apos;re here to help.
@@ -65,7 +116,7 @@ export function ContactView() {
 
       {/* Inquiry + contact details side-by-side */}
       <section className="container mx-auto mb-20 px-6 pt-2 sm:mb-24 lg:px-8">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6">
             <h2 className="mb-2 font-[family-name:var(--font-landing-headline)] text-xl font-bold tracking-tight text-[#1a2027] sm:text-2xl">
               Send an Inquiry
@@ -103,31 +154,17 @@ export function ContactView() {
                 </label>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
-                    Phone (optional)
-                  </span>
-                  <input
-                    type="tel"
-                    name="phone"
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-[#1a2027] outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
-                    placeholder="+1 (555) 000-0000"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
-                    Company (optional)
-                  </span>
-                  <input
-                    type="text"
-                    name="company"
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-[#1a2027] outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
-                    placeholder="Company name"
-                  />
-                </label>
-              </div>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
+                  Phone (optional)
+                </span>
+                <input
+                  type="tel"
+                  name="phone"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-[#1a2027] outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
+                  placeholder="+1 (555) 000-0000"
+                />
+              </label>
 
               <label className="block">
                 <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]">
@@ -145,10 +182,13 @@ export function ContactView() {
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center rounded-lg px-5 py-2.5 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-white uppercase transition hover:opacity-90 sm:ml-auto"
-                  style={{ backgroundColor: primary }}
+                  disabled={submitting}
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-lg border-2 border-[#006a6e] bg-transparent px-5 py-2.5 font-[family-name:var(--font-landing-headline)] text-xs font-bold uppercase tracking-wider text-[#006a6e] transition hover:bg-[#006a6e]/10 sm:ml-auto",
+                    submitting && "cursor-not-allowed opacity-60"
+                  )}
                 >
-                  Submit inquiry
+                  {submitting ? "Submitting..." : "Submit inquiry"}
                 </button>
               </div>
 
@@ -231,46 +271,6 @@ export function ContactView() {
                     +1 (888) AERO-FLY
                   </p>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Map — centered, narrower than full viewport, slightly shorter than before */}
-      <section className="w-full px-4 pb-10 pt-0 sm:px-6 lg:px-8">
-        <div className="container mx-auto max-w-5xl">
-          <div className="relative h-[300px] w-full overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-100 shadow-sm sm:h-[340px] lg:h-[380px]">
-            <div
-              className="absolute inset-0 z-0 bg-cover bg-center contrast-75 saturate-50"
-              style={{ backgroundImage: `url('${MAP_BG_SRC}')` }}
-              role="img"
-              aria-label="Map of San Francisco area"
-            />
-            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-              <div className="flex h-[75%] w-[75%] max-w-md animate-pulse items-center justify-center rounded-full border border-[#006a6e]/10 sm:h-[70%] sm:w-[70%]">
-                <div className="h-[58%] w-[58%] rounded-full border border-[#006a6e]/5" />
-              </div>
-              <div className="absolute flex max-w-[calc(100%-2rem)] items-center gap-2 rounded-lg border border-[#006a6e]/20 bg-white/90 px-3 py-2.5 shadow-xl backdrop-blur-md sm:gap-3 sm:p-4">
-                <span
-                  className="relative flex size-3 shrink-0"
-                  aria-hidden
-                >
-                  <span
-                    className="absolute inline-flex size-3 animate-ping rounded-full opacity-75"
-                    style={{ backgroundColor: secondaryGreen }}
-                  />
-                  <span
-                    className="relative inline-flex size-3 rounded-full"
-                    style={{ backgroundColor: secondaryGreen }}
-                  />
-                </span>
-                <p
-                  className="font-[family-name:var(--font-landing-headline)] text-sm font-bold sm:text-base"
-                  style={{ color: primary }}
-                >
-                  Headquarters Locked
-                </p>
               </div>
             </div>
           </div>

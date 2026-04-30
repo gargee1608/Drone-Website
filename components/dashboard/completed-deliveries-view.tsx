@@ -4,96 +4,44 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  MoreVertical,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-type MissionStatus = "Success" | "Partial" | "Delayed";
+import { apiUrl } from "@/lib/api-url";
+import { jwtPayloadPilotFullName, jwtPayloadSub } from "@/lib/pilot-display-name";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+
+const COMPLETED_MISSION_PREVIEW_KEY = "aerolaminar_completed_mission_preview_v1";
 
 type DeliveryRow = {
+  id: string;
+  rowCtid: string;
+  pilotSub: string;
   missionId: string;
-  executionDate: string; // ISO date
-  payload: string;
-  distanceKm: number;
+  assignedAt: string;
+  completedAt: string;
+  customer: string;
+  service: string;
+  dropoff: string;
   pilot: string;
   droneUnit: string;
-  status: MissionStatus;
+  status: string;
 };
 
-const ROWS: DeliveryRow[] = [
-  {
-    missionId: "MS-4092",
-    executionDate: "2024-10-24",
-    payload: "12.0 kg",
-    distanceKm: 42,
-    pilot: "Capt. Sarah Chen",
-    droneUnit: "Atlas H2",
-    status: "Success",
-  },
-  {
-    missionId: "MS-4089",
-    executionDate: "2024-10-23",
-    payload: "8.5 kg",
-    distanceKm: 118,
-    pilot: "Cmdr. Marcus Vane",
-    droneUnit: "Specter X-1",
-    status: "Success",
-  },
-  {
-    missionId: "MS-4085",
-    executionDate: "2024-10-23",
-    payload: "24.1 kg",
-    distanceKm: 12,
-    pilot: "Lt. Elena Kovac",
-    droneUnit: "Titan Cargo",
-    status: "Success",
-  },
-  {
-    missionId: "MS-4081",
-    executionDate: "2024-10-22",
-    payload: "3.0 kg",
-    distanceKm: 204,
-    pilot: "Capt. James Orion",
-    droneUnit: "Falcon SV",
-    status: "Success",
-  },
-  {
-    missionId: "MS-4079",
-    executionDate: "2024-10-21",
-    payload: "6.3 kg",
-    distanceKm: 88,
-    pilot: "Capt. Sarah Chen",
-    droneUnit: "Atlas H2",
-    status: "Partial",
-  },
-  {
-    missionId: "MS-4076",
-    executionDate: "2024-10-20",
-    payload: "11.7 kg",
-    distanceKm: 61,
-    pilot: "Cmdr. Marcus Vane",
-    droneUnit: "Specter X-1",
-    status: "Success",
-  },
-  {
-    missionId: "MS-4071",
-    executionDate: "2024-10-18",
-    payload: "5.1 kg",
-    distanceKm: 97,
-    pilot: "Lt. Elena Kovac",
-    droneUnit: "Titan Cargo",
-    status: "Delayed",
-  },
-  {
-    missionId: "MS-4068",
-    executionDate: "2024-10-16",
-    payload: "9.8 kg",
-    distanceKm: 36,
-    pilot: "Capt. James Orion",
-    droneUnit: "Falcon SV",
-    status: "Success",
-  },
-];
+type BackendMissionRow = {
+  id?: number | string;
+  row_ctid?: string;
+  pilot_sub?: string;
+  request_ref?: string;
+  customer?: string;
+  service?: string;
+  dropoff?: string;
+  pilot_name?: string;
+  drone_model?: string;
+  assigned_at?: string;
+  completed_at?: string;
+  status?: string;
+};
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -101,16 +49,269 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
 });
 
+function formatDateTime(value: string): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 function formatNumber(value: number) {
   return value.toLocaleString("en-US");
 }
 
 const PAGE_SIZE = 4;
 
-export function CompletedDeliveriesView() {
-  const [page, setPage] = useState(1);
+function dedupeDeliveryRows(rows: DeliveryRow[]): DeliveryRow[] {
+  const bySignature = new Map<string, DeliveryRow>();
+  const order: string[] = [];
+  const timeValue = (v: string) => {
+    const t = new Date(v).getTime();
+    return Number.isNaN(t) ? 0 : t;
+  };
+  const completenessScore = (row: DeliveryRow) =>
+    [
+      row.customer,
+      row.service,
+      row.dropoff,
+      row.pilot,
+      row.droneUnit,
+      row.assignedAt,
+      row.completedAt,
+    ].filter((v) => v && v !== "—").length;
 
-  const filteredRows = useMemo(() => ROWS, []);
+  const out: DeliveryRow[] = [];
+  for (const row of rows) {
+    const key = [
+      row.missionId.trim().toLowerCase(),
+      row.customer.trim().toLowerCase(),
+      row.service.trim().toLowerCase(),
+      row.dropoff.trim().toLowerCase(),
+      row.pilot.trim().toLowerCase(),
+      row.droneUnit.trim().toLowerCase(),
+    ].join("::");
+
+    const prev = bySignature.get(key);
+    if (!prev) {
+      bySignature.set(key, row);
+      order.push(key);
+      continue;
+    }
+
+    const prevTime = Math.max(timeValue(prev.completedAt), timeValue(prev.assignedAt));
+    const nextTime = Math.max(timeValue(row.completedAt), timeValue(row.assignedAt));
+    const prevScore = completenessScore(prev);
+    const nextScore = completenessScore(row);
+
+    if (nextScore > prevScore || nextTime > prevTime) {
+      bySignature.set(key, row);
+    }
+  }
+
+  for (const key of order) {
+    const row = bySignature.get(key);
+    if (row) out.push(row);
+  }
+  return out;
+}
+
+function readCompletedMissionPreview(expectedPilotSub?: string | null): DeliveryRow | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(COMPLETED_MISSION_PREVIEW_KEY);
+    if (!raw) return null;
+    // One-time bridge row: consume once to avoid cross-login leakage.
+    sessionStorage.removeItem(COMPLETED_MISSION_PREVIEW_KEY);
+    const parsed = JSON.parse(raw) as Partial<DeliveryRow> | null;
+    if (!parsed || typeof parsed !== "object") return null;
+    const parsedPilotSub = String(parsed.pilotSub ?? "").trim();
+    if (expectedPilotSub && parsedPilotSub !== expectedPilotSub) {
+      return null;
+    }
+    return {
+      id: String(parsed.id ?? "").trim(),
+      rowCtid: String(parsed.rowCtid ?? "").trim(),
+      pilotSub: parsedPilotSub,
+      missionId: String(parsed.missionId ?? "").trim() || "—",
+      assignedAt: String(parsed.assignedAt ?? "").trim(),
+      completedAt: String(parsed.completedAt ?? "").trim() || new Date().toISOString(),
+      customer: String(parsed.customer ?? "").trim() || "—",
+      service: String(parsed.service ?? "").trim() || "—",
+      dropoff: String(parsed.dropoff ?? "").trim() || "—",
+      pilot: String(parsed.pilot ?? "").trim() || "—",
+      droneUnit: String(parsed.droneUnit ?? "").trim() || "—",
+      status: String(parsed.status ?? "completed").trim() || "completed",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function CompletedDeliveriesView({
+  showPageTitle = true,
+  pilotScoped = false,
+}: {
+  showPageTitle?: boolean;
+  /** Pilot dashboard: only show rows for the signed-in pilot. */
+  pilotScoped?: boolean;
+} = {}) {
+  const [page, setPage] = useState(1);
+  const [rows, setRows] = useState<DeliveryRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  /** `missions` table count (completed); null until loaded or on error. */
+  const [completedDeliveriesDbCount, setCompletedDeliveriesDbCount] = useState<
+    number | null
+  >(null);
+  /** `pilots` table count (duty_status ACTIVE); null until loaded or on error. */
+  const [activePilotsDbCount, setActivePilotsDbCount] = useState<number | null>(
+    null
+  );
+
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const currentPilotSub = pilotScoped && token ? jwtPayloadSub(token) : null;
+    const currentPilotName = pilotScoped && token ? jwtPayloadPilotFullName(token) : null;
+    const preview = readCompletedMissionPreview(currentPilotSub);
+    if (preview) {
+      setRows((prev) => dedupeDeliveryRows([preview, ...prev]));
+    }
+
+    let cancelled = false;
+    async function loadMissions() {
+      setLoading(true);
+      try {
+        const pilotSub = currentPilotSub;
+        const pilotName = currentPilotName?.trim() || "";
+        if (pilotScoped && !pilotSub && !pilotName) {
+          if (!cancelled) {
+            setRows((prev) => (preview ? dedupeDeliveryRows([preview, ...prev]) : []));
+          }
+          return;
+        }
+        const endpoint =
+          pilotScoped && (pilotSub || pilotName)
+            ? apiUrl(
+                `/api/missions?pilotSub=${encodeURIComponent(pilotSub ?? "")}&pilotName=${encodeURIComponent(pilotName)}`
+              )
+            : apiUrl("/api/missions");
+        const response = await fetch(endpoint, {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          if (!cancelled) setRows([]);
+          return;
+        }
+        const payload: unknown = await response.json();
+        const list = Array.isArray((payload as { data?: unknown[] })?.data)
+          ? ((payload as { data?: unknown[] }).data as BackendMissionRow[])
+          : [];
+        if (cancelled) return;
+        const apiRows = list.map((row, i) => ({
+            id: String(row.id ?? "").trim(),
+            rowCtid: String(row.row_ctid ?? "").trim(),
+            pilotSub: String(row.pilot_sub ?? "").trim(),
+            missionId:
+              String(row.request_ref ?? "").trim() ||
+              `MS-${String(row.id ?? i + 1)}`,
+            assignedAt: String(row.assigned_at ?? "").trim(),
+            completedAt: String(row.completed_at ?? "").trim(),
+            customer: String(row.customer ?? "").trim() || "—",
+            service: String(row.service ?? "").trim() || "—",
+            dropoff: String(row.dropoff ?? "").trim() || "—",
+            pilot: String(row.pilot_name ?? "").trim() || "—",
+            droneUnit: String(row.drone_model ?? "").trim() || "—",
+            status: String(row.status ?? "completed").trim() || "completed",
+          }));
+        setRows((prev) => dedupeDeliveryRows([...(preview ? [preview] : []), ...apiRows, ...prev]));
+      } catch {
+        if (!cancelled) {
+          setRows((prev) => (preview ? dedupeDeliveryRows([preview, ...prev]) : prev));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void loadMissions();
+    return () => {
+      cancelled = true;
+    };
+  }, [pilotScoped]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCompletedCount() {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const pilotSub = pilotScoped && token ? jwtPayloadSub(token) : null;
+      const pilotName = pilotScoped && token ? jwtPayloadPilotFullName(token) : null;
+      const nameTrim = pilotName?.trim() || "";
+
+      if (pilotScoped && !pilotSub && !nameTrim) {
+        if (!cancelled) setCompletedDeliveriesDbCount(0);
+        return;
+      }
+
+      const url =
+        pilotScoped && (pilotSub || nameTrim)
+          ? apiUrl(
+              `/api/missions/completed-deliveries-count?pilotSub=${encodeURIComponent(pilotSub ?? "")}&pilotName=${encodeURIComponent(nameTrim)}`
+            )
+          : apiUrl("/api/missions/completed-deliveries-count");
+
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) throw new Error("bad response");
+        const payload: unknown = await response.json();
+        const raw =
+          payload &&
+          typeof payload === "object" &&
+          "count" in payload &&
+          (payload as { count: unknown }).count;
+        const n = typeof raw === "number" ? raw : Number(raw);
+        if (!cancelled) {
+          setCompletedDeliveriesDbCount(Number.isFinite(n) ? n : null);
+        }
+      } catch {
+        if (!cancelled) setCompletedDeliveriesDbCount(null);
+      }
+    }
+    void loadCompletedCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [pilotScoped]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadActivePilotsCount() {
+      try {
+        const response = await fetch(apiUrl("/api/pilots/active-count"), {
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("bad response");
+        const payload: unknown = await response.json();
+        const raw =
+          payload &&
+          typeof payload === "object" &&
+          "count" in payload &&
+          (payload as { count: unknown }).count;
+        const n = typeof raw === "number" ? raw : Number(raw);
+        if (!cancelled) {
+          setActivePilotsDbCount(Number.isFinite(n) ? n : null);
+        }
+      } catch {
+        if (!cancelled) setActivePilotsDbCount(null);
+      }
+    }
+    void loadActivePilotsCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [pilotScoped]);
+
+  const filteredRows = useMemo(() => rows, [rows]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
 
@@ -127,29 +328,38 @@ export function CompletedDeliveriesView() {
     return filteredRows.slice(start, start + PAGE_SIZE);
   }, [filteredRows, page]);
 
-  const totalDistance = filteredRows.reduce((sum, row) => sum + row.distanceKm, 0);
-  const successfulCount = filteredRows.filter((row) => row.status === "Success").length;
-  const reliability = filteredRows.length
-    ? ((successfulCount / filteredRows.length) * 100).toFixed(1)
-    : "0.0";
+  const completedDeliveriesStat =
+    completedDeliveriesDbCount !== null
+      ? completedDeliveriesDbCount
+      : filteredRows.length;
+
+  const uniquePilotsFromRows = new Set(
+    filteredRows.map((row) => row.pilot).filter((name) => name !== "—")
+  ).size;
+  const activePilotsStat =
+    activePilotsDbCount !== null ? activePilotsDbCount : uniquePilotsFromRows;
 
   function handleExportCsv() {
     const header = [
-      "Mission ID",
-      "Execution Date",
-      "Payload",
-      "Distance (km)",
-      "Assigned Pilot",
-      "Drone Unit",
-      "Mission Status",
+      "Request ID",
+      "User Requirement",
+      "Service",
+      "Drone",
+      "Pilot Name",
+      "Assigned At",
+      "Destination",
+      "Completed At",
+      "Status",
     ];
     const body = filteredRows.map((row) => [
       row.missionId,
-      dateFormatter.format(new Date(`${row.executionDate}T00:00:00`)),
-      row.payload,
-      String(row.distanceKm),
-      row.pilot,
+      row.customer,
+      row.service,
       row.droneUnit,
+      row.pilot,
+      formatDateTime(row.assignedAt),
+      row.dropoff,
+      formatDateTime(row.completedAt),
       row.status,
     ]);
     const csv = [header, ...body]
@@ -167,148 +377,143 @@ export function CompletedDeliveriesView() {
 
   return (
     <section
-      className="rounded-2xl bg-white px-4 pb-4 pt-0 sm:px-6 sm:pb-6 sm:pt-0"
+      className="rounded-2xl bg-card px-4 pb-4 pt-0 sm:px-6 sm:pb-6 sm:pt-0"
       style={{
         backgroundImage: "radial-gradient(#e2e8f0 0.5px, transparent 0.5px)",
         backgroundSize: "24px 24px",
       }}
     >
-      <header className="mb-6">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+      <header className="mb-5">
+        <div
+          className={`flex flex-wrap items-end justify-between gap-3 ${showPageTitle ? "mb-6" : "mb-4"}`}
+        >
           <div>
-            <h1 className="font-[family-name:var(--font-landing-headline)] text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Completed Deliveries
-            </h1>
+            {showPageTitle ? (
+              <h1 className={ADMIN_PAGE_TITLE_CLASS}>Completed Deliveries</h1>
+            ) : null}
           </div>
           <button
             type="button"
             onClick={handleExportCsv}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted/50 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
           >
             <Download className="size-4" aria-hidden />
             Export CSV
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <article className="rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-            <p className="font-[family-name:var(--font-landing-headline)] text-[11px] font-normal uppercase tracking-[0.15em] text-slate-500">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
+          <article className="mx-auto w-full max-w-[250px] rounded-lg border border-border bg-card px-4 py-3.5 text-center shadow-sm dark:border-white/20">
+            <p className="font-[family-name:var(--font-landing-headline)] text-[10px] font-normal uppercase tracking-[0.13em] text-muted-foreground dark:text-white">
               Total Deliveries
             </p>
-            <p className="mt-2 font-[family-name:var(--font-landing-headline)] text-4xl font-normal tracking-tight text-slate-900">
+            <p className="mt-1.5 font-[family-name:var(--font-landing-headline)] text-[1.9rem] font-normal leading-none tracking-tight text-foreground sm:text-[2rem] dark:text-white">
               {formatNumber(filteredRows.length)}
             </p>
-            <p className="mt-2 text-xs font-normal text-[#0d6200]">
-              Showing filtered mission count
+          </article>
+
+          <article className="mx-auto w-full max-w-[250px] rounded-lg border border-border bg-card px-4 py-3.5 text-center shadow-sm dark:border-white/20">
+            <p className="font-[family-name:var(--font-landing-headline)] text-[10px] font-normal uppercase tracking-[0.13em] text-muted-foreground dark:text-white">
+              Completed Deliveries
+            </p>
+            <p className="mt-1.5 font-[family-name:var(--font-landing-headline)] text-[1.9rem] font-normal leading-none tracking-tight text-foreground sm:text-[2rem] dark:text-white">
+              {formatNumber(completedDeliveriesStat)}
             </p>
           </article>
 
-          <article className="rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-            <p className="font-[family-name:var(--font-landing-headline)] text-[11px] font-normal uppercase tracking-[0.15em] text-slate-500">
-              Total Distance Flow
+          <article className="mx-auto w-full max-w-[250px] rounded-lg border border-border bg-card px-4 py-3.5 text-center shadow-sm dark:border-white/20">
+            <p className="font-[family-name:var(--font-landing-headline)] text-[10px] font-normal uppercase tracking-[0.13em] text-muted-foreground dark:text-white">
+              Active Pilots
             </p>
-            <p className="mt-2 font-[family-name:var(--font-landing-headline)] text-4xl font-normal tracking-tight text-slate-900">
-              {formatNumber(totalDistance)} KM
-            </p>
-            <p className="mt-2 text-xs font-normal text-[#006a6e]">
-              Sum of filtered route distance
-            </p>
-          </article>
-
-          <article className="rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-            <p className="font-[family-name:var(--font-landing-headline)] text-[11px] font-normal uppercase tracking-[0.15em] text-slate-500">
-              Reliability Rate
-            </p>
-            <p className="mt-2 font-[family-name:var(--font-landing-headline)] text-4xl font-normal tracking-tight text-[#0d6200]">
-              {reliability}%
-            </p>
-            <p className="mt-2 text-xs font-normal text-slate-500">
-              Success ratio in current filters
+            <p className="mt-1.5 font-[family-name:var(--font-landing-headline)] text-[1.9rem] font-normal leading-none tracking-tight text-foreground sm:text-[2rem] dark:text-white">
+              {formatNumber(activePilotsStat)}
             </p>
           </article>
         </div>
       </header>
 
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <section className="rounded-xl border border-border bg-card shadow-sm dark:border-white/20">
         <div className="p-4 sm:p-6">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] border-collapse text-left text-xs">
+          <div className="overflow-hidden">
+            <table className="w-full table-fixed border-collapse text-left text-[11px]">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/60">
+                <tr className="border-b border-border bg-muted/50 dark:border-white/20 dark:bg-white/10">
                   {[
-                    "Mission ID",
-                    "Execution Date",
-                    "Payload",
-                    "Distance",
-                    "Assigned Pilot",
-                    "Drone Unit",
-                    "Mission Status",
+                    "Request ID",
+                    "User Requirement",
+                    "Service",
+                    "Drone",
+                    "Pilot Name",
+                    "Assigned At",
+                    "Destination",
+                    "Completed At",
+                    "Status",
                   ].map((head) => (
                     <th
                       key={head}
-                      className="px-4 py-4 font-[family-name:var(--font-landing-headline)] text-[9px] font-normal uppercase tracking-[0.12em] text-slate-500"
+                      className="px-4 py-4 font-[family-name:var(--font-landing-headline)] text-[9px] font-normal uppercase tracking-[0.12em] text-muted-foreground dark:text-white"
                     >
                       {head}
                     </th>
                   ))}
-                  <th className="px-4 py-4" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className="px-4 py-10 text-center text-xs text-muted-foreground dark:text-white"
+                    >
+                      Loading completed missions...
+                    </td>
+                  </tr>
+                ) : null}
                 {paginatedRows.map((row) => (
                   <tr
-                    key={row.missionId}
-                    className="group transition-colors hover:bg-slate-50/80"
+                    key={`${row.missionId}-${row.completedAt}`}
+                    className="group transition-colors hover:bg-muted/50/80"
                   >
                     <td className="px-4 py-4">
                       <span className="font-mono text-sm font-normal tracking-wider text-[#006a6e]">
                         {row.missionId}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-slate-600">
-                      {dateFormatter.format(new Date(`${row.executionDate}T00:00:00`))}
+                    <td className="px-4 py-4 text-muted-foreground dark:text-white">
+                      {row.customer}
                     </td>
-                    <td className="px-4 py-4 text-slate-600">{row.payload}</td>
-                    <td className="px-4 py-4 text-slate-600">
-                      {row.distanceKm} km
+                    <td className="px-4 py-4 text-muted-foreground dark:text-white">
+                      {row.service}
                     </td>
-                    <td className="px-4 py-4 text-slate-700">
+                    <td className="px-4 py-4 text-muted-foreground dark:text-white">
+                      {row.droneUnit}
+                    </td>
+                    <td className="px-4 py-4 text-muted-foreground dark:text-white">
                       {row.pilot}
                     </td>
-                    <td className="px-4 py-4 text-slate-500">
-                      {row.droneUnit}
+                    <td className="px-4 py-4 text-muted-foreground dark:text-white">
+                      {formatDateTime(row.assignedAt)}
+                    </td>
+                    <td className="px-4 py-4 text-muted-foreground dark:text-white">{row.dropoff}</td>
+                    <td className="px-4 py-4 text-foreground dark:text-white">
+                      {formatDateTime(row.completedAt)}
                     </td>
                     <td className="px-4 py-4">
                       <span
-                        className={`rounded border px-2 py-0.5 text-[9px] font-normal uppercase tracking-wider ${
-                          row.status === "Success"
-                            ? "border-green-200 bg-green-50 text-green-700"
-                            : row.status === "Partial"
-                              ? "border-amber-200 bg-amber-50 text-amber-700"
-                              : "border-orange-200 bg-orange-50 text-orange-700"
-                        }`}
+                        className="rounded border border-green-200 bg-green-50 px-2 py-0.5 text-[9px] font-normal uppercase tracking-wider text-green-700 dark:border-white/40 dark:bg-transparent dark:text-white"
                       >
-                        {row.status}
+                        {row.status.toUpperCase()}
                       </span>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <button
-                        type="button"
-                        className="rounded p-1 text-slate-400 transition hover:text-[#006a6e]"
-                        aria-label={`More actions for ${row.missionId}`}
-                      >
-                        <MoreVertical className="size-4" aria-hidden />
-                      </button>
                     </td>
                   </tr>
                 ))}
-                {paginatedRows.length === 0 ? (
+                {!loading && paginatedRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
-                      className="px-4 py-10 text-center text-xs text-slate-500"
+                      colSpan={9}
+                      className="px-4 py-10 text-center text-xs text-muted-foreground dark:text-white"
                     >
-                      No missions match your current filters.
+                      No completed missions yet.
                     </td>
                   </tr>
                 ) : null}
@@ -322,7 +527,7 @@ export function CompletedDeliveriesView() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 disabled:bg-slate-100 disabled:text-slate-400"
+                className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground disabled:bg-muted disabled:text-muted-foreground/80 dark:border-white/25 dark:text-white dark:disabled:bg-white/10 dark:disabled:text-white/60"
                 aria-label="Previous page"
               >
                 <ChevronLeft className="size-4" aria-hidden />
@@ -335,7 +540,7 @@ export function CompletedDeliveriesView() {
                   className={`inline-flex size-8 items-center justify-center rounded-lg border text-sm font-semibold ${
                     p === page
                       ? "border-[#006a6e] bg-[#006a6e] text-white"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      : "border-border bg-card text-muted-foreground hover:bg-muted/50 dark:border-white/25 dark:text-white dark:hover:bg-white/10"
                   }`}
                   aria-current={p === page ? "page" : undefined}
                 >
@@ -346,7 +551,7 @@ export function CompletedDeliveriesView() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 disabled:bg-slate-100 disabled:text-slate-400"
+                className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground disabled:bg-muted disabled:text-muted-foreground/80 dark:border-white/25 dark:text-white dark:disabled:bg-white/10 dark:disabled:text-white/60"
                 aria-label="Next page"
               >
                 <ChevronRight className="size-4" aria-hidden />

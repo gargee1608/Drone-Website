@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 const priorityOptions = [
@@ -84,9 +85,7 @@ export function OnboardingView() {
         <div className="mx-auto mb-10 w-full">
           <div className="mb-6 flex items-start justify-between gap-4 sm:gap-6">
             <div className="min-w-0 text-left">
-              <h1 className="font-heading text-2xl font-bold tracking-tight text-[#191c1d] sm:text-3xl">
-                Onboarding Wizards
-              </h1>
+              <h1 className={ADMIN_PAGE_TITLE_CLASS}>Onboarding Wizards</h1>
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#008B8B]">
                 Step {String(stepIndex + 1).padStart(2, "0")} of{" "}
                 {String(totalSteps).padStart(2, "0")}

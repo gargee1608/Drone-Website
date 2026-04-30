@@ -1,5 +1,7 @@
 export const COMPLETED_ASSIGNMENTS_STORAGE_KEY =
   "aerolaminar_completed_assignments_v1";
+export const COMPLETED_ASSIGNMENTS_UPDATED_EVENT =
+  "aerolaminar-completed-assignments-updated";
 
 export type CompletedAssignment = {
   requestRef: string;
@@ -52,6 +54,7 @@ export function saveCompletedAssignments(
     COMPLETED_ASSIGNMENTS_STORAGE_KEY,
     JSON.stringify(rows)
   );
+  window.dispatchEvent(new Event(COMPLETED_ASSIGNMENTS_UPDATED_EVENT));
 }
 
 /** Keep only the most recent completion (single row for Assigned Mission). */

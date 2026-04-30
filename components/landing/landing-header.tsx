@@ -1,38 +1,61 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
-import { Bell, Menu, Plane, Search, Settings, User, X } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { LogOut, Menu, Plane, Search, Settings, User, X } from "lucide-react";
 
 import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav-context";
 import {
   ServiceListingMegaMenu,
-  serviceMegaMenuItems,
+  useServiceMegaMenuItems,
 } from "@/components/nav/service-listing-mega-menu";
 import { SidebarMenuGlyph } from "@/components/nav/sidebar-menu-glyph";
+import { usePilotDashboardNav } from "@/components/pilot-dashboard/pilot-dashboard-nav-context";
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
+import { AdminInboxMenu } from "@/components/notifications/admin-inbox-menu";
+import { PilotMissionNotificationsMenu } from "@/components/notifications/pilot-mission-notifications-menu";
+import { HeaderThemeModeToggle } from "@/components/nav/header-theme-mode-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { clearStoredUserSession } from "@/lib/user-session-browser";
 import { cn } from "@/lib/utils";
 
 const landingOutlineButtonClassName =
-  "inline-flex h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-4 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase transition hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent";
+  "inline-flex h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-4 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase transition hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent dark:border-white dark:text-white dark:hover:border-white/85 dark:hover:text-white";
 
 export function LandingHeader() {
+  const serviceMegaMenuItems = useServiceMegaMenuItems();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const isAdminDashboard =
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
     (pathname?.startsWith("/dashboard/") ?? false);
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
+  const isPilotDashboard =
+    pathname?.startsWith("/pilot-dashboard") ||
+    pathname?.startsWith("/pilot-profile") ||
+    false;
   const isSettingsPage =
     pathname === "/settings" || (pathname?.startsWith("/settings/") ?? false);
-  const showUserDashboardSidebar = isUserDashboard || isSettingsPage;
+  const settingsFrom = searchParams.get("from");
+  const isPilotSettingsContext =
+    isSettingsPage && settingsFrom === "pilot";
+  const showUserDashboardSidebar =
+    isUserDashboard || (isSettingsPage && settingsFrom !== "pilot");
+  const showPilotDashboardSidebar =
+    isPilotDashboard || isPilotSettingsContext;
   const compactAppHeader =
-    isAdminDashboard || isUserDashboard || isSettingsPage;
+    isAdminDashboard ||
+    isUserDashboard ||
+    isPilotDashboard ||
+    isSettingsPage;
   const isHomePage = pathname === "/" || pathname === "";
+  const isMatchingHub = pathname === "/matching-hub";
   const isPilotRegistration =
     pathname === "/pilot-registration" ||
     (pathname?.startsWith("/pilot-registration/") ?? false);
@@ -44,10 +67,12 @@ export function LandingHeader() {
     sidebarExpanded: userSidebarExpanded,
     setSidebarExpanded: setUserSidebarExpanded,
   } = useUserDashboardNav();
+  const {
+    sidebarExpanded: pilotSidebarExpanded,
+    setSidebarExpanded: setPilotSidebarExpanded,
+  } = usePilotDashboardNav();
 
   const isMarketingAuthPage =
-    pathname === "/marketplace" ||
-    (pathname?.startsWith("/marketplace/") ?? false) ||
     pathname === "/services" ||
     (pathname?.startsWith("/services/") ?? false) ||
     pathname === "/blogs" ||
@@ -55,39 +80,121 @@ export function LandingHeader() {
     pathname === "/contact";
   const hideRegisterPilotCta =
     pathname === "/login" ||
+    pathname === "/pilot-login" ||
     pathname === "/pilot-registration" ||
     pathname === "/settings" ||
     pathname?.startsWith("/settings/") ||
     isAdminDashboard ||
-    isUserDashboard;
+    isUserDashboard ||
+    isPilotDashboard;
   const showHeaderLoginButton = isHomePage || isMarketingAuthPage;
   const hideLoginIcon =
-    pathname === "/pilot-registration" || showHeaderLoginButton;
+    pathname === "/login" ||
+    pathname === "/pilot-login" ||
+    pathname === "/pilot-registration" ||
+    showHeaderLoginButton;
 
   const hideNotificationsAndSettings =
-    pathname === "/marketplace" ||
-    (pathname?.startsWith("/marketplace/") ?? false) ||
     pathname === "/services" ||
     (pathname?.startsWith("/services/") ?? false) ||
     pathname === "/blogs" ||
     (pathname?.startsWith("/blogs/") ?? false) ||
-    pathname === "/contact";
+    pathname === "/contact" ||
+    isMatchingHub;
 
-  const settingsHref = isUserDashboard
-    ? "/settings?from=user"
-    : isAdminDashboard
-      ? "/settings?from=admin"
-      : "/settings";
+  const settingsHref =
+    isPilotDashboard || isPilotSettingsContext
+      ? "/settings?from=pilot"
+      : isUserDashboard
+        ? "/settings?from=user"
+        : isAdminDashboard
+          ? "/settings?from=admin"
+          : "/settings";
+
+  const showHeaderNotifications =
+    isAdminDashboard ||
+    isUserDashboard ||
+    (isSettingsPage &&
+      (settingsFrom === "admin" || settingsFrom === "user"));
+  const showPilotThemeToggle =
+    isPilotDashboard || isPilotSettingsContext;
+  const showPilotNotifications =
+    isPilotDashboard || isPilotSettingsContext;
+  const profileHref =
+    isPilotDashboard || settingsFrom === "pilot"
+      ? "/pilot-profile"
+      : isAdminDashboard || settingsFrom === "admin"
+        ? "/dashboard/profile"
+        : "/user-dashboard/profile";
+
+  const showAccountMenu =
+    isAdminDashboard ||
+    isUserDashboard ||
+    isPilotDashboard ||
+    (isSettingsPage &&
+      (settingsFrom === "user" ||
+        settingsFrom === "admin" ||
+        settingsFrom === "pilot"));
+
+  const isAdminSettingsContext =
+    isSettingsPage && settingsFrom === "admin";
+  const isUserSettingsContext =
+    isSettingsPage && settingsFrom === "user";
+  /** Includes `/settings` without `from` (user shell) and `?from=user`. */
+  const isUserLogoutContext =
+    isUserDashboard ||
+    (isSettingsPage &&
+      settingsFrom !== "pilot" &&
+      settingsFrom !== "admin");
+
+  const showHeaderSettingsIcon = !(
+    isPilotDashboard ||
+    isPilotSettingsContext ||
+    isAdminDashboard ||
+    isUserDashboard ||
+    isAdminSettingsContext ||
+    isUserSettingsContext
+  );
+
+  useEffect(() => {
+    setAccountMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const el = accountMenuRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAccountMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [accountMenuOpen]);
 
   const linkClass = (href: string) =>
     cn(
-      "text-sm font-medium text-slate-600 transition-colors duration-300 hover:text-[#008B8B]",
+      "text-sm font-medium text-slate-600 transition-colors duration-300 hover:text-[#008B8B] dark:text-white dark:hover:text-white",
       (pathname === href || pathname?.startsWith(`${href}/`)) &&
-        "font-semibold text-slate-900"
+        "font-semibold text-slate-900 dark:text-white"
     );
 
   return (
-    <header className="fixed top-0 z-50 w-full border-b border-slate-100 bg-white">
+    <header
+      className={cn(
+        "fixed top-0 z-50 w-full border-b dark:text-white",
+        compactAppHeader
+          ? "border-border bg-background"
+          : "border-slate-100 bg-white dark:border-border dark:bg-background"
+      )}
+    >
       <nav
         className={cn(
           "mx-auto flex max-w-[1600px] flex-wrap items-center justify-between px-4 sm:px-6 lg:px-8",
@@ -102,7 +209,7 @@ export function LandingHeader() {
             {isAdminDashboard ? (
               <button
                 type="button"
-                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 lg:inline-flex"
+                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white lg:inline-flex"
                 onClick={() =>
                   setAdminSidebarExpanded(!adminSidebarExpanded)
                 }
@@ -120,7 +227,7 @@ export function LandingHeader() {
             {showUserDashboardSidebar ? (
               <button
                 type="button"
-                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 lg:inline-flex"
+                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white lg:inline-flex"
                 onClick={() =>
                   setUserSidebarExpanded(!userSidebarExpanded)
                 }
@@ -131,6 +238,24 @@ export function LandingHeader() {
                 }
                 aria-expanded={userSidebarExpanded}
                 aria-controls="user-dashboard-sidebar"
+              >
+                <SidebarMenuGlyph />
+              </button>
+            ) : null}
+            {showPilotDashboardSidebar ? (
+              <button
+                type="button"
+                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white lg:inline-flex"
+                onClick={() =>
+                  setPilotSidebarExpanded(!pilotSidebarExpanded)
+                }
+                aria-label={
+                  pilotSidebarExpanded
+                    ? "Collapse pilot sidebar"
+                    : "Expand pilot sidebar"
+                }
+                aria-expanded={pilotSidebarExpanded}
+                aria-controls="pilot-dashboard-sidebar"
               >
                 <SidebarMenuGlyph />
               </button>
@@ -152,16 +277,13 @@ export function LandingHeader() {
               <Link href="/" className={linkClass("/")}>
                 Home
               </Link>
-              <Link href="/marketplace" className={linkClass("/marketplace")}>
-                Marketplace
-              </Link>
               <ServiceListingMegaMenu
                 variant="landing"
                 label="Services"
                 triggerClassName={cn(
                   (pathname === "/services" ||
                     pathname?.startsWith("/services/")) &&
-                    "font-semibold text-slate-900"
+                    "font-semibold text-slate-900 dark:text-white"
                 )}
               />
               <Link href="/blogs" className={linkClass("/blogs")}>
@@ -175,16 +297,16 @@ export function LandingHeader() {
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-4 lg:gap-6">
-          <div className="hidden min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 lg:flex">
+          <div className="hidden min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 lg:flex">
             <Search
-              className="mr-2 size-4 shrink-0 text-slate-500"
+              className="mr-2 size-4 shrink-0 text-slate-500 dark:text-white"
               aria-hidden
             />
             <input
               type="search"
               name="track-delivery"
               placeholder="Search..."
-              className="w-40 min-w-0 border-0 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:ring-0 xl:w-48"
+              className="w-40 min-w-0 border-0 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:ring-0 dark:text-white dark:placeholder:text-white/45 xl:w-48"
               autoComplete="off"
             />
           </div>
@@ -194,7 +316,7 @@ export function LandingHeader() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="md:hidden"
+                className="text-slate-700 md:hidden dark:text-white"
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
                 aria-controls="landing-mobile-nav"
@@ -211,48 +333,109 @@ export function LandingHeader() {
                 hideRegisterPilotCta && "sm:hidden"
               )}
             >
-              Register a Pilot
+              New Registration
             </Link>
             {showHeaderLoginButton ? (
-              <button
-                type="button"
-                onClick={() => router.replace("/login")}
+              <Link
+                href="/pilot-login"
                 className={cn("hidden sm:inline-flex", landingOutlineButtonClassName)}
               >
                 Login
-              </button>
+              </Link>
             ) : null}
             {!isHomePage &&
             !isPilotRegistration &&
             !hideNotificationsAndSettings ? (
               <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="text-slate-500 hover:text-[#008B8B]"
-                  aria-label="Notifications"
-                >
-                  <Bell className="size-5" />
-                </Button>
-                <Link
-                  href={settingsHref}
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "icon" }),
-                    "text-slate-500 hover:text-[#008B8B]"
-                  )}
-                  aria-label="Settings"
-                >
-                  <Settings className="size-5" />
-                </Link>
+                {showHeaderNotifications ? (
+                  <>
+                    <AdminInboxMenu />
+                    <HeaderThemeModeToggle />
+                  </>
+                ) : null}
+                {showPilotThemeToggle ? <HeaderThemeModeToggle /> : null}
+                {showPilotNotifications ? (
+                  <PilotMissionNotificationsMenu />
+                ) : null}
+                {showHeaderSettingsIcon ? (
+                  <Link
+                    href={settingsHref}
+                    className={cn(
+                      buttonVariants({ variant: "ghost", size: "icon" }),
+                      "text-slate-500 hover:text-[#008B8B] dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
+                    )}
+                    aria-label="Settings"
+                  >
+                    <Settings className="size-5" />
+                  </Link>
+                ) : null}
               </>
             ) : null}
-            {!hideLoginIcon && !isHomePage ? (
+            {showAccountMenu ? (
+              <div className="relative shrink-0" ref={accountMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setAccountMenuOpen((v) => !v)}
+                  aria-expanded={accountMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Account menu"
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "icon" }),
+                    "shrink-0 text-slate-500 hover:text-[#008B8B] focus-visible:ring-2 focus-visible:ring-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
+                  )}
+                >
+                  <User className="size-5" aria-hidden />
+                </button>
+                {accountMenuOpen ? (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full z-[60] mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg ring-1 ring-black/5"
+                  >
+                    <Link
+                      href={profileHref}
+                      role="menuitem"
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <User className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      Profile
+                    </Link>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        try {
+                          localStorage.removeItem("token");
+                          localStorage.removeItem("pilot");
+                          if (isUserLogoutContext) {
+                            clearStoredUserSession();
+                          }
+                        } catch {
+                          /* ignore */
+                        }
+                        router.replace(
+                          isPilotDashboard || settingsFrom === "pilot"
+                            ? "/pilot-login"
+                            : isUserLogoutContext
+                              ? "/pilot-login?panel=user"
+                              : "/login"
+                        );
+                      }}
+                    >
+                      <LogOut className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      Logout
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : !hideLoginIcon && !isHomePage && !isMatchingHub ? (
               <Link
-                href="/login"
+                href="/pilot-login"
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon" }),
-                  "shrink-0 text-slate-500 hover:text-[#008B8B]"
+                  "shrink-0 text-slate-500 hover:text-[#008B8B] dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                 )}
                 aria-label="Login"
               >
@@ -286,13 +469,6 @@ export function LandingHeader() {
               onClick={() => setOpen(false)}
             >
               Home
-            </Link>
-            <Link
-              href="/marketplace"
-              className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              onClick={() => setOpen(false)}
-            >
-              Marketplace
             </Link>
             <div className="px-3 pt-1 pb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Services
@@ -338,34 +514,83 @@ export function LandingHeader() {
             >
               Contact Us
             </Link>
+            {showAccountMenu && !isAdminDashboard ? (
+              <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-3">
+                <Link
+                  href={profileHref}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => setOpen(false)}
+                >
+                  Profile
+                </Link>
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => {
+                    setOpen(false);
+                    try {
+                      localStorage.removeItem("token");
+                      localStorage.removeItem("pilot");
+                      if (isUserLogoutContext) {
+                        clearStoredUserSession();
+                      }
+                    } catch {
+                      /* ignore */
+                    }
+                    if (
+                      isPilotDashboard ||
+                      settingsFrom === "pilot"
+                    ) {
+                      router.replace("/pilot-login");
+                    } else if (isUserLogoutContext) {
+                      router.replace("/pilot-login?panel=user");
+                    } else {
+                      router.replace("/login");
+                    }
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            ) : !isMatchingHub ? (
+              <Link
+                href="/pilot-login"
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                onClick={() => setOpen(false)}
+              >
+                Login
+              </Link>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
             <Link
-              href="/login"
+              href={profileHref}
               className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               onClick={() => setOpen(false)}
             >
-              Login
+              Profile
             </Link>
+            <button
+              type="button"
+              className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+              onClick={() => {
+                setOpen(false);
+                router.replace("/login");
+              }}
+            >
+              Logout
+            </button>
           </div>
-        ) : (
+        )}
+        {isHomePage ? (
           <Link
-            href="/login"
-            className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            href="/pilot-login"
+            className="mt-4 flex h-11 w-full items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent"
             onClick={() => setOpen(false)}
           >
             Login
           </Link>
-        )}
-        {isHomePage ? (
-          <button
-            type="button"
-            className="mt-4 flex h-11 w-full items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent"
-            onClick={() => {
-              router.replace("/login");
-              setOpen(false);
-            }}
-          >
-            Login
-          </button>
         ) : null}
         {!hideRegisterPilotCta ? (
           <Link
@@ -376,7 +601,7 @@ export function LandingHeader() {
             )}
             onClick={() => setOpen(false)}
           >
-            Register a Pilot
+            New Registration
           </Link>
         ) : null}
       </div>

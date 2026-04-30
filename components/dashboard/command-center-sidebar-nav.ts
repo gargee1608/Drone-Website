@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Activity,
   BadgeCheck,
   BookOpen,
   Briefcase,
@@ -8,6 +9,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   LogOut,
+  Mail,
   Plane,
   Settings,
 } from "lucide-react";
@@ -31,6 +33,11 @@ export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
   { href: "/dashboard/pilot-status", label: "Pilot Status", icon: BadgeCheck },
   { href: "/dashboard/blogs", label: "Blogs", icon: BookOpen },
   { href: "/dashboard/services", label: "Services", icon: Briefcase },
+  {
+    href: "/dashboard/contact-inquiries",
+    label: "Contact inquiries",
+    icon: Mail,
+  },
   { href: "/dashboard/profile", label: "Profile", icon: CircleUser },
   { href: "/settings?from=admin", label: "Settings", icon: Settings },
 ];
@@ -47,6 +54,12 @@ export const userCommandCenterNavMain: readonly CommandCenterNavItem[] = [
     label: "My Request",
     icon: ClipboardList,
   },
+  {
+    href: "/user-dashboard/request-monitoring",
+    label: "Request Monitoring",
+    icon: Activity,
+  },
+  { href: "/user-dashboard/profile", label: "Profile", icon: CircleUser },
   { href: "/settings?from=user", label: "Settings", icon: Settings },
 ];
 

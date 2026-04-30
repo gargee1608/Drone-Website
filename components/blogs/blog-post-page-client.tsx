@@ -5,7 +5,13 @@ import { useEffect, useState } from "react";
 
 import type { BlogPost } from "@/components/blogs/blog-data";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
+import {
+  fetchBlogByIdFromApi,
+  mapApiRowToBlogPost,
+  parseBlogDbSlug,
+} from "@/lib/blog-api";
 import { getMergedPostBySlug } from "@/lib/blog-merge";
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 export function BlogPostPageClient({
@@ -16,12 +22,40 @@ export function BlogPostPageClient({
   initialPost: BlogPost | null;
 }) {
   const [post, setPost] = useState<BlogPost | null>(initialPost);
-  const [ready, setReady] = useState(Boolean(initialPost));
+  const [ready, setReady] = useState(
+    Boolean(initialPost) || parseBlogDbSlug(slug) == null
+  );
 
   useEffect(() => {
+    const id = parseBlogDbSlug(slug);
+    if (id != null) {
+      if (initialPost) {
+        setPost(initialPost);
+        setReady(true);
+        return undefined;
+      }
+      let cancelled = false;
+      setReady(false);
+      fetchBlogByIdFromApi(id)
+        .then((row) => {
+          if (cancelled) return;
+          setPost(row ? mapApiRowToBlogPost(row) : null);
+          setReady(true);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setPost(null);
+            setReady(true);
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
     setPost(getMergedPostBySlug(slug) ?? null);
     setReady(true);
-  }, [slug]);
+    return undefined;
+  }, [slug, initialPost]);
 
   useEffect(() => {
     if (!post?.title) return;
@@ -52,7 +86,7 @@ export function BlogPostPageClient({
         )}
       >
         <div className="mx-auto max-w-3xl px-6 py-16">
-          <h1 className="text-2xl font-bold text-[#1a1c1e]">Post not found</h1>
+          <h1 className={ADMIN_PAGE_TITLE_CLASS}>Post not found</h1>
           <p className="mt-2 text-sm text-[#41474d]">
             This Flight Log entry does not exist or was removed.
           </p>
@@ -82,9 +116,7 @@ export function BlogPostPageClient({
         <p className="text-xs font-bold uppercase tracking-widest text-[#006a6e]">
           {post.category}
         </p>
-        <h1 className="mt-3 font-[family-name:var(--font-landing-headline)] text-3xl font-extrabold tracking-tight text-[#1a1c1e] md:text-4xl">
-          {post.title}
-        </h1>
+        <h1 className={cn("mt-3", ADMIN_PAGE_TITLE_CLASS)}>{post.title}</h1>
         <p className="mt-2 text-sm text-[#41474d]">
           {post.date} · By {post.author}
         </p>

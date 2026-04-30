@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Battery, Gauge } from "lucide-react";
 
+import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+
 export function Hero() {
   return (
     <section className="relative flex min-h-[min(800px,90svh)] flex-col items-center justify-center overflow-hidden bg-white px-4 py-16 sm:px-8">
@@ -13,7 +15,7 @@ export function Hero() {
               Autonomous Network Live
             </span>
           </div>
-          <h1 className="font-[family-name:var(--font-landing-headline)] text-3xl font-bold leading-tight tracking-tighter text-slate-900 sm:text-4xl md:text-5xl lg:text-6xl">
+          <h1 className={ADMIN_PAGE_TITLE_CLASS}>
             Smart Drone Logistics &amp; Delivery Platform
           </h1>
           <p className="mt-6 max-w-lg font-[family-name:var(--font-landing-body)] text-lg leading-relaxed text-slate-600 md:text-xl">
@@ -22,8 +24,8 @@ export function Hero() {
           </p>
           <div className="mt-10 flex flex-wrap gap-4">
             <Link
-              href="/signup"
-              className="inline-flex items-center justify-center rounded-md bg-[#008B8B] px-8 py-4 font-[family-name:var(--font-landing-headline)] text-sm font-black text-white shadow-[0_10px_30px_rgba(0, 139, 139,0.2)] transition-transform hover:scale-105"
+              href="/matching-hub"
+              className="inline-flex items-center justify-center rounded-md bg-[#008B8B] px-8 py-4 font-[family-name:var(--font-landing-headline)] text-sm font-black text-white shadow-[0_10px_30px_rgba(0,139,139,0.2)] transition-transform hover:scale-105"
             >
               Get Started
             </Link>
@@ -31,7 +33,7 @@ export function Hero() {
               href="/pilot-registration"
               className="inline-flex items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-8 py-4 font-[family-name:var(--font-landing-headline)] text-sm font-bold text-[#008B8B] transition-colors hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent"
             >
-              Register a Pilot
+              New Registration
             </Link>
           </div>
         </div>

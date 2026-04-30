@@ -52,13 +52,13 @@ export function SiteFooter({
                 Drone Hire
               </span>
             </Link>
-            <p className="max-w-sm text-sm leading-relaxed text-slate-600">
+            <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
               Leading the autonomous revolution. Delivering the future, one
               coordinate at a time.
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
               Resources
             </p>
             <ul className="mt-4 flex flex-col gap-2.5">
@@ -66,7 +66,7 @@ export function SiteFooter({
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-600 transition-colors hover:text-teal-700"
+                    className="text-sm text-muted-foreground transition-colors hover:text-teal-700"
                   >
                     {link.label}
                   </Link>
@@ -75,7 +75,7 @@ export function SiteFooter({
             </ul>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
               Connect
             </p>
             <ul className="mt-4 flex flex-col gap-2.5">
@@ -83,7 +83,7 @@ export function SiteFooter({
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-sm text-slate-600 transition-colors hover:text-teal-700"
+                    className="text-sm text-muted-foreground transition-colors hover:text-teal-700"
                     target="_blank"
                     rel="noopener noreferrer"
                   >

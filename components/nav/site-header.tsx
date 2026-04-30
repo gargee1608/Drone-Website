@@ -2,24 +2,26 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { ArrowRight, Bell, Menu, Settings, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, Bell, LogOut, Menu, User, X } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { HeaderThemeModeToggle } from "@/components/nav/header-theme-mode-toggle";
 import { useHasRegisteredPilot } from "@/hooks/use-has-registered-pilot";
 import {
   ServiceListingMegaMenu,
-  serviceMegaMenuItems,
+  useServiceMegaMenuItems,
 } from "@/components/nav/service-listing-mega-menu";
 import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav-context";
 import { SidebarMenuGlyph } from "@/components/nav/sidebar-menu-glyph";
+import { usePilotDashboardNav } from "@/components/pilot-dashboard/pilot-dashboard-nav-context";
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
+import { clearStoredUserSession } from "@/lib/user-session-browser";
 import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "/", label: "Home" },
-  { href: "/marketplace", label: "Marketplace" },
   { href: "/services", label: "Services" },
   { href: "/blogs", label: "Blogs" },
   { href: "/contact", label: "Contact Us" },
@@ -73,12 +75,16 @@ const mobileRegisteredPilotClassName =
   "mt-2 w-full rounded-full border-2 border-[#008B8B] bg-transparent font-semibold tracking-wide text-[#008B8B] shadow-none transition hover:bg-[#008B8B]/10 hover:text-[#006b6b]";
 
 export function SiteHeader({
-  ctaLabel = "Register a Pilot",
+  ctaLabel = "New Registration",
   ctaHref = "/pilot-registration",
   showNotifications = false,
 }: SiteHeaderProps = {}) {
+  const serviceMegaMenuItems = useServiceMegaMenuItems();
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const hasRegisteredPilot = useHasRegisteredPilot();
   const {
     sidebarExpanded: userSidebarExpanded,
@@ -88,8 +94,13 @@ export function SiteHeader({
     sidebarExpanded: adminSidebarExpanded,
     setSidebarExpanded: setAdminSidebarExpanded,
   } = useAdminDashboardNav();
+  const {
+    sidebarExpanded: pilotSidebarExpanded,
+    setSidebarExpanded: setPilotSidebarExpanded,
+  } = usePilotDashboardNav();
 
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
+  const isPilotDashboard = pathname?.startsWith("/pilot-dashboard") ?? false;
   const isAdminDashboard =
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
@@ -97,21 +108,44 @@ export function SiteHeader({
   const isSettingsPage = pathname?.startsWith("/settings") ?? false;
 
   const showUserDashboardSidebarToggle = isUserDashboard;
+  const showPilotDashboardSidebarToggle = isPilotDashboard;
   const showAdminDashboardSidebarToggle = isAdminDashboard;
 
-  const showDashboardSettings = isUserDashboard || isAdminDashboard;
-  const settingsHref = isUserDashboard
-    ? "/settings?from=user"
-    : isAdminDashboard
-      ? "/settings?from=admin"
-      : "/settings";
+  const showDashboardAccountChrome = isUserDashboard || isAdminDashboard;
+
+  const profileHref = isUserDashboard
+    ? "/user-dashboard/profile"
+    : "/dashboard/profile";
 
   const whiteHeaderChrome =
-    isSettingsPage || isAdminDashboard || isUserDashboard;
+    isSettingsPage || isAdminDashboard || isUserDashboard || isPilotDashboard;
 
-  /** Hide Register a Pilot / Registered Pilot on admin & user dashboards only. */
+  /** Hide New Registration / Registered Pilot on admin & user dashboards only. */
   const showPilotRegistrationCtas =
-    !isAdminDashboard && !isUserDashboard;
+    !isAdminDashboard && !isUserDashboard && !isPilotDashboard;
+
+  useEffect(() => {
+    setAccountMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const el = accountMenuRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAccountMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [accountMenuOpen]);
 
   const navLinkClass = (href: string, options?: { services?: boolean }) => {
     const active = options?.services
@@ -170,6 +204,24 @@ export function SiteHeader({
               <SidebarMenuGlyph />
             </button>
           ) : null}
+          {showPilotDashboardSidebarToggle ? (
+            <button
+              type="button"
+              className="hidden lg:inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35"
+              onClick={() =>
+                setPilotSidebarExpanded(!pilotSidebarExpanded)
+              }
+              aria-label={
+                pilotSidebarExpanded
+                  ? "Collapse pilot dashboard sidebar"
+                  : "Expand pilot dashboard sidebar"
+              }
+              aria-expanded={pilotSidebarExpanded}
+              aria-controls="pilot-dashboard-sidebar"
+            >
+              <SidebarMenuGlyph />
+            </button>
+          ) : null}
           <Link
             href="/"
             className="flex shrink-0 items-center gap-1 font-heading text-base font-bold tracking-tight text-black transition-opacity hover:opacity-90 sm:text-lg lg:text-xl"
@@ -189,21 +241,24 @@ export function SiteHeader({
 
         <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3 md:gap-4 md:pl-2 lg:pl-4">
           {showNotifications ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0 text-muted-foreground hover:text-foreground"
-              aria-label="Notifications"
-            >
-              <Bell className="size-4" />
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+                aria-label="Notifications"
+              >
+                <Bell className="size-4" />
+              </Button>
+              <HeaderThemeModeToggle />
+            </div>
           ) : null}
           <nav
             className={cn(
               "site-header-primary-nav hidden min-w-0 items-center gap-3 text-sm font-medium text-[#191c1d] md:flex",
               "lg:gap-5"
             )}
-            aria-label="Home, marketplace, and services"
+            aria-label="Main navigation"
           >
             {nav.map((item) =>
               item.href === "/services" ? (
@@ -270,30 +325,77 @@ export function SiteHeader({
               <Button className={ctaButtonClassName}>{ctaLabel}</Button>
             ) : null}
           </div>
-          {/* Settings (dashboards only) + login + menu */}
+          {/* Account menu (dashboards); settings live in sidebars */}
           <div className="flex shrink-0 items-center gap-0.5 border-l border-border/50 pl-2 sm:gap-1 sm:pl-3 md:pl-4">
-            {showDashboardSettings ? (
+            {showDashboardAccountChrome ? (
+              <div className="relative shrink-0" ref={accountMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setAccountMenuOpen((v) => !v)}
+                  aria-expanded={accountMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Account menu"
+                  className={cn(
+                    buttonVariants({ variant: "ghost" }),
+                    "inline-flex shrink-0 items-center justify-center rounded-full p-1 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-[#008B8B]/35"
+                  )}
+                >
+                  <LoginProfileIcon className="size-10 sm:size-11" />
+                </button>
+                {accountMenuOpen ? (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full z-[60] mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5"
+                  >
+                    <Link
+                      href={profileHref}
+                      role="menuitem"
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-[#191c1d] transition-colors hover:bg-slate-50"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <User className="size-4 shrink-0 text-slate-600" aria-hidden />
+                      Profile
+                    </Link>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-[#191c1d] transition-colors hover:bg-slate-50"
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        try {
+                          localStorage.removeItem("token");
+                          if (isUserDashboard) {
+                            localStorage.removeItem("pilot");
+                            clearStoredUserSession();
+                          }
+                        } catch {
+                          /* ignore */
+                        }
+                        router.replace(
+                          isUserDashboard
+                            ? "/pilot-login?panel=user"
+                            : "/login"
+                        );
+                      }}
+                    >
+                      <LogOut className="size-4 shrink-0 text-slate-600" aria-hidden />
+                      Logout
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
               <Link
-                href={settingsHref}
+                href="/login"
+                aria-label="Login"
                 className={cn(
-                  buttonVariants({ variant: "ghost", size: "icon" }),
-                  "text-muted-foreground hover:text-foreground"
+                  buttonVariants({ variant: "ghost" }),
+                  "inline-flex shrink-0 items-center justify-center rounded-full p-1 text-muted-foreground hover:text-foreground"
                 )}
-                aria-label="Settings"
               >
-                <Settings className="size-4" />
+                <LoginProfileIcon className="size-10 sm:size-11" />
               </Link>
-            ) : null}
-            <Link
-              href="/login"
-              aria-label="Login"
-              className={cn(
-                buttonVariants({ variant: "ghost" }),
-                "inline-flex shrink-0 items-center justify-center rounded-full p-1 text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <LoginProfileIcon className="size-10 sm:size-11" />
-            </Link>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -321,7 +423,7 @@ export function SiteHeader({
       >
         <nav
           className="site-header-primary-nav flex flex-col gap-3 text-sm font-medium text-[#191c1d]"
-          aria-label="Home, marketplace, and services"
+          aria-label="Main navigation"
         >
           {nav.map((item) =>
             item.href === "/services" ? (
@@ -392,23 +494,51 @@ export function SiteHeader({
               </a>
             )
           )}
-          {showDashboardSettings ? (
+          {showDashboardAccountChrome ? (
+            <div className="flex flex-col gap-1 border-t border-border/60 pt-3">
+              <Link
+                href={profileHref}
+                className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-[#191c1d] transition-colors hover:bg-muted"
+                onClick={() => setOpen(false)}
+              >
+                <User className="size-4 shrink-0 text-slate-600" aria-hidden />
+                Profile
+              </Link>
+              <button
+                type="button"
+                className="inline-flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-medium text-[#191c1d] transition-colors hover:bg-muted"
+                onClick={() => {
+                  setOpen(false);
+                  try {
+                    localStorage.removeItem("token");
+                    if (isUserDashboard) {
+                      localStorage.removeItem("pilot");
+                      clearStoredUserSession();
+                    }
+                  } catch {
+                    /* ignore */
+                  }
+                  router.replace(
+                    isUserDashboard
+                      ? "/pilot-login?panel=user"
+                      : "/login"
+                  );
+                }}
+              >
+                <LogOut className="size-4 shrink-0 text-slate-600" aria-hidden />
+                Logout
+              </button>
+            </div>
+          ) : (
             <Link
-              href={settingsHref}
-              className="rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
+              href="/login"
+              aria-label="Login"
+              className="inline-flex w-fit items-center justify-center rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
               onClick={() => setOpen(false)}
             >
-              Settings
+              <LoginProfileIcon className="size-10 sm:size-11" />
             </Link>
-          ) : null}
-          <Link
-            href="/login"
-            aria-label="Login"
-            className="inline-flex w-fit items-center justify-center rounded-lg px-2 py-2 transition-colors hover:bg-muted hover:text-foreground"
-            onClick={() => setOpen(false)}
-          >
-            <LoginProfileIcon className="size-10 sm:size-11" />
-          </Link>
+          )}
         </nav>
         {showPilotRegistrationCtas && ctaHref ? (
           ctaHref === "/pilot-registration" ? (

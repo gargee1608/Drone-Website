@@ -8,7 +8,6 @@ export type LandingFooterProps = {
 };
 
 const solutions = [
-  { href: "/marketplace", label: "Fleet & Marketplace" },
   { href: "/services", label: "Mission Services" },
   { href: "/contact", label: "Enterprise Quotes" },
   { href: "/blogs", label: "Insights & Updates" },

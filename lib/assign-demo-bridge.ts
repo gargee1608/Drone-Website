@@ -3,6 +3,7 @@ import { parsePayloadAndTarget } from "@/components/dashboard/user-request-table
 import {
   loadAssignPilotRequestQueue,
   loadUserRequests,
+  userMissionRequestToAssignPilotRow,
   type AssignPilotRequestRow,
   type UserRequestAdminRow,
 } from "@/lib/user-requests";
@@ -10,9 +11,15 @@ import {
 export const DEMO_ASSIGN_BRIDGE_STORAGE_KEY =
   "aerolaminar_demo_accept_for_assign_v1";
 
+/** Last request opened from User Request (any status); merged first into Assign queue for preview. */
+export const ASSIGN_INSPECT_STORAGE_KEY = "aerolaminar_assign_inspect_request_v1";
+
 /** Same-tab / cross-component refresh when demo accepts are written for Assign Pilot. */
 export const DEMO_ASSIGN_BRIDGE_UPDATED_EVENT =
   "aerolaminar-demo-assign-bridge-updated";
+
+/** Fired when the inspect row is set from User Request (opens Assign with that mission). */
+export const ASSIGN_INSPECT_UPDATED_EVENT = "aerolaminar-assign-inspect-updated";
 
 function isAssignPilotRequestRow(v: unknown): v is AssignPilotRequestRow {
   if (typeof v !== "object" || v === null) return false;
@@ -49,6 +56,39 @@ export function demoAdminRowToAssignPilotRow(m: UserRequestAdminRow): AssignPilo
   };
 }
 
+/** Build assign-queue row from any User Request table row (stored mission, demo, or parse fallback). */
+export function userRequestAdminRowToAssignPilotRow(
+  m: UserRequestAdminRow
+): AssignPilotRequestRow {
+  if (m.key.startsWith("demo-")) {
+    return demoAdminRowToAssignPilotRow(m);
+  }
+  const req = loadUserRequests().find((r) => r.id === m.key);
+  if (req) {
+    return userMissionRequestToAssignPilotRow(req);
+  }
+  return demoAdminRowToAssignPilotRow(m);
+}
+
+export function loadAssignInspectRow(): AssignPilotRequestRow | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(ASSIGN_INSPECT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isAssignPilotRequestRow(parsed)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function setAssignInspectRow(row: AssignPilotRequestRow): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ASSIGN_INSPECT_STORAGE_KEY, JSON.stringify(row));
+  window.dispatchEvent(new Event(ASSIGN_INSPECT_UPDATED_EVENT));
+}
+
 export function loadDemoAcceptedForAssign(): AssignPilotRequestRow[] {
   if (typeof window === "undefined") return [];
   try {
@@ -78,15 +118,28 @@ export function assignQueueValidRefsForPrune(): Set<string> {
   for (const d of loadDemoAcceptedForAssign()) {
     ids.add(d.requestRef);
   }
+  const inspect = loadAssignInspectRow();
+  if (inspect) ids.add(inspect.requestRef);
   return ids;
 }
 
-/** Real accepted missions + built-in demo rows accepted for assignment. */
+/** Inspect row (optional) + real accepted missions + built-in demo rows accepted for assignment. */
 export function mergeAssignPilotDisplayQueue(): AssignPilotRequestRow[] {
+  const inspect = loadAssignInspectRow();
   const real = loadAssignPilotRequestQueue();
   const demo = loadDemoAcceptedForAssign();
-  const seen = new Set(real.map((r) => r.requestRef));
-  const out = [...real];
+  const seen = new Set<string>();
+  const out: AssignPilotRequestRow[] = [];
+  if (inspect) {
+    out.push(inspect);
+    seen.add(inspect.requestRef);
+  }
+  for (const r of real) {
+    if (!seen.has(r.requestRef)) {
+      out.push(r);
+      seen.add(r.requestRef);
+    }
+  }
   for (const d of demo) {
     if (!seen.has(d.requestRef)) {
       out.push(d);
