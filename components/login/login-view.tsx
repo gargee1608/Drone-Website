@@ -227,6 +227,7 @@ export function LoginView({
       error?: string;
       detail?: string;
       hint?: string;
+      signInError?: string;
     } = {};
 
     if (
@@ -238,6 +239,14 @@ export function LoginView({
     }
 
     if (!res.ok || !data.token) {
+      if (data.signInError === "email") {
+        setErrors({ identity: "Incorrect Email id" });
+        return;
+      }
+      if (data.signInError === "password") {
+        setErrors({ password: "Incorrect Password" });
+        return;
+      }
       const fromProxy = [data.error, data.detail, data.hint]
         .filter(Boolean)
         .join(" — ");
@@ -673,6 +682,15 @@ export function LoginView({
                       )}
                     />
                   </div>
+                  {errors.password ? (
+                    <p
+                      id="login-password-error"
+                      role="alert"
+                      className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
+                    >
+                      {errors.password}
+                    </p>
+                  ) : null}
                   <div className="flex items-center justify-between gap-2 px-1 pt-0.5">
                     <div className="flex min-w-0 items-center gap-1.5">
                       <input
@@ -718,15 +736,6 @@ export function LoginView({
                       Remember me
                     </label>
                   </div>
-                  {errors.password ? (
-                    <p
-                      id="login-password-error"
-                      role="alert"
-                      className="px-1 text-[11px] font-medium leading-tight text-red-600 sm:text-xs"
-                    >
-                      {errors.password}
-                    </p>
-                  ) : null}
                 </div>
               </>
             )}

@@ -10,9 +10,13 @@ export function errorHandler(err, _req, res, _next) {
     console.error(err);
   }
 
-  res.status(status).json({
+  const body = {
     ok: false,
     code,
     message,
-  });
+  };
+  if (err.signInError === "email" || err.signInError === "password") {
+    body.signInError = err.signInError;
+  }
+  res.status(status).json(body);
 }

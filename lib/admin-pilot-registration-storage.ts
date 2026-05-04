@@ -173,6 +173,14 @@ function snapshotToPendingCard(snapshot: PilotProfileSnapshot): PilotRegCard {
     submitted = new Date().toISOString().slice(0, 16);
   }
   const dgca = snapshot.dgca?.trim();
+  const certs = snapshot.certifications;
+  const certSummary =
+    certs && certs.length > 0
+      ? `${certs.length} file(s): ${certs.map((c) => c.name).join(", ")}`.slice(
+          0,
+          220
+        )
+      : "—";
   return {
     id: newSubmissionId(),
     name: snapshot.fullName.trim() || "Unnamed pilot",
@@ -188,6 +196,7 @@ function snapshotToPendingCard(snapshot: PilotProfileSnapshot): PilotRegCard {
       },
       { k: "Flight Experience", v: `${snapshot.flightHours} Hours` },
       { k: "Skills", v: skills },
+      { k: "Certifications upload", v: certSummary },
       { k: "Region", v: region || "—" },
       { k: "Drones registered", v: String(snapshot.drones?.length ?? 0) },
     ],

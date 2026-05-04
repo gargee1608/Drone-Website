@@ -9,18 +9,13 @@ export function Hero() {
     <section className="relative flex min-h-[min(800px,90svh)] flex-col items-center justify-center overflow-hidden bg-white px-4 py-16 sm:px-8">
       <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <div className="max-w-2xl">
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1">
-            <span className="flex h-2 w-2 rounded-full bg-[#008B8B] shadow-[0_0_8px_#008B8B]" />
-            <span className="font-[family-name:var(--font-landing-headline)] text-[10px] font-bold tracking-[0.2em] text-slate-600 uppercase">
-              Autonomous Network Live
-            </span>
-          </div>
           <h1 className={ADMIN_PAGE_TITLE_CLASS}>
-            Smart Drone Logistics &amp; Delivery Platform
+            Book Verified Drone Pilot Near You &amp; Connect verified drone
+            pilots with industries.
           </h1>
           <p className="mt-6 max-w-lg font-[family-name:var(--font-landing-body)] text-lg leading-relaxed text-slate-600 md:text-xl">
-            Connect verified drone pilots with industries. On-demand aerial
-            services for agriculture, filming, surveying &amp; more.
+            Find and hire DGCA-approved drone pilots for defence, agriculture,
+            filming, lifting &amp; everyday drone service.
           </p>
           <div className="mt-10 flex flex-wrap gap-4">
             <Link

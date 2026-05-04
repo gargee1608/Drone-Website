@@ -1,8 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, CheckCircle2, Plus, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Plus,
+  Upload,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +28,7 @@ import {
   parsePilotProfileSnapshot,
   PILOT_PROFILE_UPDATED_EVENT,
   replaceAbcPlaceholder,
+  type PilotCertificationUpload,
   type PilotProfileDrone,
   type PilotProfileSnapshot,
 } from "@/lib/pilot-profile-snapshot";
@@ -48,6 +56,16 @@ const SKILL_OPTIONS = [
 ] as const;
 
 const FLIGHT_HOURS_SLIDER_MAX = 500;
+
+const MAX_CERT_FILES = 4;
+const MAX_CERT_FILE_BYTES = 320 * 1024;
+const MAX_CERT_DATA_URL_CHARS = 480_000;
+const ALLOWED_CERT_MIME = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 const DRONE_TYPE_OPTIONS = [
   "FPV",
@@ -147,6 +165,7 @@ function draftFromState(args: {
   aadhaar: string;
   dgca: string;
   selectedSkills: string[];
+  certifications: PilotCertificationUpload[];
   flightHours: number;
   bio: string;
   drones: PilotProfileDrone[];
@@ -161,6 +180,8 @@ function draftFromState(args: {
     aadhaar: args.aadhaar,
     dgca: args.dgca,
     selectedSkills: args.selectedSkills,
+    certifications:
+      args.certifications.length > 0 ? [...args.certifications] : undefined,
     flightHours: args.flightHours,
     bio: args.bio,
     droneModel: "",
@@ -174,8 +195,18 @@ function draftFromState(args: {
   };
 }
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("read"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function PilotRegistrationView() {
   const router = useRouter();
+  const certInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -187,6 +218,9 @@ export function PilotRegistrationView() {
   const [dgca, setDgca] = useState("");
   const [flightHours, setFlightHours] = useState(0);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [certifications, setCertifications] = useState<
+    PilotCertificationUpload[]
+  >([]);
   const [bio, setBio] = useState("");
   const [drones, setDrones] = useState<PilotProfileDrone[]>([]);
   const [draftModel, setDraftModel] = useState("");
@@ -220,6 +254,7 @@ export function PilotRegistrationView() {
     setDgca("");
     setFlightHours(0);
     setSelectedSkills([]);
+    setCertifications([]);
     setBio("");
     setDrones([]);
     setDraftModel("");
@@ -254,6 +289,9 @@ export function PilotRegistrationView() {
     setDgca(snap.dgca);
     setFlightHours(snap.flightHours);
     setSelectedSkills(snap.skills.length ? [...snap.skills] : []);
+    setCertifications(
+      snap.certifications?.length ? [...snap.certifications] : []
+    );
     setBio(snap.bio);
     setDrones(snap.drones.length ? [...snap.drones] : []);
   }
@@ -309,6 +347,9 @@ export function PilotRegistrationView() {
       setSelectedSkills(
         d.selectedSkills.length ? [...d.selectedSkills] : []
       );
+      setCertifications(
+        d.certifications?.length ? [...d.certifications] : []
+      );
       setBio(d.bio);
       setDrones(d.drones.length ? d.drones : []);
     } catch {
@@ -328,6 +369,7 @@ export function PilotRegistrationView() {
         aadhaar,
         dgca,
         selectedSkills,
+        certifications,
         flightHours,
         bio,
         drones,
@@ -343,10 +385,61 @@ export function PilotRegistrationView() {
     aadhaar,
     dgca,
     selectedSkills,
+    certifications,
     flightHours,
     bio,
     drones,
   ]);
+
+  async function handleCertificationFiles(files: FileList | null) {
+    if (!files?.length) return;
+    setStepError(null);
+    let next = [...certifications];
+    for (const file of Array.from(files)) {
+      if (next.length >= MAX_CERT_FILES) {
+        setStepError(
+          `You can upload at most ${MAX_CERT_FILES} certification files.`
+        );
+        break;
+      }
+      const mime = file.type || "";
+      const pdfByName =
+        file.name.toLowerCase().endsWith(".pdf") &&
+        (mime === "application/octet-stream" || mime === "");
+      if (!ALLOWED_CERT_MIME.has(mime) && !pdfByName) {
+        setStepError("Use PDF, JPG, PNG, or WebP only.");
+        continue;
+      }
+      if (file.size > MAX_CERT_FILE_BYTES) {
+        setStepError(
+          `Each file must be ${Math.round(MAX_CERT_FILE_BYTES / 1024)} KB or smaller.`
+        );
+        continue;
+      }
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        if (
+          !dataUrl.startsWith("data:") ||
+          dataUrl.length > MAX_CERT_DATA_URL_CHARS
+        ) {
+          setStepError("That file is too large. Try a smaller PDF or image.");
+          continue;
+        }
+        next = [
+          ...next,
+          {
+            name: file.name.slice(0, 220),
+            mime: pdfByName ? "application/pdf" : mime || "application/octet-stream",
+            dataUrl,
+          },
+        ];
+      } catch {
+        setStepError("Could not read one of the files. Try again.");
+      }
+    }
+    setCertifications(next);
+    if (certInputRef.current) certInputRef.current.value = "";
+  }
 
   const aadhaarDigits = aadhaar.replace(/\D/g, "");
   const aadhaarCount = aadhaarDigits.length;
@@ -506,6 +599,8 @@ export function PilotRegistrationView() {
       drones: dronesForSnapshot,
       dgca: dgca.trim(),
       photoDataUrl: existingSnap?.photoDataUrl,
+      certifications:
+        certifications.length > 0 ? [...certifications] : undefined,
     };
 
     const res = await fetch(apiUrl("/api/pilots/register"), {
@@ -638,6 +733,8 @@ export function PilotRegistrationView() {
       drones: [...drones],
       dgca: mergedDgca,
       photoDataUrl: existingSnap?.photoDataUrl,
+      certifications:
+        certifications.length > 0 ? [...certifications] : undefined,
     };
 
     const json = JSON.stringify(snapshot);
@@ -982,26 +1079,72 @@ export function PilotRegistrationView() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-800">
-                    Certifications{" "}
-                    <span className="font-normal text-slate-500">
-                      (file upload placeholder)
-                    </span>
+                  <label
+                    htmlFor="cert-upload"
+                    className="text-sm font-medium text-slate-800"
+                  >
+                    Upload certifications{" "}
+                    <span className="font-normal text-slate-500">(optional)</span>
                   </label>
+                  <input
+                    ref={certInputRef}
+                    id="cert-upload"
+                    name="certifications"
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={(e) => void handleCertificationFiles(e.target.files)}
+                  />
                   <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      disabled
-                      className="pointer-events-none border-slate-200 text-slate-500 opacity-80"
+                      className="border-slate-300"
+                      onClick={() => certInputRef.current?.click()}
                     >
+                      <Upload className="mr-1.5 size-3.5 shrink-0" aria-hidden />
                       Browse…
                     </Button>
-                    <span className="text-sm text-slate-500">No file selected.</span>
+                    <span className="text-sm text-slate-600">
+                      {certifications.length === 0
+                        ? "No file selected."
+                        : `${certifications.length} file(s) selected`}
+                    </span>
                   </div>
-                  <p className="text-xs text-blue-600">
-                    Upload will be enabled when backend is connected.
+                  {certifications.length > 0 ? (
+                    <ul className="space-y-1.5 rounded-lg border border-slate-100 bg-slate-50/80 p-2">
+                      {certifications.map((c, i) => (
+                        <li
+                          key={`${c.name}-${i}`}
+                          className="flex items-center justify-between gap-2 rounded-md bg-white px-2 py-1.5 text-sm text-slate-800 shadow-sm"
+                        >
+                          <span className="min-w-0 truncate" title={c.name}>
+                            {c.name}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 shrink-0 px-2 text-slate-600 hover:text-red-700"
+                            onClick={() =>
+                              setCertifications((prev) =>
+                                prev.filter((_, j) => j !== i)
+                              )
+                            }
+                            aria-label={`Remove ${c.name}`}
+                          >
+                            <X className="size-4" aria-hidden />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <p className="text-xs text-slate-500">
+                    PDF or images — up to {MAX_CERT_FILES} files, max{" "}
+                    {Math.round(MAX_CERT_FILE_BYTES / 1024)} KB each. Files are
+                    stored with your pilot profile on this device.
                   </p>
                 </div>
 
@@ -1285,6 +1428,20 @@ export function PilotRegistrationView() {
                       {bio.trim()}
                     </p>
                   ) : null}
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Certifications
+                    </p>
+                    {certifications.length === 0 ? (
+                      <p className="mt-1 text-sm text-slate-600">None attached</p>
+                    ) : (
+                      <ul className="mt-1.5 list-inside list-disc space-y-0.5 text-sm text-slate-800">
+                        {certifications.map((c, i) => (
+                          <li key={`rev-${c.name}-${i}`}>{c.name}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </section>
 
                 <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">

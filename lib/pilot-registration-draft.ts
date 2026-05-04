@@ -1,4 +1,8 @@
-import type { PilotProfileDrone } from "@/lib/pilot-profile-snapshot";
+import {
+  normalizeCertifications,
+  type PilotCertificationUpload,
+  type PilotProfileDrone,
+} from "@/lib/pilot-profile-snapshot";
 
 /**
  * Draft saved only while using /pilot-registration (auto-save).
@@ -21,6 +25,7 @@ export type PilotRegistrationDraft = {
   aadhaar: string;
   dgca: string;
   selectedSkills: string[];
+  certifications?: PilotCertificationUpload[];
   flightHours: number;
   bio: string;
   droneModel: string;
@@ -89,6 +94,7 @@ export function parsePilotRegistrationDraft(
       aadhaar: str(d.aadhaar),
       dgca: str(d.dgca),
       selectedSkills: strArr(d.selectedSkills),
+      certifications: normalizeCertifications(d.certifications),
       flightHours: num(d.flightHours),
       bio: str(d.bio),
       droneModel: str(d.droneModel),

@@ -3,7 +3,17 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { LogOut, Menu, Plane, Search, Settings, User, X } from "lucide-react";
+import {
+  Home as HomeIcon,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Plane,
+  Search,
+  Settings,
+  User,
+  X,
+} from "lucide-react";
 
 import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav-context";
 import {
@@ -17,7 +27,12 @@ import { AdminInboxMenu } from "@/components/notifications/admin-inbox-menu";
 import { PilotMissionNotificationsMenu } from "@/components/notifications/pilot-mission-notifications-menu";
 import { HeaderThemeModeToggle } from "@/components/nav/header-theme-mode-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { clearStoredUserSession } from "@/lib/user-session-browser";
+import { getPilotDisplayName, jwtPayloadRole } from "@/lib/pilot-display-name";
+import {
+  clearStoredUserSession,
+  readStoredUserSession,
+  type StoredUserSession,
+} from "@/lib/user-session-browser";
 import { cn } from "@/lib/utils";
 
 const landingOutlineButtonClassName =
@@ -37,15 +52,19 @@ export function LandingHeader() {
     (pathname?.startsWith("/dashboard/") ?? false);
   const isAdminLoginPage =
     pathname === "/admin" || pathname === "/admin/";
-  /** Home / Services / Blogs / Contact — hidden on admin dashboard and admin login. */
-  const showMarketingHeaderNav = !isAdminDashboard && !isAdminLoginPage;
-  /** Header search (desktop + mobile drawer) — hidden on admin dashboard and admin login. */
-  const showHeaderSearchBar = !isAdminDashboard && !isAdminLoginPage;
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
   const isPilotDashboard =
     pathname?.startsWith("/pilot-dashboard") ||
     pathname?.startsWith("/pilot-profile") ||
     false;
+  /** Home / Services / Blogs / Contact — hidden on admin, user & pilot dashboards, and admin login. */
+  const showMarketingHeaderNav =
+    !isAdminDashboard &&
+    !isAdminLoginPage &&
+    !isUserDashboard &&
+    !isPilotDashboard;
+  /** Header search (desktop + mobile drawer) — hidden on admin dashboard and admin login. */
+  const showHeaderSearchBar = !isAdminDashboard && !isAdminLoginPage;
   const isSettingsPage =
     pathname === "/settings" || (pathname?.startsWith("/settings/") ?? false);
   const settingsFrom = searchParams.get("from");
@@ -152,6 +171,9 @@ export function LandingHeader() {
     (isSettingsPage &&
       settingsFrom !== "pilot" &&
       settingsFrom !== "admin");
+  const isPilotLogoutContext =
+    isPilotDashboard ||
+    (isSettingsPage && settingsFrom === "pilot");
 
   const showHeaderSettingsIcon = !(
     isPilotDashboard ||
@@ -163,9 +185,80 @@ export function LandingHeader() {
     isAdminLoginPage
   );
 
+  const [appUserSession, setAppUserSession] =
+    useState<StoredUserSession | null>(null);
+  const [pilotMarketingActive, setPilotMarketingActive] = useState(false);
+  const [marketingUserMenuOpen, setMarketingUserMenuOpen] = useState(false);
+  const marketingUserMenuRef = useRef<HTMLDivElement>(null);
+
+  const hasLoggedInAppUser = appUserSession != null;
+  const onMarketingAuthSurface = isHomePage || isMarketingAuthPage;
+  const hideMarketingRegisterAndLogin =
+    (hasLoggedInAppUser || pilotMarketingActive) && onMarketingAuthSurface;
+
+  const appUserDisplayName =
+    appUserSession?.fullName?.trim() ||
+    appUserSession?.name?.trim() ||
+    appUserSession?.email?.split("@")[0]?.trim() ||
+    "Account";
+  const appUserInitial =
+    (appUserDisplayName.slice(0, 1) || "?").toUpperCase();
+
+  const pilotDisplayNameForChip =
+    pilotMarketingActive && !hasLoggedInAppUser
+      ? getPilotDisplayName(
+          typeof window !== "undefined" ? localStorage.getItem("token") : null
+        )
+      : "";
+  const pilotInitialForChip =
+    (pilotDisplayNameForChip.slice(0, 1) || "?").toUpperCase();
+
+  /** On `/`, logged-in app user: one tap opens user dashboard (no dropdown). */
+  const appUserMarketingHomeDirect = hasLoggedInAppUser && isHomePage;
+
+  const marketingUserChipClassName =
+    "inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border-0 bg-transparent px-1 font-normal text-slate-800 transition-colors hover:bg-slate-100/90 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white sm:px-1.5";
+
+  useEffect(() => {
+    function syncMarketingSessions() {
+      const user = readStoredUserSession();
+      setAppUserSession(user);
+      if (typeof window === "undefined") {
+        setPilotMarketingActive(false);
+        return;
+      }
+      const token = localStorage.getItem("token");
+      const pilotSession =
+        !user &&
+        Boolean(token && jwtPayloadRole(token) === "pilot");
+      setPilotMarketingActive(pilotSession);
+    }
+    syncMarketingSessions();
+    if (typeof window === "undefined") return;
+    window.addEventListener("storage", syncMarketingSessions);
+    return () => window.removeEventListener("storage", syncMarketingSessions);
+  }, [pathname]);
+
   useEffect(() => {
     setAccountMenuOpen(false);
+    setMarketingUserMenuOpen(false);
   }, [pathname]);
+
+  function logoutMarketingAccountAndGoHome() {
+    setOpen(false);
+    setMarketingUserMenuOpen(false);
+    setAccountMenuOpen(false);
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("pilot");
+      clearStoredUserSession();
+    } catch {
+      /* ignore */
+    }
+    setAppUserSession(null);
+    setPilotMarketingActive(false);
+    router.replace("/");
+  }
 
   useEffect(() => {
     if (!accountMenuOpen) return;
@@ -185,6 +278,25 @@ export function LandingHeader() {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [accountMenuOpen]);
+
+  useEffect(() => {
+    if (!marketingUserMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const el = marketingUserMenuRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setMarketingUserMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMarketingUserMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [marketingUserMenuOpen]);
 
   const linkClass = (href: string) =>
     cn(
@@ -339,17 +451,111 @@ export function LandingHeader() {
               className={cn(
                 "hidden sm:inline-flex",
                 landingOutlineButtonClassName,
-                hideRegisterPilotCta && "sm:hidden"
+                (hideRegisterPilotCta || hideMarketingRegisterAndLogin) &&
+                  "sm:hidden"
               )}
             >
               New Registration
             </Link>
-            {showHeaderLoginButton ? (
+            {showHeaderLoginButton && !hideMarketingRegisterAndLogin ? (
               <Link
                 href="/pilot-login"
                 className={cn("hidden sm:inline-flex", landingOutlineButtonClassName)}
               >
                 Login
+              </Link>
+            ) : null}
+            {appUserMarketingHomeDirect ? (
+              <Link
+                href="/user-dashboard"
+                className={cn(marketingUserChipClassName, "no-underline")}
+                aria-label="Open user dashboard"
+              >
+                <span
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/15 text-xs font-semibold text-[#008B8B] dark:bg-white/15 dark:text-white"
+                  aria-hidden
+                >
+                  {appUserInitial}
+                </span>
+                <span className="max-w-[6rem] truncate text-sm font-medium sm:max-w-[10rem]">
+                  {appUserDisplayName}
+                </span>
+              </Link>
+            ) : hasLoggedInAppUser && hideMarketingRegisterAndLogin ? (
+              <div className="relative shrink-0" ref={marketingUserMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setMarketingUserMenuOpen((v) => !v)}
+                  aria-expanded={marketingUserMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Account menu"
+                  className={marketingUserChipClassName}
+                >
+                  <span
+                    className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/15 text-xs font-semibold text-[#008B8B] dark:bg-white/15 dark:text-white"
+                    aria-hidden
+                  >
+                    {appUserInitial}
+                  </span>
+                  <span className="max-w-[6rem] truncate text-sm font-medium sm:max-w-[10rem]">
+                    {appUserDisplayName}
+                  </span>
+                </button>
+                {marketingUserMenuOpen ? (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full z-[60] mt-1.5 min-w-[12rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg ring-1 ring-black/5"
+                  >
+                    <Link
+                      href="/"
+                      role="menuitem"
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      onClick={() => setMarketingUserMenuOpen(false)}
+                    >
+                      <HomeIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      Home
+                    </Link>
+                    <Link
+                      href="/user-dashboard"
+                      role="menuitem"
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      onClick={() => setMarketingUserMenuOpen(false)}
+                    >
+                      <LayoutDashboard
+                        className="size-4 shrink-0 text-muted-foreground"
+                        aria-hidden
+                      />
+                      User dashboard
+                    </Link>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      onClick={logoutMarketingAccountAndGoHome}
+                    >
+                      <LogOut className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      Logout
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : pilotMarketingActive &&
+              !hasLoggedInAppUser &&
+              hideMarketingRegisterAndLogin ? (
+              <Link
+                href="/pilot-dashboard"
+                className={cn(marketingUserChipClassName, "no-underline")}
+                aria-label="Open pilot dashboard"
+              >
+                <span
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/15 text-xs font-semibold text-[#008B8B] dark:bg-white/15 dark:text-white"
+                  aria-hidden
+                >
+                  {pilotInitialForChip}
+                </span>
+                <span className="max-w-[6rem] truncate text-sm font-medium sm:max-w-[10rem]">
+                  {pilotDisplayNameForChip || "Pilot"}
+                </span>
               </Link>
             ) : null}
             {!isHomePage &&
@@ -400,6 +606,20 @@ export function LandingHeader() {
                     role="menu"
                     className="absolute right-0 top-full z-[60] mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg ring-1 ring-black/5"
                   >
+                    {isUserLogoutContext || isPilotLogoutContext ? (
+                      <Link
+                        href="/"
+                        role="menuitem"
+                        className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                        onClick={() => setAccountMenuOpen(false)}
+                      >
+                        <HomeIcon
+                          className="size-4 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
+                        Home
+                      </Link>
+                    ) : null}
                     <Link
                       href={profileHref}
                       role="menuitem"
@@ -418,7 +638,7 @@ export function LandingHeader() {
                         try {
                           localStorage.removeItem("token");
                           localStorage.removeItem("pilot");
-                          if (isUserLogoutContext) {
+                          if (isUserLogoutContext || isPilotLogoutContext) {
                             clearStoredUserSession();
                           }
                         } catch {
@@ -531,6 +751,15 @@ export function LandingHeader() {
             ) : null}
             {showAccountMenu && !isAdminDashboard ? (
               <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-3">
+                {isUserLogoutContext || isPilotLogoutContext ? (
+                  <Link
+                    href="/"
+                    className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    onClick={() => setOpen(false)}
+                  >
+                    Home
+                  </Link>
+                ) : null}
                 <Link
                   href={profileHref}
                   className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -546,7 +775,7 @@ export function LandingHeader() {
                     try {
                       localStorage.removeItem("token");
                       localStorage.removeItem("pilot");
-                      if (isUserLogoutContext) {
+                      if (isUserLogoutContext || isPilotLogoutContext) {
                         clearStoredUserSession();
                       }
                     } catch {
@@ -567,7 +796,9 @@ export function LandingHeader() {
                   Logout
                 </button>
               </div>
-            ) : !isMatchingHub && !isAdminLoginPage ? (
+            ) : !isMatchingHub &&
+              !isAdminLoginPage &&
+              !hideMarketingRegisterAndLogin ? (
               <Link
                 href="/pilot-login"
                 className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -598,7 +829,7 @@ export function LandingHeader() {
             </button>
           </div>
         )}
-        {isHomePage ? (
+        {isHomePage && !hideMarketingRegisterAndLogin ? (
           <Link
             href="/pilot-login"
             className="mt-4 flex h-11 w-full items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent"
@@ -607,7 +838,7 @@ export function LandingHeader() {
             Login
           </Link>
         ) : null}
-        {!hideRegisterPilotCta ? (
+        {!hideRegisterPilotCta && !hideMarketingRegisterAndLogin ? (
           <Link
             href="/pilot-registration"
             className={cn(

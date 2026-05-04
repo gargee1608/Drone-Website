@@ -909,6 +909,111 @@ app.post("/api/auth/forgot-password-complete", async (req, res) => {
   }
 });
 
+function bearerTokenFromAuthHeader(req) {
+  const h = req.headers.authorization ?? req.headers.Authorization;
+  if (!h || typeof h !== "string") return null;
+  const m = /^Bearer\s+(.+)$/i.exec(h.trim());
+  return m ? m[1].trim() : null;
+}
+
+/** Authenticated user / pilot / admin — verify current password, then set new bcrypt hash. */
+app.post("/api/auth/change-password", async (req, res) => {
+  try {
+    const token = bearerTokenFromAuthHeader(req);
+    const currentPassword = String(req.body?.currentPassword ?? "");
+    const newPassword = String(req.body?.newPassword ?? "");
+    if (!token) {
+      return res.status(401).json({ message: "Sign in required." });
+    }
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Current and new password are required." });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, jwtSecret());
+    } catch {
+      return res
+        .status(401)
+        .json({ message: "Session expired. Sign in again." });
+    }
+
+    const role = String(decoded.role || "").toLowerCase();
+    const sub = String(decoded.sub ?? "").trim();
+    if (
+      !sub ||
+      (role !== "user" && role !== "pilot" && role !== "admin")
+    ) {
+      return res.status(403).json({
+        message: "Password cannot be changed for this session.",
+      });
+    }
+
+    let row = null;
+    let table = "";
+    if (role === "user") {
+      const r = await pool.query(
+        "SELECT * FROM users WHERE id = $1::bigint",
+        [sub]
+      );
+      if (r.rows.length) row = r.rows[0];
+      table = "users";
+    } else if (role === "pilot") {
+      const r = await pool.query(
+        "SELECT * FROM pilots WHERE id = $1::bigint",
+        [sub]
+      );
+      if (r.rows.length) row = r.rows[0];
+      table = "pilots";
+    } else {
+      const r = await pool.query(
+        "SELECT * FROM admins WHERE id = $1::bigint",
+        [sub]
+      );
+      if (r.rows.length) row = r.rows[0];
+      table = "admins";
+    }
+
+    if (!row) {
+      return res.status(404).json({ message: "Account not found." });
+    }
+
+    const stored = storedPasswordFromUser(row);
+    const ok = await passwordMatches(currentPassword, stored);
+    if (!ok) {
+      return res.status(401).json({
+        message: "Current password is incorrect.",
+        signInError: "password",
+      });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    if (table === "users") {
+      await pool.query("UPDATE users SET password = $1 WHERE id = $2::bigint", [
+        hash,
+        sub,
+      ]);
+    } else if (table === "pilots") {
+      await pool.query(
+        "UPDATE pilots SET password = $1 WHERE id = $2::bigint",
+        [hash, sub]
+      );
+    } else {
+      await pool.query(
+        "UPDATE admins SET password = $1 WHERE id = $2::bigint",
+        [hash, sub]
+      );
+    }
+
+    return res.json({ ok: true, message: "Password updated." });
+  } catch (err) {
+    console.error("[auth] change-password:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 /** Public signup — stores `role = user` with bcrypt password (same verification as sign-in). */
 app.post("/api/auth/register", async (req, res) => {
   const firstName = String(req.body?.firstName ?? "").trim();
@@ -991,13 +1096,19 @@ app.post("/api/auth/signin", async (req, res) => {
         [email]
       );
       if (pilotRes.rows.length === 0) {
-        return res.status(401).json({ message: "Pilot not found" });
+        return res.status(401).json({
+          message: "Incorrect email.",
+          signInError: "email",
+        });
       }
       const pilot = pilotRes.rows[0];
       const stored = storedPasswordFromUser(pilot);
       const ok = await passwordMatches(password, stored);
       if (!ok) {
-        return res.status(401).json({ message: "Pilot not found" });
+        return res.status(401).json({
+          message: "Incorrect password.",
+          signInError: "password",
+        });
       }
       const fullName = String(pilot.name ?? "")
         .replace(/\s+/g, " ")
@@ -1036,13 +1147,19 @@ app.post("/api/auth/signin", async (req, res) => {
         [email]
       );
       if (adminRes.rows.length === 0) {
-        return res.status(401).json({ message: "Invalid email or password" });
+        return res.status(401).json({
+          message: "Incorrect email.",
+          signInError: "email",
+        });
       }
       const admin = adminRes.rows[0];
       const stored = storedPasswordFromUser(admin);
       const ok = await passwordMatches(password, stored);
       if (!ok) {
-        return res.status(401).json({ message: "Invalid email or password" });
+        return res.status(401).json({
+          message: "Incorrect password.",
+          signInError: "password",
+        });
       }
       const fullName = String(admin.name ?? "")
         .replace(/\s+/g, " ")
@@ -1078,14 +1195,20 @@ app.post("/api/auth/signin", async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({
+        message: "Incorrect email.",
+        signInError: "email",
+      });
     }
 
     const user = result.rows[0];
     const stored = storedPasswordFromUser(user);
     const ok = await passwordMatches(password, stored);
     if (!ok) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({
+        message: "Incorrect password.",
+        signInError: "password",
+      });
     }
 
     const role = String(user.role || "user").toLowerCase();

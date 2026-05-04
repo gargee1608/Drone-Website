@@ -7,10 +7,19 @@ import {
   RefreshCw,
   UserRound,
 } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  type FormEvent,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiUrl } from "@/lib/api-url";
+import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 import { activePilotProfileSnapshotStorageKey } from "@/lib/pilot-profile-browser-storage";
 import {
@@ -55,7 +64,15 @@ function Switch({
   );
 }
 
-export function SettingsDashboard() {
+export type SettingsDashboardProps = {
+  /** Which shell opened Settings (used for layout context; password change uses JWT role). */
+  settingsContext?: "user" | "pilot" | "admin";
+};
+
+export function SettingsDashboard({
+  settingsContext = "user",
+}: SettingsDashboardProps = {}) {
+  const pathname = usePathname();
   const [theme, setTheme] = useState<AppTheme>("light");
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -65,6 +82,9 @@ export function SettingsDashboard() {
     null
   );
   const [passwordDialogSuccess, setPasswordDialogSuccess] = useState(false);
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [showPasswordsInChangeDialog, setShowPasswordsInChangeDialog] =
+    useState(false);
 
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileFullName, setProfileFullName] = useState("");
@@ -83,6 +103,19 @@ export function SettingsDashboard() {
     applyThemeToDocument(initial);
   }, []);
 
+  /** Profile shortcuts: `/settings?from=…#account-change-password` opens this dialog. */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!pathname?.startsWith("/settings")) return;
+    if (window.location.hash !== "#account-change-password") return;
+    setPasswordDialogError(null);
+    setPasswordDialogSuccess(false);
+    setShowPasswordsInChangeDialog(false);
+    setChangePasswordOpen(true);
+    const { pathname: path, search } = window.location;
+    window.history.replaceState(null, "", `${path}${search}`);
+  }, [pathname]);
+
   const setThemeMode = useCallback((next: AppTheme) => {
     setTheme(next);
     try {
@@ -100,6 +133,8 @@ export function SettingsDashboard() {
     setConfirmPassword("");
     setPasswordDialogError(null);
     setPasswordDialogSuccess(false);
+    setPasswordSubmitting(false);
+    setShowPasswordsInChangeDialog(false);
   }, []);
 
   const openProfileDialog = useCallback(() => {
@@ -157,15 +192,18 @@ export function SettingsDashboard() {
     <>
       <div className="mx-auto w-full max-w-6xl antialiased">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {/* Change Password */}
-                <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
+                <section
+                  id="account-change-password"
+                  className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6"
+                  data-settings-context={settingsContext}
+                >
                   <div className="mb-4 flex items-start gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
                       <Lock className="size-5 text-[#008B8B]" aria-hidden />
                     </span>
                     <div className="min-w-0 text-left">
                       <h2 className="text-base font-bold text-foreground">
-                        Change Password
+                        Change password
                       </h2>
                       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                         Update your account password for better security
@@ -180,10 +218,11 @@ export function SettingsDashboard() {
                       onClick={() => {
                         setPasswordDialogError(null);
                         setPasswordDialogSuccess(false);
+                        setShowPasswordsInChangeDialog(false);
                         setChangePasswordOpen(true);
                       }}
                     >
-                      Change Password
+                      Change password
                     </Button>
                   </div>
                 </section>
@@ -306,7 +345,7 @@ export function SettingsDashboard() {
             </div>
             <form
               className="px-6 py-5 sm:px-8 sm:py-6"
-              onSubmit={(e) => {
+              onSubmit={async (e: FormEvent) => {
                 e.preventDefault();
                 const cur = currentPassword.trim();
                 const next = newPassword.trim();
@@ -316,8 +355,75 @@ export function SettingsDashboard() {
                   setPasswordDialogSuccess(false);
                   return;
                 }
+                if (next !== confirm) {
+                  setPasswordDialogError(
+                    "New password and confirmation do not match."
+                  );
+                  setPasswordDialogSuccess(false);
+                  return;
+                }
+                if (next === cur) {
+                  setPasswordDialogError(
+                    "New password must be different from your current password."
+                  );
+                  setPasswordDialogSuccess(false);
+                  return;
+                }
+
                 setPasswordDialogError(null);
-                setPasswordDialogSuccess(true);
+                setPasswordDialogSuccess(false);
+
+                const token =
+                  typeof window !== "undefined"
+                    ? localStorage.getItem("token")
+                    : null;
+                if (!token) {
+                  setPasswordDialogError("You are not signed in.");
+                  return;
+                }
+
+                setPasswordSubmitting(true);
+                try {
+                  const res = await fetch(apiUrl("/api/auth/change-password"), {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      currentPassword: cur,
+                      newPassword: next,
+                    }),
+                  });
+                  const parsed = await readResponseJson(res);
+                  if (!parsed.okParse) {
+                    setPasswordDialogError("Invalid server response.");
+                    return;
+                  }
+                  const data = parsed.data as {
+                    ok?: boolean;
+                    message?: string;
+                    signInError?: string;
+                  };
+                  if (!res.ok) {
+                    if (data.signInError === "password") {
+                      setPasswordDialogError("Incorrect Password");
+                    } else {
+                      setPasswordDialogError(
+                        String(data.message || "").trim() ||
+                          "Could not change password."
+                      );
+                    }
+                    return;
+                  }
+                  setPasswordDialogSuccess(true);
+                } catch {
+                  setPasswordDialogError(
+                    "Network error. Check your connection and try again."
+                  );
+                } finally {
+                  setPasswordSubmitting(false);
+                }
               }}
             >
               {passwordDialogSuccess ? (
@@ -357,7 +463,7 @@ export function SettingsDashboard() {
                   <Input
                     id="current-password"
                     name="current-password"
-                    type="password"
+                    type={showPasswordsInChangeDialog ? "text" : "password"}
                     autoComplete="current-password"
                     value={currentPassword}
                     onChange={(e) => {
@@ -377,7 +483,7 @@ export function SettingsDashboard() {
                   <Input
                     id="new-password"
                     name="new-password"
-                    type="password"
+                    type={showPasswordsInChangeDialog ? "text" : "password"}
                     autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => {
@@ -397,7 +503,7 @@ export function SettingsDashboard() {
                   <Input
                     id="confirm-password"
                     name="confirm-password"
-                    type="password"
+                    type={showPasswordsInChangeDialog ? "text" : "password"}
                     autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => {
@@ -407,6 +513,24 @@ export function SettingsDashboard() {
                     className="h-10 rounded-lg border-border bg-background text-sm text-foreground"
                   />
                 </div>
+                <div className="flex items-center gap-2 px-0.5 pt-1">
+                  <input
+                    id="change-password-show-passwords"
+                    type="checkbox"
+                    checked={showPasswordsInChangeDialog}
+                    onChange={(e) =>
+                      setShowPasswordsInChangeDialog(e.target.checked)
+                    }
+                    disabled={passwordDialogSuccess}
+                    className="size-4 shrink-0 rounded border border-slate-300 bg-background text-[#008B8B] focus:outline-none focus:ring-2 focus:ring-[#008B8B]/25 dark:border-white/20 sm:size-[18px]"
+                  />
+                  <label
+                    htmlFor="change-password-show-passwords"
+                    className="cursor-pointer text-xs font-medium text-foreground sm:text-sm"
+                  >
+                    Show passwords
+                  </label>
+                </div>
               </div>
               <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5">
                 <Button
@@ -414,7 +538,7 @@ export function SettingsDashboard() {
                   variant="outline"
                   className="rounded-lg border-2 border-border bg-background text-foreground hover:bg-muted/50"
                   onClick={closeChangePassword}
-                  disabled={passwordDialogSuccess}
+                  disabled={passwordDialogSuccess || passwordSubmitting}
                 >
                   Cancel
                 </Button>
@@ -422,9 +546,9 @@ export function SettingsDashboard() {
                   type="submit"
                   variant="outline"
                   className="rounded-lg border-2 border-[#008B8B] bg-background text-[#008B8B] shadow-none hover:bg-[#008B8B]/8 hover:text-[#008B8B]"
-                  disabled={passwordDialogSuccess}
+                  disabled={passwordDialogSuccess || passwordSubmitting}
                 >
-                  Update password
+                  {passwordSubmitting ? "Changing…" : "Change password"}
                 </Button>
               </div>
             </form>

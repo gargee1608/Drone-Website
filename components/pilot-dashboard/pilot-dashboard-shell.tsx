@@ -303,7 +303,7 @@ export function PilotDashboardShell({
             >
               {pilotWelcome && isMainPilotDashboard ? (
                 <h2 className="mb-4 text-xl font-bold text-slate-900 sm:mb-5 dark:text-white">
-                  Welcome, {pilotWelcome} 🚀
+                  Welcome, {pilotWelcome} 
                 </h2>
               ) : null}
               {omitPageTitle ? (
