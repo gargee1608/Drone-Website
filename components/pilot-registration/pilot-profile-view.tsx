@@ -10,7 +10,6 @@ import {
   Clock,
   Headset,
   LayoutGrid,
-  Lock,
   Mail,
   Pencil,
   Phone,
@@ -1064,36 +1063,6 @@ export function PilotProfileView({
               />
             </div>
           </>
-        ) : null}
-
-        {variant === "dashboard" ? (
-          <div className="mt-5 rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-start gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
-                  <Lock className="size-5 text-[#008B8B]" aria-hidden />
-                </span>
-                <div className="min-w-0">
-                  <h2 className="text-base font-bold text-foreground">
-                    Change password
-                  </h2>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    Same as Account Settings — verify your current password, set a
-                    new one, and optional show-passwords toggle.
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/settings?from=pilot#account-change-password"
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "default" }),
-                  "h-10 shrink-0 rounded-lg border-2 border-[#008B8B] bg-background px-4 text-sm font-semibold text-[#008B8B] shadow-none hover:bg-[#008B8B]/8 hover:text-[#008B8B]"
-                )}
-              >
-                Change password
-              </Link>
-            </div>
-          </div>
         ) : null}
 
         {/* Detail cards */}

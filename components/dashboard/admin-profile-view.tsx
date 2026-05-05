@@ -1,53 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { Lock, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 
+import {
+  ADMIN_PROFILE_STORAGE_KEY,
+  ADMIN_PROFILE_UPDATED_EVENT,
+  DEFAULT_ADMIN_PROFILE,
+  readSavedAdminProfile,
+  type AdminProfileDraft,
+} from "@/lib/admin-profile-storage";
 import { jwtPayloadRole } from "@/lib/pilot-display-name";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
-type AdminProfileDraft = {
-  firstName: string;
-  lastName: string;
-  dob: string;
-  email: string;
-  phone: string;
-  userRole: string;
-  country: string;
-  city: string;
-  postalCode: string;
-};
-
-const ADMIN_PROFILE_STORAGE_KEY = "aerolaminar_admin_profile_v1";
-
-const DEFAULT_PROFILE: AdminProfileDraft = {
-  firstName: "Natashia",
-  lastName: "Khaleira",
-  dob: "12-10-1990",
-  email: "info@binary-fusion.com",
-  phone: "(+62) 821 2554 - 5846",
-  userRole: "Admin",
-  country: "United Kingdom",
-  city: "Leeds, East London",
-  postalCode: "ERT 1254",
-};
-
-function readSavedAdminProfile(): AdminProfileDraft | null {
-  if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(ADMIN_PROFILE_STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<AdminProfileDraft>;
-    return {
-      ...DEFAULT_PROFILE,
-      ...parsed,
-    };
-  } catch {
-    return null;
-  }
-}
+const DEFAULT_PROFILE = DEFAULT_ADMIN_PROFILE;
 
 export function AdminProfileView() {
   const [profile, setProfile] = useState<AdminProfileDraft>(DEFAULT_PROFILE);
@@ -91,6 +58,21 @@ export function AdminProfileView() {
     setPersonalDraft((prev) => ({ ...prev, userRole: nextRole }));
     setAddressDraft((prev) => ({ ...prev, userRole: nextRole }));
   }, [hasSavedProfile]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sync = () => {
+      const next = readSavedAdminProfile();
+      if (!next) return;
+      setProfile(next);
+      setPersonalDraft((prev) => (editingPersonal ? prev : next));
+      setAddressDraft((prev) => (editingAddress ? prev : next));
+      setHasSavedProfile(true);
+    };
+    window.addEventListener(ADMIN_PROFILE_UPDATED_EVENT, sync);
+    return () =>
+      window.removeEventListener(ADMIN_PROFILE_UPDATED_EVENT, sync);
+  }, [editingPersonal, editingAddress]);
 
   const fullName = `${profile.firstName} ${profile.lastName}`.trim() || "—";
   const avatarInitials = (() => {
@@ -220,31 +202,6 @@ export function AdminProfileView() {
               </p>
               <p className="text-xs font-medium text-[#1f4d4d] dark:text-white/80">{profile.userRole}</p>
             </div>
-          </div>
-        </article>
-
-        <article className="rounded-xl border border-[#dfe6ea] bg-white p-5 shadow-sm sm:p-6 dark:border-white/15 dark:bg-[#111315]">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
-                <Lock className="size-5 text-[#008B8B]" aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <h2 className="text-base font-semibold text-[#004444] dark:text-white">
-                  Change password
-                </h2>
-                <p className="mt-1.5 text-sm text-[#6a7d81] dark:text-white/70">
-                  Same as Account Settings — verify your current password, set a new
-                  one, and optional show-passwords toggle.
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/settings?from=admin#account-change-password"
-              className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border-2 border-[#008B8B] bg-transparent px-4 text-sm font-semibold text-[#008B8B] transition hover:bg-[#008B8B]/8"
-            >
-              Change password
-            </Link>
           </div>
         </article>
 

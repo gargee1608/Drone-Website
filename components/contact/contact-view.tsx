@@ -268,7 +268,13 @@ export function ContactView() {
                     </a>
                   </p>
                   <p className="text-sm text-[#1a2027] sm:text-base">
-                    +1 (888) AERO-FLY
+                    <a
+                      href="tel:+18888888888"
+                      className="font-semibold hover:underline"
+                      style={{ color: primary }}
+                    >
+                      +1 (888888888)
+                    </a>
                   </p>
                 </div>
               </div>

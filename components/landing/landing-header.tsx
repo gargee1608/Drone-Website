@@ -57,17 +57,22 @@ export function LandingHeader() {
     pathname?.startsWith("/pilot-dashboard") ||
     pathname?.startsWith("/pilot-profile") ||
     false;
-  /** Home / Services / Blogs / Contact — hidden on admin, user & pilot dashboards, and admin login. */
-  const showMarketingHeaderNav =
-    !isAdminDashboard &&
-    !isAdminLoginPage &&
-    !isUserDashboard &&
-    !isPilotDashboard;
   /** Header search (desktop + mobile drawer) — hidden on admin dashboard and admin login. */
   const showHeaderSearchBar = !isAdminDashboard && !isAdminLoginPage;
   const isSettingsPage =
     pathname === "/settings" || (pathname?.startsWith("/settings/") ?? false);
   const settingsFrom = searchParams.get("from");
+  /** Home / Services / Blogs / Contact — hidden on admin, user & pilot dashboards, user settings shell (`/settings` without `from=admin|pilot`), and admin login. */
+  const isUserShellMarketingHidden =
+    isUserDashboard ||
+    (isSettingsPage &&
+      settingsFrom !== "pilot" &&
+      settingsFrom !== "admin");
+  const showMarketingHeaderNav =
+    !isAdminDashboard &&
+    !isAdminLoginPage &&
+    !isPilotDashboard &&
+    !isUserShellMarketingHidden;
   const isPilotSettingsContext =
     isSettingsPage && settingsFrom === "pilot";
   const showUserDashboardSidebar =
@@ -606,7 +611,10 @@ export function LandingHeader() {
                     role="menu"
                     className="absolute right-0 top-full z-[60] mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg ring-1 ring-black/5"
                   >
-                    {isUserLogoutContext || isPilotLogoutContext ? (
+                    {isUserLogoutContext ||
+                    isPilotLogoutContext ||
+                    isAdminDashboard ||
+                    isAdminSettingsContext ? (
                       <Link
                         href="/"
                         role="menuitem"

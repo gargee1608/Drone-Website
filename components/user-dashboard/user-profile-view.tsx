@@ -1,11 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { Lock, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 
 import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-shell";
 import { jwtPayloadRole } from "@/lib/pilot-display-name";
+import {
+  USER_PROFILE_STORAGE_KEY,
+  USER_PROFILE_UPDATED_EVENT,
+} from "@/lib/user-profile-storage";
 import {
   readStoredUserSession,
   splitDisplayNameToFirstLast,
@@ -21,7 +24,6 @@ type UserProfileDraft = {
   country: string;
 };
 
-const USER_PROFILE_STORAGE_KEY = "aerolaminar_user_profile_v1";
 const USER_PROFILE_PHOTO_STORAGE_KEY = "aerolaminar_user_profile_photo_v1";
 
 const DEFAULT_USER_PROFILE: UserProfileDraft = {
@@ -57,7 +59,9 @@ function buildProfileFromSessionAndSaved(): UserProfileDraft {
 
   const email = String(session.email ?? "").trim();
   const display = String(session.fullName ?? session.name ?? "").trim();
-  let { firstName, lastName } = splitDisplayNameToFirstLast(display);
+  const { firstName: splitFirst, lastName } =
+    splitDisplayNameToFirstLast(display);
+  let firstName = splitFirst;
   if (!firstName && email) {
     firstName = email.split("@")[0] || "User";
   }
@@ -82,8 +86,6 @@ function buildProfileFromSessionAndSaved(): UserProfileDraft {
 
 export function UserProfileView() {
   const [profile, setProfile] = useState<UserProfileDraft>(DEFAULT_USER_PROFILE);
-  const [draft, setDraft] = useState<UserProfileDraft>(DEFAULT_USER_PROFILE);
-  const [editing, setEditing] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [roleLabel, setRoleLabel] = useState("User");
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
@@ -91,37 +93,39 @@ export function UserProfileView() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const merged = buildProfileFromSessionAndSaved();
-    setProfile(merged);
-    setDraft(merged);
+    queueMicrotask(() => {
+      const merged = buildProfileFromSessionAndSaved();
+      setProfile(merged);
 
-    const token = localStorage.getItem("token");
-    const session = readStoredUserSession();
-    const roleFromSession =
-      typeof session?.role === "string" && session.role.trim()
-        ? session.role
-        : null;
-    const tokenRole = token ? jwtPayloadRole(token) : null;
-    const rawRole = roleFromSession ?? tokenRole;
-    if (rawRole) {
-      setRoleLabel(
-        rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase()
-      );
-    }
-    const savedAvatar = localStorage.getItem(USER_PROFILE_PHOTO_STORAGE_KEY);
-    if (savedAvatar) {
-      setAvatarSrc(savedAvatar);
-    }
-    setHydrated(true);
+      const token = localStorage.getItem("token");
+      const session = readStoredUserSession();
+      const roleFromSession =
+        typeof session?.role === "string" && session.role.trim()
+          ? session.role
+          : null;
+      const tokenRole = token ? jwtPayloadRole(token) : null;
+      const rawRole = roleFromSession ?? tokenRole;
+      if (rawRole) {
+        setRoleLabel(
+          rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase()
+        );
+      }
+      const savedAvatar = localStorage.getItem(USER_PROFILE_PHOTO_STORAGE_KEY);
+      if (savedAvatar) {
+        setAvatarSrc(savedAvatar);
+      }
+      setHydrated(true);
+    });
   }, []);
 
-  function onSave() {
-    setProfile(draft);
-    setEditing(false);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(draft));
-    }
-  }
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sync = () => {
+      setProfile(buildProfileFromSessionAndSaved());
+    };
+    window.addEventListener(USER_PROFILE_UPDATED_EVENT, sync);
+    return () => window.removeEventListener(USER_PROFILE_UPDATED_EVENT, sync);
+  }, []);
 
   function onAvatarPick() {
     avatarInputRef.current?.click();
@@ -207,65 +211,10 @@ export function UserProfileView() {
         </article>
 
         <article className="rounded-xl border border-[#dfe6ea] bg-white p-5 shadow-sm dark:border-white/15 dark:bg-[#111315] sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
-                <Lock className="size-5 text-[#008B8B]" aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <h2 className="text-base font-semibold text-[#004444] dark:text-white">
-                  Change password
-                </h2>
-                <p className="mt-1.5 text-sm text-[#6a7d81] dark:text-white/70">
-                  Same as Account Settings — verify your current password, set a new
-                  one, and optional show-passwords toggle.
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/settings?from=user#account-change-password"
-              className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border-2 border-[#008B8B] bg-transparent px-4 text-sm font-semibold text-[#008B8B] transition hover:bg-[#008B8B]/8"
-            >
-              Change password
-            </Link>
-          </div>
-        </article>
-
-        <article className="rounded-xl border border-[#dfe6ea] bg-white p-5 shadow-sm dark:border-white/15 dark:bg-[#111315] sm:p-6">
-          <div className="mb-4 flex items-center justify-between border-b border-[#edf2f5] pb-3 dark:border-white/15">
+          <div className="mb-4 border-b border-[#edf2f5] pb-3 dark:border-white/15">
             <h2 className="text-lg font-semibold text-[#004444] dark:text-white">
               Personal Information
             </h2>
-            {editing ? (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDraft(profile);
-                    setEditing(false);
-                  }}
-                  className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={onSave}
-                  className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
-                >
-                  Save
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
-              >
-                Edit
-                <Pencil className="size-3.5" aria-hidden />
-              </button>
-            )}
           </div>
 
           <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -282,19 +231,9 @@ export function UserProfileView() {
             ).map(([label, key]) => (
               <div key={key}>
                 <p className="text-[11px] text-[#6a7d81] dark:text-white/65">{label}</p>
-                {editing ? (
-                  <input
-                    value={draft[key]}
-                    onChange={(e) =>
-                      setDraft((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                    className="mt-1 w-full rounded-md border border-[#d9dee3] bg-white px-2.5 py-2 text-xs text-[#1f3e42] outline-none focus:border-[#008B8B] dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
-                  />
-                ) : (
-                  <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">
-                    {profile[key]}
-                  </p>
-                )}
+                <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">
+                  {profile[key]}
+                </p>
               </div>
             ))}
             <div>

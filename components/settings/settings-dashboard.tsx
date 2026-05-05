@@ -27,11 +27,27 @@ import {
   PILOT_PROFILE_UPDATED_EVENT,
 } from "@/lib/pilot-profile-snapshot";
 import {
+  ADMIN_PROFILE_STORAGE_KEY,
+  ADMIN_PROFILE_UPDATED_EVENT,
+  buildAdminProfileForDisplay,
+  readSavedAdminProfile,
+} from "@/lib/admin-profile-storage";
+import { jwtPayloadRole } from "@/lib/pilot-display-name";
+import {
+  USER_PROFILE_STORAGE_KEY,
+  USER_PROFILE_UPDATED_EVENT,
+} from "@/lib/user-profile-storage";
+import {
   applyThemeToDocument,
   resolveThemeWithFallback,
   THEME_STORAGE_KEY,
   type AppTheme,
 } from "@/lib/theme";
+import {
+  readStoredUserSession,
+  splitDisplayNameToFirstLast,
+  writeStoredUserSession,
+} from "@/lib/user-session-browser";
 
 const profileInputClassName =
   "h-10 rounded-lg border-border bg-background text-sm text-foreground";
@@ -138,15 +154,76 @@ export function SettingsDashboard({
   }, []);
 
   const openProfileDialog = useCallback(() => {
-    setProfileFullName("");
-    setProfileEmail("");
-    setProfilePhone("");
-    setProfileCity("");
-    setProfileState("");
     setProfileDialogError(null);
     setProfileDialogSuccess(false);
+
+    if (settingsContext === "user") {
+      const session = readStoredUserSession();
+      let saved: {
+        email?: string;
+        phone?: string;
+        city?: string;
+        state?: string;
+      } | null = null;
+      try {
+        const raw = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
+        if (raw) saved = JSON.parse(raw) as typeof saved;
+      } catch {
+        saved = null;
+      }
+      const email = String(session?.email ?? "").trim();
+      const display = String(
+        session?.fullName ?? session?.name ?? ""
+      ).trim();
+      const { firstName: splitFirst, lastName } =
+        splitDisplayNameToFirstLast(display);
+      let firstName = splitFirst;
+      if (!firstName && email) {
+        firstName = email.split("@")[0] || "";
+      }
+      const sameSaved =
+        saved &&
+        email &&
+        String(saved.email ?? "")
+          .trim()
+          .toLowerCase() === email.toLowerCase();
+
+      setProfileFullName(`${firstName} ${lastName}`.trim() || display);
+      setProfileEmail(email || String(saved?.email ?? "").trim());
+      setProfilePhone(
+        String(session?.phone ?? "").trim() ||
+          (sameSaved ? String(saved.phone ?? "").trim() : "")
+      );
+      setProfileCity(sameSaved ? String(saved.city ?? "").trim() : "");
+      setProfileState(sameSaved ? String(saved.state ?? "").trim() : "");
+    } else if (settingsContext === "admin") {
+      const merged = buildAdminProfileForDisplay();
+      const display =
+        `${merged.firstName} ${merged.lastName}`.trim() ||
+        merged.email.split("@")[0] ||
+        "";
+      setProfileFullName(display);
+      setProfileEmail(merged.email);
+      setProfilePhone(merged.phone);
+      setProfileCity(merged.city);
+      setProfileState(merged.postalCode);
+    } else {
+      const existing = parsePilotProfileSnapshot(
+        localStorage.getItem(activePilotProfileSnapshotStorageKey())
+      );
+      setProfileFullName(existing?.fullName ?? "");
+      setProfileEmail(
+        typeof existing?.email === "string" ? existing.email : ""
+      );
+      setProfilePhone(
+        typeof existing?.phone === "string" ? existing.phone : ""
+      );
+      setProfileCity(existing?.city ?? "");
+      setProfileState(existing?.state ?? "");
+    }
+
     setProfileDialogOpen(true);
-  }, []);
+  }, [settingsContext]);
 
   const closeProfileDialog = useCallback(() => {
     setProfileDialogOpen(false);
@@ -593,9 +670,26 @@ export function SettingsDashboard({
                     id="profile-dialog-desc"
                     className="mt-0.5 text-sm text-muted-foreground"
                   >
-                    Enter your details below. Other pilot data (skills, drones,
-                    license, hours, bio) is unchanged unless you edit it in pilot
-                    registration.
+                    {settingsContext === "user" ? (
+                      <>
+                        Update the name, contact, and location shown on your
+                        profile page. Your profile photo is still changed from the
+                        profile screen.
+                      </>
+                    ) : settingsContext === "admin" ? (
+                      <>
+                        Update the name, contact, and location shown on your admin
+                        profile page. Your profile photo is still changed from the
+                        profile screen.
+                      </>
+                    ) : (
+                      <>
+                        Update the name, contact, and location shown on your pilot
+                        profile page. Your profile photo and other registration
+                        details (skills, drones, license, hours, bio) are still
+                        changed from pilot profile or registration.
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -610,36 +704,166 @@ export function SettingsDashboard({
                   setProfileDialogSuccess(false);
                   return;
                 }
-                const existing = parsePilotProfileSnapshot(
-                  localStorage.getItem(activePilotProfileSnapshotStorageKey())
-                );
-                const next = {
-                  fullName: name,
-                  email: profileEmail.trim() || undefined,
-                  phone: profilePhone.trim() || undefined,
-                  city: profileCity.trim(),
-                  state: profileState.trim(),
-                  aadhaar: existing?.aadhaar,
-                  flightHours: existing?.flightHours ?? 0,
-                  bio: existing?.bio ?? "",
-                  skills: existing?.skills ?? [],
-                  drones: existing?.drones ?? [],
-                  dgca: existing?.dgca ?? "",
-                  photoDataUrl: existing?.photoDataUrl,
-                };
-                const json = JSON.stringify(next);
-                try {
-                  const sk = activePilotProfileSnapshotStorageKey();
-                  localStorage.setItem(sk, json);
-                  sessionStorage.setItem(sk, json);
-                } catch {
-                  setProfileDialogError("Could not save. Try again.");
-                  setProfileDialogSuccess(false);
+
+                if (settingsContext === "user") {
+                  const session = readStoredUserSession();
+                  if (!session) {
+                    setProfileDialogError(
+                      "Not signed in. Sign in again to update your profile."
+                    );
+                    setProfileDialogSuccess(false);
+                    return;
+                  }
+                  const { firstName: splitFirst, lastName } =
+                    splitDisplayNameToFirstLast(name);
+                  let firstName = splitFirst;
+                  const email =
+                    profileEmail.trim() ||
+                    String(session.email ?? "").trim();
+                  const phone =
+                    profilePhone.trim() ||
+                    String(session.phone ?? "").trim();
+                  if (!firstName && email) {
+                    firstName = email.split("@")[0] || "User";
+                  }
+
+                  let country = "";
+                  try {
+                    const raw = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
+                    if (raw) {
+                      const p = JSON.parse(raw) as { country?: string };
+                      if (typeof p.country === "string") country = p.country;
+                    }
+                  } catch {
+                    /* ignore */
+                  }
+                  if (!country.trim()) country = "India";
+
+                  const draft = {
+                    firstName: firstName || "User",
+                    lastName,
+                    email: email || String(session.email ?? "").trim(),
+                    phone,
+                    city: profileCity.trim(),
+                    state: profileState.trim(),
+                    country,
+                  };
+
+                  try {
+                    localStorage.setItem(
+                      USER_PROFILE_STORAGE_KEY,
+                      JSON.stringify(draft)
+                    );
+                    writeStoredUserSession({
+                      ...session,
+                      fullName: name,
+                      name: name,
+                      email: draft.email,
+                      phone: draft.phone,
+                    });
+                  } catch {
+                    setProfileDialogError("Could not save. Try again.");
+                    setProfileDialogSuccess(false);
+                    return;
+                  }
+                  window.dispatchEvent(
+                    new Event(USER_PROFILE_UPDATED_EVENT)
+                  );
+                  setProfileDialogError(null);
+                  setProfileDialogSuccess(true);
                   return;
                 }
-                window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
-                setProfileDialogError(null);
-                setProfileDialogSuccess(true);
+
+                if (settingsContext === "admin") {
+                  const token =
+                    typeof window !== "undefined"
+                      ? localStorage.getItem("token")
+                      : null;
+                  if (!token) {
+                    setProfileDialogError(
+                      "Not signed in. Sign in again to update your profile."
+                    );
+                    setProfileDialogSuccess(false);
+                    return;
+                  }
+                  if (jwtPayloadRole(token) !== "admin") {
+                    setProfileDialogError(
+                      "Only an admin session can update this profile."
+                    );
+                    setProfileDialogSuccess(false);
+                    return;
+                  }
+                  const base =
+                    readSavedAdminProfile() ?? buildAdminProfileForDisplay();
+                  const { firstName: splitFirst, lastName } =
+                    splitDisplayNameToFirstLast(name);
+                  let firstName = splitFirst;
+                  const email =
+                    profileEmail.trim() || String(base.email ?? "").trim();
+                  const phone =
+                    profilePhone.trim() || String(base.phone ?? "").trim();
+                  if (!firstName && email) {
+                    firstName = email.split("@")[0] || "Admin";
+                  }
+                  const next = {
+                    ...base,
+                    firstName: firstName || "Admin",
+                    lastName,
+                    email,
+                    phone,
+                    city: profileCity.trim(),
+                    postalCode: profileState.trim(),
+                  };
+                  try {
+                    localStorage.setItem(
+                      ADMIN_PROFILE_STORAGE_KEY,
+                      JSON.stringify(next)
+                    );
+                  } catch {
+                    setProfileDialogError("Could not save. Try again.");
+                    setProfileDialogSuccess(false);
+                    return;
+                  }
+                  window.dispatchEvent(
+                    new Event(ADMIN_PROFILE_UPDATED_EVENT)
+                  );
+                  setProfileDialogError(null);
+                  setProfileDialogSuccess(true);
+                  return;
+                }
+
+                if (settingsContext === "pilot") {
+                  const existing = parsePilotProfileSnapshot(
+                    localStorage.getItem(activePilotProfileSnapshotStorageKey())
+                  );
+                  const next = {
+                    fullName: name,
+                    email: profileEmail.trim() || undefined,
+                    phone: profilePhone.trim() || undefined,
+                    city: profileCity.trim(),
+                    state: profileState.trim(),
+                    aadhaar: existing?.aadhaar,
+                    flightHours: existing?.flightHours ?? 0,
+                    bio: existing?.bio ?? "",
+                    skills: existing?.skills ?? [],
+                    drones: existing?.drones ?? [],
+                    dgca: existing?.dgca ?? "",
+                    photoDataUrl: existing?.photoDataUrl,
+                  };
+                  const json = JSON.stringify(next);
+                  try {
+                    const sk = activePilotProfileSnapshotStorageKey();
+                    localStorage.setItem(sk, json);
+                    sessionStorage.setItem(sk, json);
+                  } catch {
+                    setProfileDialogError("Could not save. Try again.");
+                    setProfileDialogSuccess(false);
+                    return;
+                  }
+                  window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
+                  setProfileDialogError(null);
+                  setProfileDialogSuccess(true);
+                }
               }}
             >
               <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 sm:px-8 sm:py-6">
@@ -756,12 +980,18 @@ export function SettingsDashboard({
                         htmlFor="profile-state"
                         className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                       >
-                        State
+                        {settingsContext === "admin"
+                          ? "Postal code"
+                          : "State"}
                       </label>
                       <Input
                         id="profile-state"
                         name="profile-state"
-                        autoComplete="address-level1"
+                        autoComplete={
+                          settingsContext === "admin"
+                            ? "postal-code"
+                            : "address-level1"
+                        }
                         value={profileState}
                         onChange={(e) => {
                           setProfileState(e.target.value);

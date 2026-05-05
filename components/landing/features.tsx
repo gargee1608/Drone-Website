@@ -126,11 +126,11 @@ export function Features() {
             We bridge the gap between complex drone technology and your
             operational needs with a focus on trust and speed.
           </p>
-          <ul className="mx-auto mt-10 grid max-w-4xl list-none grid-cols-1 gap-6 p-0 sm:mt-12 sm:grid-cols-3 sm:gap-8">
+          <ul className="mx-auto mt-10 grid max-w-4xl list-none grid-cols-1 gap-0 divide-y divide-slate-200 p-0 sm:mt-12 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:divide-slate-200">
             {coreValueHighlights.map(({ icon: Icon, title }) => (
               <li
                 key={title}
-                className="flex flex-col items-center gap-3 text-center"
+                className="flex flex-col items-center gap-3 px-4 py-8 text-center sm:px-6 sm:py-6"
               >
                 <div className="flex size-14 shrink-0 items-center justify-center rounded-lg border border-slate-100 bg-slate-50">
                   <Icon

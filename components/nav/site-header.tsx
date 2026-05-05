@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Bell, LogOut, Menu, User, X } from "lucide-react";
+import { ArrowRight, Bell, Home, LogOut, Menu, User, X } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { HeaderThemeModeToggle } from "@/components/nav/header-theme-mode-toggle";
@@ -348,6 +348,15 @@ export function SiteHeader({
                     className="absolute right-0 top-full z-[60] mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5"
                   >
                     <Link
+                      href="/"
+                      role="menuitem"
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-[#191c1d] transition-colors hover:bg-slate-50"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <Home className="size-4 shrink-0 text-slate-600" aria-hidden />
+                      Home
+                    </Link>
+                    <Link
                       href={profileHref}
                       role="menuitem"
                       className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-[#191c1d] transition-colors hover:bg-slate-50"
@@ -496,6 +505,14 @@ export function SiteHeader({
           )}
           {showDashboardAccountChrome ? (
             <div className="flex flex-col gap-1 border-t border-border/60 pt-3">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-[#191c1d] transition-colors hover:bg-muted"
+                onClick={() => setOpen(false)}
+              >
+                <Home className="size-4 shrink-0 text-slate-600" aria-hidden />
+                Home
+              </Link>
               <Link
                 href={profileHref}
                 className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-[#191c1d] transition-colors hover:bg-muted"

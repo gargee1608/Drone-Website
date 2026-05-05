@@ -22,7 +22,7 @@ export function Hero() {
               href="/matching-hub"
               className="inline-flex items-center justify-center rounded-md bg-[#008B8B] px-8 py-4 font-[family-name:var(--font-landing-headline)] text-sm font-black text-white shadow-[0_10px_30px_rgba(0,139,139,0.2)] transition-transform hover:scale-105"
             >
-              Get Started - Match Hub
+              Find a Pilot
             </Link>
             <Link
               href="/pilot-registration"
