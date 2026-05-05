@@ -103,7 +103,7 @@ export function AssignMissionView() {
     }
     const mapped = data
       .map((r: Record<string, unknown>) => dbMissionRowToNotification(r))
-      .filter((x): x is PilotMissionNotification => x != null);
+      .filter((x: PilotMissionNotification | null): x is PilotMissionNotification => x != null);
     setApiRows(mapped);
   }, []);
 

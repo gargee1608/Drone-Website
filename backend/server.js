@@ -4,7 +4,7 @@ const crypto = require("crypto");
 
 const express = require("express");
 const cors = require("cors");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const twilio = require("twilio");
 const transporter = require("./email");
@@ -16,6 +16,65 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
+/** Extract password string from user row (handles legacy fields). */
+function storedPasswordFromUser(user) {
+  if (!user) return "";
+  const p = user.password ?? user.password_hash ?? user.pwd ?? "";
+  return String(p ?? "");
+}
+
+/** Compare plaintext password against stored bcrypt hash. */
+async function passwordMatches(plaintext, stored) {
+  if (!plaintext || !stored) return false;
+  try {
+    return await bcrypt.compare(String(plaintext), String(stored));
+  } catch {
+    return false;
+  }
+}
+
+/** JSON-safe value (serialize BigInt safely). */
+function jsonSafe(value) {
+  if (value === null || value === undefined) return value;
+  if (typeof value === "bigint") return value.toString();
+  return value;
+}
+
+/** Build user payload for API responses. */
+function userPayloadForResponse(user, role) {
+  if (!user) return {};
+  return {
+    id: jsonSafe(user.id) != null ? String(jsonSafe(user.id)) : "",
+    email: user.email == null ? "" : String(user.email),
+    name: String(user.name ?? "").replace(/\s+/g, " ").trim(),
+    fullName: String(user.name ?? "").replace(/\s+/g, " ").trim(),
+    role: role || String(user.role ?? "user"),
+  };
+}
+
+/** Normalize phone for OTP (E.164-ish or 10-digit India). */
+function normalizePhoneForOtp(raw) {
+  const digits = String(raw ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+  // India 10-digit: prepend +91
+  if (digits.length === 10) return `+91${digits}`;
+  // If starts with country code (11+ digits), add + prefix if missing
+  if (digits.length >= 11) {
+    return digits.startsWith("+") ? digits : `+${digits}`;
+  }
+  return null;
+}
+
+/** Extract digits only from phone. */
+function phoneDigitsOnly(raw) {
+  return String(raw ?? "").replace(/\D/g, "");
+}
+
+/** Generate 6-digit OTP string. */
+function generateOTP() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
 
 const serviceRoute = require("./routes/serviceRoute");
 
@@ -341,13 +400,20 @@ async function seedDevDronesIfEmpty() {
   }
 }
 
-/** Dev-only: one row in `admins` so Admin Login works (see login page hint). */
 async function seedDevAdminsIfEmpty() {
-  if (process.env.NODE_ENV === "production") return;
-  if (process.env.DISABLE_DEV_ADMIN_SEED === "true") return;
-
   try {
-    const hash = await bcrypt.hash("test123", 10);
+    // Ensure admins table exists before seeding
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS admins (
+        id BIGSERIAL PRIMARY KEY,
+        email TEXT NOT NULL,
+        password TEXT NOT NULL,
+        name TEXT
+      )
+    `);
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@gmail.com";
+    const adminPass = process.env.ADMIN_PASSWORD || "admin123";
+    const hash = await bcrypt.hash(adminPass, 10);
     const ins = await pool.query(
       `INSERT INTO admins (email, password, name)
        SELECT $1::text, $2::text, $3::text
@@ -355,16 +421,17 @@ async function seedDevAdminsIfEmpty() {
          SELECT 1 FROM admins a
          WHERE LOWER(TRIM(COALESCE(a.email::text, ''))) = LOWER(TRIM($1::text))
        )`,
-      ["test@gmail.com", hash, "Test Admin"]
+      [adminEmail, hash, "Admin"]
     );
     if (ins.rowCount > 0) {
-      console.log("[auth] Seeded dev admin in `admins`: test@gmail.com / test123");
+      console.log(`[auth] Seeded admin in \`admins\`: ${adminEmail} / (password from .env)`);
+    } else {
+      console.log("[auth] Admin already exists, skipping seed");
     }
   } catch (e) {
-    console.warn("[auth] Dev admin seed skipped:", signinErrorDetail(e));
+    console.warn("[auth] Admin seed failed:", e.message);
   }
 }
-
 
 // ✅ API route
 app.use("/api/services", serviceRoute);
@@ -378,77 +445,16 @@ function jwtSecret() {
   return "dev-insecure-jwt-secret";
 }
 
-
-function storedPasswordFromUser(row) {
-  if (!row || typeof row !== "object") return "";
-  const r = row;
-  const v = r.password ?? r.password_hash ?? r.pass ?? "";
-  return v === "" ? "" : String(v);
-}
-
-async function passwordMatches(plain, stored) {
-  if (stored == null || stored === "") return false;
-  const s = String(stored);
-  if (s.startsWith("$2")) {
-    try {
-      return await bcrypt.compare(plain, s);
-    } catch {
-      return false;
-    }
-  }
-  return plain === s;
-}
-
-/** Express `res.json` cannot serialize `bigint` (common for PG `id` columns). */
-function jsonSafe(value) {
-  if (value === null || value === undefined) return value;
-  if (typeof value === "bigint") return value.toString();
-  if (typeof value === "object" && value instanceof Date) {
-    return value.toISOString();
-  }
-  return value;
-}
-
-function userPayloadForResponse(user, role) {
-  const userName =
-    user.name != null && String(user.name).trim() !== ""
-      ? String(user.name).trim()
-      : "";
-  const payload = {
-    id: jsonSafe(user.id) != null ? String(jsonSafe(user.id)) : "",
-    email: user.email == null ? "" : String(user.email),
-    name: userName,
-    role: String(role),
-  };
-  if (userName) payload.fullName = userName;
-  const phoneRaw = user.phone ?? user.Phone;
-  if (phoneRaw != null && String(phoneRaw).trim() !== "") {
-    payload.phone = String(phoneRaw).trim();
-  }
-  return payload;
-}
-
-// STEP 6: OTP generator
-function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000);
-}
-
-function normalizePhoneForOtp(raw) {
-  const input = String(raw ?? "").trim();
-  if (!input) return null;
-  if (input.startsWith("+")) {
-    const digits = input.slice(1).replace(/\D/g, "");
-    if (digits.length < 8 || digits.length > 15) return null;
-    return `+${digits}`;
-  }
-  const digits = input.replace(/\D/g, "");
-  if (digits.length === 10) return `+91${digits}`;
-  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`;
-  return null;
-}
-
-function phoneDigitsOnly(raw) {
-  return String(raw ?? "").replace(/\D/g, "");
+async function ensureServicesSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS services (
+      id BIGSERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      price TEXT,
+      image TEXT
+    );
+  `);
 }
 
 async function ensurePhoneOtpSchema() {
@@ -1314,6 +1320,7 @@ app.post("/api/auth/signin", async (req, res) => {
       }
       const admin = adminRes.rows[0];
       const stored = storedPasswordFromUser(admin);
+      console.log("[auth] Admin found:", email, "has password:", !!stored);
       const ok = await passwordMatches(password, stored);
       if (!ok) {
         return res.status(401).json({
@@ -1321,6 +1328,7 @@ app.post("/api/auth/signin", async (req, res) => {
           signInError: "password",
         });
       }
+      console.log("[auth] Admin login success:", email);
       const fullName = String(admin.name ?? "")
         .replace(/\s+/g, " ")
         .trim();
@@ -1454,6 +1462,7 @@ app.post("/send-otp", async (req, res) => {
 ensureAuthSchema()
   .then(() => ensureDroneSchema())
   .then(() => ensureMissionSchema())
+  .then(() => ensureServicesSchema())
   .then(() => seedDevAdminsIfEmpty())
   .then(() => seedDevDronesIfEmpty())
   .then(() =>
@@ -1463,8 +1472,9 @@ ensureAuthSchema()
   )
   .then(() => {
     jwtSecret();
-    app.listen(4000, () => {
-      console.log("Server running on port 4000");
+    const PORT = process.env.BACKEND_PORT || 4000;
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((err) => {
