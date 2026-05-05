@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   Map,
+  MapPinned,
   Menu,
   Plus,
   Settings,
@@ -33,6 +34,11 @@ const USER_LOGIN_HREF = "/pilot-login?panel=user";
 const sidebarNav = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/user-dashboard" },
   { label: "My Request", icon: ClipboardList, href: MY_REQUESTS_HREF },
+  {
+    label: "User Tracking",
+    icon: MapPinned,
+    href: "/user-dashboard/user-tracking",
+  },
   {
     label: "Profile",
     icon: UserRound,
@@ -68,7 +74,11 @@ function SidebarNavLinks({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const navItems = sidebarNav;
+  const navItems = hideRequestMonitoring
+    ? sidebarNav.filter(
+        (item) => (item.label as string) !== "Request Monitoring"
+      )
+    : sidebarNav;
 
   return (
     <nav className="flex flex-col gap-2">

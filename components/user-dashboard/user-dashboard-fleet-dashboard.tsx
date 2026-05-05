@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   BatteryCharging,
   CheckCircle2,
   ChevronDown,
+  ChevronUp,
   Download,
   Factory,
   Filter,
@@ -49,6 +50,39 @@ const CARGO_OPTIONS = [
   { label: "Industrial Parts", type: "Industrial" },
   { label: "Standard Freight", type: "Cargo" },
 ] as const;
+
+/** Discrete steps for the up/down control under the payload slider. */
+const PAYLOAD_DISCRETE_KG = [0.1, 0.5, 1, 2.5, 5, 10, 15, 20, 25] as const;
+
+function nearestDiscreteStepIndex(kg: number) {
+  let bestIdx = 0;
+  let bestDiff = Infinity;
+  for (let i = 0; i < PAYLOAD_DISCRETE_KG.length; i++) {
+    const d = Math.abs(PAYLOAD_DISCRETE_KG[i] - kg);
+    if (d < bestDiff) {
+      bestDiff = d;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
+function stepDiscretePayloadKg(kg: number, direction: 1 | -1) {
+  const i = nearestDiscreteStepIndex(kg);
+  const next = Math.max(
+    0,
+    Math.min(PAYLOAD_DISCRETE_KG.length - 1, i + direction)
+  );
+  return PAYLOAD_DISCRETE_KG[next];
+}
+
+const PAYLOAD_SLIDER_MIN = 0.1;
+const PAYLOAD_SLIDER_MAX = 25;
+
+function clampTypedPayloadKg(value: number) {
+  const rounded = Math.round(value * 100) / 100;
+  return Math.min(PAYLOAD_SLIDER_MAX, Math.max(PAYLOAD_SLIDER_MIN, rounded));
+}
 
 type Urgency = "express" | "priority" | "critical";
 type UrgencyOption = {
@@ -138,6 +172,8 @@ export function UserDashboardFleetDashboard({
   const [pickupHub, setPickupHub] = useState<string>(PICKUP_HUBS[0]);
   const [destHub, setDestHub] = useState<string>(DEST_HUBS[0]);
   const [payloadKg, setPayloadKg] = useState(2.4);
+  const [payloadKgText, setPayloadKgText] = useState("2.4");
+  const payloadKgInputDirtyRef = useRef(false);
   const [cargoKey, setCargoKey] = useState<(typeof CARGO_OPTIONS)[number]["label"]>(
     CARGO_OPTIONS[0].label
   );
@@ -161,6 +197,27 @@ export function UserDashboardFleetDashboard({
     [allRequests]
   );
 
+  useEffect(() => {
+    if (!payloadKgInputDirtyRef.current) {
+      setPayloadKgText(payloadKg.toFixed(1));
+    }
+  }, [payloadKg]);
+
+  function commitTypedPayloadKg() {
+    const raw = payloadKgText.replace(/,/g, ".").trim();
+    if (raw === "") {
+      setPayloadKgText(payloadKg.toFixed(1));
+      return;
+    }
+    const v = parseFloat(raw);
+    if (!Number.isFinite(v)) {
+      setPayloadKgText(payloadKg.toFixed(1));
+      return;
+    }
+    const clamped = clampTypedPayloadKg(v);
+    setPayloadKg(clamped);
+    setPayloadKgText(clamped.toFixed(1));
+  }
 
   async function onDeployMission(e: FormEvent) {
     e.preventDefault();
@@ -188,7 +245,11 @@ export function UserDashboardFleetDashboard({
         }),
       });
 
-      let payload: { message?: string; error?: string } = {};
+      let payload: {
+        message?: string;
+        error?: string;
+        data?: { id?: unknown };
+      } = {};
       try {
         payload = (await res.json()) as typeof payload;
       } catch {
@@ -200,6 +261,15 @@ export function UserDashboardFleetDashboard({
         return;
       }
 
+      const backendRequestId =
+        payload.data != null &&
+        typeof payload.data === "object" &&
+        "id" in payload.data &&
+        payload.data.id != null &&
+        payload.data.id !== ""
+          ? String(payload.data.id)
+          : undefined;
+
       // Keep local cache in sync for existing dashboard components that still read localStorage.
       appendUserRequest({
         reasonOrTitle,
@@ -208,6 +278,7 @@ export function UserDashboardFleetDashboard({
         payloadWeightKg: payloadWeight,
         requestType: cargo?.type ?? "Cargo",
         requestPriority: missionUrgency,
+        ...(backendRequestId ? { backendRequestId } : {}),
       });
 
       setMissionTitle("");
@@ -438,13 +509,85 @@ export function UserDashboardFleetDashboard({
                 </div>
                 <input
                   type="range"
-                  min={0.1}
-                  max={25}
+                  min={PAYLOAD_SLIDER_MIN}
+                  max={PAYLOAD_SLIDER_MAX}
                   step={0.1}
                   value={payloadKg}
                   onChange={(e) => setPayloadKg(Number(e.target.value))}
                   className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-100 accent-[#0058bc] dark:bg-white/10"
                 />
+                <div className="mt-4">
+                  <p className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/55">
+                    Preset steps (kg)
+                  </p>
+                  <div
+                    className="inline-flex h-9 w-full max-w-xs flex-row items-stretch overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm ring-1 ring-slate-900/5 sm:w-auto sm:max-w-none dark:border-white/15 dark:bg-[#111315] dark:ring-white/10"
+                    role="group"
+                    aria-label="Step payload weight through presets"
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPayloadKg((kg) => stepDiscretePayloadKg(kg, -1))
+                      }
+                      disabled={nearestDiscreteStepIndex(payloadKg) <= 0}
+                      className="flex w-10 shrink-0 items-center justify-center border-r border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#0058bc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0058bc] disabled:pointer-events-none disabled:opacity-35 dark:border-white/15 dark:text-white/80 dark:hover:bg-white/10"
+                      aria-label="Next lighter preset"
+                    >
+                      <ChevronDown
+                        className="size-4"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                    </button>
+                    <div className="flex min-w-0 flex-1 items-center justify-center gap-1 bg-slate-50/90 px-2 dark:bg-white/[0.04]">
+                      <input
+                        id="payload-kg-typein"
+                        type="text"
+                        inputMode="decimal"
+                        autoComplete="off"
+                        aria-label="Type payload weight in kilograms"
+                        value={payloadKgText}
+                        onFocus={() => {
+                          payloadKgInputDirtyRef.current = true;
+                        }}
+                        onChange={(e) => setPayloadKgText(e.target.value)}
+                        onBlur={() => {
+                          commitTypedPayloadKg();
+                          payloadKgInputDirtyRef.current = false;
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            (e.target as HTMLInputElement).blur();
+                          }
+                        }}
+                        className="min-w-0 max-w-[4.75rem] border-0 bg-transparent py-0.5 text-center text-sm font-bold tabular-nums text-slate-900 outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-[#0058bc]/50 dark:text-white"
+                      />
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/50">
+                        kg
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPayloadKg((kg) => stepDiscretePayloadKg(kg, 1))
+                      }
+                      disabled={
+                        nearestDiscreteStepIndex(payloadKg) >=
+                        PAYLOAD_DISCRETE_KG.length - 1
+                      }
+                      className="flex w-10 shrink-0 items-center justify-center border-l border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#0058bc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0058bc] disabled:pointer-events-none disabled:opacity-35 dark:border-white/15 dark:text-white/80 dark:hover:bg-white/10"
+                      aria-label="Next heavier preset"
+                    >
+                      <ChevronUp className="size-4" strokeWidth={2.25} aria-hidden />
+                    </button>
+                  </div>
+                  <p className="mt-2 max-w-xs text-[10px] leading-snug text-slate-400 dark:text-white/45">
+                    Type a weight (0.1–25 kg) or use arrows / slider. Press
+                    Enter or click away to apply.
+                  </p>
+                </div>
               </div>
 
               <div>

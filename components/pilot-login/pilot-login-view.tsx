@@ -88,6 +88,8 @@ export function PilotLoginView() {
         error?: string;
         detail?: string;
         hint?: string;
+        /** Pilot sign-in only: from server when email unknown vs password mismatch. */
+        signInError?: string;
       } = {};
 
       if (
@@ -99,6 +101,14 @@ export function PilotLoginView() {
       }
 
       if (!res.ok || !data.token) {
+        if (data.signInError === "email") {
+          setErrors({ email: "Incorrect Email id" });
+          return;
+        }
+        if (data.signInError === "password") {
+          setErrors({ password: "Incorrect Password" });
+          return;
+        }
         const fromProxy = [data.error, data.detail, data.hint]
           .filter(Boolean)
           .join(" — ");
@@ -214,7 +224,10 @@ export function PilotLoginView() {
                   type="email"
                   autoComplete="email"
                   value={email}
-                  onChange={(ev) => setEmail(ev.target.value)}
+                  onChange={(ev) => {
+                    setEmail(ev.target.value);
+                    setErrors((prev) => ({ ...prev, email: undefined }));
+                  }}
                   className={cn(
                     "w-full rounded-lg border bg-white py-2.5 pl-10 pr-3 text-sm text-[#191c1d] outline-none ring-[#008B8B]/25 transition placeholder:text-slate-400 focus:ring-2 dark:bg-[#161a1d] dark:text-white",
                     errors.email
@@ -252,7 +265,10 @@ export function PilotLoginView() {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   value={password}
-                  onChange={(ev) => setPassword(ev.target.value)}
+                  onChange={(ev) => {
+                    setPassword(ev.target.value);
+                    setErrors((prev) => ({ ...prev, password: undefined }));
+                  }}
                   className={cn(
                     "w-full rounded-lg border bg-white py-2.5 pl-10 pr-3 text-sm text-[#191c1d] outline-none ring-[#008B8B]/25 transition placeholder:text-slate-400 focus:ring-2 dark:bg-[#161a1d] dark:text-white",
                     errors.password
@@ -266,6 +282,14 @@ export function PilotLoginView() {
                   }
                 />
               </div>
+              {errors.password ? (
+                <p
+                  id="pilot-login-password-err"
+                  className="mt-1 text-xs text-red-600"
+                >
+                  {errors.password}
+                </p>
+              ) : null}
               <div className="mt-2 flex items-center justify-between gap-2 px-0.5">
                 <div className="flex min-w-0 items-center gap-1.5">
                   <input
@@ -308,14 +332,6 @@ export function PilotLoginView() {
                   Remember me
                 </label>
               </div>
-              {errors.password ? (
-                <p
-                  id="pilot-login-password-err"
-                  className="mt-1 text-xs text-red-600"
-                >
-                  {errors.password}
-                </p>
-              ) : null}
             </div>
 
             <button

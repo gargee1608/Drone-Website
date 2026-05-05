@@ -225,9 +225,9 @@ export function ContactView() {
                     Office Address
                   </p>
                   <p className="text-sm leading-snug text-[#1a2027] sm:text-base">
-                    88 Aviator Drive, Skyport Hub,
+                    7th Floor, Samanvay Silver Complex,
                     <br />
-                    San Francisco, CA 94105
+                    Vadodara, Gujarat 390020
                   </p>
                 </div>
               </div>
@@ -243,7 +243,7 @@ export function ContactView() {
                     Operational Hours
                   </p>
                   <p className="text-sm leading-snug text-[#1a2027] sm:text-base">
-                    Mon–Sat, 9 AM – 6 PM PST
+                    Mon-Fri, 10 AM - 7 PM
                   </p>
                 </div>
               </div>
@@ -256,19 +256,25 @@ export function ContactView() {
                 </span>
                 <div>
                   <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-[#43484e] sm:text-xs">
-                    Direct Comms
+                    Email Us
                   </p>
                   <p className="text-sm font-semibold leading-snug text-[#1a2027] sm:text-base">
                     <a
-                      href="mailto:ops@dronehire.example"
+                      href="mailto:info@dronehire.com"
                       className="hover:underline"
                       style={{ color: primary }}
                     >
-                      ops@dronehire.example
+                      info@dronehire.com
                     </a>
                   </p>
                   <p className="text-sm text-[#1a2027] sm:text-base">
-                    +1 (888) AERO-FLY
+                    <a
+                      href="tel:+18888888888"
+                      className="font-semibold hover:underline"
+                      style={{ color: primary }}
+                    >
+                      +1 (888888888)
+                    </a>
                   </p>
                 </div>
               </div>

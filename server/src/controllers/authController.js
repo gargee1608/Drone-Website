@@ -178,18 +178,27 @@ async function resolvePasswordLogin(parsed, password, wantedRole) {
       );
     }
   } else {
-    if (!user || !user.passwordHash) {
-      const err = new Error("Invalid email or password");
+    if (!user) {
+      const err = new Error("Incorrect email.");
       err.status = 401;
-      err.code = "INVALID_CREDENTIALS";
+      err.code = "INVALID_EMAIL";
+      err.signInError = "email";
+      throw err;
+    }
+    if (!user.passwordHash) {
+      const err = new Error("Incorrect email.");
+      err.status = 401;
+      err.code = "INVALID_EMAIL";
+      err.signInError = "email";
       throw err;
     }
 
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
-      const err = new Error("Invalid email or password");
+      const err = new Error("Incorrect password.");
       err.status = 401;
-      err.code = "INVALID_CREDENTIALS";
+      err.code = "INVALID_PASSWORD";
+      err.signInError = "password";
       throw err;
     }
   }

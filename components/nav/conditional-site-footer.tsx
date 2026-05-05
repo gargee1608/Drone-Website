@@ -34,6 +34,7 @@ export function ConditionalSiteFooter() {
     pathname === "/" ||
     pathname === "" ||
     pathname === "/pilot-login" ||
+    pathname === "/reset-password" ||
     pathname === "/signup" ||
     pathname === "/pilot-registration" ||
     pathname === "/services" ||

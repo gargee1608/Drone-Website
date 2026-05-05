@@ -27,7 +27,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           <h1 className={`mb-8 sm:mb-10 ${ADMIN_PAGE_TITLE_CLASS}`}>
             Settings
           </h1>
-          <SettingsDashboard />
+          <SettingsDashboard settingsContext="admin" />
         </div>
       </DashboardLayout>
     );
@@ -36,14 +36,14 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   if (isPilot) {
     return (
       <PilotDashboardShell pageTitle="Settings">
-        <SettingsDashboard />
+        <SettingsDashboard settingsContext="pilot" />
       </PilotDashboardShell>
     );
   }
 
   return (
     <UserDashboardShell pageTitle="Settings">
-      <SettingsDashboard />
+      <SettingsDashboard settingsContext="user" />
     </UserDashboardShell>
   );
 }

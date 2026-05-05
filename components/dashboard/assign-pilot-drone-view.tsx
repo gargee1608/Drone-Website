@@ -31,12 +31,14 @@ import {
   mergeAssignPilotDisplayQueue,
 } from "@/lib/assign-demo-bridge";
 import { pushPilotMissionNotification } from "@/lib/pilot-mission-notifications";
+import { recordUserMissionAssignment } from "@/lib/user-mission-tracking";
 import {
   appendAssignPilotDoneRef,
   loadAssignPilotDoneRefs,
   pruneAssignPilotDoneRefs,
 } from "@/lib/assign-pilot-done-refs";
 import {
+  findStoredUserRequestByAdminRef,
   loadUserRequests,
   MISSIONS_DB_UPDATED_EVENT,
   updateUserRequestAdminStatus,
@@ -773,7 +775,12 @@ export function AssignPilotDroneView() {
     setDoneRefs(loadAssignPilotDoneRefs());
 
     const ref = row.requestRef;
-    if (loadUserRequests().some((r) => r.id === ref)) {
+    const storedForSync = findStoredUserRequestByAdminRef(ref);
+    if (
+      loadUserRequests().some(
+        (r) => r.id === ref || r.backendRequestId === ref
+      )
+    ) {
       updateUserRequestAdminStatus(ref, "completed");
     }
     const numericId = String(ref).replace(/^#/, "");
@@ -786,6 +793,18 @@ export function AssignPilotDroneView() {
           body: JSON.stringify({ admin_status: "completed" }),
         }
       );
+    } else {
+      const bid = storedForSync?.backendRequestId?.trim();
+      if (bid && /^\d+$/.test(bid)) {
+        void fetch(
+          apiUrl(`/api/requests/${encodeURIComponent(bid)}`),
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ admin_status: "completed" }),
+          }
+        );
+      }
     }
 
     try {
@@ -822,6 +841,22 @@ export function AssignPilotDroneView() {
       pilotSub: selectedPilot.id,
       droneModel: row.droneModel,
     });
+
+    recordUserMissionAssignment({
+      requestRef: row.requestRef,
+      pilotSub: selectedPilot.id,
+      pilotName: row.pilotName,
+      pilotBadgeId: row.pilotBadgeId,
+      droneModel: row.droneModel,
+      storedUserRequest: storedForSync,
+      assignRowFallback: {
+        customer: currentRequest.customer,
+        service: currentRequest.service,
+        dropoff: currentRequest.dropoff,
+        sectorLine: currentRequest.sectorLine,
+      },
+    });
+
     setAssignedDialogOpen(false);
   };
 
@@ -847,7 +882,7 @@ export function AssignPilotDroneView() {
     <div
       className={cn(
         fontWrap,
-        "min-w-0 bg-[#f8f9fa] pb-12 pt-4 text-[#191c1d] dark:bg-background dark:text-foreground sm:pt-6"
+        "min-w-0 bg-white pb-12 pt-4 sm:pt-6 dark:bg-white"
       )}
     >
       <div className="mx-auto max-w-7xl space-y-10 px-4 sm:px-6">

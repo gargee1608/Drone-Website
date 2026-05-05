@@ -7,10 +7,19 @@ import {
   RefreshCw,
   UserRound,
 } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  type FormEvent,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiUrl } from "@/lib/api-url";
+import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 import { activePilotProfileSnapshotStorageKey } from "@/lib/pilot-profile-browser-storage";
 import {
@@ -18,11 +27,27 @@ import {
   PILOT_PROFILE_UPDATED_EVENT,
 } from "@/lib/pilot-profile-snapshot";
 import {
+  ADMIN_PROFILE_STORAGE_KEY,
+  ADMIN_PROFILE_UPDATED_EVENT,
+  buildAdminProfileForDisplay,
+  readSavedAdminProfile,
+} from "@/lib/admin-profile-storage";
+import { jwtPayloadRole } from "@/lib/pilot-display-name";
+import {
+  USER_PROFILE_STORAGE_KEY,
+  USER_PROFILE_UPDATED_EVENT,
+} from "@/lib/user-profile-storage";
+import {
   applyThemeToDocument,
   resolveThemeWithFallback,
   THEME_STORAGE_KEY,
   type AppTheme,
 } from "@/lib/theme";
+import {
+  readStoredUserSession,
+  splitDisplayNameToFirstLast,
+  writeStoredUserSession,
+} from "@/lib/user-session-browser";
 
 const profileInputClassName =
   "h-10 rounded-lg border-border bg-background text-sm text-foreground";
@@ -55,7 +80,15 @@ function Switch({
   );
 }
 
-export function SettingsDashboard() {
+export type SettingsDashboardProps = {
+  /** Which shell opened Settings (used for layout context; password change uses JWT role). */
+  settingsContext?: "user" | "pilot" | "admin";
+};
+
+export function SettingsDashboard({
+  settingsContext = "user",
+}: SettingsDashboardProps = {}) {
+  const pathname = usePathname();
   const [theme, setTheme] = useState<AppTheme>("light");
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -65,6 +98,9 @@ export function SettingsDashboard() {
     null
   );
   const [passwordDialogSuccess, setPasswordDialogSuccess] = useState(false);
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [showPasswordsInChangeDialog, setShowPasswordsInChangeDialog] =
+    useState(false);
 
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileFullName, setProfileFullName] = useState("");
@@ -83,6 +119,19 @@ export function SettingsDashboard() {
     applyThemeToDocument(initial);
   }, []);
 
+  /** Profile shortcuts: `/settings?from=…#account-change-password` opens this dialog. */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!pathname?.startsWith("/settings")) return;
+    if (window.location.hash !== "#account-change-password") return;
+    setPasswordDialogError(null);
+    setPasswordDialogSuccess(false);
+    setShowPasswordsInChangeDialog(false);
+    setChangePasswordOpen(true);
+    const { pathname: path, search } = window.location;
+    window.history.replaceState(null, "", `${path}${search}`);
+  }, [pathname]);
+
   const setThemeMode = useCallback((next: AppTheme) => {
     setTheme(next);
     try {
@@ -100,18 +149,81 @@ export function SettingsDashboard() {
     setConfirmPassword("");
     setPasswordDialogError(null);
     setPasswordDialogSuccess(false);
+    setPasswordSubmitting(false);
+    setShowPasswordsInChangeDialog(false);
   }, []);
 
   const openProfileDialog = useCallback(() => {
-    setProfileFullName("");
-    setProfileEmail("");
-    setProfilePhone("");
-    setProfileCity("");
-    setProfileState("");
     setProfileDialogError(null);
     setProfileDialogSuccess(false);
+
+    if (settingsContext === "user") {
+      const session = readStoredUserSession();
+      let saved: {
+        email?: string;
+        phone?: string;
+        city?: string;
+        state?: string;
+      } | null = null;
+      try {
+        const raw = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
+        if (raw) saved = JSON.parse(raw) as typeof saved;
+      } catch {
+        saved = null;
+      }
+      const email = String(session?.email ?? "").trim();
+      const display = String(
+        session?.fullName ?? session?.name ?? ""
+      ).trim();
+      const { firstName: splitFirst, lastName } =
+        splitDisplayNameToFirstLast(display);
+      let firstName = splitFirst;
+      if (!firstName && email) {
+        firstName = email.split("@")[0] || "";
+      }
+      const sameSaved =
+        saved &&
+        email &&
+        String(saved.email ?? "")
+          .trim()
+          .toLowerCase() === email.toLowerCase();
+
+      setProfileFullName(`${firstName} ${lastName}`.trim() || display);
+      setProfileEmail(email || String(saved?.email ?? "").trim());
+      setProfilePhone(
+        String(session?.phone ?? "").trim() ||
+          (sameSaved ? String(saved.phone ?? "").trim() : "")
+      );
+      setProfileCity(sameSaved ? String(saved.city ?? "").trim() : "");
+      setProfileState(sameSaved ? String(saved.state ?? "").trim() : "");
+    } else if (settingsContext === "admin") {
+      const merged = buildAdminProfileForDisplay();
+      const display =
+        `${merged.firstName} ${merged.lastName}`.trim() ||
+        merged.email.split("@")[0] ||
+        "";
+      setProfileFullName(display);
+      setProfileEmail(merged.email);
+      setProfilePhone(merged.phone);
+      setProfileCity(merged.city);
+      setProfileState(merged.postalCode);
+    } else {
+      const existing = parsePilotProfileSnapshot(
+        localStorage.getItem(activePilotProfileSnapshotStorageKey())
+      );
+      setProfileFullName(existing?.fullName ?? "");
+      setProfileEmail(
+        typeof existing?.email === "string" ? existing.email : ""
+      );
+      setProfilePhone(
+        typeof existing?.phone === "string" ? existing.phone : ""
+      );
+      setProfileCity(existing?.city ?? "");
+      setProfileState(existing?.state ?? "");
+    }
+
     setProfileDialogOpen(true);
-  }, []);
+  }, [settingsContext]);
 
   const closeProfileDialog = useCallback(() => {
     setProfileDialogOpen(false);
@@ -157,15 +269,18 @@ export function SettingsDashboard() {
     <>
       <div className="mx-auto w-full max-w-6xl antialiased">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {/* Change Password */}
-                <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
+                <section
+                  id="account-change-password"
+                  className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6"
+                  data-settings-context={settingsContext}
+                >
                   <div className="mb-4 flex items-start gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
                       <Lock className="size-5 text-[#008B8B]" aria-hidden />
                     </span>
                     <div className="min-w-0 text-left">
                       <h2 className="text-base font-bold text-foreground">
-                        Change Password
+                        Change password
                       </h2>
                       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                         Update your account password for better security
@@ -180,10 +295,11 @@ export function SettingsDashboard() {
                       onClick={() => {
                         setPasswordDialogError(null);
                         setPasswordDialogSuccess(false);
+                        setShowPasswordsInChangeDialog(false);
                         setChangePasswordOpen(true);
                       }}
                     >
-                      Change Password
+                      Change password
                     </Button>
                   </div>
                 </section>
@@ -306,7 +422,7 @@ export function SettingsDashboard() {
             </div>
             <form
               className="px-6 py-5 sm:px-8 sm:py-6"
-              onSubmit={(e) => {
+              onSubmit={async (e: FormEvent) => {
                 e.preventDefault();
                 const cur = currentPassword.trim();
                 const next = newPassword.trim();
@@ -316,8 +432,75 @@ export function SettingsDashboard() {
                   setPasswordDialogSuccess(false);
                   return;
                 }
+                if (next !== confirm) {
+                  setPasswordDialogError(
+                    "New password and confirmation do not match."
+                  );
+                  setPasswordDialogSuccess(false);
+                  return;
+                }
+                if (next === cur) {
+                  setPasswordDialogError(
+                    "New password must be different from your current password."
+                  );
+                  setPasswordDialogSuccess(false);
+                  return;
+                }
+
                 setPasswordDialogError(null);
-                setPasswordDialogSuccess(true);
+                setPasswordDialogSuccess(false);
+
+                const token =
+                  typeof window !== "undefined"
+                    ? localStorage.getItem("token")
+                    : null;
+                if (!token) {
+                  setPasswordDialogError("You are not signed in.");
+                  return;
+                }
+
+                setPasswordSubmitting(true);
+                try {
+                  const res = await fetch(apiUrl("/api/auth/change-password"), {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      currentPassword: cur,
+                      newPassword: next,
+                    }),
+                  });
+                  const parsed = await readResponseJson(res);
+                  if (!parsed.okParse) {
+                    setPasswordDialogError("Invalid server response.");
+                    return;
+                  }
+                  const data = parsed.data as {
+                    ok?: boolean;
+                    message?: string;
+                    signInError?: string;
+                  };
+                  if (!res.ok) {
+                    if (data.signInError === "password") {
+                      setPasswordDialogError("Incorrect Password");
+                    } else {
+                      setPasswordDialogError(
+                        String(data.message || "").trim() ||
+                          "Could not change password."
+                      );
+                    }
+                    return;
+                  }
+                  setPasswordDialogSuccess(true);
+                } catch {
+                  setPasswordDialogError(
+                    "Network error. Check your connection and try again."
+                  );
+                } finally {
+                  setPasswordSubmitting(false);
+                }
               }}
             >
               {passwordDialogSuccess ? (
@@ -357,7 +540,7 @@ export function SettingsDashboard() {
                   <Input
                     id="current-password"
                     name="current-password"
-                    type="password"
+                    type={showPasswordsInChangeDialog ? "text" : "password"}
                     autoComplete="current-password"
                     value={currentPassword}
                     onChange={(e) => {
@@ -377,7 +560,7 @@ export function SettingsDashboard() {
                   <Input
                     id="new-password"
                     name="new-password"
-                    type="password"
+                    type={showPasswordsInChangeDialog ? "text" : "password"}
                     autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => {
@@ -397,7 +580,7 @@ export function SettingsDashboard() {
                   <Input
                     id="confirm-password"
                     name="confirm-password"
-                    type="password"
+                    type={showPasswordsInChangeDialog ? "text" : "password"}
                     autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => {
@@ -407,6 +590,24 @@ export function SettingsDashboard() {
                     className="h-10 rounded-lg border-border bg-background text-sm text-foreground"
                   />
                 </div>
+                <div className="flex items-center gap-2 px-0.5 pt-1">
+                  <input
+                    id="change-password-show-passwords"
+                    type="checkbox"
+                    checked={showPasswordsInChangeDialog}
+                    onChange={(e) =>
+                      setShowPasswordsInChangeDialog(e.target.checked)
+                    }
+                    disabled={passwordDialogSuccess}
+                    className="size-4 shrink-0 rounded border border-slate-300 bg-background text-[#008B8B] focus:outline-none focus:ring-2 focus:ring-[#008B8B]/25 dark:border-white/20 sm:size-[18px]"
+                  />
+                  <label
+                    htmlFor="change-password-show-passwords"
+                    className="cursor-pointer text-xs font-medium text-foreground sm:text-sm"
+                  >
+                    Show passwords
+                  </label>
+                </div>
               </div>
               <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5">
                 <Button
@@ -414,7 +615,7 @@ export function SettingsDashboard() {
                   variant="outline"
                   className="rounded-lg border-2 border-border bg-background text-foreground hover:bg-muted/50"
                   onClick={closeChangePassword}
-                  disabled={passwordDialogSuccess}
+                  disabled={passwordDialogSuccess || passwordSubmitting}
                 >
                   Cancel
                 </Button>
@@ -422,9 +623,9 @@ export function SettingsDashboard() {
                   type="submit"
                   variant="outline"
                   className="rounded-lg border-2 border-[#008B8B] bg-background text-[#008B8B] shadow-none hover:bg-[#008B8B]/8 hover:text-[#008B8B]"
-                  disabled={passwordDialogSuccess}
+                  disabled={passwordDialogSuccess || passwordSubmitting}
                 >
-                  Update password
+                  {passwordSubmitting ? "Changing…" : "Change password"}
                 </Button>
               </div>
             </form>
@@ -469,9 +670,26 @@ export function SettingsDashboard() {
                     id="profile-dialog-desc"
                     className="mt-0.5 text-sm text-muted-foreground"
                   >
-                    Enter your details below. Other pilot data (skills, drones,
-                    license, hours, bio) is unchanged unless you edit it in pilot
-                    registration.
+                    {settingsContext === "user" ? (
+                      <>
+                        Update the name, contact, and location shown on your
+                        profile page. Your profile photo is still changed from the
+                        profile screen.
+                      </>
+                    ) : settingsContext === "admin" ? (
+                      <>
+                        Update the name, contact, and location shown on your admin
+                        profile page. Your profile photo is still changed from the
+                        profile screen.
+                      </>
+                    ) : (
+                      <>
+                        Update the name, contact, and location shown on your pilot
+                        profile page. Your profile photo and other registration
+                        details (skills, drones, license, hours, bio) are still
+                        changed from pilot profile or registration.
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -486,36 +704,166 @@ export function SettingsDashboard() {
                   setProfileDialogSuccess(false);
                   return;
                 }
-                const existing = parsePilotProfileSnapshot(
-                  localStorage.getItem(activePilotProfileSnapshotStorageKey())
-                );
-                const next = {
-                  fullName: name,
-                  email: profileEmail.trim() || undefined,
-                  phone: profilePhone.trim() || undefined,
-                  city: profileCity.trim(),
-                  state: profileState.trim(),
-                  aadhaar: existing?.aadhaar,
-                  flightHours: existing?.flightHours ?? 0,
-                  bio: existing?.bio ?? "",
-                  skills: existing?.skills ?? [],
-                  drones: existing?.drones ?? [],
-                  dgca: existing?.dgca ?? "",
-                  photoDataUrl: existing?.photoDataUrl,
-                };
-                const json = JSON.stringify(next);
-                try {
-                  const sk = activePilotProfileSnapshotStorageKey();
-                  localStorage.setItem(sk, json);
-                  sessionStorage.setItem(sk, json);
-                } catch {
-                  setProfileDialogError("Could not save. Try again.");
-                  setProfileDialogSuccess(false);
+
+                if (settingsContext === "user") {
+                  const session = readStoredUserSession();
+                  if (!session) {
+                    setProfileDialogError(
+                      "Not signed in. Sign in again to update your profile."
+                    );
+                    setProfileDialogSuccess(false);
+                    return;
+                  }
+                  const { firstName: splitFirst, lastName } =
+                    splitDisplayNameToFirstLast(name);
+                  let firstName = splitFirst;
+                  const email =
+                    profileEmail.trim() ||
+                    String(session.email ?? "").trim();
+                  const phone =
+                    profilePhone.trim() ||
+                    String(session.phone ?? "").trim();
+                  if (!firstName && email) {
+                    firstName = email.split("@")[0] || "User";
+                  }
+
+                  let country = "";
+                  try {
+                    const raw = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
+                    if (raw) {
+                      const p = JSON.parse(raw) as { country?: string };
+                      if (typeof p.country === "string") country = p.country;
+                    }
+                  } catch {
+                    /* ignore */
+                  }
+                  if (!country.trim()) country = "India";
+
+                  const draft = {
+                    firstName: firstName || "User",
+                    lastName,
+                    email: email || String(session.email ?? "").trim(),
+                    phone,
+                    city: profileCity.trim(),
+                    state: profileState.trim(),
+                    country,
+                  };
+
+                  try {
+                    localStorage.setItem(
+                      USER_PROFILE_STORAGE_KEY,
+                      JSON.stringify(draft)
+                    );
+                    writeStoredUserSession({
+                      ...session,
+                      fullName: name,
+                      name: name,
+                      email: draft.email,
+                      phone: draft.phone,
+                    });
+                  } catch {
+                    setProfileDialogError("Could not save. Try again.");
+                    setProfileDialogSuccess(false);
+                    return;
+                  }
+                  window.dispatchEvent(
+                    new Event(USER_PROFILE_UPDATED_EVENT)
+                  );
+                  setProfileDialogError(null);
+                  setProfileDialogSuccess(true);
                   return;
                 }
-                window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
-                setProfileDialogError(null);
-                setProfileDialogSuccess(true);
+
+                if (settingsContext === "admin") {
+                  const token =
+                    typeof window !== "undefined"
+                      ? localStorage.getItem("token")
+                      : null;
+                  if (!token) {
+                    setProfileDialogError(
+                      "Not signed in. Sign in again to update your profile."
+                    );
+                    setProfileDialogSuccess(false);
+                    return;
+                  }
+                  if (jwtPayloadRole(token) !== "admin") {
+                    setProfileDialogError(
+                      "Only an admin session can update this profile."
+                    );
+                    setProfileDialogSuccess(false);
+                    return;
+                  }
+                  const base =
+                    readSavedAdminProfile() ?? buildAdminProfileForDisplay();
+                  const { firstName: splitFirst, lastName } =
+                    splitDisplayNameToFirstLast(name);
+                  let firstName = splitFirst;
+                  const email =
+                    profileEmail.trim() || String(base.email ?? "").trim();
+                  const phone =
+                    profilePhone.trim() || String(base.phone ?? "").trim();
+                  if (!firstName && email) {
+                    firstName = email.split("@")[0] || "Admin";
+                  }
+                  const next = {
+                    ...base,
+                    firstName: firstName || "Admin",
+                    lastName,
+                    email,
+                    phone,
+                    city: profileCity.trim(),
+                    postalCode: profileState.trim(),
+                  };
+                  try {
+                    localStorage.setItem(
+                      ADMIN_PROFILE_STORAGE_KEY,
+                      JSON.stringify(next)
+                    );
+                  } catch {
+                    setProfileDialogError("Could not save. Try again.");
+                    setProfileDialogSuccess(false);
+                    return;
+                  }
+                  window.dispatchEvent(
+                    new Event(ADMIN_PROFILE_UPDATED_EVENT)
+                  );
+                  setProfileDialogError(null);
+                  setProfileDialogSuccess(true);
+                  return;
+                }
+
+                if (settingsContext === "pilot") {
+                  const existing = parsePilotProfileSnapshot(
+                    localStorage.getItem(activePilotProfileSnapshotStorageKey())
+                  );
+                  const next = {
+                    fullName: name,
+                    email: profileEmail.trim() || undefined,
+                    phone: profilePhone.trim() || undefined,
+                    city: profileCity.trim(),
+                    state: profileState.trim(),
+                    aadhaar: existing?.aadhaar,
+                    flightHours: existing?.flightHours ?? 0,
+                    bio: existing?.bio ?? "",
+                    skills: existing?.skills ?? [],
+                    drones: existing?.drones ?? [],
+                    dgca: existing?.dgca ?? "",
+                    photoDataUrl: existing?.photoDataUrl,
+                  };
+                  const json = JSON.stringify(next);
+                  try {
+                    const sk = activePilotProfileSnapshotStorageKey();
+                    localStorage.setItem(sk, json);
+                    sessionStorage.setItem(sk, json);
+                  } catch {
+                    setProfileDialogError("Could not save. Try again.");
+                    setProfileDialogSuccess(false);
+                    return;
+                  }
+                  window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
+                  setProfileDialogError(null);
+                  setProfileDialogSuccess(true);
+                }
               }}
             >
               <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 sm:px-8 sm:py-6">
@@ -632,12 +980,18 @@ export function SettingsDashboard() {
                         htmlFor="profile-state"
                         className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                       >
-                        State
+                        {settingsContext === "admin"
+                          ? "Postal code"
+                          : "State"}
                       </label>
                       <Input
                         id="profile-state"
                         name="profile-state"
-                        autoComplete="address-level1"
+                        autoComplete={
+                          settingsContext === "admin"
+                            ? "postal-code"
+                            : "address-level1"
+                        }
                         value={profileState}
                         onChange={(e) => {
                           setProfileState(e.target.value);

@@ -3,50 +3,18 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Pencil } from "lucide-react";
 
+import {
+  ADMIN_PROFILE_STORAGE_KEY,
+  ADMIN_PROFILE_UPDATED_EVENT,
+  DEFAULT_ADMIN_PROFILE,
+  readSavedAdminProfile,
+  type AdminProfileDraft,
+} from "@/lib/admin-profile-storage";
 import { jwtPayloadRole } from "@/lib/pilot-display-name";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
-type AdminProfileDraft = {
-  firstName: string;
-  lastName: string;
-  dob: string;
-  email: string;
-  phone: string;
-  userRole: string;
-  country: string;
-  city: string;
-  postalCode: string;
-};
-
-const ADMIN_PROFILE_STORAGE_KEY = "aerolaminar_admin_profile_v1";
-
-const DEFAULT_PROFILE: AdminProfileDraft = {
-  firstName: "Natashia",
-  lastName: "Khaleira",
-  dob: "12-10-1990",
-  email: "info@binary-fusion.com",
-  phone: "(+62) 821 2554 - 5846",
-  userRole: "Admin",
-  country: "United Kingdom",
-  city: "Leeds, East London",
-  postalCode: "ERT 1254",
-};
-
-function readSavedAdminProfile(): AdminProfileDraft | null {
-  if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(ADMIN_PROFILE_STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<AdminProfileDraft>;
-    return {
-      ...DEFAULT_PROFILE,
-      ...parsed,
-    };
-  } catch {
-    return null;
-  }
-}
+const DEFAULT_PROFILE = DEFAULT_ADMIN_PROFILE;
 
 export function AdminProfileView() {
   const [profile, setProfile] = useState<AdminProfileDraft>(DEFAULT_PROFILE);
@@ -90,6 +58,21 @@ export function AdminProfileView() {
     setPersonalDraft((prev) => ({ ...prev, userRole: nextRole }));
     setAddressDraft((prev) => ({ ...prev, userRole: nextRole }));
   }, [hasSavedProfile]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sync = () => {
+      const next = readSavedAdminProfile();
+      if (!next) return;
+      setProfile(next);
+      setPersonalDraft((prev) => (editingPersonal ? prev : next));
+      setAddressDraft((prev) => (editingAddress ? prev : next));
+      setHasSavedProfile(true);
+    };
+    window.addEventListener(ADMIN_PROFILE_UPDATED_EVENT, sync);
+    return () =>
+      window.removeEventListener(ADMIN_PROFILE_UPDATED_EVENT, sync);
+  }, [editingPersonal, editingAddress]);
 
   const fullName = `${profile.firstName} ${profile.lastName}`.trim() || "—";
   const avatarInitials = (() => {

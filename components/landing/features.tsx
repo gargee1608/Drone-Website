@@ -1,42 +1,78 @@
 import {
+  BadgeCheck,
   Building2,
-  Camera,
+  CalendarClock,
   Clapperboard,
-  Search,
-  Shield,
+  HardHat,
+  Heart,
+  Map,
+  MapPinned,
+  Radar,
+  ScanLine,
   Tractor,
+  Weight,
 } from "lucide-react";
 
 const items = [
   {
-    icon: Tractor,
-    title: "Agriculture",
-    description: "Crop monitoring, spraying & field mapping.",
+    icon: Radar,
+    title: "Defence & Surveillance",
+    description: "Perimeter patrols, reconnaissance & tactical overwatch.",
   },
   {
-    icon: Building2,
-    title: "Real Estate",
-    description: "Aerial photography & property surveys.",
+    icon: Tractor,
+    title: "Agriculture & Spraying",
+    description: "Crop health, precision spraying & field mapping.",
   },
   {
     icon: Clapperboard,
-    title: "Filming",
-    description: "Cinematic drone videography.",
+    title: "Filming & Cinematography",
+    description: "Commercial spots, TV & cinematic aerial sequences.",
   },
   {
-    icon: Search,
-    title: "Surveying",
-    description: "Land surveying & topographic mapping.",
+    icon: Weight,
+    title: "Heavy Lifting & Industry Work",
+    description: "Industrial payloads, logistics & on-site aerial lifts.",
   },
   {
-    icon: Shield,
-    title: "Security",
-    description: "Surveillance & perimeter monitoring.",
+    icon: Building2,
+    title: "Real Estate & Property Shoots",
+    description: "Listings, developments & polished property marketing.",
   },
   {
-    icon: Camera,
-    title: "Infrastructure",
-    description: "Bridge, tower & pipeline inspections.",
+    icon: Heart,
+    title: "Weddings & Events",
+    description: "Ceremonies, venues & live celebrations from above.",
+  },
+  {
+    icon: Map,
+    title: "Surveying & Mapping",
+    description: "Topographic surveys, orthomosaics & GIS-ready outputs.",
+  },
+  {
+    icon: ScanLine,
+    title: "Inspection (Solar, Tower, Infra)",
+    description: "Solar arrays, towers & critical infrastructure checks.",
+  },
+  {
+    icon: HardHat,
+    title: "Construction Progress Tracking",
+    description: "Site documentation, milestones & stakeholder updates.",
+  },
+] as const;
+
+const coreValueHighlights = [
+  {
+    icon: BadgeCheck,
+    title: "Verified Profiles",
+  },
+  {
+    icon: MapPinned,
+    title: "Locations-Based Search",
+  },
+  {
+    icon: CalendarClock,
+    title: "Instant Booking or Quotes",
   },
 ] as const;
 
@@ -74,6 +110,41 @@ export function Features() {
               <div className="landing-telemetry-line mt-auto opacity-90" />
             </div>
           ))}
+        </div>
+        <div
+          className="mx-auto mt-12 h-px max-w-6xl bg-slate-200 sm:mt-16"
+          aria-hidden
+        />
+        <div className="mx-auto mt-10 max-w-3xl text-center sm:mt-12">
+          <p className="font-[family-name:var(--font-landing-headline)] text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+            Core Values
+          </p>
+          <h3 className="mt-3 font-[family-name:var(--font-landing-headline)] text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Why Drone Hire
+          </h3>
+          <p className="mt-4 font-[family-name:var(--font-landing-body)] text-base leading-relaxed text-slate-600 sm:text-lg">
+            We bridge the gap between complex drone technology and your
+            operational needs with a focus on trust and speed.
+          </p>
+          <ul className="mx-auto mt-10 grid max-w-4xl list-none grid-cols-1 gap-0 divide-y divide-slate-200 p-0 sm:mt-12 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:divide-slate-200">
+            {coreValueHighlights.map(({ icon: Icon, title }) => (
+              <li
+                key={title}
+                className="flex flex-col items-center gap-3 px-4 py-8 text-center sm:px-6 sm:py-6"
+              >
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-lg border border-slate-100 bg-slate-50">
+                  <Icon
+                    className="size-8 text-[#008B8B]"
+                    strokeWidth={1.5}
+                    aria-hidden
+                  />
+                </div>
+                <span className="font-[family-name:var(--font-landing-headline)] text-sm font-bold leading-snug tracking-tight text-slate-900 sm:text-[0.9375rem]">
+                  {title}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>

@@ -1,16 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { Calendar, Pencil, Trash2 } from "lucide-react";
+import { Calendar } from "lucide-react";
 import Link from "next/link";
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { BlogPost } from "@/components/blogs/blog-data";
 import {
@@ -20,22 +13,11 @@ import {
   postsBySlug,
 } from "@/components/blogs/blog-data";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
-import { apiUrl } from "@/lib/api-url";
 import {
   fetchBlogsFromApi,
   mapApiRowToBlogPost,
-  parseBlogDbSlug,
 } from "@/lib/blog-api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  BLOG_ADMIN_UPDATED_EVENT,
-  deleteBuiltinFromCatalog,
-  loadBlogExtras,
-  loadBlogOverrides,
-  saveBlogExtras,
-  saveBlogOverrides,
-} from "@/lib/blog-admin-storage";
+import { BLOG_ADMIN_UPDATED_EVENT } from "@/lib/blog-admin-storage";
 import { getMergedGridPosts, getMergedPostBySlug } from "@/lib/blog-merge";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
@@ -49,27 +31,6 @@ const filterLabels = [
 ] as const;
 
 type FilterKey = (typeof filterLabels)[number];
-
-const CATEGORIES: BlogPost["category"][] = [
-  "Technology",
-  "Logistics",
-  "Regulations",
-  "Company News",
-];
-
-const TAG_TONES: BlogPost["tagTone"][] = ["emerald", "primary", "slate"];
-
-function bodyToText(body: string[]) {
-  return body.join("\n\n");
-}
-
-function textToBody(text: string): string[] {
-  const parts = text
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-  return parts.length > 0 ? parts : [text.trim() || " "];
-}
 
 function tagToneClasses(tone: "emerald" | "primary" | "slate") {
   switch (tone) {
@@ -98,147 +59,6 @@ export function BlogsView({
   const [featuredPost, setFeaturedPost] = useState(
     () => postsBySlug[FEATURED_SLUG]
   );
-
-  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
-  const [editInternalId, setEditInternalId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editImage, setEditImage] = useState("");
-  const [editBodyText, setEditBodyText] = useState("");
-  const [editExcerpt, setEditExcerpt] = useState("");
-  const [editDate, setEditDate] = useState("");
-  const [editAuthor, setEditAuthor] = useState("");
-  const [editCategory, setEditCategory] =
-    useState<BlogPost["category"]>("Technology");
-  const [editImageAlt, setEditImageAlt] = useState("");
-  const [editTagTone, setEditTagTone] =
-    useState<BlogPost["tagTone"]>("primary");
-  const [editFormError, setEditFormError] = useState<string | null>(null);
-  const [editSaving, setEditSaving] = useState(false);
-
-  function openEditor(post: BlogPost) {
-    setEditingPost(post);
-    setEditInternalId(
-      loadBlogExtras().find((e) => e.slug === post.slug)?.internalId ?? null
-    );
-    setEditTitle(post.title);
-    setEditImage(post.image);
-    setEditBodyText(bodyToText(post.body));
-    setEditExcerpt(post.excerpt);
-    setEditDate(post.date);
-    setEditAuthor(post.author);
-    setEditCategory(post.category);
-    setEditImageAlt(post.imageAlt);
-    setEditTagTone(post.tagTone);
-    setEditFormError(null);
-  }
-
-  function closeEditor() {
-    setEditingPost(null);
-    setEditInternalId(null);
-    setEditFormError(null);
-  }
-
-  useEffect(() => {
-    if (!editingPost) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeEditor();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [editingPost]);
-
-  async function saveEditor(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editingPost) return;
-    const t = editTitle.trim();
-    if (!t) {
-      setEditFormError("Title is required.");
-      return;
-    }
-    setEditSaving(true);
-    setEditFormError(null);
-    const slug = editingPost.slug;
-    const dbId = parseBlogDbSlug(slug);
-    const img =
-      editImage.trim() || "https://placehold.co/800x600/e2e8f0/64748b?text=Blog";
-    const content = editBodyText.trim() || " ";
-
-    try {
-      if (dbId != null) {
-        const res = await fetch(apiUrl(`/api/blogs/${dbId}`), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: t, content, image: img }),
-        });
-        const data = (await res.json().catch(() => ({}))) as {
-          error?: string;
-        };
-        if (!res.ok) {
-          setEditFormError(
-            typeof data.error === "string" ? data.error : "Update failed"
-          );
-          return;
-        }
-      } else {
-        const body = textToBody(editBodyText);
-        const ex = editExcerpt.trim();
-        const baseFields: BlogPost = {
-          slug,
-          title: t,
-          excerpt: ex || "—",
-          date: editDate.trim() || "—",
-          category: editCategory,
-          author: editAuthor.trim() || "—",
-          image: img,
-          imageAlt: editImageAlt.trim() || t,
-          tagTone: editTagTone,
-          body,
-        };
-        if (editInternalId) {
-          const nextExtras = loadBlogExtras().map((row) =>
-            row.internalId === editInternalId
-              ? {
-                  ...row,
-                  ...baseFields,
-                  slug: row.slug,
-                  internalId: row.internalId,
-                  createdAt: row.createdAt,
-                }
-              : row
-          );
-          saveBlogExtras(nextExtras);
-        } else if (postsBySlug[slug]) {
-          const ov = loadBlogOverrides();
-          saveBlogOverrides({
-            ...ov,
-            [slug]: {
-              title: baseFields.title,
-              excerpt: baseFields.excerpt,
-              date: baseFields.date,
-              category: baseFields.category,
-              author: baseFields.author,
-              image: baseFields.image,
-              imageAlt: baseFields.imageAlt,
-              tagTone: baseFields.tagTone,
-              body: baseFields.body,
-            },
-          });
-        } else {
-          setEditFormError("This post cannot be edited here.");
-          return;
-        }
-      }
-      window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
-      closeEditor();
-    } catch {
-      setEditFormError("Something went wrong. Try again.");
-    } finally {
-      setEditSaving(false);
-    }
-  }
-
-  const editingIsDb =
-    editingPost != null && parseBlogDbSlug(editingPost.slug) != null;
 
   useLayoutEffect(() => {
     let cancelled = false;
@@ -288,35 +108,6 @@ export function BlogsView({
     }
     return list;
   }, [listPosts, activeFilter]);
-
-  async function deletePost(post: BlogPost) {
-    if (
-      !window.confirm(`Delete “${post.title}”? This cannot be undone.`)
-    ) {
-      return;
-    }
-    const dbId = parseBlogDbSlug(post.slug);
-    if (dbId != null) {
-      const res = await fetch(apiUrl(`/api/blogs/${dbId}`), {
-        method: "DELETE",
-      });
-      if (!res.ok) return;
-      window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
-      return;
-    }
-    const extra = loadBlogExtras().find((e) => e.slug === post.slug);
-    if (extra) {
-      saveBlogExtras(
-        loadBlogExtras().filter((e) => e.internalId !== extra.internalId)
-      );
-      window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
-      return;
-    }
-    if (postsBySlug[post.slug]) {
-      deleteBuiltinFromCatalog(post.slug);
-      window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
-    }
-  }
 
   return (
     <div
@@ -418,35 +209,13 @@ export function BlogsView({
               <p className="mb-6 line-clamp-3 font-[family-name:var(--font-landing-body)] text-sm text-[#41474d]">
                 {post.excerpt}
               </p>
-              <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-[#c1c7cf]/10 pt-4">
-                <div className="min-w-0 space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-tighter text-[#1a1c1e]">
-                    By {post.author}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="size-3.5 shrink-0 text-[#006a6e]" aria-hidden />
-                    <span className="text-xs text-[#41474d]">{post.date}</span>
-                  </div>
-                </div>
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openEditor(post)}
-                    className={cn(
-                      "inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-[#006a6e] bg-transparent px-3 py-2 text-center font-[family-name:var(--font-landing-headline)] text-xs font-semibold text-[#006a6e] transition hover:bg-[#006a6e]/10"
-                    )}
-                  >
-                    <Pencil className="size-3.5 shrink-0" aria-hidden />
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void deletePost(post)}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-red-600 bg-transparent px-3 py-2 font-[family-name:var(--font-landing-headline)] text-xs font-semibold text-red-700 transition hover:bg-red-600/10"
-                  >
-                    <Trash2 className="size-3.5 shrink-0" aria-hidden />
-                    Delete
-                  </button>
+              <div className="mt-auto space-y-2 border-t border-[#c1c7cf]/10 pt-4">
+                <p className="text-xs font-bold uppercase tracking-tighter text-[#1a1c1e]">
+                  By {post.author}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Calendar className="size-3.5 shrink-0 text-[#006a6e]" aria-hidden />
+                  <span className="text-xs text-[#41474d]">{post.date}</span>
                 </div>
               </div>
             </div>
@@ -458,182 +227,6 @@ export function BlogsView({
         <p className="pb-24 text-center text-sm text-[#41474d]">
           No flight logs match your filters.
         </p>
-      ) : null}
-
-      {editingPost ? (
-        <div
-          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-4 sm:items-center"
-          role="presentation"
-          onClick={closeEditor}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="blog-edit-title"
-            className={cn(
-              landingFontClassName,
-              "max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-[#c1c7cf]/40 bg-white p-5 shadow-xl sm:p-6"
-            )}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <h2
-                id="blog-edit-title"
-                className="font-[family-name:var(--font-landing-headline)] text-lg font-bold text-[#1a1c1e]"
-              >
-                Edit article
-              </h2>
-              <button
-                type="button"
-                onClick={closeEditor}
-                className="rounded-lg px-2 py-1 text-sm font-medium text-[#41474d] hover:bg-[#edeef2]"
-              >
-                Close
-              </button>
-            </div>
-            <form onSubmit={(e) => void saveEditor(e)} className="space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#41474d]">
-                  Title
-                </label>
-                <Input
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="h-11 w-full rounded-lg border-[#c1c7cf] bg-white"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#41474d]">
-                  Cover image URL
-                </label>
-                <Input
-                  value={editImage}
-                  onChange={(e) => setEditImage(e.target.value)}
-                  className="h-11 w-full rounded-lg border-[#c1c7cf] bg-white font-mono text-xs"
-                />
-              </div>
-              {!editingIsDb ? (
-                <>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-[#41474d]">
-                      Excerpt
-                    </label>
-                    <textarea
-                      value={editExcerpt}
-                      onChange={(e) => setEditExcerpt(e.target.value)}
-                      rows={2}
-                      className="w-full rounded-lg border border-[#c1c7cf] px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-[#41474d]">
-                        Date
-                      </label>
-                      <Input
-                        value={editDate}
-                        onChange={(e) => setEditDate(e.target.value)}
-                        className="h-11 rounded-lg border-[#c1c7cf]"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-[#41474d]">
-                        Author
-                      </label>
-                      <Input
-                        value={editAuthor}
-                        onChange={(e) => setEditAuthor(e.target.value)}
-                        className="h-11 rounded-lg border-[#c1c7cf]"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-[#41474d]">
-                        Category
-                      </label>
-                      <select
-                        value={editCategory}
-                        onChange={(e) =>
-                          setEditCategory(e.target.value as BlogPost["category"])
-                        }
-                        className="h-11 w-full rounded-lg border border-[#c1c7cf] bg-white px-3 text-sm"
-                      >
-                        {CATEGORIES.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-[#41474d]">
-                        Tag tone
-                      </label>
-                      <select
-                        value={editTagTone}
-                        onChange={(e) =>
-                          setEditTagTone(e.target.value as BlogPost["tagTone"])
-                        }
-                        className="h-11 w-full rounded-lg border border-[#c1c7cf] bg-white px-3 text-sm"
-                      >
-                        {TAG_TONES.map((tone) => (
-                          <option key={tone} value={tone}>
-                            {tone}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-[#41474d]">
-                      Image alt text
-                    </label>
-                    <Input
-                      value={editImageAlt}
-                      onChange={(e) => setEditImageAlt(e.target.value)}
-                      className="h-11 rounded-lg border-[#c1c7cf]"
-                    />
-                  </div>
-                </>
-              ) : null}
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#41474d]">
-                  Body (paragraphs separated by a blank line)
-                </label>
-                <textarea
-                  value={editBodyText}
-                  onChange={(e) => setEditBodyText(e.target.value)}
-                  rows={8}
-                  className="w-full rounded-lg border border-[#c1c7cf] px-3 py-2 font-mono text-xs leading-relaxed"
-                />
-              </div>
-              {editFormError ? (
-                <p className="text-sm font-medium text-red-600" role="alert">
-                  {editFormError}
-                </p>
-              ) : null}
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Button
-                  type="submit"
-                  disabled={editSaving}
-                  className="rounded-full bg-[#006a6e] font-bold text-white hover:bg-[#005a5e]"
-                >
-                  {editSaving ? "Saving…" : "Save changes"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={closeEditor}
-                  className="rounded-full"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
       ) : null}
     </div>
     </div>

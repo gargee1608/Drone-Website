@@ -1,42 +1,60 @@
 import {
   Building2,
-  Camera,
   Clapperboard,
-  Search,
-  Shield,
+  HardHat,
+  Heart,
+  Map,
+  Radar,
+  ScanLine,
   Tractor,
+  Weight,
 } from "lucide-react";
 
 const cases = [
   {
-    icon: Tractor,
-    title: "Agriculture",
-    description: "Crop monitoring, spraying & field mapping.",
+    icon: Radar,
+    title: "Defence & Surveillance",
+    description: "Perimeter patrols, reconnaissance & tactical overwatch.",
   },
   {
-    icon: Building2,
-    title: "Real Estate",
-    description: "Aerial photography & property surveys.",
+    icon: Tractor,
+    title: "Agriculture & Spraying",
+    description: "Crop health, precision spraying & field mapping.",
   },
   {
     icon: Clapperboard,
-    title: "Filming",
-    description: "Cinematic drone videography.",
+    title: "Filming & Cinematography",
+    description: "Commercial spots, TV & cinematic aerial sequences.",
   },
   {
-    icon: Search,
-    title: "Surveying",
-    description: "Land surveying & topographic mapping.",
+    icon: Weight,
+    title: "Heavy Lifting & Industry Work",
+    description: "Industrial payloads, logistics & on-site aerial lifts.",
   },
   {
-    icon: Shield,
-    title: "Security",
-    description: "Surveillance & perimeter monitoring.",
+    icon: Building2,
+    title: "Real Estate & Property Shoots",
+    description: "Listings, developments & polished property marketing.",
   },
   {
-    icon: Camera,
-    title: "Infrastructure",
-    description: "Bridge, tower & pipeline inspections.",
+    icon: Heart,
+    title: "Weddings & Events",
+    description: "Ceremonies, venues & live celebrations from above.",
+  },
+  {
+    icon: Map,
+    title: "Surveying & Mapping",
+    description: "Topographic surveys, orthomosaics & GIS-ready outputs.",
+  },
+  {
+    icon: ScanLine,
+    title: "Inspection (Solar, Tower, Infra)",
+    description: "Solar arrays, towers & critical infrastructure checks.",
+  },
+  {
+    icon: HardHat,
+    title: "Construction Progress Tracking",
+    description: "Site documentation, milestones & stakeholder updates.",
   },
 ] as const;
 
