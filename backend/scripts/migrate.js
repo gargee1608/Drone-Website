@@ -289,7 +289,35 @@ async function migrateDroneHireRequestsSchema() {
   console.log("[migrate] ✓ drone_hire_requests schema done");
 }
 
-// ─── 9. seed admin ─────────────────────────────────────────────────────────────
+// ─── 9. blogs ────────────────────────────────────────────────────────────────
+async function migrateBlogsSchema() {
+  console.log("\n[migrate] → blogs table");
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS blogs (
+      id BIGSERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT,
+      image TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  const blogAlters = [
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS title TEXT",
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS content TEXT",
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS image TEXT",
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+  ];
+  for (const sql of blogAlters) {
+    try {
+      await pool.query(sql);
+    } catch (e) {
+      console.warn("  [skip]", e.message);
+    }
+  }
+  console.log("[migrate] ✓ blogs schema done");
+}
+
+// ─── 10. seed admin ─────────────────────────────────────────────────────────────
 async function seedAdmin() {
   console.log("\n[migrate] → seed admin user");
   const bcrypt = require("bcryptjs");
@@ -328,6 +356,7 @@ async function main() {
     await migrateMissionRequestsSchema();
     await migrateServicesSchema();
     await migrateDroneHireRequestsSchema();
+    await migrateBlogsSchema();
     await seedAdmin();
 
     console.log("\n✅  All migrations completed successfully!\n");

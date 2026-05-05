@@ -490,6 +490,31 @@ async function ensureServicesSchema() {
   `);
 }
 
+async function ensureBlogsSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS blogs (
+      id BIGSERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT,
+      image TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  const blogAlters = [
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS title TEXT",
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS content TEXT",
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS image TEXT",
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+  ];
+  for (const sql of blogAlters) {
+    try {
+      await pool.query(sql);
+    } catch (e) {
+      console.warn("  [skip] blogs:", e.message);
+    }
+  }
+}
+
 async function ensurePhoneOtpSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS phone_otps (
@@ -1497,6 +1522,7 @@ ensureAuthSchema()
   .then(() => ensureMissionSchema())
   .then(() => ensureDroneHireRequestsSchema())
   .then(() => ensureServicesSchema())
+  .then(() => ensureBlogsSchema())
   .then(() => seedDevAdminsIfEmpty())
   .then(() => seedDevDronesIfEmpty())
   .then(() =>
