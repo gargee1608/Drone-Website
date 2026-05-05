@@ -18,6 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="min-h-dvh overflow-x-clip bg-background antialiased">
+      <head />
       <body className="m-0 flex min-h-dvh flex-col gap-0 overflow-x-clip bg-background p-0 font-sans text-foreground">
         <AppProviders>
           <ConditionalSiteHeader />

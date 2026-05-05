@@ -15,7 +15,7 @@ async function proxy(req: NextRequest, ctx: RouteCtx) {
   }
 
   const path = slug.join("/");
-  const url = `${expressBackendOrigin()}/${path}${req.nextUrl.search}`;
+  const url = `${expressBackendOrigin()}/api/${path}${req.nextUrl.search}`;
 
   const headers = new Headers();
   for (const name of ["content-type", "accept", "authorization"]) {

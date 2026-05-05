@@ -65,10 +65,8 @@ function userShellNavItemIsActive(pathname: string | null, href: string) {
 
 function SidebarNavLinks({
   onNavigate,
-  hideRequestMonitoring,
 }: {
   onNavigate?: () => void;
-  hideRequestMonitoring?: boolean;
 }) {
   const pathname = usePathname();
   const navItems = hideRequestMonitoring
@@ -130,17 +128,14 @@ function LogoutControl({ onAfterClick }: { onAfterClick?: () => void }) {
 /** Mobile drawer: nav + divider + logout */
 function MobileSidebarContent({
   onNavigate,
-  hideRequestMonitoring,
 }: {
   onNavigate?: () => void;
-  hideRequestMonitoring?: boolean;
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="min-h-0 flex-1 basis-0 overflow-y-auto">
         <SidebarNavLinks
           onNavigate={onNavigate}
-          hideRequestMonitoring={hideRequestMonitoring}
         />
       </div>
       <div className="mt-auto shrink-0 border-t border-slate-200 pt-4 pb-2 dark:border-white/15">
@@ -162,8 +157,6 @@ export type UserDashboardShellProps = {
   mainMaxWidthClassName?: string;
   /** Optional custom page background color for shell content area. */
   contentBackgroundClassName?: string;
-  /** Hide Request Monitoring item for this page sidebar only. */
-  hideRequestMonitoringInSidebar?: boolean;
   children: ReactNode;
 };
 
@@ -174,7 +167,6 @@ export function UserDashboardShell({
   pageTitleBarClassName,
   mainMaxWidthClassName,
   contentBackgroundClassName,
-  hideRequestMonitoringInSidebar,
   children,
 }: UserDashboardShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -259,7 +251,6 @@ export function UserDashboardShell({
             <div className="flex min-h-0 flex-1 flex-col">
               <MobileSidebarContent
                 onNavigate={() => setMobileNavOpen(false)}
-                hideRequestMonitoring={hideRequestMonitoringInSidebar}
               />
             </div>
           </aside>
@@ -292,9 +283,7 @@ export function UserDashboardShell({
             </div>
           ) : null}
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pt-2 lg:px-3 lg:pb-3 lg:pt-0">
-            <SidebarNavLinks
-              hideRequestMonitoring={hideRequestMonitoringInSidebar}
-            />
+            <SidebarNavLinks />
           </div>
           {sidebarExpanded ? (
             <div className="mt-auto flex w-full shrink-0 flex-col">
