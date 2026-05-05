@@ -166,6 +166,9 @@ export function markPilotMissionNotificationIdsSeen(ids: string[]): void {
   const next = loadSeenIds();
   for (const id of ids) next.add(id);
   persistSeenIds(next);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT));
+  }
 }
 
 /** Remove one mission notification after pilot marks it complete. */

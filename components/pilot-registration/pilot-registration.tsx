@@ -2,9 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   ArrowRight,
-  CheckCircle2,
   Plus,
   Upload,
   X,
@@ -232,13 +230,6 @@ export function PilotRegistrationView() {
   const [draftUseCases, setDraftUseCases] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState<{
-    name: string;
-    email: string;
-    phone: string;
-    dgca: string;
-    dronesAdded: string;
-  } | null>(null);
   const [profileReturnTo, setProfileReturnTo] = useState<string | null>(null);
 
   const resetForm = useCallback(() => {
@@ -266,7 +257,6 @@ export function PilotRegistrationView() {
     setDraftUseCases([]);
     setSubmitError(null);
     setStepError(null);
-    setSubmitSuccess(null);
   }, []);
 
   function hydrateFromPilotProfileSnapshot(snap: PilotProfileSnapshot) {
@@ -296,6 +286,9 @@ export function PilotRegistrationView() {
     setDrones(snap.drones.length ? [...snap.drones] : []);
   }
 
+  // URL + draft restore runs once on mount only. Including `router` in deps caused
+  // the effect to re-run when the router reference changed and re-applied the saved
+  // draft at the wrong time.
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -355,7 +348,8 @@ export function PilotRegistrationView() {
     } catch {
       /* ignore */
     }
-  }, [resetForm, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only hydrate
+  }, []);
 
   useEffect(() => {
     savePilotRegistrationDraft(
@@ -542,11 +536,6 @@ export function PilotRegistrationView() {
     );
   }
 
-  function goBack() {
-    setStepError(null);
-    if (step > 1) setStep(step - 1);
-  }
-
   /**
    * Submit from Review (step 4), or from Skills (step 2) via “Submit” (no drone section).
    * Does not run on Enter / implicit form submit.
@@ -656,21 +645,8 @@ export function PilotRegistrationView() {
     markPilotRegistrationSubmittedNextOpenBlank();
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
-      const dronesAdded =
-        snapshot.drones.length > 0
-          ? snapshot.drones
-              .map((drone) => drone.modelName?.trim())
-              .filter(Boolean)
-              .join(", ")
-          : "None";
-      setSubmitSuccess({
-        name: snapshot.fullName || "-",
-        email: snapshot.email || "-",
-        phone: snapshot.phone || "-",
-        dgca: snapshot.dgca || "-",
-        dronesAdded,
-      });
     }
+    router.push("/pilot-login");
   }
 
   function saveDronesToPilotProfile() {
@@ -1506,50 +1482,26 @@ export function PilotRegistrationView() {
 
             <div className="pt-2">
               {step === 2 ? (
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-10 rounded-lg border-slate-300 bg-white px-4 font-medium text-slate-700 hover:bg-slate-50"
-                    onClick={goBack}
+                    className="h-10 rounded-lg border-[#008B8B] bg-transparent px-4 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                    onClick={goNext}
                   >
-                    <ArrowLeft className="mr-1.5 inline size-4" aria-hidden />
-                    Back
+                    Next
+                    <ArrowRight className="ml-1.5 inline size-4" aria-hidden />
                   </Button>
-                  <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-10 rounded-lg border-[#008B8B] bg-transparent px-4 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
-                      onClick={goNext}
-                    >
-                      Next
-                      <ArrowRight className="ml-1.5 inline size-4" aria-hidden />
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={submitRegistration}
-                      className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
-                    >
-                      Submit
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    onClick={submitRegistration}
+                    className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                  >
+                    Submit
+                  </Button>
                 </div>
               ) : (
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  {step > 1 ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-10 rounded-lg border-slate-300 bg-white px-4 font-medium text-slate-700 hover:bg-slate-50"
-                      onClick={goBack}
-                    >
-                      <ArrowLeft className="mr-1.5 inline size-4" aria-hidden />
-                      Back
-                    </Button>
-                  ) : (
-                    <span />
-                  )}
+                <div className="flex flex-wrap items-center justify-end gap-3">
                   {step < 4 ? (
                     <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
                       {profileReturnTo === "/pilot-profile" && step === 3 ? (
@@ -1590,71 +1542,6 @@ export function PilotRegistrationView() {
           </form>
         </div>
       </div>
-      {submitSuccess ? (
-        <div className="fixed inset-0 z-[120] flex items-end justify-center bg-slate-900/50 p-4 backdrop-blur-[1px] sm:items-center">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="pilot-registration-success-title"
-            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6"
-          >
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div className="flex items-center gap-2.5">
-                <span className="inline-flex size-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                  <CheckCircle2 className="size-4.5" aria-hidden />
-                </span>
-                <h2
-                  id="pilot-registration-success-title"
-                  className="text-base font-semibold text-slate-900"
-                >
-                  Registration saved successfully
-                </h2>
-              </div>
-              <button
-                type="button"
-                className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-                aria-label="Close success popup"
-                onClick={() => setSubmitSuccess(null)}
-              >
-                <X className="size-4" aria-hidden />
-              </button>
-            </div>
-
-            <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-sm">
-              <p className="text-slate-700">
-                <span className="font-semibold text-slate-900">Name:</span>{" "}
-                {submitSuccess.name}
-              </p>
-              <p className="text-slate-700">
-                <span className="font-semibold text-slate-900">Email:</span>{" "}
-                {submitSuccess.email}
-              </p>
-              <p className="text-slate-700">
-                <span className="font-semibold text-slate-900">Phone:</span>{" "}
-                {submitSuccess.phone}
-              </p>
-              <p className="text-slate-700">
-                <span className="font-semibold text-slate-900">DGCA:</span>{" "}
-                {submitSuccess.dgca}
-              </p>
-              <p className="text-slate-700">
-                <span className="font-semibold text-slate-900">Drones Added:</span>{" "}
-                {submitSuccess.dronesAdded}
-              </p>
-            </div>
-
-            <div className="mt-5 flex justify-end">
-              <Button
-                type="button"
-                className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-5 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
-                onClick={() => setSubmitSuccess(null)}
-              >
-                OK
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

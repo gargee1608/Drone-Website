@@ -5,7 +5,6 @@ import {
   BookOpen,
   Briefcase,
   CheckCircle2,
-  CircleUser,
   ClipboardList,
   LayoutDashboard,
   LogOut,
@@ -38,7 +37,6 @@ export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
     label: "Contact inquiries",
     icon: Mail,
   },
-  { href: "/dashboard/profile", label: "Profile", icon: CircleUser },
   { href: "/settings?from=admin", label: "Settings", icon: Settings },
 ];
 
@@ -59,7 +57,6 @@ export const userCommandCenterNavMain: readonly CommandCenterNavItem[] = [
     label: "Request Monitoring",
     icon: Activity,
   },
-  { href: "/user-dashboard/profile", label: "Profile", icon: CircleUser },
   { href: "/settings?from=user", label: "Settings", icon: Settings },
 ];
 

@@ -72,6 +72,28 @@ const ACTIVE_ASSIGNMENT_STATUSES = ["assigned", "pending", "in_progress"];
  * Count of mission rows treated as completed (same rule and optional pilot filter as GET /).
  * Query: pilotSub, pilotName — when both absent, counts all completed missions.
  */
+/** All mission rows for this pilot (active assignments + completed). */
+router.get("/assigned-count", async (req, res) => {
+  try {
+    await ensureMissionColumns();
+    const pilotSub = toTrimmed(req.query?.pilotSub);
+    if (!pilotSub) {
+      return res.status(400).json({ error: "pilotSub is required" });
+    }
+    const result = await pool.query(
+      `SELECT COUNT(*)::int AS count
+       FROM missions
+       WHERE TRIM(COALESCE(pilot_sub, '')) = $1`,
+      [pilotSub]
+    );
+    const count = Number(result.rows[0]?.count ?? 0);
+    return res.status(200).json({ success: true, count });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.get("/completed-deliveries-count", async (req, res) => {
   try {
     await ensureMissionColumns();

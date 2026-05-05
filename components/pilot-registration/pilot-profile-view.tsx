@@ -25,6 +25,7 @@ import {
   patchPilotFlightHours,
 } from "@/app/services/pilotServices";
 import { fetchPilotSessionRow } from "@/lib/fetch-pilot-session-row";
+import { PilotSettingsAddDronePanel } from "@/components/settings/pilot-settings-add-drone-panel";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -230,12 +231,17 @@ function InfoRow({ icon, iconClass, label, value }: InfoRowProps) {
 
 export function PilotProfileView({
   variant = "standalone",
+  embedded = false,
 }: {
   variant?: PilotProfileViewVariant;
+  /** Read-only profile body for settings modal (no photo/drone edits). */
+  embedded?: boolean;
 } = {}) {
   const router = useRouter();
+  const allowProfileEdits = !embedded;
   const [data, setData] = useState<PilotProfileSnapshot | null>(null);
   const [ready, setReady] = useState(false);
+  const [embeddedAddDroneOpen, setEmbeddedAddDroneOpen] = useState(false);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editFullName, setEditFullName] = useState("");
@@ -485,7 +491,7 @@ export function PilotProfileView({
   }
 
   function syncPilotDronesToBackend(snapshot: PilotProfileSnapshot) {
-    if (variant !== "dashboard") return;
+    if (embedded || variant !== "dashboard") return;
     const tok =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
     if (!tok || jwtPayloadRole(tok) !== "pilot") return;
@@ -514,10 +520,10 @@ export function PilotProfileView({
   }
 
   useEffect(() => {
-    if (!ready || !data) return;
+    if (!ready || !data || embedded) return;
     syncPilotDronesToBackend(data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, data, variant]);
+  }, [ready, data, variant, embedded]);
 
   function goToPilotRegistrationDroneStep() {
     router.push(DRONE_STEP_REGISTRATION_HREF);
@@ -665,17 +671,20 @@ export function PilotProfileView({
   const certDisplay = showDgcaBadge ? "99.9%" : "—";
   const skillsCount = String(data.skills.length);
 
-  const innerPad =
-    variant === "dashboard"
+  const innerPad = embedded
+    ? "mx-auto w-full px-1 pb-4 pt-0 sm:px-2"
+    : variant === "dashboard"
       ? "mx-auto max-w-[1120px] px-0 pb-8 pt-0 sm:px-0"
       : "mx-auto max-w-[1120px] px-4 pb-12 pt-22 sm:px-6 sm:pt-24";
 
   return (
     <div
       className={
-        variant === "dashboard"
-          ? "relative min-h-0 bg-background text-foreground"
-          : "relative min-h-dvh bg-background text-foreground"
+        embedded
+          ? "relative min-h-0 bg-transparent text-foreground"
+          : variant === "dashboard"
+            ? "relative min-h-0 bg-background text-foreground"
+            : "relative min-h-dvh bg-background text-foreground"
       }
     >
       <div className={innerPad}>
@@ -696,57 +705,88 @@ export function PilotProfileView({
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:gap-5">
             <div className="relative mx-auto mb-1 mr-1 flex shrink-0 flex-col items-center sm:mx-0 sm:items-start">
-              <input
-                ref={photoFileInputRef}
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                aria-hidden
-                tabIndex={-1}
-                onChange={handlePilotPhotoSelected}
-              />
-              <button
-                type="button"
-                onClick={openPilotPhotoPicker}
-                className="relative size-[4.75rem] shrink-0 rounded-full p-0 ring-4 ring-sky-50 transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:ring-sky-900/40"
-                aria-label={
-                  data.photoDataUrl
-                    ? "Edit profile photo"
-                    : "Add profile photo"
-                }
-              >
-                <span
-                  className={`absolute inset-0 flex items-center justify-center overflow-hidden rounded-full ${
-                    data.photoDataUrl
-                      ? "bg-muted"
-                      : "bg-sky-100 dark:bg-sky-950/50"
-                  }`}
-                >
-                  {data.photoDataUrl ? (
-                    <Image
-                      src={data.photoDataUrl}
-                      alt=""
-                      width={76}
-                      height={76}
-                      unoptimized
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <Headset
-                      className="size-8 text-sky-700 dark:text-sky-300"
-                      strokeWidth={1.75}
+              {allowProfileEdits ? (
+                <>
+                  <input
+                    ref={photoFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    aria-hidden
+                    tabIndex={-1}
+                    onChange={handlePilotPhotoSelected}
+                  />
+                  <button
+                    type="button"
+                    onClick={openPilotPhotoPicker}
+                    className="relative size-[4.75rem] shrink-0 rounded-full p-0 ring-4 ring-sky-50 transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:ring-sky-900/40"
+                    aria-label={
+                      data.photoDataUrl
+                        ? "Edit profile photo"
+                        : "Add profile photo"
+                    }
+                  >
+                    <span
+                      className={`absolute inset-0 flex items-center justify-center overflow-hidden rounded-full ${
+                        data.photoDataUrl
+                          ? "bg-muted"
+                          : "bg-sky-100 dark:bg-sky-950/50"
+                      }`}
+                    >
+                      {data.photoDataUrl ? (
+                        <Image
+                          src={data.photoDataUrl}
+                          alt=""
+                          width={76}
+                          height={76}
+                          unoptimized
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        <Headset
+                          className="size-8 text-sky-700 dark:text-sky-300"
+                          strokeWidth={1.75}
+                          aria-hidden
+                        />
+                      )}
+                    </span>
+                    <span
+                      className="pointer-events-none absolute -bottom-1 -right-1 z-[1] flex size-7 items-center justify-center rounded-full border border-[#d9dee3] bg-white text-[#2e4f53] shadow-md ring-2 ring-background dark:border-white/20 dark:bg-white dark:text-[#2e4f53] dark:ring-card"
                       aria-hidden
-                    />
-                  )}
-                </span>
-                <span
-                  className="pointer-events-none absolute -bottom-1 -right-1 z-[1] flex size-7 items-center justify-center rounded-full bg-[#008080] text-white shadow-md ring-2 ring-background dark:ring-card"
-                  aria-hidden
-                >
-                  <Pencil className="size-3.5" strokeWidth={2.25} />
-                </span>
-              </button>
-              {avatarError ? (
+                    >
+                      <Pencil className="size-3.5" strokeWidth={2.25} />
+                    </span>
+                  </button>
+                </>
+              ) : (
+                <div className="relative size-[4.75rem] shrink-0 rounded-full ring-4 ring-sky-50 dark:ring-sky-900/40">
+                  <span
+                    className={`absolute inset-0 flex items-center justify-center overflow-hidden rounded-full ${
+                      data.photoDataUrl
+                        ? "bg-muted"
+                        : "bg-sky-100 dark:bg-sky-950/50"
+                    }`}
+                  >
+                    {data.photoDataUrl ? (
+                      <Image
+                        src={data.photoDataUrl}
+                        alt={displayName}
+                        width={76}
+                        height={76}
+                        unoptimized
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <Headset
+                        className="size-8 text-sky-700 dark:text-sky-300"
+                        strokeWidth={1.75}
+                        aria-hidden
+                      />
+                    )}
+                  </span>
+                </div>
+              )}
+              {allowProfileEdits && avatarError ? (
                 <p
                   className="mt-2 max-w-[12rem] text-center text-xs text-red-600 sm:text-left"
                   role="alert"
@@ -770,20 +810,22 @@ export function PilotProfileView({
               </p>
             </div>
             </div>
-            <div className="flex shrink-0 justify-center sm:justify-end">
-              <button
-                type="button"
-                onClick={openEditDialog}
-                className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#008080] bg-card px-3.5 text-sm text-foreground shadow-sm transition hover:bg-[#008080]/10"
-              >
-                <Pencil className="size-4" aria-hidden />
-                Edit profile
-              </button>
-            </div>
+            {variant !== "dashboard" && allowProfileEdits ? (
+              <div className="flex shrink-0 justify-center sm:justify-end">
+                <button
+                  type="button"
+                  onClick={openEditDialog}
+                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#008080] bg-card px-3.5 text-sm text-foreground shadow-sm transition hover:bg-[#008080]/10"
+                >
+                  <Pencil className="size-4" aria-hidden />
+                  Edit profile
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 
-        {editOpen ? (
+        {editOpen && variant !== "dashboard" && allowProfileEdits ? (
           <div
             className="fixed inset-0 z-[100] flex items-end justify-center p-4 sm:items-center"
             role="presentation"
@@ -1031,7 +1073,7 @@ export function PilotProfileView({
           </div>
         ) : null}
 
-        {variant !== "dashboard" ? (
+        {variant !== "dashboard" && !embedded ? (
           <>
             {/* Metrics row — hidden on Pilot Dashboard profile */}
             <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -1178,14 +1220,25 @@ export function PilotProfileView({
             <h2 className="text-sm font-semibold tracking-wide text-foreground">
               Drone details
             </h2>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={goToPilotRegistrationDroneStep}
-              className="h-8 rounded-lg border-[#008080] text-xs text-foreground hover:bg-[#008080]/10"
-            >
-              Add Drone Details
-            </Button>
+            {embedded ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEmbeddedAddDroneOpen((open) => !open)}
+                className="h-8 rounded-lg border-[#008080] text-xs text-foreground hover:bg-[#008080]/10"
+              >
+                {embeddedAddDroneOpen ? "Cancel" : "Add Drone Details"}
+              </Button>
+            ) : allowProfileEdits ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={goToPilotRegistrationDroneStep}
+                className="h-8 rounded-lg border-[#008080] text-xs text-foreground hover:bg-[#008080]/10"
+              >
+                Add Drone Details
+              </Button>
+            ) : null}
           </div>
           <div className="px-4 py-4">
             {data.drones.length === 0 ? (
@@ -1193,13 +1246,23 @@ export function PilotProfileView({
                 <p className="text-sm text-muted-foreground">
                   No drone details added yet.
                 </p>
-                <Button
-                  type="button"
-                  onClick={goToPilotRegistrationDroneStep}
-                  className="mt-3 h-8 rounded-lg bg-[#008B8B] px-3 text-xs text-white hover:bg-[#006b6b]"
-                >
-                  Add Drone Details
-                </Button>
+                {embedded ? (
+                  <Button
+                    type="button"
+                    onClick={() => setEmbeddedAddDroneOpen(true)}
+                    className="mt-3 h-8 rounded-lg bg-[#008B8B] px-3 text-xs text-white hover:bg-[#006b6b]"
+                  >
+                    Add Drone Details
+                  </Button>
+                ) : allowProfileEdits ? (
+                  <Button
+                    type="button"
+                    onClick={goToPilotRegistrationDroneStep}
+                    className="mt-3 h-8 rounded-lg bg-[#008B8B] px-3 text-xs text-white hover:bg-[#006b6b]"
+                  >
+                    Add Drone Details
+                  </Button>
+                ) : null}
               </div>
             ) : (
               <div className="space-y-3">
@@ -1217,16 +1280,18 @@ export function PilotProfileView({
                           {drone.type || "—"}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={goToPilotRegistrationDroneStep}
-                          className="h-8 rounded-lg px-3 text-xs"
-                        >
-                          Edit
-                        </Button>
-                      </div>
+                      {allowProfileEdits ? (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={goToPilotRegistrationDroneStep}
+                            className="h-8 rounded-lg px-3 text-xs"
+                          >
+                            Edit
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
                     <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
                       <p>
@@ -1254,6 +1319,11 @@ export function PilotProfileView({
                 ))}
               </div>
             )}
+            {embedded && embeddedAddDroneOpen ? (
+              <div className="mt-6 border-t border-border/80 pt-6">
+                <PilotSettingsAddDronePanel withDroneList={false} />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

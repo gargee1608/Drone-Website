@@ -84,7 +84,12 @@ function buildProfileFromSessionAndSaved(): UserProfileDraft {
   };
 }
 
-export function UserProfileView() {
+export type UserProfileViewProps = {
+  /** When true, render only profile content (e.g. inside a settings modal). */
+  embedded?: boolean;
+};
+
+export function UserProfileView({ embedded = false }: UserProfileViewProps) {
   const [profile, setProfile] = useState<UserProfileDraft>(DEFAULT_USER_PROFILE);
   const [hydrated, setHydrated] = useState(false);
   const [roleLabel, setRoleLabel] = useState("User");
@@ -154,19 +159,28 @@ export function UserProfileView() {
     .replace(/[^A-Z]/g, "") || "UA";
 
   if (!hydrated) {
+    const loading = (
+      <div
+        className={
+          embedded
+            ? "px-4 py-12 text-center text-sm text-muted-foreground"
+            : "mx-auto max-w-5xl px-4 py-10 text-sm text-slate-500"
+        }
+      >
+        Loading profile…
+      </div>
+    );
+    if (embedded) return loading;
     return (
       <UserDashboardShell pageTitle="Profile" pageTitleBarClassName="text-xs">
-        <div className="mx-auto max-w-5xl px-4 py-10 text-sm text-slate-500">
-          Loading profile…
-        </div>
+        {loading}
       </UserDashboardShell>
     );
   }
 
-  return (
-    <UserDashboardShell pageTitle="Profile" pageTitleBarClassName="text-xs">
-      <div className="mx-auto w-full max-w-5xl space-y-4 pb-8">
-        <article className="rounded-xl border border-[#dfe6ea] bg-white px-5 py-4 shadow-sm dark:border-white/15 dark:bg-[#111315]">
+  const body = (
+    <>
+      <article className="rounded-xl border border-[#dfe6ea] bg-white px-5 py-4 shadow-sm dark:border-white/15 dark:bg-[#111315]">
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <div className="relative">
               <div className="flex size-16 items-center justify-center overflow-hidden rounded-full border border-[#d4dce1] bg-white text-lg font-bold text-[#1f3e42] dark:border-white/20 dark:bg-[#161a1d] dark:text-white">
@@ -180,21 +194,25 @@ export function UserProfileView() {
                   initials
                 )}
               </div>
-              <button
-                type="button"
-                onClick={onAvatarPick}
-                className="absolute -bottom-1 -right-1 inline-flex size-6 items-center justify-center rounded-full border border-[#d9dee3] bg-white text-[#2e4f53] shadow-sm transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
-                aria-label="Edit profile photo"
-              >
-                <Pencil className="size-3" aria-hidden />
-              </button>
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={onAvatarChange}
-              />
+              {!embedded ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={onAvatarPick}
+                    className="absolute -bottom-1 -right-1 inline-flex size-6 items-center justify-center rounded-full border border-[#d9dee3] bg-white text-[#2e4f53] shadow-sm transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                    aria-label="Edit profile photo"
+                  >
+                    <Pencil className="size-3" aria-hidden />
+                  </button>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={onAvatarChange}
+                  />
+                </>
+              ) : null}
             </div>
             <div className="min-w-0">
               <p className="text-lg font-semibold text-[#033f3f] dark:text-white">
@@ -244,8 +262,18 @@ export function UserProfileView() {
             </div>
           </div>
         </article>
+    </>
+  );
 
-      </div>
+  if (embedded) {
+    return (
+      <div className="space-y-4 px-1 py-1 sm:px-2">{body}</div>
+    );
+  }
+
+  return (
+    <UserDashboardShell pageTitle="Profile" pageTitleBarClassName="text-xs">
+      <div className="mx-auto w-full max-w-5xl space-y-4 pb-8">{body}</div>
     </UserDashboardShell>
   );
 }

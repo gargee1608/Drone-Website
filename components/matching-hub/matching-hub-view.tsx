@@ -22,6 +22,7 @@ import {
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
+import { notifyMissionsDbUpdated } from "@/lib/user-requests";
 
 type HubTab = "missions" | "pilots";
 
@@ -259,6 +260,7 @@ function MissionDetailDialog({
           ? `${p.name} already has this mission assigned.`
           : `${mission.title} is assigned to ${p.name}. They will see it on the pilot dashboard.`
       );
+      notifyMissionsDbUpdated();
     })();
   };
 

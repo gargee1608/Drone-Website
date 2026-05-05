@@ -40,7 +40,7 @@ import {
 import {
   findStoredUserRequestByAdminRef,
   loadUserRequests,
-  MISSIONS_DB_UPDATED_EVENT,
+  notifyMissionsDbUpdated,
   updateUserRequestAdminStatus,
   USER_REQUESTS_STORAGE_KEY,
   USER_REQUESTS_UPDATED_EVENT,
@@ -825,7 +825,7 @@ export function AssignPilotDroneView() {
         }),
       });
       if (missionRes.ok) {
-        window.dispatchEvent(new Event(MISSIONS_DB_UPDATED_EVENT));
+        notifyMissionsDbUpdated();
       }
     } catch {
       /* mission row optional for offline API */
@@ -882,7 +882,7 @@ export function AssignPilotDroneView() {
     <div
       className={cn(
         fontWrap,
-        "min-w-0 bg-white pb-12 pt-4 sm:pt-6 dark:bg-white"
+        "min-w-0 bg-white pb-12 pt-4 sm:pt-6 dark:bg-background"
       )}
     >
       <div className="mx-auto max-w-7xl space-y-10 px-4 sm:px-6">

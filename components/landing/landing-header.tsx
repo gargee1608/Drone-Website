@@ -25,7 +25,6 @@ import { usePilotDashboardNav } from "@/components/pilot-dashboard/pilot-dashboa
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
 import { AdminInboxMenu } from "@/components/notifications/admin-inbox-menu";
 import { PilotMissionNotificationsMenu } from "@/components/notifications/pilot-mission-notifications-menu";
-import { HeaderThemeModeToggle } from "@/components/nav/header-theme-mode-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getPilotDisplayName, jwtPayloadRole } from "@/lib/pilot-display-name";
 import {
@@ -66,17 +65,14 @@ export function LandingHeader() {
   const isSettingsPage =
     pathname === "/settings" || (pathname?.startsWith("/settings/") ?? false);
   const settingsFrom = searchParams.get("from");
-  /** Home / Services / Blogs / Contact — hidden on admin, user & pilot dashboards, user settings shell (`/settings` without `from=admin|pilot`), and admin login. */
-  const isUserShellMarketingHidden =
-    isUserDashboard ||
-    (isSettingsPage &&
-      settingsFrom !== "pilot" &&
-      settingsFrom !== "admin");
+  /** Home / Services / Blogs / Contact — hidden on user dashboard shell, admin dashboard, pilot dashboard areas, and admin login; all `/settings` URLs are excluded via `!isSettingsPage` below. */
+  const isUserShellMarketingHidden = isUserDashboard;
   const showMarketingHeaderNav =
     !isAdminDashboard &&
     !isAdminLoginPage &&
     !isPilotDashboard &&
-    !isUserShellMarketingHidden;
+    !isUserShellMarketingHidden &&
+    !isSettingsPage;
   const isPilotSettingsContext =
     isSettingsPage && settingsFrom === "pilot";
   const showUserDashboardSidebar =
@@ -151,16 +147,14 @@ export function LandingHeader() {
     isUserDashboard ||
     (isSettingsPage &&
       (settingsFrom === "admin" || settingsFrom === "user"));
-  const showPilotThemeToggle =
-    isPilotDashboard || isPilotSettingsContext;
   const showPilotNotifications =
     isPilotDashboard || isPilotSettingsContext;
   const profileHref =
     isPilotDashboard || settingsFrom === "pilot"
       ? "/pilot-profile"
       : isAdminDashboard || settingsFrom === "admin"
-        ? "/dashboard/profile"
-        : "/user-dashboard/profile";
+        ? "/settings?from=admin"
+        : "/settings?from=user";
 
   const showAccountMenu =
     isAdminDashboard ||
@@ -320,10 +314,7 @@ export function LandingHeader() {
   return (
     <header
       className={cn(
-        "fixed top-0 z-50 w-full border-b dark:text-white",
-        compactAppHeader
-          ? "border-border bg-background"
-          : "border-slate-100 bg-white dark:border-border dark:bg-background"
+        "fixed top-0 z-50 w-full border-b border-border bg-background dark:text-white"
       )}
     >
       <nav
@@ -429,7 +420,7 @@ export function LandingHeader() {
 
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-4 lg:gap-6">
           {showHeaderSearchBar ? (
-            <div className="hidden min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 lg:flex">
+            <div className="hidden min-w-0 items-center rounded-full border border-border bg-card py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 lg:flex">
               <Search
                 className="mr-2 size-4 shrink-0 text-slate-500 dark:text-white"
                 aria-hidden
@@ -574,13 +565,7 @@ export function LandingHeader() {
             !isPilotRegistration &&
             !hideNotificationsAndSettings ? (
               <>
-                {showHeaderNotifications ? (
-                  <>
-                    <AdminInboxMenu />
-                    <HeaderThemeModeToggle />
-                  </>
-                ) : null}
-                {showPilotThemeToggle ? <HeaderThemeModeToggle /> : null}
+                {showHeaderNotifications ? <AdminInboxMenu /> : null}
                 {showPilotNotifications ? (
                   <PilotMissionNotificationsMenu />
                 ) : null}
@@ -693,17 +678,20 @@ export function LandingHeader() {
       <div
         id="landing-mobile-nav"
         className={cn(
-          "border-t border-slate-100 bg-white px-4 py-4 md:hidden",
+          "border-t border-border bg-background px-4 py-4 md:hidden",
           open ? "block" : "hidden"
         )}
       >
         {showHeaderSearchBar ? (
-          <div className="mb-3 flex rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2">
-            <Search className="mr-2 size-4 shrink-0 text-slate-500" aria-hidden />
+          <div className="mb-3 flex min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5">
+            <Search
+              className="mr-2 size-4 shrink-0 text-slate-500 dark:text-white/70"
+              aria-hidden
+            />
             <input
               type="search"
               placeholder="Track delivery..."
-              className="min-w-0 flex-1 border-0 bg-transparent text-sm focus:ring-0"
+              className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 focus:ring-0 dark:bg-transparent dark:text-white dark:placeholder:text-white/45"
             />
           </div>
         ) : null}

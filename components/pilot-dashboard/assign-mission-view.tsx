@@ -17,6 +17,7 @@ import {
   type PilotMissionNotification,
 } from "@/lib/pilot-mission-notifications";
 import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
+import { notifyMissionsDbUpdated } from "@/lib/user-requests";
 
 const COMPLETED_MISSION_PREVIEW_KEY = "aerolaminar_completed_mission_preview_v1";
 
@@ -180,6 +181,8 @@ export function AssignMissionView() {
         await incrementPilotMissionsCompleted(effectivePilotSub, 1);
       }
 
+      notifyMissionsDbUpdated();
+
       if (!row.id.startsWith("db:")) {
         removePilotMissionNotificationById(row.id);
       }
@@ -193,25 +196,24 @@ export function AssignMissionView() {
 
   return (
     <section className="space-y-5">
-      <article className="rounded-2xl border border-[#dfe6ea] bg-white p-5 shadow-sm dark:border-white/15 dark:bg-[#111315]">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#008B8B]/12 text-[#008B8B]">
-            <Plane className="size-4" aria-hidden />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-[#003f3f] dark:text-white">
-              Pilot has been assigned to complete missions
-            </p>
-            <p className="mt-1 text-xs font-medium text-[#008B8B] dark:text-primary">
-              Upcoming Mission...
-            </p>
-          </div>
-        </div>
-      </article>
-
       {rows.length === 0 ? (
-        <article className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600 dark:border-white/20 dark:bg-[#111315] dark:text-white/75">
-          No assigned missions yet.
+        <article className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 shadow-sm dark:border-white/20 dark:bg-[#111315] sm:p-8">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#008B8B]/12 text-[#008B8B]">
+              <Plane className="size-4" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[#003f3f] dark:text-white">
+                Pilot has been assigned to complete missions
+              </p>
+              <p className="mt-1 text-xs font-medium text-[#008B8B] dark:text-primary">
+                Upcoming Mission...
+              </p>
+              <p className="mt-4 text-sm text-slate-600 dark:text-white/75">
+                No assigned missions yet.
+              </p>
+            </div>
+          </div>
         </article>
       ) : (
         <div className="grid grid-cols-1 gap-4">

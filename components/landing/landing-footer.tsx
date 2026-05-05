@@ -24,7 +24,7 @@ export function LandingFooter({ className }: LandingFooterProps) {
   return (
     <footer
       className={cn(
-        "relative z-[60] w-full shrink-0 border-t border-slate-200 bg-white text-slate-700",
+        "relative z-[60] w-full shrink-0 border-t border-border bg-background text-muted-foreground",
         "transition-[padding-left,padding-right] duration-200 ease-out",
         className
       )}
@@ -44,7 +44,7 @@ export function LandingFooter({ className }: LandingFooterProps) {
                 aria-hidden
               />
               <span className="font-[family-name:var(--font-landing-headline)] text-lg leading-tight sm:text-xl">
-                <span className="font-bold tracking-tight text-slate-900">
+                <span className="font-bold tracking-tight text-foreground">
                   DRONE{" "}
                 </span>
                 <span className="font-semibold tracking-tight text-[#008B8B]">
@@ -68,7 +68,7 @@ export function LandingFooter({ className }: LandingFooterProps) {
                 <li key={item.label}>
                   <Link
                     href={item.href}
-                    className="text-sm text-slate-600 transition-colors hover:text-[#008B8B]"
+                    className="text-sm text-muted-foreground transition-colors hover:text-[#008B8B]"
                   >
                     {item.label}
                   </Link>
@@ -86,7 +86,7 @@ export function LandingFooter({ className }: LandingFooterProps) {
               <li>
                 <a
                   href={`mailto:${contactEmail}`}
-                  className="group flex gap-2.5 text-sm text-slate-600 transition-colors hover:text-[#008B8B]"
+                  className="group flex gap-2.5 text-sm text-muted-foreground transition-colors hover:text-[#008B8B]"
                 >
                   <Mail
                     className="mt-0.5 size-4 shrink-0 text-[#008B8B]"
@@ -96,7 +96,7 @@ export function LandingFooter({ className }: LandingFooterProps) {
                 </a>
               </li>
               <li>
-                <div className="flex gap-2.5 text-sm text-slate-600">
+                <div className="flex gap-2.5 text-sm text-muted-foreground">
                   <MapPin
                     className="mt-0.5 size-4 shrink-0 text-[#008B8B]"
                     aria-hidden
@@ -108,8 +108,8 @@ export function LandingFooter({ className }: LandingFooterProps) {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-slate-200 pt-6">
-          <p className="text-center text-xs leading-relaxed text-slate-500">
+        <div className="mt-12 border-t border-border pt-6">
+          <p className="text-center text-xs leading-relaxed text-muted-foreground">
             © {year} Drone Hire. All rights reserved.
           </p>
         </div>

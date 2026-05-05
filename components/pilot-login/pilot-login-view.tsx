@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, Mail, Plane, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Plane, User } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -270,7 +270,7 @@ export function PilotLoginView() {
                     setErrors((prev) => ({ ...prev, password: undefined }));
                   }}
                   className={cn(
-                    "w-full rounded-lg border bg-white py-2.5 pl-10 pr-3 text-sm text-[#191c1d] outline-none ring-[#008B8B]/25 transition placeholder:text-slate-400 focus:ring-2 dark:bg-[#161a1d] dark:text-white",
+                    "w-full rounded-lg border bg-white py-2.5 pl-10 pr-11 text-sm text-[#191c1d] outline-none ring-[#008B8B]/25 transition placeholder:text-slate-400 focus:ring-2 dark:bg-[#161a1d] dark:text-white",
                     errors.password
                       ? "border-red-400 focus:ring-red-200"
                       : "border-slate-200 dark:border-white/15"
@@ -281,6 +281,19 @@ export function PilotLoginView() {
                     errors.password ? "pilot-login-password-err" : undefined
                   }
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 outline-none transition hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:text-white/55 dark:hover:bg-white/10 dark:hover:text-white"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? (
+                    <EyeOff className="size-[1.15rem]" aria-hidden />
+                  ) : (
+                    <Eye className="size-[1.15rem]" aria-hidden />
+                  )}
+                </button>
               </div>
               {errors.password ? (
                 <p
@@ -290,20 +303,20 @@ export function PilotLoginView() {
                   {errors.password}
                 </p>
               ) : null}
-              <div className="mt-2 flex items-center justify-between gap-2 px-0.5">
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-0.5">
                 <div className="flex min-w-0 items-center gap-1.5">
                   <input
-                    id="pilot-login-show-password"
+                    id="pilot-login-remember"
                     type="checkbox"
-                    checked={showPassword}
-                    onChange={(ev) => setShowPassword(ev.target.checked)}
+                    checked={remember}
+                    onChange={(ev) => setRemember(ev.target.checked)}
                     className="size-4 shrink-0 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-2 focus:ring-[#008B8B]/25 dark:border-white/20 dark:bg-[#161a1d] sm:size-[18px]"
                   />
                   <label
-                    htmlFor="pilot-login-show-password"
+                    htmlFor="pilot-login-remember"
                     className="cursor-pointer text-xs font-medium text-slate-600 dark:text-white/75 sm:text-sm"
                   >
-                    Show password
+                    Remember me
                   </label>
                 </div>
                 <button
@@ -316,21 +329,6 @@ export function PilotLoginView() {
                 >
                   Forgot Password?
                 </button>
-              </div>
-              <div className="mt-1.5 flex items-center gap-1.5 px-0.5">
-                <input
-                  id="pilot-login-remember"
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(ev) => setRemember(ev.target.checked)}
-                  className="size-4 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-2 focus:ring-[#008B8B]/25 dark:border-white/20 dark:bg-[#161a1d] sm:size-[18px]"
-                />
-                <label
-                  htmlFor="pilot-login-remember"
-                  className="cursor-pointer text-xs font-medium text-slate-600 dark:text-white/75 sm:text-sm"
-                >
-                  Remember me
-                </label>
               </div>
             </div>
 

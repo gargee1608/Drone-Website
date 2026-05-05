@@ -32,15 +32,14 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    /**
+     * Footer sits outside `main`; only `lg+` shifts with the fixed sidebar (drawer overlays on mobile).
+     * `sidebarOpen` is listed in deps so the dependency array length stays stable (avoids React dev warning on refresh).
+     */
     const updateFooterInset = () => {
       const mq = globalThis.matchMedia?.("(min-width: 1024px)");
       const wide = mq?.matches ?? false;
-      let inset = "0px";
-      if (wide) {
-        inset = sidebarExpanded ? "16rem" : "0px";
-      } else if (sidebarOpen) {
-        inset = "min(16rem, 85vw)";
-      }
+      const inset = wide && sidebarExpanded ? "16rem" : "0px";
       document.documentElement.style.setProperty(
         FOOTER_SIDEBAR_INSET_VAR,
         inset
@@ -57,7 +56,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   }, [sidebarExpanded, sidebarOpen]);
 
   return (
-    <div className="admin-dashboard flex min-h-0 flex-1 flex-col bg-white pt-20 text-foreground antialiased sm:pt-22">
+    <div className="admin-dashboard flex min-h-0 flex-1 flex-col bg-background pt-20 text-foreground antialiased sm:pt-22">
       {sidebarOpen && (
         <button
           type="button"
@@ -200,7 +199,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col space-y-10 bg-white px-3 pb-2 pt-0 sm:px-5 sm:pb-2">
+        <div className="flex flex-1 flex-col space-y-10 bg-background px-3 pb-2 pt-0 sm:px-5 sm:pb-2">
           {children}
         </div>
       </main>

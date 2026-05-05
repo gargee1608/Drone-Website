@@ -3,6 +3,8 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  Eye,
+  EyeOff,
   KeyRound,
   Lock,
   Mail,
@@ -675,12 +677,25 @@ export function LoginView({
                         errors.password ? "login-password-error" : undefined
                       }
                       className={cn(
-                        "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
+                        "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-11 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
                         errors.password
                           ? "border-red-500 focus:border-red-500"
                           : "focus:border-slate-500"
                       )}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#717786] outline-none transition hover:bg-slate-100 hover:text-[#191c1d] focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:text-white/55 dark:hover:bg-white/10 dark:hover:text-white"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-pressed={showPassword}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="size-[1.15rem]" aria-hidden />
+                      ) : (
+                        <Eye className="size-[1.15rem]" aria-hidden />
+                      )}
+                    </button>
                   </div>
                   {errors.password ? (
                     <p
@@ -691,20 +706,20 @@ export function LoginView({
                       {errors.password}
                     </p>
                   ) : null}
-                  <div className="flex items-center justify-between gap-2 px-1 pt-0.5">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-1 pt-0.5">
                     <div className="flex min-w-0 items-center gap-1.5">
                       <input
-                        id="login-show-password"
+                        id="login-remember"
                         type="checkbox"
-                        checked={showPassword}
-                        onChange={(e) => setShowPassword(e.target.checked)}
+                        checked={remember}
+                        onChange={(e) => setRemember(e.target.checked)}
                         className="size-4 shrink-0 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-0 sm:size-[18px]"
                       />
                       <label
-                        htmlFor="login-show-password"
+                        htmlFor="login-remember"
                         className="cursor-pointer text-xs font-medium text-[#414755] sm:text-sm"
                       >
-                        Show password
+                        Remember me
                       </label>
                     </div>
                     <button
@@ -720,21 +735,6 @@ export function LoginView({
                     >
                       Forgot Password?
                     </button>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-1">
-                    <input
-                      id="login-remember"
-                      type="checkbox"
-                      checked={remember}
-                      onChange={(e) => setRemember(e.target.checked)}
-                      className="size-4 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-0 sm:size-[18px]"
-                    />
-                    <label
-                      htmlFor="login-remember"
-                      className="cursor-pointer text-xs font-medium text-[#414755] sm:text-sm"
-                    >
-                      Remember me
-                    </label>
                   </div>
                 </div>
               </>

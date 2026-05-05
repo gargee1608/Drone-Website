@@ -40,7 +40,7 @@ export function PilotMissionNotificationsMenu() {
   const rootRef = useRef<HTMLDivElement>(null);
 
   const sync = useCallback(() => {
-    setRows(notificationsVisibleToPilot().slice(0, MAX_ROWS));
+    setRows(pilotMissionNotificationsUnread().slice(0, MAX_ROWS));
     setUnread(countUnreadPilotMissionNotifications());
   }, []);
 
@@ -117,8 +117,9 @@ export function PilotMissionNotificationsMenu() {
           <div className="max-h-[min(70dvh,22rem)] overflow-y-auto">
             {rows.length === 0 ? (
               <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                No mission assignments yet. When an admin assigns you to a
-                mission, it will show up here.
+                {unread === 0 && notificationsVisibleToPilot().length > 0
+                  ? "You're all caught up. No unread mission alerts."
+                  : "No mission assignments yet. When an admin assigns you to a mission, it will show up here."}
               </p>
             ) : (
               <ul className="divide-y divide-border">

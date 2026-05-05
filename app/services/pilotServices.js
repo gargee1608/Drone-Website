@@ -156,6 +156,44 @@ export const assignHubMissionToPilot = async (payload) => {
   }
 };
 
+/** Completed missions for this pilot (`missions` with status completed, by `pilot_sub`). */
+export const getPilotCompletedDeliveriesCount = async (pilotSub) => {
+  if (!pilotSub) return null;
+  try {
+    const q = new URLSearchParams({ pilotSub: String(pilotSub) });
+    const response = await fetch(
+      apiUrl(`/api/missions/completed-deliveries-count?${q.toString()}`),
+      { cache: "no-store" }
+    );
+    if (!response.ok) return null;
+    const body = await response.json();
+    if (!body?.success || typeof body.count !== "number") return null;
+    return Math.max(0, Math.floor(body.count));
+  } catch (error) {
+    console.error("getPilotCompletedDeliveriesCount failed:", error);
+    return null;
+  }
+};
+
+/** Lifetime count of mission rows for this pilot (`missions.pilot_sub`). */
+export const getPilotAssignedMissionCount = async (pilotSub) => {
+  if (!pilotSub) return null;
+  try {
+    const q = new URLSearchParams({ pilotSub: String(pilotSub) });
+    const response = await fetch(
+      apiUrl(`/api/missions/assigned-count?${q.toString()}`),
+      { cache: "no-store" }
+    );
+    if (!response.ok) return null;
+    const body = await response.json();
+    if (!body?.success || typeof body.count !== "number") return null;
+    return Math.max(0, Math.floor(body.count));
+  } catch (error) {
+    console.error("getPilotAssignedMissionCount failed:", error);
+    return null;
+  }
+};
+
 /** Active assignments for the pilot workspace (not completed). */
 export const getPilotPendingMissionAssignments = async (pilotSub) => {
   if (!pilotSub) return null;
