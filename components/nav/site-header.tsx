@@ -7,7 +7,6 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Bell, Home, LogOut, Menu, User, X } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
-import { HeaderThemeModeToggle } from "@/components/nav/header-theme-mode-toggle";
 import { useHasRegisteredPilot } from "@/hooks/use-has-registered-pilot";
 import {
   ServiceListingMegaMenu,
@@ -241,17 +240,14 @@ export function SiteHeader({
 
         <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3 md:gap-4 md:pl-2 lg:pl-4">
           {showNotifications ? (
-            <div className="flex shrink-0 items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="shrink-0 text-muted-foreground hover:text-foreground"
-                aria-label="Notifications"
-              >
-                <Bell className="size-4" />
-              </Button>
-              <HeaderThemeModeToggle />
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-muted-foreground hover:text-foreground"
+              aria-label="Notifications"
+            >
+              <Bell className="size-4" />
+            </Button>
           ) : null}
           <nav
             className={cn(
