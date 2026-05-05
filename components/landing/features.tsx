@@ -80,11 +80,11 @@ export function Features() {
   return (
     <section
       id="industry-use-cases"
-      className="relative bg-white px-4 pt-16 pb-24 sm:px-8 sm:pt-20 sm:pb-32"
+      className="relative bg-background px-4 pt-16 pb-24 sm:px-8 sm:pt-20 sm:pb-32"
     >
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto mb-16 max-w-3xl text-center sm:mb-20">
-          <h2 className="font-[family-name:var(--font-landing-headline)] text-3xl font-bold leading-tight tracking-tight text-slate-900 sm:text-4xl">
+          <h2 className="font-[family-name:var(--font-landing-headline)] text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
             Industry Use Cases
           </h2>
         </div>
@@ -101,10 +101,10 @@ export function Features() {
                   aria-hidden
                 />
               </div>
-              <h3 className="mb-2 font-[family-name:var(--font-landing-headline)] text-lg font-bold leading-snug tracking-tight text-slate-900">
+              <h3 className="mb-2 font-[family-name:var(--font-landing-headline)] text-lg font-bold leading-snug tracking-tight text-foreground">
                 {title}
               </h3>
-              <p className="mb-4 flex-1 text-sm leading-relaxed text-slate-600 sm:text-[0.9375rem]">
+              <p className="mb-4 flex-1 text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem]">
                 {description}
               </p>
               <div className="landing-telemetry-line mt-auto opacity-90" />
@@ -116,30 +116,30 @@ export function Features() {
           aria-hidden
         />
         <div className="mx-auto mt-10 max-w-3xl text-center sm:mt-12">
-          <p className="font-[family-name:var(--font-landing-headline)] text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+          <p className="font-[family-name:var(--font-landing-headline)] text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
             Core Values
           </p>
           <h3 className="mt-3 font-[family-name:var(--font-landing-headline)] text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             Why Drone Hire
           </h3>
-          <p className="mt-4 font-[family-name:var(--font-landing-body)] text-base leading-relaxed text-slate-600 sm:text-lg">
+          <p className="mt-4 font-[family-name:var(--font-landing-body)] text-base leading-relaxed text-muted-foreground sm:text-lg">
             We bridge the gap between complex drone technology and your
             operational needs with a focus on trust and speed.
           </p>
-          <ul className="mx-auto mt-10 grid max-w-4xl list-none grid-cols-1 gap-0 divide-y divide-slate-200 p-0 sm:mt-12 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:divide-slate-200">
+          <ul className="mx-auto mt-10 grid max-w-4xl list-none grid-cols-1 gap-0 divide-y divide-border p-0 sm:mt-12 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:divide-border">
             {coreValueHighlights.map(({ icon: Icon, title }) => (
               <li
                 key={title}
                 className="flex flex-col items-center gap-3 px-4 py-8 text-center sm:px-6 sm:py-6"
               >
-                <div className="flex size-14 shrink-0 items-center justify-center rounded-lg border border-slate-100 bg-slate-50">
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-lg border border-border bg-muted">
                   <Icon
                     className="size-8 text-[#008B8B]"
                     strokeWidth={1.5}
                     aria-hidden
                   />
                 </div>
-                <span className="font-[family-name:var(--font-landing-headline)] text-sm font-bold leading-snug tracking-tight text-slate-900 sm:text-[0.9375rem]">
+                <span className="font-[family-name:var(--font-landing-headline)] text-sm font-bold leading-snug tracking-tight text-foreground sm:text-[0.9375rem]">
                   {title}
                 </span>
               </li>

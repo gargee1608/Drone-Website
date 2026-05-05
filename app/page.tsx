@@ -7,9 +7,9 @@ import { Workflow } from "@/components/landing/workflow";
 export default function Home() {
   return (
     <div
-      className={`${landingFontClassName} min-h-dvh bg-white font-[family-name:var(--font-landing-body)] text-slate-900 antialiased`}
+      className={`${landingFontClassName} min-h-dvh bg-background font-[family-name:var(--font-landing-body)] text-foreground antialiased`}
     >
-      <main className="overflow-x-hidden bg-white pt-24">
+      <main className="overflow-x-hidden bg-background pt-24">
         <Hero />
         <LandingSectionDivider />
         <Workflow />

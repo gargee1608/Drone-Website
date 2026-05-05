@@ -5,17 +5,12 @@ import {
   Lock,
   Moon,
   RefreshCw,
+  Sun,
   UserRound,
   X,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useState,
-  type FormEvent,
-} from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,12 +36,7 @@ import {
   USER_PROFILE_STORAGE_KEY,
   USER_PROFILE_UPDATED_EVENT,
 } from "@/lib/user-profile-storage";
-import {
-  applyThemeToDocument,
-  resolveThemeWithFallback,
-  THEME_STORAGE_KEY,
-  type AppTheme,
-} from "@/lib/theme";
+import { useAppTheme } from "@/components/theme-provider";
 import {
   readStoredUserSession,
   splitDisplayNameToFirstLast,
@@ -93,7 +83,7 @@ export function SettingsDashboard({
   settingsContext = "user",
 }: SettingsDashboardProps = {}) {
   const pathname = usePathname();
-  const [theme, setTheme] = useState<AppTheme>("light");
+  const { theme, setTheme } = useAppTheme();
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -118,12 +108,6 @@ export function SettingsDashboard({
   const [profileDialogSuccess, setProfileDialogSuccess] = useState(false);
   const [profileInfoPopupOpen, setProfileInfoPopupOpen] = useState(false);
 
-  useLayoutEffect(() => {
-    const initial = resolveThemeWithFallback();
-    setTheme(initial);
-    applyThemeToDocument(initial);
-  }, []);
-
   /** Profile shortcuts: `/settings?from=…#account-change-password` opens this dialog. */
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -136,16 +120,6 @@ export function SettingsDashboard({
     const { pathname: path, search } = window.location;
     window.history.replaceState(null, "", `${path}${search}`);
   }, [pathname]);
-
-  const setThemeMode = useCallback((next: AppTheme) => {
-    setTheme(next);
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, next);
-    } catch {
-      /* ignore */
-    }
-    applyThemeToDocument(next);
-  }, []);
 
   const closeChangePassword = useCallback(() => {
     setChangePasswordOpen(false);
@@ -445,8 +419,12 @@ export function SettingsDashboard({
                 {/* Appearance */}
                 <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6 md:col-span-2 xl:col-span-1">
                   <div className="mb-5 flex items-start gap-3">
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-violet-100">
-                      <Moon className="size-5 text-violet-600" aria-hidden />
+                    <span
+                      className="flex size-11 shrink-0 items-center justify-center gap-0.5 rounded-full bg-violet-100 dark:bg-violet-950/50"
+                      aria-hidden
+                    >
+                      <Sun className="size-[1.125rem] text-amber-500" />
+                      <Moon className="size-[1.125rem] text-violet-600 dark:text-violet-400" />
                     </span>
                     <div className="min-w-0 text-left">
                       <h2 className="text-base font-bold text-foreground">
@@ -459,24 +437,34 @@ export function SettingsDashboard({
                   </div>
                   <div className="mt-auto space-y-4 border-t border-border pt-4">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-foreground">
-                        Light Mode
+                      <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <Sun
+                          className="size-4 shrink-0 text-amber-500"
+                          strokeWidth={2}
+                          aria-hidden
+                        />
+                        Light mode
                       </span>
                       <Switch
                         checked={theme === "light"}
                         onCheckedChange={(on) => {
-                          setThemeMode(on ? "light" : "dark");
+                          setTheme(on ? "light" : "dark");
                         }}
                       />
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-foreground">
-                        Dark Mode
+                      <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <Moon
+                          className="size-4 shrink-0 text-violet-600 dark:text-violet-400"
+                          strokeWidth={2}
+                          aria-hidden
+                        />
+                        Dark mode
                       </span>
                       <Switch
                         checked={theme === "dark"}
                         onCheckedChange={(on) => {
-                          setThemeMode(on ? "dark" : "light");
+                          setTheme(on ? "dark" : "light");
                         }}
                       />
                     </div>

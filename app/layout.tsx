@@ -17,8 +17,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="min-h-dvh overflow-x-clip bg-background antialiased">
-      <head />
+    <html
+      lang="en"
+      className="min-h-dvh overflow-x-clip bg-background antialiased"
+      suppressHydrationWarning
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `!function(){try{var k='drone-hire-theme',v=localStorage.getItem(k),d=v==='dark'||v!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d)}catch(e){}}();`,
+          }}
+        />
+      </head>
       <body className="m-0 flex min-h-dvh flex-col gap-0 overflow-x-clip bg-background p-0 font-sans text-foreground">
         <AppProviders>
           <ConditionalSiteHeader />

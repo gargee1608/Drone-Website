@@ -317,10 +317,7 @@ export function LandingHeader() {
   return (
     <header
       className={cn(
-        "fixed top-0 z-50 w-full border-b dark:text-white",
-        compactAppHeader
-          ? "border-border bg-background"
-          : "border-slate-100 bg-white dark:border-border dark:bg-background"
+        "fixed top-0 z-50 w-full border-b border-border bg-background dark:text-white"
       )}
     >
       <nav
@@ -426,18 +423,21 @@ export function LandingHeader() {
 
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-4 lg:gap-6">
           {showHeaderSearchBar ? (
-            <div className="hidden min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 lg:flex">
-              <Search
-                className="mr-2 size-4 shrink-0 text-slate-500 dark:text-white"
-                aria-hidden
-              />
-              <input
-                type="search"
-                name="track-delivery"
-                placeholder="Search..."
-                className="w-40 min-w-0 border-0 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:ring-0 dark:text-white dark:placeholder:text-white/45 xl:w-48"
-                autoComplete="off"
-              />
+            <div className="hidden min-w-0 items-center gap-2 lg:flex">
+              <div className="flex min-w-0 items-center rounded-full border border-border bg-card py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5">
+                <Search
+                  className="mr-2 size-4 shrink-0 text-slate-500 dark:text-white"
+                  aria-hidden
+                />
+                <input
+                  type="search"
+                  name="track-delivery"
+                  placeholder="Search..."
+                  className="w-40 min-w-0 border-0 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:ring-0 dark:text-white dark:placeholder:text-white/45 xl:w-48"
+                  autoComplete="off"
+                />
+              </div>
+              <HeaderThemeModeToggle />
             </div>
           ) : null}
           <div className="flex items-center gap-2 sm:gap-4">
@@ -574,10 +574,12 @@ export function LandingHeader() {
                 {showHeaderNotifications ? (
                   <>
                     <AdminInboxMenu />
-                    <HeaderThemeModeToggle />
+                    {!showHeaderSearchBar ? <HeaderThemeModeToggle /> : null}
                   </>
                 ) : null}
-                {showPilotThemeToggle ? <HeaderThemeModeToggle /> : null}
+                {showPilotThemeToggle && !showHeaderSearchBar ? (
+                  <HeaderThemeModeToggle />
+                ) : null}
                 {showPilotNotifications ? (
                   <PilotMissionNotificationsMenu />
                 ) : null}
@@ -690,18 +692,26 @@ export function LandingHeader() {
       <div
         id="landing-mobile-nav"
         className={cn(
-          "border-t border-slate-100 bg-white px-4 py-4 md:hidden",
+          "border-t border-border bg-background px-4 py-4 md:hidden",
           open ? "block" : "hidden"
         )}
       >
         {showHeaderSearchBar ? (
-          <div className="mb-3 flex rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2">
-            <Search className="mr-2 size-4 shrink-0 text-slate-500" aria-hidden />
-            <input
-              type="search"
-              placeholder="Track delivery..."
-              className="min-w-0 flex-1 border-0 bg-transparent text-sm focus:ring-0"
-            />
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5">
+              <Search
+                className="mr-2 size-4 shrink-0 text-slate-500 dark:text-white/70"
+                aria-hidden
+              />
+              <input
+                type="search"
+                placeholder="Track delivery..."
+                className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 focus:ring-0 dark:bg-transparent dark:text-white dark:placeholder:text-white/45"
+              />
+            </div>
+            <div className="shrink-0">
+              <HeaderThemeModeToggle />
+            </div>
           </div>
         ) : null}
         {!isAdminDashboard ? (

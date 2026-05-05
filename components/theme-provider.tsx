@@ -1,9 +1,8 @@
 "use client";
 
 /**
- * Global dark mode is off: `ThemeProvider` is not mounted in `app-providers.tsx`
- * and the theme `Script` in `app/layout.tsx` is disabled. Re-enable both to use
- * `useAppTheme()` from settings or a header toggle.
+ * Syncs `html.dark` with stored preference and exposes `useAppTheme()` for the
+ * header toggle and any client-only theme UI.
  */
 
 import {

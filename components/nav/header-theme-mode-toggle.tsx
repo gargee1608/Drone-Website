@@ -1,35 +1,23 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { useLayoutEffect, useState } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
-import {
-  applyThemeToDocument,
-  resolveThemeWithFallback,
-  THEME_STORAGE_KEY,
-  type AppTheme,
-} from "@/lib/theme";
+import { useAppTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 
 export function HeaderThemeModeToggle() {
-  const [theme, setTheme] = useState<AppTheme>("light");
+  const { theme, setTheme } = useAppTheme();
 
-  useLayoutEffect(() => {
-    const initial = resolveThemeWithFallback();
-    setTheme(initial);
-    applyThemeToDocument(initial);
-  }, []);
-
-  const select = (next: AppTheme) => {
+  const select = (next: typeof theme) => {
     setTheme(next);
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, next);
-    } catch {
-      /* ignore */
-    }
-    applyThemeToDocument(next);
   };
+
+  const segmentBtn =
+    "size-8 rounded-md text-muted-foreground hover:text-[#008B8B] dark:text-white/80 dark:hover:bg-white/15 dark:hover:text-white";
+
+  const segmentActive =
+    "bg-card text-[#008B8B] shadow-sm hover:bg-card hover:text-[#008B8B] dark:bg-white/20 dark:text-white dark:hover:bg-white/25 dark:hover:text-white";
 
   return (
     <div
@@ -44,12 +32,11 @@ export function HeaderThemeModeToggle() {
         aria-label="Light mode"
         className={cn(
           buttonVariants({ variant: "ghost", size: "icon" }),
-          "size-8 rounded-md text-muted-foreground hover:text-[#008B8B] dark:text-white/80 dark:hover:bg-white/15 dark:hover:text-white",
-          theme === "light" &&
-            "bg-card text-[#008B8B] shadow-sm hover:bg-card hover:text-[#008B8B] dark:bg-white/20 dark:text-white dark:hover:bg-white/25 dark:hover:text-white"
+          segmentBtn,
+          theme === "light" && segmentActive
         )}
       >
-        <Sun className="size-4" aria-hidden />
+        <Sun className="size-4" strokeWidth={2} aria-hidden />
       </button>
       <button
         type="button"
@@ -58,12 +45,11 @@ export function HeaderThemeModeToggle() {
         aria-label="Dark mode"
         className={cn(
           buttonVariants({ variant: "ghost", size: "icon" }),
-          "size-8 rounded-md text-muted-foreground hover:text-[#008B8B] dark:text-white/80 dark:hover:bg-white/15 dark:hover:text-white",
-          theme === "dark" &&
-            "bg-card text-[#008B8B] shadow-sm hover:bg-card hover:text-[#008B8B] dark:bg-white/20 dark:text-white dark:hover:bg-white/25 dark:hover:text-white"
+          segmentBtn,
+          theme === "dark" && segmentActive
         )}
       >
-        <Moon className="size-4" aria-hidden />
+        <Moon className="size-4" strokeWidth={2} aria-hidden />
       </button>
     </div>
   );

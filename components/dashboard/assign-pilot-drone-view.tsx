@@ -882,7 +882,7 @@ export function AssignPilotDroneView() {
     <div
       className={cn(
         fontWrap,
-        "min-w-0 bg-white pb-12 pt-4 sm:pt-6 dark:bg-white"
+        "min-w-0 bg-white pb-12 pt-4 sm:pt-6 dark:bg-background"
       )}
     >
       <div className="mx-auto max-w-7xl space-y-10 px-4 sm:px-6">

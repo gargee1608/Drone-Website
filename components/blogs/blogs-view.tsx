@@ -187,7 +187,10 @@ export function BlogsView({
                 src={post.image}
                 alt={post.imageAlt}
                 fill
-                unoptimized={post.slug.startsWith("blog-")}
+                unoptimized={
+                  post.slug.startsWith("blog-") ||
+                  post.image.startsWith("data:")
+                }
                 className="object-cover transition-transform duration-500 group-hover:scale-110"
                 sizes="(max-width:768px) 100vw, 33vw"
               />

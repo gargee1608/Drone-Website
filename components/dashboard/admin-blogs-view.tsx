@@ -1,8 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { Pencil, Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Pencil, Plus, Trash2, Upload, X } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 
 import { postsBySlug, type BlogPost } from "@/components/blogs/blog-data";
 import { Button } from "@/components/ui/button";
@@ -35,6 +42,30 @@ const CATEGORIES: BlogPost["category"][] = [
 ];
 
 const TAG_TONES: BlogPost["tagTone"][] = ["emerald", "primary", "slate"];
+
+const MAX_BLOG_COVER_BYTES = 2 * 1024 * 1024;
+
+function readBlogCoverImageFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) {
+      reject(
+        new Error("Please choose an image file (JPEG, PNG, WebP, or GIF).")
+      );
+      return;
+    }
+    if (file.size > MAX_BLOG_COVER_BYTES) {
+      reject(new Error("Cover image must be at most 2 MB."));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Could not read the image."));
+    };
+    reader.onerror = () => reject(new Error("Could not read the image."));
+    reader.readAsDataURL(file);
+  });
+}
 
 function bodyToText(body: string[]) {
   return body.join("\n\n");
@@ -70,6 +101,24 @@ export function AdminBlogsView() {
   const [bodyText, setBodyText] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const openedEditSlugRef = useRef<string | null>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+
+  const clearCoverFileInput = () => {
+    if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+  };
+
+  async function onCoverFileSelected(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const dataUrl = await readBlogCoverImageFile(file);
+      setImage(dataUrl);
+      setFormError(null);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Invalid image.");
+    }
+  }
 
   const refresh = useCallback(async () => {
     let dbPosts: AdminBlogRow[] = [];
@@ -118,6 +167,7 @@ export function AdminBlogsView() {
     setTagTone("primary");
     setBodyText("");
     setFormError(null);
+    clearCoverFileInput();
   };
 
   const openEdit = (post: AdminBlogRow) => {
@@ -136,6 +186,7 @@ export function AdminBlogsView() {
     setTagTone(post.tagTone);
     setBodyText(bodyToText(post.body));
     setFormError(null);
+    clearCoverFileInput();
   };
 
   useEffect(() => {
@@ -166,6 +217,7 @@ export function AdminBlogsView() {
     setEditInternalId(null);
     setEditDbId(null);
     setFormError(null);
+    clearCoverFileInput();
   };
 
   const saveForm = async (e: React.FormEvent) => {
@@ -335,17 +387,10 @@ export function AdminBlogsView() {
 
       {editorMode !== "closed" ? (
         <section className="mb-10 rounded-2xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
-          <div className="mb-5 flex items-center justify-between gap-3">
+          <div className="mb-5">
             <h2 className="text-base font-bold text-foreground">
               {editorMode === "add" ? "New article" : "Edit article"}
             </h2>
-            <button
-              type="button"
-              onClick={closeEditor}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              Cancel
-            </button>
           </div>
           <form onSubmit={saveForm} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -444,16 +489,78 @@ export function AdminBlogsView() {
                   className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-2 space-y-2">
                 <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                  Cover image URL
+                  Cover image
                 </label>
-                <Input
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  className="h-11 rounded-lg border-border font-mono text-xs"
-                  placeholder="https://…"
-                />
+                <div className="max-w-sm rounded-xl border border-border bg-card p-4 shadow-sm">
+                  <input
+                    ref={coverFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="sr-only"
+                    aria-label="Upload cover image from your computer"
+                    onChange={onCoverFileSelected}
+                  />
+                  <div className="space-y-3">
+                    <div
+                      className={cn(
+                        "relative aspect-[16/10] w-full overflow-hidden rounded-lg border bg-muted",
+                        image
+                          ? "border-border"
+                          : "border-dashed border-muted-foreground/30"
+                      )}
+                    >
+                      {image ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- data URLs + remote URLs */}
+                          <img
+                            src={image}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full border border-border bg-white text-slate-800 shadow-sm transition hover:bg-slate-50"
+                            aria-label="Remove cover image"
+                            onClick={() => {
+                              setImage("");
+                              clearCoverFileInput();
+                            }}
+                          >
+                            <X
+                              className="size-3.5"
+                              strokeWidth={2.5}
+                              aria-hidden
+                            />
+                          </button>
+                        </>
+                      ) : (
+                        <div className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 px-3 py-4 text-center">
+                          <Upload
+                            className="size-6 text-muted-foreground/70"
+                            aria-hidden
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            No cover yet — use Browser below
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 w-full justify-center gap-2 rounded-lg border-[#008B8B] bg-background font-medium text-[#008B8B] hover:bg-[#008B8B]/10"
+                      onClick={() => coverFileInputRef.current?.click()}
+                    >
+                      <Upload className="size-4 shrink-0" aria-hidden />
+                      Browser
+                    </Button>
+                    <p className="text-[11px] leading-snug text-muted-foreground">
+                      JPEG, PNG, WebP, or GIF · max 2 MB
+                    </p>
+                  </div>
+                </div>
               </div>
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-xs font-semibold text-foreground">
@@ -482,12 +589,23 @@ export function AdminBlogsView() {
                 {formError}
               </p>
             ) : null}
-            <Button
-              type="submit"
-              className="rounded-full bg-[#008B8B] font-bold text-white hover:bg-[#007a7a]"
-            >
-              Save
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="submit"
+                variant="outline"
+                className="rounded-full border-[#008B8B] bg-transparent font-bold text-[#008B8B] hover:bg-[#008B8B]/10 hover:text-[#007a7a]"
+              >
+                Save
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeEditor}
+                className="rounded-full font-normal"
+              >
+                Cancel
+              </Button>
+            </div>
           </form>
         </section>
       ) : null}
