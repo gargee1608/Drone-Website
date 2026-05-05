@@ -52,6 +52,10 @@ export function LandingHeader() {
     (pathname?.startsWith("/dashboard/") ?? false);
   const isAdminLoginPage =
     pathname === "/admin" || pathname === "/admin/";
+  const isPilotLoginPage =
+    pathname === "/pilot-login" || pathname === "/pilot-login/";
+  const isResetPasswordPage =
+    pathname === "/reset-password" || pathname === "/reset-password/";
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
   const isPilotDashboard =
     pathname?.startsWith("/pilot-dashboard") ||
@@ -111,6 +115,7 @@ export function LandingHeader() {
   const hideRegisterPilotCta =
     isAdminLoginPage ||
     pathname === "/pilot-login" ||
+    pathname === "/reset-password" ||
     pathname === "/pilot-registration" ||
     pathname === "/settings" ||
     pathname?.startsWith("/settings/") ||
@@ -187,7 +192,9 @@ export function LandingHeader() {
     isUserDashboard ||
     isAdminSettingsContext ||
     isUserSettingsContext ||
-    isAdminLoginPage
+    isAdminLoginPage ||
+    isPilotLoginPage ||
+    isResetPasswordPage
   );
 
   const [appUserSession, setAppUserSession] =

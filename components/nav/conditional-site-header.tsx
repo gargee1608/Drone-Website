@@ -15,6 +15,7 @@ export function ConditionalSiteHeader() {
     pathname === "/admin" ||
     pathname === "/admin/" ||
     pathname === "/pilot-login" ||
+    pathname === "/reset-password" ||
     pathname === "/signup" ||
     pathname === "/pilot-registration" ||
     pathname === "/services" ||

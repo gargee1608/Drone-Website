@@ -1,5 +1,6 @@
 require("dotenv").config();
 
+const crypto = require("crypto");
 
 const express = require("express");
 const cors = require("cors");
@@ -613,6 +614,23 @@ async function ensureEmailPasswordResetSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  await pool.query(`
+    ALTER TABLE email_password_reset_otps
+    ADD COLUMN IF NOT EXISTS reset_link_token_hash TEXT;
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_email_password_reset_link_hash
+    ON email_password_reset_otps (reset_link_token_hash);
+  `);
+}
+
+function appOriginForResetLinks() {
+  const raw =
+    process.env.APP_ORIGIN ||
+    process.env.FRONTEND_URL ||
+    process.env.CLIENT_URL ||
+    "http://localhost:3000";
+  return String(raw).replace(/\/$/, "");
 }
 
 function normalizeEmailForAuth(raw) {
@@ -688,34 +706,43 @@ app.post("/api/auth/forgot-password-send-otp", async (req, res) => {
       });
     }
 
-    const otp = String(generateOTP());
-    const otpHash = await bcrypt.hash(otp, 10);
+    const plainToken = crypto.randomBytes(32).toString("base64url");
+    const linkTokenHash = crypto
+      .createHash("sha256")
+      .update(plainToken)
+      .digest("hex");
+    const dummyOtpHash = await bcrypt.hash(
+      crypto.randomBytes(16).toString("hex"),
+      4
+    );
     await pool.query(
       `UPDATE email_password_reset_otps SET used = TRUE
        WHERE LOWER(TRIM(email)) = $1 AND account_role = $2 AND used = FALSE`,
       [email, role]
     );
     await pool.query(
-      `INSERT INTO email_password_reset_otps (email, account_role, otp_hash, expires_at, used, attempt_count)
-       VALUES ($1, $2, $3, NOW() + INTERVAL '10 minutes', FALSE, 0)`,
-      [email, role, otpHash]
+      `INSERT INTO email_password_reset_otps (email, account_role, otp_hash, expires_at, used, attempt_count, reset_link_token_hash)
+       VALUES ($1, $2, $3, NOW() + INTERVAL '30 minutes', FALSE, 0, $4)`,
+      [email, role, dummyOtpHash, linkTokenHash]
     );
 
+    const origin = appOriginForResetLinks();
+    const resetUrl = `${origin}/reset-password?token=${encodeURIComponent(plainToken)}`;
     const fromAddr = process.env.MAIL_FROM || "no-reply@test.com";
     await transporter.sendMail({
       from: fromAddr,
       to: email,
-      subject: "Password reset OTP",
-      text: `Your password reset OTP is: ${otp}. It expires in 10 minutes.`,
-      html: `<p>Your password reset OTP is: <strong>${otp}</strong></p><p>It expires in 10 minutes.</p>`,
+      subject: "Reset your password",
+      text: `Open this link to choose a new password (valid for 30 minutes):\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`,
+      html: `<p>Click below to reset your password. This link expires in <strong>30 minutes</strong>.</p><p><a href="${resetUrl}">Reset password</a></p><p style="word-break:break-all;font-size:12px;color:#555">${resetUrl}</p><p>If you did not request this, you can ignore this email.</p>`,
     });
 
-    return res.json({ ok: true, message: "OTP sent to your email." });
+    return res.json({ ok: true, message: "Reset link sent to your email." });
   } catch (err) {
     console.error("[auth] forgot-password-send-otp:", err);
     return res
       .status(500)
-      .json({ message: "Could not send OTP. Try again later." });
+      .json({ message: "Could not send reset email. Try again later." });
   }
 });
 
@@ -905,6 +932,139 @@ app.post("/api/auth/forgot-password-complete", async (req, res) => {
     return res.json({ ok: true, message: "Password Updated" });
   } catch (err) {
     console.error("[auth] forgot-password-complete:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+/**
+ * One-shot: magic link from email → set new password (no OTP step).
+ * Marks the reset row used only after a successful password update.
+ */
+app.post("/api/auth/forgot-password-reset-from-link", async (req, res) => {
+  try {
+    await ensureEmailPasswordResetSchema();
+    const rawToken = String(req.body?.token ?? "");
+    const newPassword = String(req.body?.newPassword ?? "");
+    if (!rawToken || rawToken.length < 16) {
+      return res.status(400).json({ message: "Invalid reset link." });
+    }
+    if (!newPassword || newPassword.length < 8) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 8 characters." });
+    }
+
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+
+    const rowRes = await pool.query(
+      `SELECT id, email, account_role
+       FROM email_password_reset_otps
+       WHERE reset_link_token_hash = $1
+        AND used = FALSE
+        AND expires_at > NOW()
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [tokenHash]
+    );
+    if (rowRes.rows.length === 0) {
+      return res.status(400).json({
+        message:
+          "This reset link is invalid or has expired. Request a new one from Forgot password.",
+      });
+    }
+
+    const row = rowRes.rows[0];
+    const email = normalizeEmailForAuth(row.email);
+    const role = String(row.account_role ?? "user").toLowerCase();
+    const hash = await bcrypt.hash(newPassword, 10);
+
+    let updated = false;
+    if (role === "pilot") {
+      let u = { rowCount: 0 };
+      const r = await pool.query(
+        `SELECT id FROM pilots WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1 LIMIT 1`,
+        [email]
+      );
+      const sub = r.rows[0]?.id;
+      if (sub != null && /^\d+$/.test(String(sub))) {
+        u = await pool.query(
+          `UPDATE pilots SET password = $1
+           WHERE id = $2::bigint
+             AND LOWER(TRIM(COALESCE(email::text, ''))) = $3`,
+          [hash, String(sub), email]
+        );
+      }
+      if (!u.rowCount) {
+        u = await pool.query(
+          `UPDATE pilots SET password = $1
+           WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $2`,
+          [hash, email]
+        );
+      }
+      updated = u.rowCount > 0;
+    } else if (role === "admin") {
+      let u = { rowCount: 0 };
+      const r = await pool.query(
+        `SELECT id FROM admins WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1 LIMIT 1`,
+        [email]
+      );
+      const sub = r.rows[0]?.id;
+      if (sub != null && /^\d+$/.test(String(sub))) {
+        u = await pool.query(
+          `UPDATE admins SET password = $1
+           WHERE id = $2::bigint
+             AND LOWER(TRIM(COALESCE(email::text, ''))) = $3`,
+          [hash, String(sub), email]
+        );
+      }
+      if (!u.rowCount) {
+        u = await pool.query(
+          `UPDATE admins SET password = $1
+           WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $2`,
+          [hash, email]
+        );
+      }
+      updated = u.rowCount > 0;
+    } else {
+      let u = { rowCount: 0 };
+      const r = await pool.query(
+        `SELECT id FROM users WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $1 LIMIT 1`,
+        [email]
+      );
+      const sub = r.rows[0]?.id;
+      if (sub != null && /^\d+$/.test(String(sub))) {
+        u = await pool.query(
+          `UPDATE users SET password = $1
+           WHERE id = $2::bigint
+             AND LOWER(TRIM(COALESCE(email::text, ''))) = $3`,
+          [hash, String(sub), email]
+        );
+      }
+      if (!u.rowCount) {
+        u = await pool.query(
+          `UPDATE users SET password = $1
+           WHERE LOWER(TRIM(COALESCE(email::text, ''))) = $2`,
+          [hash, email]
+        );
+      }
+      updated = u.rowCount > 0;
+    }
+
+    if (!updated) {
+      return res.status(400).json({ message: "Could not update password." });
+    }
+
+    await pool.query(
+      `UPDATE email_password_reset_otps SET used = TRUE WHERE id = $1`,
+      [row.id]
+    );
+
+    return res.json({ ok: true, message: "Password updated." });
+  } catch (err) {
+    console.error("[auth] forgot-password-reset-from-link:", err);
     return res.status(500).json({ message: "Server error" });
   }
 });

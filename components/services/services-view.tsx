@@ -15,7 +15,6 @@ import { RequestServiceModalTrigger } from "@/components/services/request-servic
 import { apiUrl } from "@/lib/api-url";
 import type { AdminService } from "@/lib/admin-services";
 import { useAdminServicesCatalog } from "@/hooks/use-admin-services-catalog";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { serviceCatalogItems } from "@/lib/service-catalog";
 import {
   mergeFeaturedWithLive,
@@ -453,29 +452,6 @@ export function ServicesView({
           className="scroll-mt-28 px-4 pb-12 pt-0 sm:px-6 sm:pb-16 lg:pb-20"
         >
           <div className="mx-auto max-w-4xl lg:max-w-6xl xl:max-w-7xl">
-            <div className="mb-2 max-w-3xl text-left sm:mb-3 lg:max-w-4xl">
-              <p
-                className={cn(
-                  headline,
-                  "text-[11px] font-bold uppercase tracking-[0.35em] text-[#008B8B]"
-                )}
-              >
-                What we offer
-              </p>
-
-              <h1 className={cn("mt-1", ADMIN_PAGE_TITLE_CLASS)}>Services</h1>
-
-              <p
-                className={cn(
-                  body,
-                  "mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base"
-                )}
-              >
-                Smart drone services designed for efficiency, precision, and
-                reliability.
-              </p>
-            </div>
-
             <SelectedServiceFeaturedBox entry={displayEntry} />
 
             <ul className="mt-4 grid grid-cols-1 gap-5 sm:mt-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 xl:gap-5">
