@@ -331,6 +331,39 @@ async function ensureMissionSchema() {
   );
 }
 
+async function ensureDroneHireRequestsSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS drone_hire_requests (
+      id BIGSERIAL PRIMARY KEY,
+      reason_or_title TEXT,
+      pickup_location TEXT,
+      drop_location TEXT,
+      payload_weight TEXT,
+      cargo_type TEXT,
+      mission_urgency TEXT,
+      admin_status VARCHAR(24) NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  const hireAlters = [
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS reason_or_title TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS pickup_location TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS drop_location TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS payload_weight TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS cargo_type TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS mission_urgency TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS admin_status VARCHAR(24) NOT NULL DEFAULT 'pending'",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+  ];
+  for (const sql of hireAlters) {
+    try {
+      await pool.query(sql);
+    } catch (e) {
+      console.warn("  [skip] drone_hire_requests:", e.message);
+    }
+  }
+}
+
 /** Dev: seed a few fleet drones when the table is empty so Assign UI has rows. */
 async function seedDevDronesIfEmpty() {
   if (process.env.NODE_ENV === "production") return;
@@ -1462,6 +1495,7 @@ app.post("/send-otp", async (req, res) => {
 ensureAuthSchema()
   .then(() => ensureDroneSchema())
   .then(() => ensureMissionSchema())
+  .then(() => ensureDroneHireRequestsSchema())
   .then(() => ensureServicesSchema())
   .then(() => seedDevAdminsIfEmpty())
   .then(() => seedDevDronesIfEmpty())
