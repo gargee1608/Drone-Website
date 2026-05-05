@@ -1436,7 +1436,7 @@ app.post("/send-otp", async (req, res) => {
       from: "no-reply@test.com",
       to: email,
       subject: "Your OTP Code",
-      text: `Your OTP is: ${otp}`
+      text: `Your OTP is: ${otp}`,
     });
 
     console.log("OTP SENT:", otp);

@@ -1,6 +1,7 @@
 import { parsePayloadAndTarget } from "@/components/dashboard/user-request-table";
 
 import {
+  findStoredUserRequestByAdminRef,
   loadAssignPilotRequestQueue,
   loadUserRequests,
   userMissionRequestToAssignPilotRow,
@@ -63,7 +64,7 @@ export function userRequestAdminRowToAssignPilotRow(
   if (m.key.startsWith("demo-")) {
     return demoAdminRowToAssignPilotRow(m);
   }
-  const req = loadUserRequests().find((r) => r.id === m.key);
+  const req = findStoredUserRequestByAdminRef(m.key);
   if (req) {
     return userMissionRequestToAssignPilotRow(req);
   }
@@ -114,7 +115,11 @@ export function upsertDemoAcceptedForAssign(row: AssignPilotRequestRow): void {
 
 /** IDs/refs that may appear in assign tracking (real missions + demo bridge). */
 export function assignQueueValidRefsForPrune(): Set<string> {
-  const ids = new Set(loadUserRequests().map((r) => r.id));
+  const ids = new Set<string>();
+  for (const r of loadUserRequests()) {
+    ids.add(r.id);
+    if (r.backendRequestId) ids.add(r.backendRequestId);
+  }
   for (const d of loadDemoAcceptedForAssign()) {
     ids.add(d.requestRef);
   }

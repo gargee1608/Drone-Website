@@ -127,6 +127,41 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Admin command center: white surfaces and light-theme tokens (readable on white even if site is dark). */
+.admin-dashboard {
+  --background: #ffffff;
+  --foreground: oklch(0.208 0.042 265.8);
+  --card: #ffffff;
+  --card-foreground: oklch(0.208 0.042 265.8);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.208 0.042 265.8);
+  --primary: oklch(0.488 0.243 264.4);
+  --primary-foreground: oklch(0.985 0.002 247);
+  --secondary: oklch(0.968 0.007 248);
+  --secondary-foreground: oklch(0.278 0.05 256);
+  --muted: oklch(0.968 0.007 248);
+  --muted-foreground: oklch(0.446 0.043 257);
+  --accent: oklch(0.955 0.03 252);
+  --accent-foreground: oklch(0.278 0.05 256);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.915 0.012 256);
+  --input: oklch(0.915 0.012 256);
+  --ring: oklch(0.488 0.243 264.4);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: #ffffff;
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -32,6 +32,8 @@ export type UserMissionRequest = {
   ownerUserId?: string;
   /** Lowercase email from session when the row was created. */
   ownerEmail?: string;
+  /** `drone_hire_requests.id` when the row was also saved via `/api/submit-request`. */
+  backendRequestId?: string;
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -132,10 +134,25 @@ export function loadUserRequests(): UserMissionRequest[] {
         typeof r.ownerUserId === "string" ? r.ownerUserId : undefined,
       ownerEmail:
         typeof r.ownerEmail === "string" ? r.ownerEmail : undefined,
+      backendRequestId:
+        typeof r.backendRequestId === "string"
+          ? r.backendRequestId
+          : undefined,
     }));
   } catch {
     return [];
   }
+}
+
+/** Match admin / assign-queue `requestRef` (local `#UR-…` or DB numeric id). */
+export function findStoredUserRequestByAdminRef(
+  ref: string
+): UserMissionRequest | undefined {
+  const trimmed = ref.trim();
+  if (!trimmed) return undefined;
+  return loadUserRequests().find(
+    (r) => r.id === trimmed || r.backendRequestId === trimmed
+  );
 }
 
 /** JWT `sub` + session email for attributing new rows to the signed-in app user. */
@@ -253,7 +270,9 @@ export function userRequestQueueDisplayIdInList(
   const sorted = [...list].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
-  const idx = sorted.findIndex((r) => r.id === id);
+  const idx = sorted.findIndex(
+    (r) => r.id === id || r.backendRequestId === id
+  );
   if (idx >= 0) return `#RQ-${RQ_DISPLAY_BASE + idx}`;
   return id.startsWith("#") ? id : `#${id}`;
 }
@@ -317,7 +336,9 @@ export function updateUserRequestAdminStatus(
   adminStatus: UserMissionAdminStatus
 ): void {
   const all = loadUserRequests();
-  const idx = all.findIndex((r) => r.id === id);
+  const idx = all.findIndex(
+    (r) => r.id === id || r.backendRequestId === id
+  );
   if (idx < 0) return;
   all[idx] = { ...all[idx], adminStatus };
   saveUserRequests(all);

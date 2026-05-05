@@ -245,7 +245,11 @@ export function UserDashboardFleetDashboard({
         }),
       });
 
-      let payload: { message?: string; error?: string } = {};
+      let payload: {
+        message?: string;
+        error?: string;
+        data?: { id?: unknown };
+      } = {};
       try {
         payload = (await res.json()) as typeof payload;
       } catch {
@@ -257,6 +261,15 @@ export function UserDashboardFleetDashboard({
         return;
       }
 
+      const backendRequestId =
+        payload.data != null &&
+        typeof payload.data === "object" &&
+        "id" in payload.data &&
+        payload.data.id != null &&
+        payload.data.id !== ""
+          ? String(payload.data.id)
+          : undefined;
+
       // Keep local cache in sync for existing dashboard components that still read localStorage.
       appendUserRequest({
         reasonOrTitle,
@@ -265,6 +278,7 @@ export function UserDashboardFleetDashboard({
         payloadWeightKg: payloadWeight,
         requestType: cargo?.type ?? "Cargo",
         requestPriority: missionUrgency,
+        ...(backendRequestId ? { backendRequestId } : {}),
       });
 
       setMissionTitle("");

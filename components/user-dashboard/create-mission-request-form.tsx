@@ -56,6 +56,17 @@ export function CreateMissionRequestForm() {
       return;
     }
 
+    let backendRequestId: string | undefined;
+    if (body.data && typeof body.data === "object" && body.data !== null) {
+      const inner = (body.data as { data?: unknown }).data;
+      if (inner && typeof inner === "object" && inner !== null && "id" in inner) {
+        const rawId = (inner as { id: unknown }).id;
+        if (rawId != null && rawId !== "") {
+          backendRequestId = String(rawId);
+        }
+      }
+    }
+
     appendUserRequest({
       reasonOrTitle: payload.reason_or_title,
       pickupLocation: payload.pickup_location,
@@ -63,6 +74,7 @@ export function CreateMissionRequestForm() {
       payloadWeightKg: payload.payload_weight,
       requestType: payload.cargo_type,
       requestPriority: payload.mission_urgency,
+      ...(backendRequestId ? { backendRequestId } : {}),
     });
     setReasonOrTitle("");
     setPickupLocation("");
