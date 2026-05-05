@@ -253,7 +253,71 @@ async function migrateServicesSchema() {
   console.log("[migrate] ✓ services schema done");
 }
 
-// ─── 8. seed admin ─────────────────────────────────────────────────────────────
+// ─── 8. drone_hire_requests ────────────────────────────────────────────────
+async function migrateDroneHireRequestsSchema() {
+  console.log("\n[migrate] → drone_hire_requests table");
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS drone_hire_requests (
+      id BIGSERIAL PRIMARY KEY,
+      reason_or_title TEXT,
+      pickup_location TEXT,
+      drop_location TEXT,
+      payload_weight TEXT,
+      cargo_type TEXT,
+      mission_urgency TEXT,
+      admin_status VARCHAR(24) NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  const hireAlters = [
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS reason_or_title TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS pickup_location TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS drop_location TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS payload_weight TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS cargo_type TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS mission_urgency TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS admin_status VARCHAR(24) NOT NULL DEFAULT 'pending'",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+  ];
+  for (const sql of hireAlters) {
+    try {
+      await pool.query(sql);
+    } catch (e) {
+      console.warn("  [skip]", e.message);
+    }
+  }
+  console.log("[migrate] ✓ drone_hire_requests schema done");
+}
+
+// ─── 9. blogs ────────────────────────────────────────────────────────────────
+async function migrateBlogsSchema() {
+  console.log("\n[migrate] → blogs table");
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS blogs (
+      id BIGSERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT,
+      image TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  const blogAlters = [
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS title TEXT",
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS content TEXT",
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS image TEXT",
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+  ];
+  for (const sql of blogAlters) {
+    try {
+      await pool.query(sql);
+    } catch (e) {
+      console.warn("  [skip]", e.message);
+    }
+  }
+  console.log("[migrate] ✓ blogs schema done");
+}
+
+// ─── 10. seed admin ─────────────────────────────────────────────────────────────
 async function seedAdmin() {
   console.log("\n[migrate] → seed admin user");
   const bcrypt = require("bcryptjs");
@@ -291,6 +355,8 @@ async function main() {
     await migrateEmailResetSchema();
     await migrateMissionRequestsSchema();
     await migrateServicesSchema();
+    await migrateDroneHireRequestsSchema();
+    await migrateBlogsSchema();
     await seedAdmin();
 
     console.log("\n✅  All migrations completed successfully!\n");

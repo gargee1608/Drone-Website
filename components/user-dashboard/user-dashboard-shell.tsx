@@ -69,11 +69,7 @@ function SidebarNavLinks({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const navItems = hideRequestMonitoring
-    ? sidebarNav.filter(
-        (item) => (item.label as string) !== "Request Monitoring"
-      )
-    : sidebarNav;
+  const navItems = sidebarNav;
 
   return (
     <nav className="flex flex-col gap-2">
