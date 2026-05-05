@@ -159,15 +159,16 @@ export function SettingsDashboard({
 
     if (settingsContext === "user") {
       const session = readStoredUserSession();
-      let saved: {
+      type SavedProfile = {
         email?: string;
         phone?: string;
         city?: string;
         state?: string;
-      } | null = null;
+      };
+      let saved: SavedProfile | null = null;
       try {
         const raw = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
-        if (raw) saved = JSON.parse(raw) as typeof saved;
+        if (raw) saved = JSON.parse(raw) as SavedProfile;
       } catch {
         saved = null;
       }
@@ -182,7 +183,7 @@ export function SettingsDashboard({
         firstName = email.split("@")[0] || "";
       }
       const sameSaved =
-        saved &&
+        saved !== null &&
         email &&
         String(saved.email ?? "")
           .trim()
@@ -192,10 +193,10 @@ export function SettingsDashboard({
       setProfileEmail(email || String(saved?.email ?? "").trim());
       setProfilePhone(
         String(session?.phone ?? "").trim() ||
-          (sameSaved ? String(saved.phone ?? "").trim() : "")
+          (sameSaved && saved ? String(saved.phone ?? "").trim() : "")
       );
-      setProfileCity(sameSaved ? String(saved.city ?? "").trim() : "");
-      setProfileState(sameSaved ? String(saved.state ?? "").trim() : "");
+      setProfileCity(sameSaved && saved ? String(saved.city ?? "").trim() : "");
+      setProfileState(sameSaved && saved ? String(saved.state ?? "").trim() : "");
     } else if (settingsContext === "admin") {
       const merged = buildAdminProfileForDisplay();
       const display =
