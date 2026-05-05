@@ -1,10 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { Space_Grotesk } from "next/font/google";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   CheckCircle2,
   ChevronDown,
@@ -17,19 +22,24 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-import { updatePilotStatus } from "@/app/services/pilotServices";
+import {
+  getPilotAssignedMissionCount,
+  getPilotCompletedDeliveriesCount,
+  updatePilotStatus,
+} from "@/app/services/pilotServices";
 import { fetchPilotSessionRow } from "@/lib/fetch-pilot-session-row";
 import { PilotDashboardShell } from "@/components/pilot-dashboard/pilot-dashboard-shell";
-import {
-  assignedMissionCountFromPilotRow,
-  missionsCompletedFromPilotRow,
-} from "@/lib/pilot-db-metrics";
 import {
   displayFlightHoursLikeProfilePage,
   snapshotFlightHoursFromStorage,
 } from "@/lib/pilot-profile-flight-hours";
 import { jwtPayloadRole, jwtPayloadSub } from "@/lib/pilot-display-name";
+import { PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT } from "@/lib/pilot-mission-notifications";
 import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
+import {
+  MISSIONS_DB_BROADCAST_CHANNEL,
+  MISSIONS_DB_UPDATED_EVENT,
+} from "@/lib/user-requests";
 import { cn } from "@/lib/utils";
 
 const flightDeck = Space_Grotesk({
@@ -203,31 +213,6 @@ function PilotDutyStatusCard({
   );
 }
 
-
-const FLIGHT_LOG_ROWS = [
-  {
-    id: "MS-4089",
-    ts: "Oct 24, 09:15 AM",
-    type: "Surveillance",
-    status: "success" as const,
-    payout: "$450.00",
-  },
-  {
-    id: "MS-4088",
-    ts: "Oct 23, 04:30 PM",
-    type: "Payload Delivery",
-    status: "success" as const,
-    payout: "$820.00",
-  },
-  {
-    id: "MS-4085",
-    ts: "Oct 23, 11:10 AM",
-    type: "Topographic Scan",
-    status: "aborted" as const,
-    payout: "$120.00",
-  },
-];
-
 export function PilotDashboardView() {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
@@ -241,6 +226,39 @@ export function PilotDashboardView() {
     useState(false);
   const [assignedMissionCount, setAssignedMissionCount] = useState(0);
   const pilotDbIdRef = useRef<string | null>(null);
+
+  const refreshPilotMetrics = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const sub = jwtPayloadSub(token);
+    if (!sub) return;
+    pilotDbIdRef.current = sub;
+    const [row, assignedCount, completedCount] = await Promise.all([
+      fetchPilotSessionRow(sub),
+      getPilotAssignedMissionCount(sub),
+      getPilotCompletedDeliveriesCount(sub),
+    ]);
+    if (row) {
+      setFlightHoursFromPilotRecord(true);
+      setDutyStatus(mapApiDutyStatus(row));
+      setFlightHoursTotal(
+        displayFlightHoursLikeProfilePage(row, {
+          preferApiRowWhenPresent: true,
+          snapshotFallbackHours: snapshotFlightHoursFromStorage(),
+        })
+      );
+    } else {
+      setFlightHoursFromPilotRecord(false);
+      setFlightHoursTotal(
+        displayFlightHoursLikeProfilePage(null, {
+          preferApiRowWhenPresent: false,
+          snapshotFallbackHours: snapshotFlightHoursFromStorage(),
+        })
+      );
+    }
+    setAssignedMissionCount(assignedCount ?? 0);
+    setMissionsCompleted(completedCount ?? 0);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -267,32 +285,8 @@ export function PilotDashboardView() {
 
     async function loadPilotMetrics() {
       setDutyLoading(true);
-      const rec = await fetchPilotSessionRow(sub);
-      if (cancelled) return;
-
-      if (rec) {
-        setFlightHoursFromPilotRecord(true);
-        setDutyStatus(mapApiDutyStatus(rec));
-        setMissionsCompleted(missionsCompletedFromPilotRow(rec));
-        setFlightHoursTotal(
-          displayFlightHoursLikeProfilePage(rec, {
-            preferApiRowWhenPresent: true,
-            snapshotFallbackHours: snapshotFlightHoursFromStorage(),
-          })
-        );
-        setAssignedMissionCount(assignedMissionCountFromPilotRow(rec));
-      } else {
-        setFlightHoursFromPilotRecord(false);
-        setMissionsCompleted(0);
-        setFlightHoursTotal(
-          displayFlightHoursLikeProfilePage(null, {
-            preferApiRowWhenPresent: false,
-            snapshotFallbackHours: snapshotFlightHoursFromStorage(),
-          })
-        );
-        setAssignedMissionCount(0);
-      }
-      setDutyLoading(false);
+      await refreshPilotMetrics();
+      if (!cancelled) setDutyLoading(false);
     }
 
     void loadPilotMetrics();
@@ -307,43 +301,28 @@ export function PilotDashboardView() {
       cancelled = true;
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [authorized]);
+  }, [authorized, refreshPilotMetrics]);
 
   useEffect(() => {
     if (!authorized) return;
-    async function refreshFromPilotRecord() {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      const sub = jwtPayloadSub(token);
-      const row = await fetchPilotSessionRow(sub);
-      if (row) {
-        setFlightHoursFromPilotRecord(true);
-        setDutyStatus(mapApiDutyStatus(row));
-        setMissionsCompleted(missionsCompletedFromPilotRow(row));
-        setFlightHoursTotal(
-          displayFlightHoursLikeProfilePage(row, {
-            preferApiRowWhenPresent: true,
-            snapshotFallbackHours: snapshotFlightHoursFromStorage(),
-          })
-        );
-        setAssignedMissionCount(assignedMissionCountFromPilotRow(row));
-      } else {
-        setFlightHoursFromPilotRecord(false);
-        setFlightHoursTotal(
-          displayFlightHoursLikeProfilePage(null, {
-            preferApiRowWhenPresent: false,
-            snapshotFallbackHours: snapshotFlightHoursFromStorage(),
-          })
-        );
-      }
-    }
-    function onProfileUpdated() {
-      void refreshFromPilotRecord();
-    }
-    window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, onProfileUpdated);
-    return () =>
-      window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, onProfileUpdated);
-  }, [authorized]);
+    const onRefresh = () => {
+      void refreshPilotMetrics();
+    };
+    window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, onRefresh);
+    window.addEventListener(MISSIONS_DB_UPDATED_EVENT, onRefresh);
+    window.addEventListener(PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT, onRefresh);
+    const bc = new BroadcastChannel(MISSIONS_DB_BROADCAST_CHANNEL);
+    bc.onmessage = onRefresh;
+    return () => {
+      window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, onRefresh);
+      window.removeEventListener(MISSIONS_DB_UPDATED_EVENT, onRefresh);
+      window.removeEventListener(
+        PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT,
+        onRefresh
+      );
+      bc.close();
+    };
+  }, [authorized, refreshPilotMetrics]);
 
   async function onDutyChange(next: DutyStatus) {
     const id = pilotDbIdRef.current;
@@ -368,9 +347,8 @@ export function PilotDashboardView() {
           snapshotFallbackHours: snapshotFlightHoursFromStorage(),
         })
       );
-      setMissionsCompleted(missionsCompletedFromPilotRow(r));
-      setAssignedMissionCount(assignedMissionCountFromPilotRow(r));
     }
+    await refreshPilotMetrics();
   }
 
   if (!authorized) {
@@ -466,7 +444,7 @@ export function PilotDashboardView() {
           />
         </section>
 
-        {/* Main stack: mission control + flight logs (full width) */}
+        {/* Main stack: mission control */}
         <section className="flex w-full flex-col gap-5 sm:gap-6 lg:gap-8">
             {/* Active Mission Control */}
             <div
@@ -570,85 +548,6 @@ export function PilotDashboardView() {
                     ))}
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Recent Flight Logs */}
-            <div
-              className={cn(
-                "overflow-hidden rounded-xl border border-slate-200 bg-white",
-                cardShadow,
-                "dark:border-white/10 dark:bg-[#1a1f24]"
-              )}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6 dark:border-white/10">
-                <h2
-                  className={cn(
-                    flightDeck.variable,
-                    "text-lg font-semibold tracking-tight text-slate-900 sm:text-xl dark:text-white"
-                  )}
-                >
-                  Recent Flight Logs
-                </h2>
-                <Link
-                  href="/pilot-dashboard/completed-deliveries"
-                  className="text-sm font-semibold text-[#00418f] hover:underline dark:text-sky-300"
-                >
-                  View Full Archive
-                </Link>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[520px] text-left">
-                  <thead className="border-b border-slate-100 bg-slate-50 dark:border-white/10 dark:bg-white/[0.04]">
-                    <tr>
-                      {["Mission ID", "Timestamp", "Type", "Status", "Payout"].map(
-                        (h) => (
-                          <th
-                            key={h}
-                            className={cn(
-                              flightDeck.variable,
-                              "px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 sm:px-6 dark:text-white/55"
-                            )}
-                          >
-                            {h}
-                          </th>
-                        )
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-white/10">
-                    {FLIGHT_LOG_ROWS.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="transition-colors hover:bg-slate-50/80 dark:hover:bg-white/[0.04]"
-                      >
-                        <td className="px-5 py-4 font-mono text-sm font-semibold sm:px-6">
-                          {row.id}
-                        </td>
-                        <td className="px-5 py-4 text-sm text-slate-600 sm:px-6 dark:text-white/65">
-                          {row.ts}
-                        </td>
-                        <td className="px-5 py-4 text-sm text-slate-600 sm:px-6 dark:text-white/65">
-                          {row.type}
-                        </td>
-                        <td className="px-5 py-4">
-                          {row.status === "success" ? (
-                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                              SUCCESS
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 dark:bg-white/10 dark:text-white/70">
-                              ABORTED
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-5 py-4 text-sm font-bold text-slate-900 sm:px-6 dark:text-white">
-                          {row.payout}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
             </div>
         </section>

@@ -1,12 +1,6 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { AdminProfileView } from "@/components/dashboard/admin-profile-view";
-
-export const metadata: Metadata = {
-  title: "Profile — Drone Hire",
-  description: "Administrator profile in the command center.",
-};
-
+/** Profile is available under Settings → Profile information. */
 export default function DashboardProfilePage() {
-  return <AdminProfileView />;
+  redirect("/settings?from=admin");
 }

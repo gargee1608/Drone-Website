@@ -35,7 +35,6 @@ const sidebarNav = [
     icon: CheckCircle2,
     href: "/pilot-dashboard/completed-deliveries",
   },
-  { label: "Profile", icon: UserRound, href: "/pilot-profile" },
   { label: "Settings", icon: Settings, href: "/settings?from=pilot" },
 ] as const;
 

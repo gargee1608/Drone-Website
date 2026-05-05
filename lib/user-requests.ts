@@ -9,6 +9,26 @@ export const USER_REQUESTS_UPDATED_EVENT = "aerolaminar-user-requests-updated";
 /** Fired when a row is written to the `missions` table (e.g. after Assign To confirms). */
 export const MISSIONS_DB_UPDATED_EVENT = "aerolaminar-missions-db-updated";
 
+/** Cross-tab sync for mission DB changes (same origin). */
+export const MISSIONS_DB_BROADCAST_CHANNEL = "aerolaminar-missions-db-broadcast";
+
+/** Same-tab `MISSIONS_DB_UPDATED_EVENT` plus BroadcastChannel for other tabs/windows. */
+export function notifyMissionsDbUpdated(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(new Event(MISSIONS_DB_UPDATED_EVENT));
+  } catch {
+    /* ignore */
+  }
+  try {
+    const bc = new BroadcastChannel(MISSIONS_DB_BROADCAST_CHANNEL);
+    bc.postMessage({ type: "updated" });
+    queueMicrotask(() => bc.close());
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Admin review + fulfillment (User Request queue). */
 export type UserMissionAdminStatus =
   | "pending"

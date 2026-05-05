@@ -40,7 +40,7 @@ import {
 import {
   findStoredUserRequestByAdminRef,
   loadUserRequests,
-  MISSIONS_DB_UPDATED_EVENT,
+  notifyMissionsDbUpdated,
   updateUserRequestAdminStatus,
   USER_REQUESTS_STORAGE_KEY,
   USER_REQUESTS_UPDATED_EVENT,
@@ -825,7 +825,7 @@ export function AssignPilotDroneView() {
         }),
       });
       if (missionRes.ok) {
-        window.dispatchEvent(new Event(MISSIONS_DB_UPDATED_EVENT));
+        notifyMissionsDbUpdated();
       }
     } catch {
       /* mission row optional for offline API */

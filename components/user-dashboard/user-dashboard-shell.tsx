@@ -39,11 +39,6 @@ const sidebarNav = [
     icon: MapPinned,
     href: "/user-dashboard/user-tracking",
   },
-  {
-    label: "Profile",
-    icon: UserRound,
-    href: "/user-dashboard/profile",
-  },
   { label: "Settings", icon: Settings, href: "/settings?from=user" },
 ] as const;
 

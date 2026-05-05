@@ -16,7 +16,12 @@ import { cn } from "@/lib/utils";
 
 const DEFAULT_PROFILE = DEFAULT_ADMIN_PROFILE;
 
-export function AdminProfileView() {
+export type AdminProfileViewProps = {
+  /** When true, render profile content only (e.g. settings modal). */
+  embedded?: boolean;
+};
+
+export function AdminProfileView({ embedded = false }: AdminProfileViewProps) {
   const [profile, setProfile] = useState<AdminProfileDraft>(DEFAULT_PROFILE);
   const [personalDraft, setPersonalDraft] = useState<AdminProfileDraft>(DEFAULT_PROFILE);
   const [addressDraft, setAddressDraft] = useState<AdminProfileDraft>(DEFAULT_PROFILE);
@@ -154,6 +159,13 @@ export function AdminProfileView() {
   }
 
   if (!hydrated) {
+    if (embedded) {
+      return (
+        <div className="px-4 py-12 text-center text-sm text-muted-foreground">
+          Loading profile…
+        </div>
+      );
+    }
     return (
       <div className="mx-auto w-full max-w-6xl pb-10">
         <h1 className={cn(ADMIN_PAGE_TITLE_CLASS, "mb-5 text-[#003f3f] dark:text-white")}>My Profile</h1>
@@ -161,11 +173,10 @@ export function AdminProfileView() {
     );
   }
 
-  return (
-    <div className="mx-auto w-full max-w-6xl pb-10">
-      <h1 className={cn(ADMIN_PAGE_TITLE_CLASS, "mb-5 text-[#003f3f] dark:text-white")}>My Profile</h1>
+  const allowInlineEdit = !embedded;
 
-      <section className="space-y-4">
+  const body = (
+    <section className="space-y-4">
         <article className="rounded-xl border border-[#dfe6ea] bg-white px-5 py-4 shadow-sm dark:border-white/15 dark:bg-[#111315]">
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <div className="relative">
@@ -180,21 +191,25 @@ export function AdminProfileView() {
                   avatarInitials
                 )}
               </div>
-              <button
-                type="button"
-                onClick={onAvatarPick}
-                className="absolute -bottom-1 -right-1 inline-flex size-7 items-center justify-center rounded-full border border-[#d9dee3] bg-white text-[#2e4f53] shadow-sm transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
-                aria-label="Edit profile photo"
-              >
-                <Pencil className="size-3.5" aria-hidden />
-              </button>
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={onAvatarChange}
-              />
+              {allowInlineEdit ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={onAvatarPick}
+                    className="absolute -bottom-1 -right-1 inline-flex size-7 items-center justify-center rounded-full border border-[#d9dee3] bg-white text-[#2e4f53] shadow-sm transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                    aria-label="Edit profile photo"
+                  >
+                    <Pencil className="size-3.5" aria-hidden />
+                  </button>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={onAvatarChange}
+                  />
+                </>
+              ) : null}
             </div>
             <div className="min-w-0">
               <p className="text-lg font-semibold tracking-tight text-[#033f3f] dark:text-white">
@@ -206,41 +221,48 @@ export function AdminProfileView() {
         </article>
 
         <article className="rounded-xl border border-[#dfe6ea] bg-white p-5 shadow-sm sm:p-6 dark:border-white/15 dark:bg-[#111315]">
-          <div className="mb-4 flex items-center justify-between border-b border-[#edf2f5] pb-3 dark:border-white/15">
-            <h2 className="text-lg font-semibold text-[#004444] dark:text-white">Personal Information</h2>
-            {editingPersonal ? (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingPersonal(false)}
-                  className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={onPersonalSave}
-                  className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
-                >
-                  Save
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={onPersonalEditStart}
-                className="inline-flex items-center gap-1.5 rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
-              >
-                Edit
-                <Pencil className="size-3.5" aria-hidden />
-              </button>
+          <div
+            className={cn(
+              "mb-4 flex border-b border-[#edf2f5] pb-3 dark:border-white/15",
+              allowInlineEdit ? "items-center justify-between" : ""
             )}
+          >
+            <h2 className="text-lg font-semibold text-[#004444] dark:text-white">Personal Information</h2>
+            {allowInlineEdit ? (
+              editingPersonal ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingPersonal(false)}
+                    className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onPersonalSave}
+                    className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                  >
+                    Save
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onPersonalEditStart}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                >
+                  Edit
+                  <Pencil className="size-3.5" aria-hidden />
+                </button>
+              )
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <p className="text-[11px] text-[#6a7d81] dark:text-white/65">First Name</p>
-              {editingPersonal ? (
+              {editingPersonal && allowInlineEdit ? (
                 <input
                   value={personalDraft.firstName}
                   onChange={(e) =>
@@ -254,7 +276,7 @@ export function AdminProfileView() {
             </div>
             <div>
               <p className="text-[11px] text-[#6a7d81] dark:text-white/65">Last Name</p>
-              {editingPersonal ? (
+              {editingPersonal && allowInlineEdit ? (
                 <input
                   value={personalDraft.lastName}
                   onChange={(e) =>
@@ -282,7 +304,7 @@ export function AdminProfileView() {
             </div>
             <div>
               <p className="text-[11px] text-[#6a7d81] dark:text-white/65">Email Address</p>
-              {editingPersonal ? (
+              {editingPersonal && allowInlineEdit ? (
                 <input
                   value={personalDraft.email}
                   onChange={(e) =>
@@ -296,7 +318,7 @@ export function AdminProfileView() {
             </div>
             <div>
               <p className="text-[11px] text-[#6a7d81] dark:text-white/65">Phone Number</p>
-              {editingPersonal ? (
+              {editingPersonal && allowInlineEdit ? (
                 <input
                   value={personalDraft.phone}
                   onChange={(e) =>
@@ -310,7 +332,7 @@ export function AdminProfileView() {
             </div>
             <div>
               <p className="text-[11px] text-[#6a7d81] dark:text-white/65">User Role</p>
-              {editingPersonal ? (
+              {editingPersonal && allowInlineEdit ? (
                 <input
                   value={personalDraft.userRole}
                   onChange={(e) =>
@@ -326,41 +348,48 @@ export function AdminProfileView() {
         </article>
 
         <article className="rounded-xl border border-[#dfe6ea] bg-white p-5 shadow-sm sm:p-6 dark:border-white/15 dark:bg-[#111315]">
-          <div className="mb-4 flex items-center justify-between border-b border-[#edf2f5] pb-3 dark:border-white/15">
-            <h2 className="text-lg font-semibold text-[#004444] dark:text-white">Address</h2>
-            {editingAddress ? (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingAddress(false)}
-                  className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={onAddressSave}
-                  className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
-                >
-                  Save
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={onAddressEditStart}
-                className="inline-flex items-center gap-1.5 rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
-              >
-                Edit
-                <Pencil className="size-3.5" aria-hidden />
-              </button>
+          <div
+            className={cn(
+              "mb-4 flex border-b border-[#edf2f5] pb-3 dark:border-white/15",
+              allowInlineEdit ? "items-center justify-between" : ""
             )}
+          >
+            <h2 className="text-lg font-semibold text-[#004444] dark:text-white">Address</h2>
+            {allowInlineEdit ? (
+              editingAddress ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingAddress(false)}
+                    className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onAddressSave}
+                    className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                  >
+                    Save
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onAddressEditStart}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                >
+                  Edit
+                  <Pencil className="size-3.5" aria-hidden />
+                </button>
+              )
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-3">
             <div>
               <p className="text-[11px] text-[#6a7d81] dark:text-white/65">Country</p>
-              {editingAddress ? (
+              {editingAddress && allowInlineEdit ? (
                 <input
                   value={addressDraft.country}
                   onChange={(e) =>
@@ -374,7 +403,7 @@ export function AdminProfileView() {
             </div>
             <div>
               <p className="text-[11px] text-[#6a7d81] dark:text-white/65">City</p>
-              {editingAddress ? (
+              {editingAddress && allowInlineEdit ? (
                 <input
                   value={addressDraft.city}
                   onChange={(e) =>
@@ -388,7 +417,7 @@ export function AdminProfileView() {
             </div>
             <div>
               <p className="text-[11px] text-[#6a7d81] dark:text-white/65">Postal Code</p>
-              {editingAddress ? (
+              {editingAddress && allowInlineEdit ? (
                 <input
                   value={addressDraft.postalCode}
                   onChange={(e) =>
@@ -402,7 +431,17 @@ export function AdminProfileView() {
             </div>
           </div>
         </article>
-      </section>
+    </section>
+  );
+
+  if (embedded) {
+    return <div className="space-y-4 px-1 py-1 sm:px-2">{body}</div>;
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-6xl pb-10">
+      <h1 className={cn(ADMIN_PAGE_TITLE_CLASS, "mb-5 text-[#003f3f] dark:text-white")}>My Profile</h1>
+      {body}
     </div>
   );
 }

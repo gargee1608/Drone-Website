@@ -6,6 +6,7 @@ import {
   Moon,
   RefreshCw,
   UserRound,
+  X,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import {
@@ -18,6 +19,9 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AdminProfileView } from "@/components/dashboard/admin-profile-view";
+import { PilotProfileView } from "@/components/pilot-registration/pilot-profile-view";
+import { UserProfileView } from "@/components/user-dashboard/user-profile-view";
 import { apiUrl } from "@/lib/api-url";
 import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
@@ -112,6 +116,7 @@ export function SettingsDashboard({
     null
   );
   const [profileDialogSuccess, setProfileDialogSuccess] = useState(false);
+  const [profileInfoPopupOpen, setProfileInfoPopupOpen] = useState(false);
 
   useLayoutEffect(() => {
     const initial = resolveThemeWithFallback();
@@ -231,6 +236,14 @@ export function SettingsDashboard({
     setProfileDialogSuccess(false);
   }, []);
 
+  const openProfileInfoPopup = useCallback(() => {
+    setProfileInfoPopupOpen(true);
+  }, []);
+
+  const closeProfileInfoPopup = useCallback(() => {
+    setProfileInfoPopupOpen(false);
+  }, []);
+
   useEffect(() => {
     if (!passwordDialogSuccess) return;
     const t = window.setTimeout(() => {
@@ -265,10 +278,104 @@ export function SettingsDashboard({
     return () => window.removeEventListener("keydown", onKey);
   }, [profileDialogOpen, closeProfileDialog]);
 
+  useEffect(() => {
+    if (!profileInfoPopupOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeProfileInfoPopup();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [profileInfoPopupOpen, closeProfileInfoPopup]);
+
   return (
     <>
       <div className="mx-auto w-full max-w-6xl antialiased">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {settingsContext === "user" ? (
+            <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
+              <div className="mb-4 flex items-start gap-3">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
+                  <UserRound className="size-5 text-[#008B8B]" aria-hidden />
+                </span>
+                <div className="min-w-0 text-left">
+                  <h2 className="text-base font-bold text-foreground">
+                    Profile
+                  </h2>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    View your profile page, photo, and account details.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-auto flex flex-1 flex-col justify-end pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 w-full rounded-lg border-[#008B8B] bg-background text-sm font-semibold text-[#008B8B] hover:bg-[#008B8B]/8"
+                  onClick={openProfileInfoPopup}
+                >
+                  Profile information
+                </Button>
+              </div>
+            </section>
+          ) : null}
+
+          {settingsContext === "admin" ? (
+            <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
+              <div className="mb-4 flex items-start gap-3">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
+                  <UserRound className="size-5 text-[#008B8B]" aria-hidden />
+                </span>
+                <div className="min-w-0 text-left">
+                  <h2 className="text-base font-bold text-foreground">
+                    Profile
+                  </h2>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    View your admin profile, photo, address, and account
+                    details.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-auto flex flex-1 flex-col justify-end pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 w-full rounded-lg border-[#008B8B] bg-background text-sm font-semibold text-[#008B8B] hover:bg-[#008B8B]/8"
+                  onClick={openProfileInfoPopup}
+                >
+                  Profile information
+                </Button>
+              </div>
+            </section>
+          ) : null}
+
+          {settingsContext === "pilot" ? (
+            <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
+              <div className="mb-4 flex items-start gap-3">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
+                  <UserRound className="size-5 text-[#008B8B]" aria-hidden />
+                </span>
+                <div className="min-w-0 text-left">
+                  <h2 className="text-base font-bold text-foreground">
+                    Profile
+                  </h2>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    View your pilot profile, photo, flight details, and drones.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-auto flex flex-1 flex-col justify-end pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 w-full rounded-lg border-[#008B8B] bg-background text-sm font-semibold text-[#008B8B] hover:bg-[#008B8B]/8"
+                  onClick={openProfileInfoPopup}
+                >
+                  Profile information
+                </Button>
+              </div>
+            </section>
+          ) : null}
+
                 <section
                   id="account-change-password"
                   className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6"
@@ -1028,6 +1135,56 @@ export function SettingsDashboard({
           </div>
         </div>
       ) : null}
+
+      {(settingsContext === "user" ||
+        settingsContext === "admin" ||
+        settingsContext === "pilot") &&
+      profileInfoPopupOpen ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={
+            settingsContext === "admin"
+              ? "Admin profile"
+              : settingsContext === "pilot"
+                ? "Pilot profile"
+                : "Profile"
+          }
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-[#191c1d]/35 backdrop-blur-[2px]"
+            aria-label="Close profile"
+            onClick={closeProfileInfoPopup}
+          />
+          <div
+            className="relative z-10 flex max-h-[min(92dvh,840px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border-2 border-border bg-card text-card-foreground shadow-xl ring-1 ring-black/5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1 z-20 text-muted-foreground hover:text-foreground sm:right-2 sm:top-2"
+              aria-label="Close"
+              onClick={closeProfileInfoPopup}
+            >
+              <X className="size-4" aria-hidden />
+            </Button>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-12 sm:px-5 sm:pb-5 sm:pt-14">
+              {settingsContext === "admin" ? (
+                <AdminProfileView embedded />
+              ) : settingsContext === "pilot" ? (
+                <PilotProfileView variant="dashboard" embedded />
+              ) : (
+                <UserProfileView embedded />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
     </>
   );
 }

@@ -69,17 +69,16 @@ export function UserTrackingView() {
         ) : (
           <div className="overflow-hidden rounded-xl border border-[#c1c6d7]/15 bg-white shadow-sm dark:border-white/15 dark:bg-[#161a1d]">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[880px] table-fixed border-collapse">
+              <table className="w-full min-w-[760px] table-fixed border-collapse">
                 <colgroup>
                   <col className="w-[7.5rem]" />
                   <col className="w-[6.5rem]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[18%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[15%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[20%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[11%]" />
                   <col className="w-[10%]" />
-                  <col className="w-[9%]" />
                 </colgroup>
                 <thead className="bg-[#f3f4f5]/85 dark:bg-[#1b2024]">
                   <tr className="border-b border-[#edeeef] dark:border-white/10">
@@ -91,9 +90,6 @@ export function UserTrackingView() {
                     </th>
                     <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
                       Pilot name
-                    </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
-                      Pilot ID
                     </th>
                     <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
                       Title
@@ -126,14 +122,11 @@ export function UserTrackingView() {
                         <td className="whitespace-nowrap px-3 py-3 text-xs text-[#191c1d] dark:text-white">
                           {formatAssignedAt(entry.assignedAt)}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#008B8B]">
+                        <td className="whitespace-nowrap px-3 py-3 text-xs text-[#191c1d] dark:text-white">
                           <span className="font-mono">{displayReqId}</span>
                         </td>
                         <td className="px-3 py-3 text-xs font-medium break-words text-[#191c1d] dark:text-white">
                           {entry.pilotName || "—"}
-                        </td>
-                        <td className="px-3 py-3 text-xs font-mono break-words text-[#191c1d] dark:text-white">
-                          {entry.pilotBadgeId || "—"}
                         </td>
                         <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-white">
                           {r.reasonOrTitle?.trim() || "—"}

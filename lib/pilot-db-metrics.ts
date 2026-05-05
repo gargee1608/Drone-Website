@@ -58,21 +58,17 @@ export function safetyRatingFromPilotRow(
   return Math.min(100, Math.max(0, Math.round(v * 10) / 10));
 }
 
+/** Prefer `GET /api/missions/assigned-count` for dashboard; this reads `missions_assigned` on the pilot row if present. */
 export function assignedMissionCountFromPilotRow(
   pilot: Record<string, unknown>
 ): number {
-  const raw =
-    pilot.missions_assigned ??
-    pilot.missionsAssigned ??
-    pilot.missions_completed ??
-    pilot.missionsCompleted ??
-    pilot.flight_count ??
-    pilot.flightCount;
+  const raw = pilot.missions_assigned ?? pilot.missionsAssigned;
   const n = Number(raw);
   if (!Number.isFinite(n) || n < 0) return 0;
   return Math.floor(n);
 }
 
+/** Prefer `GET /api/missions/completed-deliveries-count` for dashboard totals from the `missions` table. */
 export function missionsCompletedFromPilotRow(
   pilot: Record<string, unknown>
 ): number {

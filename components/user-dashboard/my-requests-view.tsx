@@ -1,12 +1,11 @@
 "use client";
 
-import { ClipboardList, Trash2 } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-shell";
 import {
   loadUserRequestsForCurrentUser,
-  removeUserRequestById,
   USER_REQUESTS_UPDATED_EVENT,
   userMissionAdminStatusLabel,
   userRequestQueueDisplayIdInList,
@@ -93,110 +92,97 @@ export function MyRequestsView() {
         ) : (
           <div className="overflow-hidden rounded-xl border border-[#c1c6d7]/15 bg-white shadow-sm dark:border-white/15 dark:bg-[#161a1d]">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] table-fixed border-collapse">
-                <colgroup>
-                  <col className="w-[8.5rem]" />
-                  <col className="w-[20%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[6%]" />
-                  <col className="w-[9%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[17%]" />
-                  <col className="w-[10%]" />
-                </colgroup>
+              <table className="w-full min-w-[920px] border-collapse text-left text-sm">
                 <thead className="bg-[#f3f4f5]/85 dark:bg-[#1b2024]">
                   <tr className="border-b border-[#edeeef] dark:border-white/10">
-                    <th className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th
+                      scope="col"
+                      className="align-middle whitespace-nowrap px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
+                    >
                       Request ID
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th
+                      scope="col"
+                      className="align-middle px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
+                    >
                       Title
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th
+                      scope="col"
+                      className="align-middle min-w-[7.5rem] px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
+                    >
                       Pickup
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th
+                      scope="col"
+                      className="align-middle min-w-[7.5rem] px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
+                    >
                       Drop
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th
+                      scope="col"
+                      className="align-middle whitespace-nowrap px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
+                    >
                       Payload
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th
+                      scope="col"
+                      className="align-middle whitespace-nowrap px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
+                    >
                       Type
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th
+                      scope="col"
+                      className="align-middle whitespace-nowrap px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
+                    >
                       Priority
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th
+                      scope="col"
+                      className="align-middle px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
+                    >
                       Status
-                    </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
-                      Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-[#edeeef] dark:divide-white/10">
                   {requests.map((req) => (
                     <tr
                       key={req.id}
-                      className="border-b border-[#edeeef] last:border-b-0 dark:border-white/10"
+                      className="transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.04]"
                     >
-                      <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#008B8B]">
-                        <span className="font-mono">
+                      <td className="align-middle whitespace-nowrap px-4 py-3.5">
+                        <span className="font-mono text-sm font-normal tabular-nums text-[#191c1d] dark:text-white/90">
                           {userRequestQueueDisplayIdInList(
                             req.id,
                             requestsChrono
                           )}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-xs font-semibold break-words text-[#191c1d] dark:text-white">
+                      <td className="align-middle px-4 py-3.5 text-sm font-semibold break-words text-[#191c1d] dark:text-white">
                         {req.reasonOrTitle || "(No title)"}
                       </td>
-                      <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-white">
+                      <td className="align-middle px-4 py-3.5 text-sm font-normal break-words text-[#191c1d] dark:text-white/90">
                         {req.pickupLocation || "—"}
                       </td>
-                      <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-white">
+                      <td className="align-middle px-4 py-3.5 text-sm font-normal break-words text-[#191c1d] dark:text-white/90">
                         {req.dropLocation || "—"}
                       </td>
-                      <td className="px-3 py-3 text-xs whitespace-nowrap text-[#191c1d] dark:text-white">
+                      <td className="align-middle whitespace-nowrap px-4 py-3.5 text-sm font-normal tabular-nums text-[#191c1d] dark:text-white/90">
                         {req.payloadWeightKg ? `${req.payloadWeightKg} kg` : "—"}
                       </td>
-                      <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-white">
+                      <td className="align-middle whitespace-nowrap px-4 py-3.5 text-sm font-normal text-[#191c1d] dark:text-white/90">
                         {req.requestType || "—"}
                       </td>
-                      <td className="px-3 py-3 text-xs whitespace-nowrap text-[#191c1d] dark:text-white">
+                      <td className="align-middle whitespace-nowrap px-4 py-3.5 text-sm font-normal text-[#191c1d] dark:text-white/90">
                         {formatPriority(req.requestPriority)}
                       </td>
-                      <td className="px-3 py-3 align-middle">
+                      <td className="align-middle px-4 py-3.5">
                         <span
-                          className={`inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-[11px] font-bold break-words ${adminStatusBadgeClass(req.adminStatus)}`}
+                          className={`inline-flex max-w-full items-center rounded-full px-3 py-1 text-[11px] font-bold leading-snug ${adminStatusBadgeClass(req.adminStatus)}`}
                         >
                           {userMissionAdminStatusLabel(req.adminStatus)}
                         </span>
-                      </td>
-                      <td className="px-3 py-3 align-middle">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const label = userRequestQueueDisplayIdInList(
-                              req.id,
-                              requestsChrono
-                            );
-                            if (
-                              !window.confirm(
-                                `Delete request ${label}? This cannot be undone.`
-                              )
-                            ) {
-                              return;
-                            }
-                            removeUserRequestById(req.id);
-                          }}
-                          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-500/40 dark:bg-[#161a1d] dark:text-red-300 dark:hover:bg-red-500/15"
-                        >
-                          <Trash2 className="size-3.5 shrink-0" aria-hidden />
-                          Delete
-                        </button>
                       </td>
                     </tr>
                   ))}

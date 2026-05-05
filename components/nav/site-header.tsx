@@ -114,8 +114,8 @@ export function SiteHeader({
   const showDashboardAccountChrome = isUserDashboard || isAdminDashboard;
 
   const profileHref = isUserDashboard
-    ? "/user-dashboard/profile"
-    : "/dashboard/profile";
+    ? "/settings?from=user"
+    : "/settings?from=admin";
 
   const whiteHeaderChrome =
     isSettingsPage || isAdminDashboard || isUserDashboard || isPilotDashboard;

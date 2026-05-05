@@ -126,9 +126,11 @@ function typeLabel(requestType: string): string {
 }
 
 function statusCell(status: UserMissionAdminStatus) {
+  const rowClass =
+    "flex w-full min-w-0 items-center justify-end gap-1.5 text-[11px] font-bold";
   if (status === "accepted") {
     return (
-      <span className="flex items-center justify-end gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+      <span className={cn(rowClass, "text-emerald-600 dark:text-emerald-400")}>
         <CheckCircle2 className="size-4 shrink-0" strokeWidth={2.5} aria-hidden />
         SUCCESS
       </span>
@@ -136,7 +138,7 @@ function statusCell(status: UserMissionAdminStatus) {
   }
   if (status === "completed") {
     return (
-      <span className="flex items-center justify-end gap-1.5 text-[11px] font-bold text-sky-700 dark:text-sky-300">
+      <span className={cn(rowClass, "text-sky-700 dark:text-sky-300")}>
         <CheckCircle2 className="size-4 shrink-0" strokeWidth={2.5} aria-hidden />
         COMPLETED
       </span>
@@ -144,13 +146,13 @@ function statusCell(status: UserMissionAdminStatus) {
   }
   if (status === "pending") {
     return (
-      <span className="text-right text-[11px] font-bold text-amber-600 dark:text-amber-400">
+      <span className={cn(rowClass, "text-amber-600 dark:text-amber-400")}>
         PENDING
       </span>
     );
   }
   return (
-    <span className="text-right text-[11px] font-bold text-rose-600 dark:text-rose-400">
+    <span className={cn(rowClass, "text-rose-600 dark:text-rose-400")}>
       DECLINED
     </span>
   );
@@ -870,7 +872,9 @@ export function UserDashboardFleetDashboard({
                       <td className="px-6 py-4 text-xs font-medium text-slate-500 dark:text-white/65">
                         {["12m 45s", "18m 12s", "22m 08s"][i % 3] ?? "—"}
                       </td>
-                      <td className="px-6 py-4">{statusCell(req.adminStatus)}</td>
+                      <td className="px-6 py-4 text-right align-middle">
+                        {statusCell(req.adminStatus)}
+                      </td>
                     </tr>
                   ))
                 )}

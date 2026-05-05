@@ -66,17 +66,14 @@ export function LandingHeader() {
   const isSettingsPage =
     pathname === "/settings" || (pathname?.startsWith("/settings/") ?? false);
   const settingsFrom = searchParams.get("from");
-  /** Home / Services / Blogs / Contact — hidden on admin, user & pilot dashboards, user settings shell (`/settings` without `from=admin|pilot`), and admin login. */
-  const isUserShellMarketingHidden =
-    isUserDashboard ||
-    (isSettingsPage &&
-      settingsFrom !== "pilot" &&
-      settingsFrom !== "admin");
+  /** Home / Services / Blogs / Contact — hidden on user dashboard shell, admin dashboard, pilot dashboard areas, and admin login; all `/settings` URLs are excluded via `!isSettingsPage` below. */
+  const isUserShellMarketingHidden = isUserDashboard;
   const showMarketingHeaderNav =
     !isAdminDashboard &&
     !isAdminLoginPage &&
     !isPilotDashboard &&
-    !isUserShellMarketingHidden;
+    !isUserShellMarketingHidden &&
+    !isSettingsPage;
   const isPilotSettingsContext =
     isSettingsPage && settingsFrom === "pilot";
   const showUserDashboardSidebar =
@@ -159,8 +156,8 @@ export function LandingHeader() {
     isPilotDashboard || settingsFrom === "pilot"
       ? "/pilot-profile"
       : isAdminDashboard || settingsFrom === "admin"
-        ? "/dashboard/profile"
-        : "/user-dashboard/profile";
+        ? "/settings?from=admin"
+        : "/settings?from=user";
 
   const showAccountMenu =
     isAdminDashboard ||

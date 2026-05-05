@@ -1,10 +1,6 @@
-import { UserProfileView } from "@/components/user-dashboard/user-profile-view";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Drone Hire | User Profile",
-  description: "Manage your user profile details in your dashboard.",
-};
-
+/** Profile is available under Settings → Profile information. */
 export default function UserProfilePage() {
-  return <UserProfileView />;
+  redirect("/settings?from=user");
 }
