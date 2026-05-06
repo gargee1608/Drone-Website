@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 
-import { AdminDashboardFooter } from "@/components/dashboard/admin-dashboard-footer";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { SiteFooter } from "@/components/nav/site-footer";
 import { cn } from "@/lib/utils";
@@ -25,7 +24,10 @@ export function ConditionalSiteFooter() {
     pathname === "/settings/" ||
     (pathname?.startsWith("/settings/") ?? false);
   const isDashboardShellFooter =
-    isUserDashboard || isPilotDashboard || isSettings;
+    isUserDashboard ||
+    isPilotDashboard ||
+    isSettings ||
+    isAdminDashboard;
   const whiteFooterChrome =
     isAdminDashboard ||
     isUserDashboard ||
@@ -55,22 +57,21 @@ export function ConditionalSiteFooter() {
   if (isDashboardShellFooter) {
     return (
       <>
-        <div className="h-px w-full shrink-0 bg-slate-200 dark:bg-white/15" aria-hidden />
-        <SiteFooter className="bg-white text-foreground dark:bg-[#111315] dark:text-white" />
+        <div
+          className={cn(
+            "h-px w-full shrink-0",
+            isUserDashboard ? "bg-slate-200 dark:bg-slate-200" : "bg-slate-200 dark:bg-white/15"
+          )}
+          aria-hidden
+        />
+        <SiteFooter
+          className={
+            isUserDashboard
+              ? "bg-white text-[#191c1d] dark:bg-white dark:text-[#191c1d]"
+              : "bg-white text-foreground dark:bg-[#111315] dark:text-white"
+          }
+        />
       </>
-    );
-  }
-
-  if (isAdminDashboard) {
-    return (
-      <AdminDashboardFooter
-        className={cn(
-          "z-30",
-          "transition-[margin-left,width] duration-200 ease-out",
-          "lg:ml-[var(--admin-sidebar-footer-inset,0px)]",
-          "lg:w-[calc(100%-var(--admin-sidebar-footer-inset,0px))]"
-        )}
-      />
     );
   }
 

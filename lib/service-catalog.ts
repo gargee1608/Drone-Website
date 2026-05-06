@@ -145,7 +145,7 @@ function mapBackendServiceToCatalogItem(row: BackendServiceRow): ServiceCatalogI
   if (!title) return null;
   const description = String(row.description ?? "").trim();
   const priceRaw = Number(row.price);
-  const priceText = Number.isFinite(priceRaw) ? `₹${priceRaw}` : "Custom";
+  const priceText = Number.isFinite(priceRaw) ? `$${priceRaw}` : "Custom";
   return {
     slug: serviceSlugFromTitle(title),
     title,

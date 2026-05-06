@@ -123,8 +123,15 @@ export function PilotLoginView() {
       }
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("pilot", JSON.stringify(data.user)); 
-      router.push("/pilot-dashboard");
+      localStorage.setItem("pilot", JSON.stringify(data.user));
+      const redirectRaw = searchParams.get("redirect");
+      const redirectPath =
+        redirectRaw &&
+        redirectRaw.startsWith("/") &&
+        !redirectRaw.startsWith("//")
+          ? redirectRaw
+          : null;
+      router.push(redirectPath ?? "/pilot-dashboard");
     } catch (err) {
       console.error(err);
       const detail =
@@ -287,11 +294,12 @@ export function PilotLoginView() {
                   className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 outline-none transition hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:text-white/55 dark:hover:bg-white/10 dark:hover:text-white"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   aria-pressed={showPassword}
+                  aria-controls="pilot-login-password"
                 >
                   {showPassword ? (
-                    <EyeOff className="size-[1.15rem]" aria-hidden />
-                  ) : (
                     <Eye className="size-[1.15rem]" aria-hidden />
+                  ) : (
+                    <EyeOff className="size-[1.15rem]" aria-hidden />
                   )}
                 </button>
               </div>

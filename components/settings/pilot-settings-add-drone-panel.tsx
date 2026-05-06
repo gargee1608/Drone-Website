@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
@@ -57,17 +58,6 @@ function emptyDrone(): PilotProfileDrone {
     rangeKm: "",
     useCases: [],
   };
-}
-
-function droneListTitle(modelName: string) {
-  const t = modelName.trim();
-  if (!t) return "Drone";
-  return t.split(/\s+/)[0] ?? t;
-}
-
-function droneListSubtitle(d: PilotProfileDrone) {
-  const parts = [d.type.trim(), d.camera.trim()].filter(Boolean);
-  return parts.length ? parts.join(" • ") : "—";
 }
 
 function readBaseSnapshot(): PilotProfileSnapshot | null {
@@ -129,6 +119,7 @@ export type PilotSettingsAddDronePanelProps = {
 export function PilotSettingsAddDronePanel({
   withDroneList = true,
 }: PilotSettingsAddDronePanelProps = {}) {
+  const pathname = usePathname();
   const formId = useId();
   const [drones, setDrones] = useState<PilotProfileDrone[]>([]);
   const [draftModel, setDraftModel] = useState("");
@@ -149,13 +140,20 @@ export function PilotSettingsAddDronePanel({
   useEffect(() => {
     if (!withDroneList) return;
     refreshFromStorage();
-  }, [withDroneList, refreshFromStorage]);
+  }, [withDroneList, refreshFromStorage, pathname]);
 
   useEffect(() => {
     if (!withDroneList) return;
     const onUpdated = () => refreshFromStorage();
     window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, onUpdated);
     return () => window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, onUpdated);
+  }, [withDroneList, refreshFromStorage]);
+
+  useEffect(() => {
+    if (!withDroneList) return;
+    const onFocus = () => refreshFromStorage();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [withDroneList, refreshFromStorage]);
 
   function toggleDraftUseCase(label: string) {
@@ -345,7 +343,7 @@ export function PilotSettingsAddDronePanel({
       ) : null}
       {justAdded ? (
         <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-          Drone added and saved to your profile.
+          Your new drone was saved to your profile.
         </p>
       ) : null}
       <Button
@@ -355,7 +353,7 @@ export function PilotSettingsAddDronePanel({
         onClick={commitDraftDrone}
       >
         <Plus className="mr-2 inline size-4" aria-hidden />
-        Add Drone Details
+        Add new drone
       </Button>
     </div>
   );
@@ -363,35 +361,80 @@ export function PilotSettingsAddDronePanel({
   if (!withDroneList) {
     return (
       <div className="rounded-xl border border-border bg-muted/25 p-4 sm:p-5">
-        <h3 className="mb-4 text-sm font-semibold text-foreground">
-          Add Drone Details
+        <h3 className="mb-4 text-center text-sm font-semibold text-foreground">
+          Add New Drone Details
         </h3>
-        {formFields}
+        <div className="text-left">{formFields}</div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Your drones</h3>
+      <div className="rounded-xl border border-border bg-muted/25 p-4 sm:p-5">
+        <h3 className="mb-4 text-center text-sm font-semibold text-foreground">
+          Your Drone Details
+        </h3>
         {drones.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-            No drones yet. Add one with the form below.
+            You haven&apos;t added any drones yet. Use the form below to add
+            your first aircraft.
           </p>
         ) : (
-          <ul className="space-y-2">
-            {drones.map((d) => (
+          <ul className="space-y-3">
+            {drones.map((d, index) => (
               <li
-                key={d.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3"
+                key={d.id || `${d.modelName}-${index}`}
+                className="rounded-xl border border-border bg-card p-3.5"
               >
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-foreground">
-                    {droneListTitle(d.modelName)}
+                {/* Row 1: Model | Type | Camera — row 2: Payload | Flight | Range — row 3: Use cases */}
+                <div className="grid grid-cols-1 gap-y-4 gap-x-4 text-xs text-muted-foreground sm:grid-cols-3 sm:gap-y-4">
+                  <p className="min-w-0 leading-snug">
+                    <span className="font-semibold text-foreground">
+                      Model Name
+                    </span>
+                    {" : "}
+                    {d.modelName.trim() || "—"}
                   </p>
-                  <p className="truncate text-sm text-muted-foreground">
-                    {droneListSubtitle(d)}
+                  <p className="min-w-0 leading-snug">
+                    <span className="font-semibold text-foreground">Type</span>
+                    {" : "}
+                    {d.type.trim() || "—"}
+                  </p>
+                  <p className="min-w-0">
+                    <span className="font-semibold text-foreground">
+                      Camera
+                    </span>
+                    {": "}
+                    {d.camera.trim() || "—"}
+                  </p>
+                  <p className="min-w-0">
+                    <span className="font-semibold text-foreground">
+                      Payload (kg)
+                    </span>
+                    {": "}
+                    {d.payloadKg.trim() || "—"}
+                  </p>
+                  <p className="min-w-0">
+                    <span className="font-semibold text-foreground">
+                      Flight time (min)
+                    </span>
+                    {": "}
+                    {d.flightTimeMin.trim() || "—"}
+                  </p>
+                  <p className="min-w-0">
+                    <span className="font-semibold text-foreground">
+                      Range (km)
+                    </span>
+                    {": "}
+                    {d.rangeKm.trim() || "—"}
+                  </p>
+                  <p className="min-w-0 leading-snug sm:col-span-3">
+                    <span className="font-semibold text-foreground">
+                      Use cases
+                    </span>
+                    {": "}
+                    {d.useCases?.length ? d.useCases.join(", ") : "—"}
                   </p>
                 </div>
               </li>
@@ -401,10 +444,10 @@ export function PilotSettingsAddDronePanel({
       </div>
 
       <div className="rounded-xl border border-border bg-muted/25 p-4 sm:p-5">
-        <h3 className="mb-4 text-sm font-semibold text-foreground">
-          Add Drone Details
+        <h3 className="mb-4 text-center text-sm font-semibold text-foreground">
+          Add New Drone Details
         </h3>
-        {formFields}
+        <div className="text-left">{formFields}</div>
       </div>
     </div>
   );

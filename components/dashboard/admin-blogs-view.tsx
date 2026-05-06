@@ -24,6 +24,7 @@ import {
   deleteBuiltinFromCatalog,
   loadBlogExtras,
   loadBlogOverrides,
+  notifyBlogCatalogUpdated,
   saveBlogExtras,
   saveBlogOverrides,
   type AdminBlogExtra,
@@ -262,7 +263,7 @@ export function AdminBlogsView() {
           return;
         }
         await refresh();
-        window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+        notifyBlogCatalogUpdated();
         closeEditor();
       } catch {
         setFormError("Network error — is the backend running?");
@@ -291,7 +292,7 @@ export function AdminBlogsView() {
           return;
         }
         await refresh();
-        window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+        notifyBlogCatalogUpdated();
         closeEditor();
       } catch {
         setFormError("Network error — is the backend running?");
@@ -362,7 +363,7 @@ export function AdminBlogsView() {
         return;
       }
       await refresh();
-      window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+      notifyBlogCatalogUpdated();
       if (editDbId === id) closeEditor();
     } catch {
       /* ignore */

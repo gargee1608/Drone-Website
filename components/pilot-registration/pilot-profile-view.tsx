@@ -1271,50 +1271,71 @@ export function PilotProfileView({
                     key={drone.id || `${drone.modelName}-${index}`}
                     className="rounded-xl border border-border p-3.5"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground">
-                          {drone.modelName || "—"}
-                        </p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {drone.type || "—"}
-                        </p>
+                    {allowProfileEdits ? (
+                      <div className="mb-3 flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={goToPilotRegistrationDroneStep}
+                          className="h-8 rounded-lg px-3 text-xs"
+                        >
+                          Edit
+                        </Button>
                       </div>
-                      {allowProfileEdits ? (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={goToPilotRegistrationDroneStep}
-                            className="h-8 rounded-lg px-3 text-xs"
-                          >
-                            Edit
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
-                      <p>
-                        <span className="font-semibold text-foreground">Camera:</span>{" "}
+                    ) : null}
+                    <div className="grid grid-cols-1 gap-y-4 gap-x-4 text-xs text-muted-foreground sm:grid-cols-3 sm:gap-y-4">
+                      <p className="min-w-0 leading-snug">
+                        <span className="font-semibold text-foreground">
+                          Model Name
+                        </span>
+                        {" : "}
+                        {drone.modelName || "—"}
+                      </p>
+                      <p className="min-w-0 leading-snug">
+                        <span className="font-semibold text-foreground">
+                          Type
+                        </span>
+                        {" : "}
+                        {drone.type || "—"}
+                      </p>
+                      <p className="min-w-0">
+                        <span className="font-semibold text-foreground">
+                          Camera
+                        </span>
+                        {": "}
                         {drone.camera || "—"}
                       </p>
-                      <p>
-                        <span className="font-semibold text-foreground">Payload:</span>{" "}
+                      <p className="min-w-0">
+                        <span className="font-semibold text-foreground">
+                          Payload (kg)
+                        </span>
+                        {": "}
                         {drone.payloadKg || "—"}
                       </p>
-                      <p>
-                        <span className="font-semibold text-foreground">Flight time:</span>{" "}
+                      <p className="min-w-0">
+                        <span className="font-semibold text-foreground">
+                          Flight time (min)
+                        </span>
+                        {": "}
                         {drone.flightTimeMin || "—"}
                       </p>
-                      <p>
-                        <span className="font-semibold text-foreground">Range:</span>{" "}
+                      <p className="min-w-0">
+                        <span className="font-semibold text-foreground">
+                          Range (km)
+                        </span>
+                        {": "}
                         {drone.rangeKm || "—"}
                       </p>
+                      <p className="min-w-0 leading-snug sm:col-span-3">
+                        <span className="font-semibold text-foreground">
+                          Use cases
+                        </span>
+                        {": "}
+                        {drone.useCases?.length
+                          ? drone.useCases.join(", ")
+                          : "—"}
+                      </p>
                     </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      <span className="font-semibold text-foreground">Use cases:</span>{" "}
-                      {drone.useCases?.length ? drone.useCases.join(", ") : "—"}
-                    </p>
                   </div>
                 ))}
               </div>

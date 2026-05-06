@@ -91,11 +91,50 @@ export function maybeMigrateLegacyPilotProfileSnapshotToScoped(): void {
   }
 }
 
+/**
+ * Prefer the snapshot that includes the most drone rows when session vs local
+ * differ (they can drift if only one store was updated).
+ */
+function pickPilotSnapshotRawPreferMostDrones(
+  sessionRaw: string | null,
+  localRaw: string | null
+): string | null {
+  if (!sessionRaw && !localRaw) return null;
+  if (!sessionRaw) return localRaw;
+  if (!localRaw) return sessionRaw;
+  if (sessionRaw === localRaw) return sessionRaw;
+
+  const sessionSnap = parsePilotProfileSnapshot(sessionRaw);
+  const localSnap = parsePilotProfileSnapshot(localRaw);
+  if (!sessionSnap) return localRaw;
+  if (!localSnap) return sessionRaw;
+
+  const sd = sessionSnap.drones?.length ?? 0;
+  const ld = localSnap.drones?.length ?? 0;
+  if (ld > sd) return localRaw;
+  if (sd > ld) return sessionRaw;
+  return localRaw;
+}
+
 export function readPilotProfileSnapshotRawFromBrowser(): string | null {
   if (typeof window === "undefined") return null;
   maybeMigrateLegacyPilotProfileSnapshotToScoped();
   const key = activePilotProfileSnapshotStorageKey();
-  return (
-    sessionStorage.getItem(key) ?? localStorage.getItem(key) ?? null
-  );
+  const sessionRaw = sessionStorage.getItem(key);
+  const localRaw = localStorage.getItem(key);
+  const picked = pickPilotSnapshotRawPreferMostDrones(sessionRaw, localRaw);
+  if (
+    picked &&
+    sessionRaw &&
+    localRaw &&
+    (sessionRaw !== picked || localRaw !== picked)
+  ) {
+    try {
+      localStorage.setItem(key, picked);
+      sessionStorage.setItem(key, picked);
+    } catch {
+      /* ignore */
+    }
+  }
+  return picked;
 }

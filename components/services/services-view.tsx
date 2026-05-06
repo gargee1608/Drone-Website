@@ -24,6 +24,7 @@ import {
   type FeaturedListedService,
 } from "@/lib/services-featured-selection";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import { subscribeServicesDbUpdated } from "@/lib/services-db-updated";
 import { cn } from "@/lib/utils";
 
 const headline = "font-[family-name:var(--font-landing-headline)]";
@@ -243,7 +244,7 @@ function ServiceGridCard({
         {price ? (
           <div className="pointer-events-none absolute left-3 top-3">
             <span className="rounded border border-[#c1c7cf]/30 bg-white/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
-              ₹{price}
+              ${price}
             </span>
           </div>
         ) : null}
@@ -467,7 +468,7 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         {entry.item.price != null ? (
           <FeaturedPriceRow
             prefix="Starting at"
-            value={`₹${String(entry.item.price)}`}
+            value={`$${String(entry.item.price)}`}
           />
         ) : null}
         <div
@@ -526,35 +527,49 @@ export function ServicesView({
   const persistedSelection = useFeaturedServiceSelection();
 
   useEffect(() => {
-    fetch(apiUrl("/api/services"))
-      .then(async (res) => {
-        const data: unknown = await res.json().catch(() => null);
-        if (!res.ok || !Array.isArray(data)) {
-          if (
-            data &&
-            typeof data === "object" &&
-            "error" in data &&
-            process.env.NODE_ENV === "development"
-          ) {
-            console.warn(
-              "Services API:",
-              (data as { error?: string }).error ?? res.status
-            );
+    let disposed = false;
+
+    const loadDbServices = () => {
+      fetch(apiUrl("/api/services"))
+        .then(async (res) => {
+          const data: unknown = await res.json().catch(() => null);
+          if (disposed) return;
+          if (!res.ok || !Array.isArray(data)) {
+            if (
+              data &&
+              typeof data === "object" &&
+              "error" in data &&
+              process.env.NODE_ENV === "development"
+            ) {
+              console.warn(
+                "Services API:",
+                (data as { error?: string }).error ?? res.status
+              );
+            }
+            setDbServices([]);
+            return;
           }
-          setDbServices([]);
-          return;
-        }
-        setDbServices(
-          data.filter(
-            (row): row is Record<string, unknown> =>
-              typeof row === "object" && row !== null && !Array.isArray(row)
-          )
-        );
-      })
-      .catch((err) => {
-        console.log("Error fetching services:", err);
-        setDbServices([]);
-      });
+          setDbServices(
+            data.filter(
+              (row): row is Record<string, unknown> =>
+                typeof row === "object" && row !== null && !Array.isArray(row)
+            )
+          );
+        })
+        .catch((err) => {
+          if (!disposed) {
+            console.log("Error fetching services:", err);
+            setDbServices([]);
+          }
+        });
+    };
+
+    loadDbServices();
+    const unsubscribe = subscribeServicesDbUpdated(loadDbServices);
+    return () => {
+      disposed = true;
+      unsubscribe();
+    };
   }, []);
 
   const allListed = useMemo(

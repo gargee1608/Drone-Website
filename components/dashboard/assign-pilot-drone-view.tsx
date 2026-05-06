@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Inter, Manrope } from "next/font/google";
 import {
   CheckCircle2,
-  Eye,
   MapPin,
   Navigation,
   Package,
@@ -14,6 +13,7 @@ import {
   UserRound,
   Zap,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { tableRequestId } from "@/components/dashboard/user-request-table";
@@ -30,8 +30,16 @@ import {
   DEMO_ASSIGN_BRIDGE_UPDATED_EVENT,
   mergeAssignPilotDisplayQueue,
 } from "@/lib/assign-demo-bridge";
-import { pushPilotMissionNotification } from "@/lib/pilot-mission-notifications";
-import { recordUserMissionAssignment } from "@/lib/user-mission-tracking";
+import {
+  pushPilotMissionNotification,
+  removePilotMissionNotificationsByRequestRef,
+} from "@/lib/pilot-mission-notifications";
+import { pilotMissionCommentForDisplay } from "@/lib/pilot-mission-comment-display";
+import {
+  getUserMissionTrackingEntryForRequest,
+  recordUserMissionAssignment,
+  type UserMissionTrackingEntry,
+} from "@/lib/user-mission-tracking";
 import {
   appendAssignPilotDoneRef,
   loadAssignPilotDoneRefs,
@@ -46,9 +54,11 @@ import {
   USER_REQUESTS_UPDATED_EVENT,
   userRequestQueueDisplayId,
   type AssignPilotRequestRow,
+  type UserMissionRequest,
   type UserRequestAdminRow,
 } from "@/lib/user-requests";
 import { apiUrl } from "@/lib/api-url";
+import { jwtPayloadRole, jwtPayloadSub } from "@/lib/pilot-display-name";
 import {
   parsePilotProfileSnapshot,
   PILOT_PROFILE_STORAGE_KEY,
@@ -68,6 +78,27 @@ const inter = Inter({
   variable: "--font-assign-body",
   weight: ["300", "400", "500", "600"],
 });
+
+const PILOT_MISSION_COMMENTS_KEY = "aerolaminar_pilot_mission_comments_v1";
+
+function readPilotMissionComment(requestRef: string): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const raw = localStorage.getItem(PILOT_MISSION_COMMENTS_KEY);
+    if (!raw) return "";
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return "";
+    const row = (parsed as Record<string, unknown>)[requestRef.trim()];
+    if (row && typeof row === "object" && "text" in row) {
+      const t = (row as { text?: unknown }).text;
+      return typeof t === "string" ? t.trim() : "";
+    }
+    if (typeof row === "string") return row.trim();
+    return "";
+  } catch {
+    return "";
+  }
+}
 
 type PilotCard = {
   id: string;
@@ -95,7 +126,6 @@ type DroneCard = {
   estFlight: string;
   lastInspection: string;
   firmware: string;
-  subtitle: string;
   imageUrl: string;
   matchPercent: number;
   status?: "charging" | "ready";
@@ -110,6 +140,60 @@ type DroneCard = {
   sourceDroneId: string;
   sourceIndex: number;
 };
+
+function completedAssignmentToAssignRow(
+  row: CompletedAssignment
+): AssignPilotRequestRow {
+  return {
+    id: row.requestRef,
+    requestRef: row.requestRef,
+    customer: row.customer,
+    service: row.service,
+    dropoff: row.dropoff,
+    sectorLine: row.sectorLine,
+  };
+}
+
+function assignRowFromTrackingEntry(
+  tracking: UserMissionTrackingEntry
+): AssignPilotRequestRow {
+  const req = tracking.request;
+  const sectorLine =
+    req.sectorLine?.trim() ||
+    [
+      req.pickupLocation && `Pickup: ${req.pickupLocation}`,
+      req.payloadWeightKg && `${req.payloadWeightKg} kg`,
+      req.requestPriority && `Priority: ${req.requestPriority}`,
+    ]
+      .filter(Boolean)
+      .join(" · ") ||
+    "—";
+  return {
+    id: req.requestRef,
+    requestRef: req.requestRef,
+    customer: req.reasonOrTitle.trim() || "—",
+    service: req.requestType.trim() || "—",
+    dropoff: req.dropLocation.trim() || "—",
+    sectorLine,
+  };
+}
+
+function assignRequestDisplayId(
+  requestRef: string,
+  customerFallback: string
+): string {
+  if (requestRef.startsWith("demo-")) {
+    return tableRequestId({
+      key: requestRef,
+      title: customerFallback,
+      badge: "NORMAL",
+      badgeClass: "",
+      barColor: "",
+      desc: "",
+    } as UserRequestAdminRow);
+  }
+  return userRequestQueueDisplayId(requestRef);
+}
 
 type ApiPilotRow = {
   id: number | string;
@@ -170,6 +254,16 @@ function toPositiveNumber(raw: string, fallback: number): number {
   return n;
 }
 
+/** Strip trailing use-case chips sometimes stored in model text (Assign To cards). */
+function assignDroneModelForDisplay(model: string): string {
+  let m = model.trim();
+  const suffix = /\s*·\s*(Survey(?:ing)?|Filming)\s*$/i;
+  while (suffix.test(m)) {
+    m = m.replace(suffix, "").trim();
+  }
+  return m || "—";
+}
+
 function profileDroneOwner(snapshotKey: string, fallbackName: string): string {
   const maybeSub = snapshotKey.split("::pilot::")[1];
   if (maybeSub && maybeSub.trim()) return `Pilot #${maybeSub.trim()}`;
@@ -200,7 +294,6 @@ function mapProfileDroneToCard(
     .filter(Boolean)
     .join(", ");
   const serial = drone.id?.trim() || `profile-${owner}-${idx + 1}`;
-  const useCase = drone.useCases?.[0]?.trim() || drone.type.trim();
   return {
     id: `profile-${serial}`,
     model,
@@ -215,7 +308,6 @@ function mapProfileDroneToCard(
     firmware: camera || "—",
     camera: camera || "—",
     useCasesText: useCasesText || "—",
-    subtitle: `${owner}${useCase ? ` · ${useCase}` : ""}`,
     imageUrl: "/hero-drone-platform.png",
     matchPercent: 70,
     status: "ready",
@@ -339,6 +431,40 @@ function missionRangeKm(req: AssignPilotRequestRow | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Kg for matching drones/pilots: prefer stored user request weight, else parse queue row. */
+function missionPayloadKgFromSources(
+  row: AssignPilotRequestRow | null,
+  stored: UserMissionRequest | undefined
+): number | null {
+  if (stored) {
+    const raw = String(stored.payloadWeightKg ?? "")
+      .replace(/,/g, "")
+      .trim();
+    if (raw) {
+      const n = parseFloat(raw);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+  }
+  return missionPayloadKg(row);
+}
+
+/**
+ * Km for matching lists: explicit km in sector line if present; otherwise same
+ * inference as Target range in the hero (typical user requests have no km in sectorLine).
+ */
+function missionRangeKmForScoring(
+  req: AssignPilotRequestRow | null
+): number | null {
+  if (!req) return null;
+  const explicit = missionRangeKm(req);
+  if (explicit != null) return explicit;
+  const hint = parseKmHint(req);
+  const m = hint.match(/([\d.]+)/);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
 function missionUrgencyWeight(req: AssignPilotRequestRow | null): number {
   if (!req) return 1;
   const t = req.sectorLine.toLowerCase();
@@ -448,7 +574,10 @@ function assignRequestDetailDomId(requestRef: string): string {
 const glassCard =
   "bg-white/70 backdrop-blur-xl dark:bg-card/80 border border-white/50 shadow-[0px_12px_32px_rgba(25,28,29,0.06)]";
 
+const PILOT_ASSIGN_MISSION_HREF = "/pilot-dashboard/assign-mission";
+
 export function AssignPilotDroneView() {
+  const router = useRouter();
   const [selectedPilotId, setSelectedPilotId] = useState("");
   const [selectedDroneId, setSelectedDroneId] = useState("");
   const [fleetPilots, setFleetPilots] = useState<PilotCard[]>([]);
@@ -460,10 +589,25 @@ export function AssignPilotDroneView() {
     CompletedAssignment[]
   >([]);
   const [assignedDialogOpen, setAssignedDialogOpen] = useState(false);
-  const [historyDetailIndex, setHistoryDetailIndex] = useState<number | null>(
-    null
-  );
   const [doneRefs, setDoneRefs] = useState<string[]>([]);
+  const [pilotCommentTicker, setPilotCommentTicker] = useState(0);
+  /** requestRef → dismissed comment text (exact); hides panel until pilot edits comment. */
+  const [pilotCommentDismissedByRef, setPilotCommentDismissedByRef] = useState<
+    Record<string, string>
+  >({});
+
+  useEffect(() => {
+    const bump = () => setPilotCommentTicker((t) => t + 1);
+    window.addEventListener("aerolaminar-pilot-mission-comment-saved", bump);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === PILOT_MISSION_COMMENTS_KEY) bump();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("aerolaminar-pilot-mission-comment-saved", bump);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -643,8 +787,17 @@ export function AssignPilotDroneView() {
   const noUserRequests = assignQueue.length === 0;
   const queueFullyAssigned =
     assignQueue.length > 0 && pendingRequests.length === 0;
-  const missionPayloadNum = missionPayloadKg(currentRequest);
-  const missionRangeNum = missionRangeKm(currentRequest);
+
+  const storedUserRequestForActive = useMemo(() => {
+    if (!currentRequest) return undefined;
+    return findStoredUserRequestByAdminRef(currentRequest.requestRef);
+  }, [currentRequest]);
+
+  const missionPayloadNum = missionPayloadKgFromSources(
+    currentRequest,
+    storedUserRequestForActive
+  );
+  const missionRangeNum = missionRangeKmForScoring(currentRequest);
   const missionUrgencyNum = missionUrgencyWeight(currentRequest);
 
   const dronesForUi = useMemo(() => {
@@ -694,10 +847,90 @@ export function AssignPilotDroneView() {
     [dronesForUi, selectedDroneId]
   );
 
-  const historyDetail =
-    historyDetailIndex !== null
-      ? completedAssignments[historyDetailIndex]
-      : null;
+  const pilotCommentReassignItems = useMemo(() => {
+    if (fleetLoading) return [];
+    const refs = new Set<string>();
+    for (const r of assignQueue) {
+      if (readPilotMissionComment(r.requestRef).trim()) refs.add(r.requestRef);
+    }
+    for (const c of completedAssignments) {
+      if (readPilotMissionComment(c.requestRef).trim()) refs.add(c.requestRef);
+    }
+
+    type Item = {
+      requestRef: string;
+      displayId: string;
+      comment: string;
+      assignRow: AssignPilotRequestRow;
+      assignedPilotName: string | null;
+      assignedDroneModel: string | null;
+    };
+    const out: Item[] = [];
+
+    for (const requestRef of refs) {
+      const comment = readPilotMissionComment(requestRef).trim();
+      if (!comment) continue;
+      if (pilotCommentDismissedByRef[requestRef] === comment) continue;
+
+      const tracking = getUserMissionTrackingEntryForRequest(requestRef);
+      const completedRow = completedAssignments.find(
+        (r) => r.requestRef === requestRef
+      );
+      const inQueue = assignQueue.find((r) => r.requestRef === requestRef);
+
+      let assignRow: AssignPilotRequestRow | null = inQueue ?? null;
+      if (!assignRow && completedRow) {
+        assignRow = completedAssignmentToAssignRow(completedRow);
+      }
+      if (!assignRow && tracking) {
+        assignRow = assignRowFromTrackingEntry(tracking);
+      }
+      if (!assignRow) continue;
+
+      const assignedPilotName =
+        tracking?.pilotName?.trim() || completedRow?.pilotName?.trim() || null;
+      const assignedDroneModel =
+        tracking?.droneModel?.trim() || completedRow?.droneModel?.trim() || null;
+
+      const displayId = assignRequestDisplayId(
+        requestRef,
+        assignRow.customer
+      );
+
+      out.push({
+        requestRef,
+        displayId,
+        comment,
+        assignRow,
+        assignedPilotName,
+        assignedDroneModel,
+      });
+    }
+
+    return out.sort((a, b) => a.displayId.localeCompare(b.displayId));
+  }, [
+    fleetLoading,
+    assignQueue,
+    completedAssignments,
+    pilotCommentTicker,
+    pilotCommentDismissedByRef,
+  ]);
+
+  /** Pilot left a comment on the mission currently in focus (`currentRequest`). */
+  const activePilotCommentForCurrent = useMemo(() => {
+    if (!currentRequest || fleetLoading) return null;
+    const c = readPilotMissionComment(currentRequest.requestRef).trim();
+    if (!c) return null;
+    if (pilotCommentDismissedByRef[currentRequest.requestRef] === c) {
+      return null;
+    }
+    return c;
+  }, [
+    currentRequest,
+    fleetLoading,
+    pilotCommentTicker,
+    pilotCommentDismissedByRef,
+  ]);
 
   const pendingForRequestDetails = useMemo(
     () =>
@@ -719,13 +952,150 @@ export function AssignPilotDroneView() {
 
   const latestCompleted =
     completedAssignments[0] !== undefined ? completedAssignments[0] : null;
-  const latestCompletedIndex = latestCompleted ? 0 : -1;
 
   const assignActionDisabled =
     noUserRequests ||
     fleetLoading ||
     !selectedPilot ||
     !selectedDrone;
+
+  const updateUserTrackingDisabled =
+    fleetLoading ||
+    !selectedPilot ||
+    !selectedDrone ||
+    !activePilotCommentForCurrent;
+
+  /** Show drone/pilot pickers when there is work in queue, or when reassignment after comments is needed while fully assigned. */
+  const showAssignWorkspace =
+    assignQueue.length > 0 &&
+    (!queueFullyAssigned || pilotCommentReassignItems.length > 0);
+
+  async function updateUserTrackingFromPilotSelection() {
+    if (
+      !currentRequest ||
+      !activePilotCommentForCurrent ||
+      !selectedPilot ||
+      !selectedDrone
+    ) {
+      return;
+    }
+    const ref = currentRequest.requestRef;
+    const comment = activePilotCommentForCurrent.trim();
+    const pilot = selectedPilot;
+    const drone = selectedDrone;
+
+    try {
+      const persistRes = await fetch(
+        apiUrl(`/api/pilots/${encodeURIComponent(pilot.id)}/assign-drone`),
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            drone_id: drone.sn,
+            drone_name: drone.model,
+            camera: drone.camera,
+            use_cases: drone.useCasesText,
+            payload: drone.cargo,
+            flight_time: drone.estFlight,
+            range_km: drone.maxRange,
+          }),
+        }
+      );
+      if (!persistRes.ok) {
+        window.alert("Could not save assigned drone details to pilots table.");
+        return;
+      }
+    } catch {
+      window.alert("Could not save assigned drone details to pilots table.");
+      return;
+    }
+
+    try {
+      const missionRes = await fetch(apiUrl("/api/missions"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestRef: ref,
+          customer: currentRequest.customer,
+          service: currentRequest.service,
+          dropoff: currentRequest.dropoff,
+          pilotName: pilot.name,
+          pilotBadgeId: pilot.pilotId,
+          pilotSub: pilot.id,
+          droneModel: drone.model,
+          assignedAt: new Date().toISOString(),
+          status: "in_progress",
+        }),
+      });
+      if (missionRes.ok) {
+        notifyMissionsDbUpdated();
+      }
+    } catch {
+      /* mission row optional when API offline */
+    }
+
+    removePilotMissionNotificationsByRequestRef(ref);
+    pushPilotMissionNotification({
+      requestRef: ref,
+      customer: currentRequest.customer,
+      service: currentRequest.service,
+      dropoff: currentRequest.dropoff,
+      pilotName: pilot.name,
+      pilotBadgeId: pilot.pilotId,
+      pilotSub: pilot.id,
+      droneModel: drone.model,
+    });
+
+    setPilotCommentDismissedByRef((prev) => ({
+      ...prev,
+      [ref]: comment,
+    }));
+
+    const stored = findStoredUserRequestByAdminRef(ref);
+    recordUserMissionAssignment({
+      requestRef: ref,
+      pilotSub: pilot.id,
+      pilotName: pilot.name,
+      pilotBadgeId: pilot.pilotId,
+      droneModel: drone.model,
+      userStatus: "in_progress",
+      storedUserRequest: stored,
+      assignRowFallback: {
+        customer: currentRequest.customer,
+        service: currentRequest.service,
+        dropoff: currentRequest.dropoff,
+        sectorLine: currentRequest.sectorLine,
+      },
+    });
+    const existing = loadCompletedAssignments();
+    const idx = existing.findIndex((r) => r.requestRef === ref);
+    if (idx >= 0) {
+      const next = [...existing];
+      next[idx] = {
+        ...next[idx]!,
+        pilotName: pilot.name,
+        pilotBadgeId: pilot.pilotId,
+        droneModel: drone.model,
+      };
+      saveCompletedAssignments(next);
+      setCompletedAssignments(next);
+    }
+
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const role = token ? jwtPayloadRole(token) : null;
+    const sessionSub = token ? jwtPayloadSub(token)?.trim() : "";
+    const assignedSub = pilot.id.trim();
+    if (role === "pilot" && sessionSub === assignedSub) {
+      router.push(PILOT_ASSIGN_MISSION_HREF);
+    } else {
+      const q = new URLSearchParams({
+        panel: "pilot",
+        redirect: PILOT_ASSIGN_MISSION_HREF,
+      });
+      router.push(`/pilot-login?${q.toString()}`);
+    }
+  }
 
   const confirmAssignment = async () => {
     if (!currentRequest || !selectedPilot || !selectedDrone) return;
@@ -848,6 +1218,7 @@ export function AssignPilotDroneView() {
       pilotName: row.pilotName,
       pilotBadgeId: row.pilotBadgeId,
       droneModel: row.droneModel,
+      userStatus: "in_progress",
       storedUserRequest: storedForSync,
       assignRowFallback: {
         customer: currentRequest.customer,
@@ -861,16 +1232,14 @@ export function AssignPilotDroneView() {
   };
 
   useEffect(() => {
-    const dialogOpen = assignedDialogOpen || historyDetailIndex !== null;
-    if (!dialogOpen) return;
+    if (!assignedDialogOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (historyDetailIndex !== null) setHistoryDetailIndex(null);
-      else setAssignedDialogOpen(false);
+      setAssignedDialogOpen(false);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [assignedDialogOpen, historyDetailIndex]);
+  }, [assignedDialogOpen]);
 
   const fontWrap = cn(
     manrope.variable,
@@ -895,22 +1264,72 @@ export function AssignPilotDroneView() {
             is running on port 4000 and PostgreSQL is available.
           </p>
         ) : null}
-        {!queueFullyAssigned && !noUserRequests ? (
-          <div className="flex w-full flex-wrap items-center justify-end gap-2">
-            <button
-              type="button"
-              disabled={assignActionDisabled}
-              className="rounded-full border-2 border-[#008B8B] bg-white px-5 py-2 text-xs font-bold text-[#008B8B] shadow-sm transition hover:bg-[#008B8B]/5 disabled:opacity-50 dark:bg-card"
-              onClick={() => {
-                if (!assignActionDisabled) setAssignedDialogOpen(true);
-              }}
-            >
-              Assign mission
-            </button>
-            <span className="inline-flex items-center justify-center rounded-full border-2 border-[#008B8B] bg-white px-5 py-2 text-xs font-bold uppercase tracking-wide text-[#008B8B] shadow-sm dark:border-primary dark:bg-card dark:text-primary">
-              {pendingRequests.length} pending / {assignQueue.length}
-            </span>
-          </div>
+
+        {pilotCommentReassignItems.length > 0 ? (
+          <section
+            className="space-y-4"
+            aria-label="Requests with pilot comments"
+          >
+            {pilotCommentReassignItems.map((item) => (
+              <div
+                key={item.requestRef}
+                className="rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/35"
+              >
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-900 dark:text-amber-100">
+                  Pilot comment ·{" "}
+                  <span className="font-mono normal-case text-amber-950 dark:text-amber-50">
+                    {item.displayId}
+                  </span>
+                  {" · "}
+                  <span className="font-semibold normal-case">
+                    {item.assignRow.customer}
+                  </span>
+                </p>
+                <p className="mt-1 line-clamp-3 text-sm text-amber-950/90 dark:text-amber-50/90">
+                  {item.comment}
+                </p>
+                {item.assignedPilotName || item.assignedDroneModel ? (
+                  <p className="mt-2 text-sm text-foreground">
+                    <span className="font-semibold text-amber-950 dark:text-amber-100">
+                      Currently assigned pilot &amp; drone:{" "}
+                    </span>
+                    <span className="font-semibold">
+                      {item.assignedPilotName ?? "—"}
+                    </span>
+                    {" · "}
+                    <span className="font-semibold">
+                      {item.assignedDroneModel
+                        ? assignDroneModelForDisplay(item.assignedDroneModel)
+                        : "—"}
+                    </span>
+                  </p>
+                ) : null}
+                <p className="mt-2 text-xs leading-relaxed text-amber-950/95 dark:text-amber-100/90">
+                  {item.requestRef === currentRequest?.requestRef ? (
+                    <>
+                      <span className="font-semibold">Active mission:</span> only{" "}
+                      <span className="font-semibold">you (admin)</span> can assign
+                      resources for this comment—click the{" "}
+                      <span className="font-semibold">drone</span> and{" "}
+                      <span className="font-semibold">pilot</span> you want under{" "}
+                      <span className="font-semibold">Compatible drones</span> and{" "}
+                      <span className="font-semibold">Available pilots</span>.{" "}
+                      <span className="font-semibold">Update User Tracking</span>{" "}
+                      saves exactly that admin selection; User Tracking shows{" "}
+                      <span className="font-semibold">In progress</span> with those
+                      names only.
+                    </>
+                  ) : (
+                    <>
+                      When this request is the active mission, the admin must select
+                      pilot &amp; drone below—only that selection can be assigned via{" "}
+                      <span className="font-semibold">Update User Tracking</span>.
+                    </>
+                  )}
+                </p>
+              </div>
+            ))}
+          </section>
         ) : null}
 
         {/* Queue strip — compact */}
@@ -953,18 +1372,10 @@ export function AssignPilotDroneView() {
             </Link>{" "}
             and accept a mission to assign resources here.
           </p>
-        ) : queueFullyAssigned ? (
+        ) : (
+          <>
+            {queueFullyAssigned ? (
           <div className="space-y-6">
-            <p className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-              All queued missions are marked assigned. Accept another request from{" "}
-              <Link
-                href="/dashboard/user-requests"
-                className="font-semibold text-[#008B8B] underline-offset-2 hover:underline dark:text-teal-300"
-              >
-                User Request
-              </Link>{" "}
-              to add a new one.
-            </p>
             {latestCompleted ? (
               <div className="rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-border dark:bg-card/80">
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -977,18 +1388,22 @@ export function AssignPilotDroneView() {
                 <p className="text-sm text-muted-foreground">
                   {latestCompleted.pilotName} · {latestCompleted.droneModel}
                 </p>
-                <button
-                  type="button"
-                  className="mt-3 inline-flex items-center gap-2 rounded-full border-2 border-[#008B8B] px-4 py-2 text-sm font-bold text-[#008B8B]"
-                  onClick={() => setHistoryDetailIndex(latestCompletedIndex)}
-                >
-                  <Eye className="size-4" aria-hidden />
-                  View details
-                </button>
               </div>
             ) : null}
+            {activePilotCommentForCurrent && currentRequest ? (
+              <button
+                type="button"
+                disabled={updateUserTrackingDisabled}
+                title="Writes only the pilot and drone you selected below to User Tracking (admin choice)."
+                className="rounded-lg border-2 border-[#008B8B] bg-white px-4 py-2 text-xs font-bold text-[#008B8B] shadow-sm transition hover:bg-[#008B8B]/5 disabled:opacity-50 dark:bg-card"
+                onClick={() => void updateUserTrackingFromPilotSelection()}
+              >
+                Update User Tracking
+              </button>
+            ) : null}
           </div>
-        ) : (
+            ) : null}
+            {!queueFullyAssigned ? (
           <>
         {/* Active mission hero — id supports ?focus= scroll from User Request */}
         <section
@@ -1073,86 +1488,46 @@ export function AssignPilotDroneView() {
           </div>
         </section>
 
-        {completedAssignments.length > 0 ? (
-          <section className="rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-border dark:bg-card/80">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Last Mission History
-              </h3>
-            </div>
-            <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-border">
-              <table className="w-full table-fixed border-collapse text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-border dark:bg-muted/40">
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
-                      Request ID
-                    </th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
-                      User Requirement
-                    </th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
-                      Pilot
-                    </th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
-                      Drone
-                    </th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
-                      Destination
-                    </th>
-                    <th className="px-3 py-2 text-center font-semibold uppercase tracking-wide text-muted-foreground">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {completedAssignments.slice(0, 5).map((row, idx) => (
-                    <tr
-                      key={`${row.requestRef}-${idx}`}
-                      className="border-b border-slate-200 bg-white last:border-b-0 dark:border-border dark:bg-card"
-                    >
-                      <td className="px-3 py-2 font-mono text-[11px] text-[#006767] dark:text-primary">
-                        {userRequestQueueDisplayId(row.requestRef)}
-                      </td>
-                      <td className="px-3 py-2 text-foreground">{row.customer}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{row.pilotName}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{row.droneModel}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{row.dropoff}</td>
-                      <td className="px-3 py-2 text-center">
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1 rounded border border-[#008B8B] px-2.5 py-1 text-[11px] font-semibold text-[#008B8B] transition hover:bg-[#008B8B]/10"
-                          onClick={() => setHistoryDetailIndex(idx)}
-                        >
-                          <Eye className="size-3.5" aria-hidden />
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ) : null}
-
+        <div className="mx-auto mt-6 flex max-w-6xl flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            disabled={assignActionDisabled}
+            className="rounded-full border-2 border-[#008B8B] bg-white px-5 py-2 text-xs font-bold text-[#008B8B] shadow-sm transition hover:bg-[#008B8B]/5 disabled:opacity-50 dark:bg-card"
+            onClick={() => {
+              if (!assignActionDisabled) setAssignedDialogOpen(true);
+            }}
+          >
+            Assign mission
+          </button>
+          {activePilotCommentForCurrent ? (
+            <button
+              type="button"
+              disabled={updateUserTrackingDisabled}
+              title="Assigns to User Tracking only the pilot and drone you selected below (admin)."
+              className="rounded-full border-2 border-teal-700 bg-teal-50 px-5 py-2 text-xs font-bold text-teal-900 shadow-sm transition hover:bg-teal-100 disabled:opacity-50 dark:border-teal-600 dark:bg-teal-950/50 dark:text-teal-100 dark:hover:bg-teal-900/60"
+              onClick={() => void updateUserTrackingFromPilotSelection()}
+            >
+              Update User Tracking
+            </button>
+          ) : null}
+        </div>
+            </>
+            ) : null}
+        {showAssignWorkspace ? (
+          <>
         {/* Compatible drones + Available pilots — equal columns, sticky pilots on wide viewports */}
         <div className="grid grid-cols-1 items-start gap-x-0 gap-y-10 border-t border-slate-200/80 pt-10 lg:grid-cols-2 lg:gap-x-10 lg:border-t-0 lg:pt-0 xl:gap-x-12 dark:border-border">
           <section
             aria-labelledby="compatible-drones-heading"
             className="min-w-0"
           >
-            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-              <h2
-                id="compatible-drones-heading"
-                className="font-[family-name:var(--font-assign-headline)] text-xl font-bold tracking-tight dark:text-foreground"
-                style={{ fontFamily: "var(--font-assign-headline), sans-serif" }}
-              >
-                Compatible drones
-              </h2>
-              <span className="shrink-0 rounded-full bg-[#e1e3e4] px-3 py-1 text-xs font-medium text-slate-600 dark:bg-muted dark:text-muted-foreground">
-                {fleetLoading ? "…" : `${dronesForUi.length} found`}
-              </span>
-            </div>
+            <h2
+              id="compatible-drones-heading"
+              className="mb-5 font-[family-name:var(--font-assign-headline)] text-xl font-bold tracking-tight dark:text-foreground"
+              style={{ fontFamily: "var(--font-assign-headline), sans-serif" }}
+            >
+              Compatible drones
+            </h2>
             {fleetLoading ? (
               <p className="text-sm text-muted-foreground">Loading drones…</p>
             ) : dronesForUi.length === 0 ? (
@@ -1177,7 +1552,7 @@ export function AssignPilotDroneView() {
                     }}
                     role="button"
                     tabIndex={0}
-                    aria-label={`Select drone ${drone.model}`}
+                    aria-label={`Select drone ${assignDroneModelForDisplay(drone.model)}`}
                     className={cn(
                       "group relative overflow-hidden rounded-xl text-left shadow-sm transition-all hover:shadow-md",
                       selected
@@ -1213,24 +1588,11 @@ export function AssignPilotDroneView() {
                             fontFamily: "var(--font-assign-headline), sans-serif",
                           }}
                         >
-                          {drone.model}
+                          {assignDroneModelForDisplay(drone.model)}
                         </h3>
                       </div>
                       <p className="mb-4 text-xs font-medium text-slate-600 dark:text-muted-foreground">
-                        {drone.subtitle}
-                      </p>
-                      <p className="mb-3 text-[11px] text-slate-500 dark:text-muted-foreground">
-                        Pilot:{" "}
-                        <span className="font-semibold text-slate-700 dark:text-foreground">
-                          {drone.pilotName}
-                        </span>{" "}
-                        · ID:{" "}
-                        <span className="font-mono text-[10px] font-semibold text-slate-700 dark:text-foreground">
-                          {drone.pilotBadgeId}
-                        </span>
-                      </p>
-                      <p className="mb-3 text-[10px] font-medium uppercase tracking-wide text-[#006767] dark:text-primary">
-                        Mission fit: {drone.matchNote}
+                        Pilot Name : {drone.pilotName}
                       </p>
                       <div className="grid grid-cols-2 gap-x-2 gap-y-3">
                         <div className="flex items-center gap-2">
@@ -1256,34 +1618,6 @@ export function AssignPilotDroneView() {
                           </span>
                         </div>
                       </div>
-                      <div className="mt-4 flex items-center justify-between border-t border-slate-200/80 pt-4 dark:border-border">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-24 overflow-hidden rounded-full bg-[#e7e8e9] dark:bg-muted">
-                            <div
-                              className={cn(
-                                "h-full rounded-full",
-                                drone.status === "charging"
-                                  ? "bg-orange-600"
-                                  : "bg-[#008B8B]"
-                              )}
-                              style={{ width: `${drone.matchPercent}%` }}
-                            />
-                          </div>
-                          <span className="text-[10px] font-bold tabular-nums">
-                            {drone.matchPercent}%
-                          </span>
-                        </div>
-                        {drone.status === "charging" ? (
-                          <span className="text-[10px] font-bold uppercase text-orange-800 dark:text-orange-200">
-                            Charging
-                          </span>
-                        ) : (
-                          <CheckCircle2
-                            className="size-5 shrink-0 text-[#008B8B]"
-                            aria-hidden
-                          />
-                        )}
-                      </div>
                     </div>
                   </div>
                 );
@@ -1296,18 +1630,13 @@ export function AssignPilotDroneView() {
             aria-labelledby="available-pilots-heading"
             className="min-w-0 border-t border-slate-200/80 pt-10 lg:sticky lg:top-24 lg:z-0 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0 xl:pl-12 dark:border-border"
           >
-            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-              <h2
-                id="available-pilots-heading"
-                className="font-[family-name:var(--font-assign-headline)] text-xl font-bold tracking-tight dark:text-foreground"
-                style={{ fontFamily: "var(--font-assign-headline), sans-serif" }}
-              >
-                Available pilots
-              </h2>
-              <span className="shrink-0 rounded-full bg-[#e1e3e4] px-3 py-1 text-xs font-medium text-slate-600 dark:bg-muted dark:text-muted-foreground">
-                {fleetLoading ? "…" : `${pilotsForUi.length} in directory`}
-              </span>
-            </div>
+            <h2
+              id="available-pilots-heading"
+              className="mb-5 font-[family-name:var(--font-assign-headline)] text-xl font-bold tracking-tight dark:text-foreground"
+              style={{ fontFamily: "var(--font-assign-headline), sans-serif" }}
+            >
+              Available pilots
+            </h2>
             {fleetLoading ? (
               <p className="text-sm text-muted-foreground">Loading pilots…</p>
             ) : pilotsForUi.length === 0 ? (
@@ -1407,6 +1736,78 @@ export function AssignPilotDroneView() {
           </section>
         </div>
 
+        {completedAssignments.length > 0 &&
+        pilotCommentReassignItems.length === 0 ? (
+          <section className="rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-border dark:bg-card/80">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Last Mission History
+              </h3>
+            </div>
+            <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-border">
+              <table className="w-full table-fixed border-collapse text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-border dark:bg-muted/40">
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
+                      Request ID
+                    </th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
+                      User Requirement
+                    </th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
+                      Pilot Name
+                    </th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
+                      Drone
+                    </th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
+                      Destination
+                    </th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
+                      Comments
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {completedAssignments.slice(0, 5).map((row, idx) => {
+                    const comment = pilotMissionCommentForDisplay(
+                      readPilotMissionComment(row.requestRef)
+                    );
+                    return (
+                      <tr
+                        key={`${row.requestRef}-${idx}`}
+                        className="border-b border-slate-200 bg-white last:border-b-0 dark:border-border dark:bg-card"
+                      >
+                        <td className="px-3 py-2 font-mono text-[11px] text-[#006767] dark:text-primary">
+                          {userRequestQueueDisplayId(row.requestRef)}
+                        </td>
+                        <td className="px-3 py-2 text-foreground">{row.customer}</td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {row.pilotName}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {assignDroneModelForDisplay(row.droneModel)}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.dropoff}</td>
+                        <td
+                          className="px-3 py-2 text-muted-foreground"
+                          title={comment || "No comment"}
+                        >
+                          {comment ? (
+                            <span className="line-clamp-2 whitespace-pre-wrap">{comment}</span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
         {/* Mobile sticky CTA */}
         <div className="fixed bottom-6 left-4 right-4 z-40 md:hidden">
           <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#2e3132] p-4 text-white shadow-xl">
@@ -1424,8 +1825,21 @@ export function AssignPilotDroneView() {
             >
               Launch
             </button>
+            {activePilotCommentForCurrent ? (
+              <button
+                type="button"
+                disabled={updateUserTrackingDisabled}
+                title="Uses only the pilot and drone you selected (admin)."
+                className="rounded-lg border border-teal-300 bg-teal-900/40 px-3 py-2 text-xs font-bold text-teal-100 disabled:opacity-50"
+                onClick={() => void updateUserTrackingFromPilotSelection()}
+              >
+                Update tracking
+              </button>
+            ) : null}
           </div>
         </div>
+          </>
+        ) : null}
           </>
         )}
       </div>
@@ -1477,14 +1891,16 @@ export function AssignPilotDroneView() {
                 </span>{" "}
                 with{" "}
                 <span className="font-semibold text-foreground">
-                  {selectedDrone?.model ?? "—"}
+                  {selectedDrone
+                    ? assignDroneModelForDisplay(selectedDrone.model)
+                    : "—"}
                 </span>
                 ?
               </p>
               <div className="mt-5 grid gap-4 rounded-2xl border border-border/90 bg-gradient-to-b from-muted/40 to-muted/20 p-4 sm:grid-cols-2 sm:gap-0 sm:p-0 sm:py-5">
                 <div className="min-w-0 sm:border-r sm:border-border/90 sm:px-6">
                   <p className="text-xs font-medium text-muted-foreground sm:text-sm">
-                    Pilot
+                    Pilot Name
                   </p>
                   <p className="mt-1.5 text-sm font-semibold text-foreground sm:text-base">
                     {selectedPilot?.name ?? "—"}
@@ -1495,7 +1911,9 @@ export function AssignPilotDroneView() {
                     Drone
                   </p>
                   <p className="mt-1.5 text-sm font-semibold text-foreground sm:text-base">
-                    {selectedDrone?.model ?? "—"}
+                    {selectedDrone
+                      ? assignDroneModelForDisplay(selectedDrone.model)
+                      : "—"}
                   </p>
                 </div>
               </div>
@@ -1515,66 +1933,6 @@ export function AssignPilotDroneView() {
                 onClick={() => setAssignedDialogOpen(false)}
               >
                 Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {historyDetail ? (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="assignment-history-title"
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-[#191c1d]/35 backdrop-blur-[2px]"
-            aria-label="Close dialog"
-            onClick={() => setHistoryDetailIndex(null)}
-          />
-          <div
-            className="relative z-10 w-full max-w-2xl rounded-2xl border-2 border-border bg-card px-6 py-5 shadow-xl ring-1 ring-black/5 sm:px-12 sm:py-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2
-              id="assignment-history-title"
-              className="text-sm font-bold uppercase tracking-wider text-muted-foreground sm:text-base"
-            >
-              Details
-            </h2>
-            <div className="mt-4 space-y-3 rounded-xl border border-border bg-muted/60 p-4 sm:p-5">
-              <div className="space-y-2 text-xs sm:text-sm">
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">Request ID</span>
-                  <span className="font-mono font-semibold">
-                    {userRequestQueueDisplayId(historyDetail.requestRef)}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">Title</span>
-                  <span className="text-right font-medium">
-                    {historyDetail.customer}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">Pilot</span>
-                  <span className="font-medium">{historyDetail.pilotName}</span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">Drone</span>
-                  <span className="font-medium">{historyDetail.droneModel}</span>
-                </div>
-              </div>
-            </div>
-            <div className="mt-6 flex justify-center">
-              <button
-                type="button"
-                className="inline-flex min-w-[7rem] items-center justify-center rounded-full border-2 border-[#008B8B] bg-card px-6 py-2.5 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/5"
-                onClick={() => setHistoryDetailIndex(null)}
-              >
-                Close
               </button>
             </div>
           </div>

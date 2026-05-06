@@ -21,6 +21,7 @@ import {
   useServiceMegaMenuItems,
 } from "@/components/nav/service-listing-mega-menu";
 import { SidebarMenuGlyph } from "@/components/nav/sidebar-menu-glyph";
+import { PilotHeaderThemeToggle } from "@/components/pilot-dashboard/pilot-header-theme-toggle";
 import { usePilotDashboardNav } from "@/components/pilot-dashboard/pilot-dashboard-nav-context";
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
 import { AdminInboxMenu } from "@/components/notifications/admin-inbox-menu";
@@ -75,6 +76,9 @@ export function LandingHeader() {
     !isSettingsPage;
   const isPilotSettingsContext =
     isSettingsPage && settingsFrom === "pilot";
+  /** Pilot dashboard, profile, and `?from=pilot` settings — theme toggle in header. */
+  const pilotShellLightHeader =
+    isPilotDashboard || isPilotSettingsContext;
   const showUserDashboardSidebar =
     isUserDashboard || (isSettingsPage && settingsFrom !== "pilot");
   const showPilotDashboardSidebar =
@@ -178,6 +182,14 @@ export function LandingHeader() {
   const isPilotLogoutContext =
     isPilotDashboard ||
     (isSettingsPage && settingsFrom === "pilot");
+
+  /** Sun/moon control: pilot, user, and admin app shells (+ matching settings). */
+  const showDashboardShellThemeToggle =
+    pilotShellLightHeader ||
+    isUserDashboard ||
+    isUserSettingsContext ||
+    isAdminDashboard ||
+    isAdminSettingsContext;
 
   const showHeaderSettingsIcon = !(
     isPilotDashboard ||
@@ -314,7 +326,10 @@ export function LandingHeader() {
   return (
     <header
       className={cn(
-        "fixed top-0 z-50 w-full border-b border-border bg-background dark:text-white"
+        "fixed top-0 z-50 w-full border-b",
+        isUserDashboard
+          ? "border-slate-200 bg-white text-[#191c1d] dark:bg-white dark:text-[#191c1d]"
+          : "border-border bg-background text-foreground dark:text-white"
       )}
     >
       <nav
@@ -349,7 +364,12 @@ export function LandingHeader() {
             {showUserDashboardSidebar ? (
               <button
                 type="button"
-                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white lg:inline-flex"
+                className={cn(
+                  "hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 lg:inline-flex",
+                  isUserDashboard
+                    ? "dark:text-[#4d5b7f] dark:hover:bg-slate-100 dark:hover:text-[#008B8B]"
+                    : "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
+                )}
                 onClick={() =>
                   setUserSidebarExpanded(!userSidebarExpanded)
                 }
@@ -440,7 +460,12 @@ export function LandingHeader() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="text-slate-700 md:hidden dark:text-white"
+                className={cn(
+                  "text-slate-700 md:hidden",
+                  isUserDashboard
+                    ? "dark:text-slate-700 dark:hover:bg-slate-100"
+                    : "dark:text-white"
+                )}
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
                 aria-controls="landing-mobile-nav"
@@ -566,6 +591,9 @@ export function LandingHeader() {
             !hideNotificationsAndSettings ? (
               <>
                 {showHeaderNotifications ? <AdminInboxMenu /> : null}
+                {showDashboardShellThemeToggle ? (
+                  <PilotHeaderThemeToggle />
+                ) : null}
                 {showPilotNotifications ? (
                   <PilotMissionNotificationsMenu />
                 ) : null}
@@ -593,7 +621,10 @@ export function LandingHeader() {
                   aria-label="Account menu"
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "icon" }),
-                    "shrink-0 text-slate-500 hover:text-[#008B8B] focus-visible:ring-2 focus-visible:ring-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
+                    "shrink-0 text-slate-500 hover:text-[#008B8B] focus-visible:ring-2 focus-visible:ring-[#008B8B]/35",
+                    isUserDashboard
+                      ? "dark:text-slate-600 dark:hover:bg-slate-100 dark:hover:text-[#008B8B]"
+                      : "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                   )}
                 >
                   <User className="size-5" aria-hidden />
@@ -664,7 +695,10 @@ export function LandingHeader() {
                 href="/pilot-login"
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon" }),
-                  "shrink-0 text-slate-500 hover:text-[#008B8B] dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
+                  "shrink-0 text-slate-500 hover:text-[#008B8B]",
+                  isUserDashboard
+                    ? "dark:text-slate-600 dark:hover:bg-slate-100"
+                    : "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                 )}
                 aria-label="Login"
               >

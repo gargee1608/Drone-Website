@@ -25,6 +25,8 @@ export type UserMissionTrackingRequestSnapshot = {
   sectorLine?: string;
 };
 
+export type UserMissionTrackingUserStatus = "in_progress" | "completed";
+
 export type UserMissionTrackingEntry = {
   id: string;
   assignedAt: string;
@@ -34,6 +36,13 @@ export type UserMissionTrackingEntry = {
   /** License / badge string shown in admin UI. */
   pilotBadgeId: string;
   droneModel: string;
+  /** Shown on the end-user User Tracking table. */
+  userStatus?: UserMissionTrackingUserStatus;
+  /**
+   * When true, User Tracking does not show the live pilot mission comment for
+   * this row (e.g. after admin reassigned pilot/drone via Update User Tracking).
+   */
+  hidePilotCommentInUserTracking?: boolean;
   ownerUserId?: string;
   ownerEmail?: string;
   request: UserMissionTrackingRequestSnapshot;
@@ -78,6 +87,13 @@ function isUserMissionTrackingEntry(
   if (!stringKeys.every((k) => typeof v[k] === "string")) return false;
   if (!isRequestSnapshot(v.request)) return false;
   if (
+    v.userStatus !== undefined &&
+    v.userStatus !== "in_progress" &&
+    v.userStatus !== "completed"
+  ) {
+    return false;
+  }
+  if (
     v.ownerUserId !== undefined &&
     typeof v.ownerUserId !== "string"
   ) {
@@ -86,6 +102,12 @@ function isUserMissionTrackingEntry(
   if (
     v.ownerEmail !== undefined &&
     typeof v.ownerEmail !== "string"
+  ) {
+    return false;
+  }
+  if (
+    v.hidePilotCommentInUserTracking !== undefined &&
+    typeof v.hidePilotCommentInUserTracking !== "boolean"
   ) {
     return false;
   }
@@ -103,6 +125,21 @@ export function loadUserMissionTrackingEntries(): UserMissionTrackingEntry[] {
   } catch {
     return [];
   }
+}
+
+/** Latest row for a request ref (current assignment for admin UI). */
+export function getUserMissionTrackingEntryForRequest(
+  requestRef: string
+): UserMissionTrackingEntry | null {
+  const norm = requestRef.trim();
+  const matches = loadUserMissionTrackingEntries().filter(
+    (e) => e.request.requestRef.trim() === norm
+  );
+  if (matches.length === 0) return null;
+  return matches.sort(
+    (a, b) =>
+      new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime()
+  )[0]!;
 }
 
 function persist(rows: UserMissionTrackingEntry[]): void {
@@ -142,6 +179,8 @@ export function recordUserMissionAssignment(args: {
   pilotName: string;
   pilotBadgeId: string;
   droneModel: string;
+  /** Default `in_progress` so User Tracking shows an active mission. */
+  userStatus?: UserMissionTrackingUserStatus;
   storedUserRequest: UserMissionRequest | undefined;
   assignRowFallback: {
     customer: string;
@@ -149,6 +188,12 @@ export function recordUserMissionAssignment(args: {
     dropoff: string;
     sectorLine: string;
   };
+  /**
+   * When true, end-user User Tracking hides the pilot comment for this row.
+   * Also set automatically whenever this write replaces an existing tracking
+   * row for the same request (pilot/drone update).
+   */
+  hidePilotCommentInUserTracking?: boolean;
 }): void {
   if (typeof window === "undefined") return;
 
@@ -167,6 +212,14 @@ export function recordUserMissionAssignment(args: {
         sectorLine: args.assignRowFallback.sectorLine,
       };
 
+  const prev = loadUserMissionTrackingEntries();
+  const norm = args.requestRef.trim();
+  const hadExistingForRef = prev.some(
+    (r) => r.request.requestRef.trim() === norm
+  );
+  const hideCommentForUser =
+    hadExistingForRef || args.hidePilotCommentInUserTracking === true;
+
   const assignedAt = new Date().toISOString();
   const id = `${args.requestRef}:${assignedAt}`;
 
@@ -177,16 +230,16 @@ export function recordUserMissionAssignment(args: {
     pilotName: args.pilotName,
     pilotBadgeId: args.pilotBadgeId,
     droneModel: args.droneModel,
+    userStatus: args.userStatus ?? "in_progress",
+    hidePilotCommentInUserTracking: hideCommentForUser ? true : undefined,
     ownerUserId: stored?.ownerUserId?.trim() || undefined,
     ownerEmail: stored?.ownerEmail?.trim().toLowerCase() || undefined,
     request,
   };
 
-  const prev = loadUserMissionTrackingEntries();
-  const withoutSameRef = prev.filter(
-    (r) => r.request.requestRef !== args.requestRef
-  );
-  const next = [entry, ...withoutSameRef].slice(0, MAX_STORED);
+  const base = prev.filter((r) => r.request.requestRef.trim() !== norm);
+
+  const next = [entry, ...base].slice(0, MAX_STORED);
   persist(next);
   window.dispatchEvent(new Event(USER_MISSION_TRACKING_UPDATED_EVENT));
 }
@@ -219,8 +272,11 @@ export function loadUserMissionTrackingForCurrentUser(): UserMissionTrackingEntr
       }
       return false;
     })
-    .sort(
-      (a, b) =>
-        new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime()
-    );
+    .sort((a, b) => {
+      const refCmp = a.request.requestRef.localeCompare(b.request.requestRef);
+      if (refCmp !== 0) return refCmp;
+      return (
+        new Date(a.assignedAt).getTime() - new Date(b.assignedAt).getTime()
+      );
+    });
 }

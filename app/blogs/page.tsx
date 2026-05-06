@@ -3,6 +3,9 @@ import { BlogsView } from "@/components/blogs/blogs-view";
 import { mapApiRowToBlogPost } from "@/lib/blog-api";
 import { queryAllBlogs } from "@/lib/blogs-db";
 
+/** Admin dashboard mutates blogs; avoid stale SSR props vs DB. */
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Blogs | Drone Hire",
   description:

@@ -76,16 +76,15 @@ function DeckStatCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-5 sm:p-6",
-        cardShadow,
-        "dark:border-white/10 dark:bg-[#1a1f24]"
+        "flex flex-col gap-1 rounded-xl border border-border bg-card p-5 sm:p-6",
+        cardShadow
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <span
           className={cn(
             flightDeck.variable,
-            "font-[family-name:var(--font-flight-deck)] text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-white/55"
+            "font-[family-name:var(--font-flight-deck)] text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
           )}
         >
           {label}
@@ -96,13 +95,13 @@ function DeckStatCard({
         <span
           className={cn(
             flightDeck.variable,
-            "text-[1.65rem] font-semibold leading-tight tracking-tight text-slate-900 sm:text-3xl dark:text-white"
+            "text-[1.65rem] font-semibold leading-tight tracking-tight text-foreground sm:text-3xl"
           )}
         >
           {value}
         </span>
         {unit ? (
-          <span className="font-[family-name:var(--font-flight-deck)] text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-white/50">
+          <span className="font-[family-name:var(--font-flight-deck)] text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
             {unit}
           </span>
         ) : null}
@@ -145,16 +144,15 @@ function PilotDutyStatusCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-5 sm:p-6",
-        cardShadow,
-        "dark:border-white/10 dark:bg-[#1a1f24]"
+        "flex flex-col gap-1 rounded-xl border border-border bg-card p-5 sm:p-6",
+        cardShadow
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <span
           className={cn(
             flightDeck.variable,
-            "font-[family-name:var(--font-flight-deck)] text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-white/55"
+            "font-[family-name:var(--font-flight-deck)] text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
           )}
         >
           Status
@@ -178,18 +176,17 @@ function PilotDutyStatusCard({
           onChange={(e) => onChange(e.target.value as DutyStatus)}
           className={cn(
             flightDeck.variable,
-            "w-fit min-w-[5.5rem] cursor-pointer appearance-none rounded-md border border-slate-200 bg-white",
-            "py-1 pl-2 pr-7 text-xs font-semibold uppercase tracking-wide text-slate-900 sm:min-w-[6rem] sm:py-1.5 sm:pl-2.5 sm:pr-8 sm:text-sm",
-            "outline-none transition hover:border-slate-300 focus-visible:ring-2 focus-visible:ring-[#00418f]/25",
-            "disabled:cursor-not-allowed disabled:opacity-60",
-            "dark:border-white/15 dark:bg-[#1a1f24] dark:text-white dark:hover:border-white/25"
+            "w-fit min-w-[5.5rem] cursor-pointer appearance-none rounded-md border border-border bg-background",
+            "py-1 pl-2 pr-7 text-xs font-semibold uppercase tracking-wide text-foreground sm:min-w-[6rem] sm:py-1.5 sm:pl-2.5 sm:pr-8 sm:text-sm",
+            "outline-none transition hover:border-muted-foreground/25 focus-visible:ring-2 focus-visible:ring-[#00418f]/25",
+            "disabled:cursor-not-allowed disabled:opacity-60"
           )}
         >
           <option value="ACTIVE">Active</option>
           <option value="INACTIVE">Inactive</option>
         </select>
         <ChevronDown
-          className="pointer-events-none absolute right-1.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400 sm:right-2 sm:size-4 dark:text-white/45"
+          className="pointer-events-none absolute right-1.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground sm:right-2 sm:size-4"
           aria-hidden
         />
       </div>
@@ -353,7 +350,7 @@ export function PilotDashboardView() {
 
   if (!authorized) {
     return (
-      <div className="flex min-h-[40vh] flex-1 items-center justify-center pt-24 text-sm text-slate-600 dark:text-white/70">
+      <div className="flex min-h-[40vh] flex-1 items-center justify-center pt-24 text-sm text-muted-foreground">
         Checking session…
       </div>
     );
@@ -365,7 +362,7 @@ export function PilotDashboardView() {
         className={cn(
           flightDeck.variable,
           "flex flex-col gap-6 sm:gap-8",
-          "text-slate-900 dark:text-white"
+          "text-foreground"
         )}
       >
         {/* Top stats — 4 columns */}
@@ -380,10 +377,10 @@ export function PilotDashboardView() {
             iconClassName="text-[#00418f] dark:text-sky-300"
             footerClassName={
               dutyLoading
-                ? "text-slate-500 dark:text-white/50"
+                ? "text-muted-foreground"
                 : flightHoursFromPilotRecord
                   ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-slate-500 dark:text-white/55"
+                  : "text-muted-foreground"
             }
             footer={
               dutyLoading ? (
@@ -434,7 +431,7 @@ export function PilotDashboardView() {
             unit="Total"
             icon={Rocket}
             iconClassName="text-[#00418f] dark:text-sky-300"
-            footerClassName="text-slate-500 dark:text-white/60"
+            footerClassName="text-muted-foreground"
             footer={
               <>
                 <History className="size-3.5 shrink-0" aria-hidden />
@@ -449,18 +446,17 @@ export function PilotDashboardView() {
             {/* Active Mission Control */}
             <div
               className={cn(
-                "overflow-hidden rounded-xl border border-slate-200 bg-white",
-                cardShadow,
-                "dark:border-white/10 dark:bg-[#1a1f24]"
+                "overflow-hidden rounded-xl border border-border bg-card",
+                cardShadow
               )}
             >
-              <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 px-5 py-4 sm:px-6 dark:border-white/10 dark:bg-white/[0.04]">
+              <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-4 sm:px-6">
                 <div className="flex min-w-0 items-center gap-2">
                   <span className="size-2 shrink-0 animate-pulse rounded-full bg-emerald-500" />
                   <h2
                     className={cn(
                       flightDeck.variable,
-                      "truncate text-lg font-semibold tracking-tight text-slate-900 sm:text-xl dark:text-white"
+                      "truncate text-lg font-semibold tracking-tight text-foreground sm:text-xl"
                     )}
                   >
                     Active Mission Control
@@ -478,7 +474,7 @@ export function PilotDashboardView() {
               </div>
               <div className="grid grid-cols-1 gap-6 p-5 sm:gap-8 sm:p-6 md:grid-cols-2">
                 <div className="flex flex-col gap-4">
-                  <div className="relative h-48 overflow-hidden rounded-lg border border-slate-200 sm:h-52 dark:border-white/10">
+                  <div className="relative h-48 overflow-hidden rounded-lg border border-border sm:h-52">
                     <Image
                       src={LIVE_FEED_IMAGE}
                       alt="Live aerial view"
@@ -488,13 +484,13 @@ export function PilotDashboardView() {
                       priority
                     />
                     <div className="absolute inset-0 bg-black/10" aria-hidden />
-                    <div className="absolute left-4 top-4 rounded border border-white/50 bg-white/70 px-3 py-1 font-mono text-xs font-bold text-slate-900 shadow-sm backdrop-blur-md dark:bg-black/50 dark:text-white">
+                    <div className="absolute left-4 top-4 rounded border border-border/60 bg-background/85 px-3 py-1 font-mono text-xs font-bold text-foreground shadow-sm backdrop-blur-md">
                       LIVE FEED // HD-01
                     </div>
                     <div className="absolute bottom-4 right-4">
                       <button
                         type="button"
-                        className="rounded-lg border border-white/50 bg-white/70 p-2 text-[#00418f] shadow-sm backdrop-blur-md transition hover:bg-white/90 dark:bg-black/50 dark:text-sky-300"
+                        className="rounded-lg border border-border/60 bg-background/85 p-2 text-[#00418f] shadow-sm backdrop-blur-md transition hover:bg-background dark:text-sky-300"
                         aria-label="Fullscreen feed"
                       >
                         <Maximize2 className="size-4" />
@@ -502,11 +498,11 @@ export function PilotDashboardView() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between text-xs font-semibold uppercase text-slate-500 dark:text-white/55">
+                    <div className="flex items-center justify-between text-xs font-semibold uppercase text-muted-foreground">
                       <span>Progress</span>
                       <span>68%</span>
                     </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{
@@ -531,15 +527,15 @@ export function PilotDashboardView() {
                     ].map((cell) => (
                       <div
                         key={cell.k}
-                        className="rounded-lg bg-slate-100/90 p-3 dark:bg-white/[0.06]"
+                        className="rounded-lg bg-muted/80 p-3"
                       >
-                        <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-white/50">
+                        <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                           {cell.k}
                         </span>
                         <span
                           className={cn(
                             "text-base font-semibold tabular-nums tracking-tight",
-                            cell.vClass ?? "text-slate-900 dark:text-white"
+                            cell.vClass ?? "text-foreground"
                           )}
                         >
                           {cell.v}

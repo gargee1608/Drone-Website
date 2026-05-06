@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAdminServicesCatalog } from "@/hooks/use-admin-services-catalog";
 import { apiUrl } from "@/lib/api-url";
 import { serviceSlugFromTitle } from "@/lib/service-catalog";
+import { subscribeServicesDbUpdated } from "@/lib/services-db-updated";
 import { cn } from "@/lib/utils";
 
 /** Flat list — each service opens its detail page */
@@ -54,22 +55,29 @@ export function useServiceMegaMenuItems(): ServiceMegaMenuItem[] {
   const [dbServices, setDbServices] = useState<DbServiceRow[]>([]);
 
   useEffect(() => {
-    let cancelled = false;
-    fetch(apiUrl("/api/services"))
-      .then(async (res) => {
-        const data: unknown = await res.json().catch(() => null);
-        if (!res.ok || !Array.isArray(data) || cancelled) {
-          if (!cancelled) setDbServices([]);
-          return;
-        }
-        setDbServices(data as DbServiceRow[]);
-      })
-      .catch(() => {
-        if (!cancelled) setDbServices([]);
-      });
+    let disposed = false;
 
+    const loadDbServices = () => {
+      fetch(apiUrl("/api/services"))
+        .then(async (res) => {
+          const data: unknown = await res.json().catch(() => null);
+          if (disposed) return;
+          if (!res.ok || !Array.isArray(data)) {
+            setDbServices([]);
+            return;
+          }
+          setDbServices(data as DbServiceRow[]);
+        })
+        .catch(() => {
+          if (!disposed) setDbServices([]);
+        });
+    };
+
+    loadDbServices();
+    const unsubscribe = subscribeServicesDbUpdated(loadDbServices);
     return () => {
-      cancelled = true;
+      disposed = true;
+      unsubscribe();
     };
   }, []);
 

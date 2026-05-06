@@ -171,6 +171,32 @@ export function markPilotMissionNotificationIdsSeen(ids: string[]): void {
   }
 }
 
+/** Drop all local inbox rows for a request (e.g. before reassigning a new pilot). */
+export function removePilotMissionNotificationsByRequestRef(
+  requestRef: string
+): void {
+  if (typeof window === "undefined") return;
+  const norm = requestRef.trim();
+  if (!norm) return;
+  const prev = loadPilotMissionNotifications();
+  const removedIds = prev
+    .filter((row) => row.requestRef.trim() === norm)
+    .map((row) => row.id);
+  if (removedIds.length === 0) return;
+  const next = prev.filter((row) => row.requestRef.trim() !== norm);
+  persistNotifications(next);
+  const seen = loadSeenIds();
+  let seenChanged = false;
+  for (const id of removedIds) {
+    if (seen.has(id)) {
+      seen.delete(id);
+      seenChanged = true;
+    }
+  }
+  if (seenChanged) persistSeenIds(seen);
+  window.dispatchEvent(new Event(PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT));
+}
+
 /** Remove one mission notification after pilot marks it complete. */
 export function removePilotMissionNotificationById(id: string): void {
   if (typeof window === "undefined") return;

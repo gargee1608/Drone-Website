@@ -3,6 +3,9 @@ import { BlogPostPageClient } from "@/components/blogs/blog-post-page-client";
 import { mapApiRowToBlogPost, parseBlogDbSlug } from "@/lib/blog-api";
 import { queryBlogById } from "@/lib/blogs-db";
 
+/** Admin edits DB-backed posts; always resolve from the database. */
+export const dynamic = "force-dynamic";
+
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props) {
