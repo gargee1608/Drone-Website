@@ -17,7 +17,10 @@ import {
   fetchBlogsFromApi,
   mapApiRowToBlogPost,
 } from "@/lib/blog-api";
-import { BLOG_ADMIN_UPDATED_EVENT } from "@/lib/blog-admin-storage";
+import {
+  BLOG_ADMIN_UPDATED_EVENT,
+  subscribeBlogCatalogBroadcast,
+} from "@/lib/blog-admin-storage";
 import { getMergedGridPosts, getMergedPostBySlug } from "@/lib/blog-merge";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
@@ -89,6 +92,7 @@ export function BlogsView({
     sync();
     window.addEventListener(BLOG_ADMIN_UPDATED_EVENT, sync);
     window.addEventListener("storage", sync);
+    const unsubBroadcast = subscribeBlogCatalogBroadcast(sync);
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) sync();
     };
@@ -98,6 +102,7 @@ export function BlogsView({
       window.removeEventListener(BLOG_ADMIN_UPDATED_EVENT, sync);
       window.removeEventListener("storage", sync);
       window.removeEventListener("pageshow", onPageShow);
+      unsubBroadcast();
     };
   }, []);
 

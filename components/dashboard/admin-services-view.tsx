@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiUrl } from "@/lib/api-url";
 import { readResponseJson } from "@/lib/read-response-json";
+import { notifyServicesDbUpdated } from "@/lib/services-db-updated";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -151,7 +152,8 @@ export function AdminServicesView() {
     }
 
     resetForm();
-    fetchServices();
+    void fetchServices();
+    notifyServicesDbUpdated();
   };
 
   // ================= EDIT OPEN =================
@@ -169,28 +171,52 @@ export function AdminServicesView() {
   const updateService = async () => {
     if (!editId) return;
 
-    await fetch(apiUrl(`/api/services/${editId}`), {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        description,
-        price: Number(price),
-        image,
-      }),
-    });
+    setFormError(null);
+    try {
+      const res = await fetch(apiUrl(`/api/services/${editId}`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          price: Number(price),
+          image,
+        }),
+      });
+      const body = await readResponseJson(res);
+      if (!res.ok) {
+        const msg =
+          body.okParse &&
+          body.data &&
+          typeof body.data === "object" &&
+          "error" in body.data &&
+          typeof (body.data as { error?: unknown }).error === "string"
+            ? (body.data as { error: string }).error
+            : "Could not update service";
+        setFormError(msg);
+        return;
+      }
 
-    resetForm();
-    fetchServices();
+      resetForm();
+      await fetchServices();
+      notifyServicesDbUpdated();
+    } catch {
+      setFormError("Network error while updating service");
+    }
   };
 
   // ================= DELETE =================
   const deleteService = async (id: number) => {
-    await fetch(apiUrl(`/api/services/${id}`), {
-      method: "DELETE",
-    });
-
-    fetchServices();
+    try {
+      const res = await fetch(apiUrl(`/api/services/${id}`), {
+        method: "DELETE",
+      });
+      if (!res.ok) return;
+      await fetchServices();
+      notifyServicesDbUpdated();
+    } catch {
+      // ignore — list will refresh on next visit
+    }
   };
 
   const sortedItems = useMemo(
@@ -269,7 +295,7 @@ export function AdminServicesView() {
                   htmlFor="admin-service-price"
                   className="mb-1.5 block text-xs font-semibold text-foreground"
                 >
-                  Price (₹)
+                  Price ($)
                 </label>
                 <Input
                   id="admin-service-price"
@@ -428,7 +454,7 @@ export function AdminServicesView() {
                     {row.description}
                   </p>
                   <p className="text-sm font-semibold text-foreground">
-                    ₹{row.price}
+                    ${row.price}
                   </p>
 
                   <div className="mt-auto flex flex-wrap gap-2 border-t border-border pt-3">

@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, MapPin, Plane, ShieldCheck } from "lucide-react";
+import {
+  CheckCircle2,
+  MapPin,
+  MessageSquareText,
+  Plane,
+  ShieldCheck,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -17,9 +23,53 @@ import {
   type PilotMissionNotification,
 } from "@/lib/pilot-mission-notifications";
 import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
+import {
+  PILOT_COMMENT_WEATHER_PRESET,
+  pilotMissionCommentForDisplay,
+} from "@/lib/pilot-mission-comment-display";
 import { notifyMissionsDbUpdated } from "@/lib/user-requests";
 
 const COMPLETED_MISSION_PREVIEW_KEY = "aerolaminar_completed_mission_preview_v1";
+const PILOT_MISSION_COMMENTS_KEY = "aerolaminar_pilot_mission_comments_v1";
+
+function loadPilotMissionCommentText(requestRef: string): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const raw = localStorage.getItem(PILOT_MISSION_COMMENTS_KEY);
+    if (!raw) return "";
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return "";
+    const row = (parsed as Record<string, unknown>)[requestRef.trim()];
+    if (row && typeof row === "object" && "text" in row) {
+      return typeof (row as { text: unknown }).text === "string"
+        ? (row as { text: string }).text
+        : "";
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+function savePilotMissionCommentText(requestRef: string, text: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const key = requestRef.trim();
+    const raw = localStorage.getItem(PILOT_MISSION_COMMENTS_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : {};
+    const next =
+      parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? { ...parsed }
+        : {};
+    (next as Record<string, { text: string; updatedAt: string }>)[key] = {
+      text: text.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(PILOT_MISSION_COMMENTS_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+}
 
 function formatAssignedAt(iso: string): string {
   try {
@@ -82,6 +132,11 @@ export function AssignMissionView() {
   const [apiRows, setApiRows] = useState<PilotMissionNotification[]>([]);
   const [localVers, setLocalVers] = useState(0);
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
+  const [commentsForRow, setCommentsForRow] =
+    useState<PilotMissionNotification | null>(null);
+  const [commentDraft, setCommentDraft] = useState("");
+  /** Bumps after saving a comment so cards re-read localStorage. */
+  const [commentsDisplayVers, setCommentsDisplayVers] = useState(0);
 
   const rows = useMemo(
     () =>
@@ -127,6 +182,32 @@ export function AssignMissionView() {
       window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, bump);
     };
   }, []);
+
+  useEffect(() => {
+    if (!commentsForRow) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCommentsForRow(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [commentsForRow]);
+
+  function openCommentsDialog(row: PilotMissionNotification) {
+    setCommentDraft(loadPilotMissionCommentText(row.requestRef));
+    setCommentsForRow(row);
+  }
+
+  function saveCommentsDialog() {
+    if (!commentsForRow) return;
+    savePilotMissionCommentText(commentsForRow.requestRef, commentDraft);
+    setCommentsForRow(null);
+    setCommentsDisplayVers((v) => v + 1);
+    try {
+      window.dispatchEvent(new Event("aerolaminar-pilot-mission-comment-saved"));
+    } catch {
+      /* ignore */
+    }
+  }
 
   async function handleCompletedMission(row: PilotMissionNotification) {
     if (savingRowId) return;
@@ -197,13 +278,13 @@ export function AssignMissionView() {
   return (
     <section className="space-y-5">
       {rows.length === 0 ? (
-        <article className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 shadow-sm dark:border-white/20 dark:bg-[#111315] sm:p-8">
+        <article className="rounded-2xl border border-dashed border-border bg-card p-6 text-card-foreground shadow-sm sm:p-8">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#008B8B]/12 text-[#008B8B]">
               <Plane className="size-4" aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-[#003f3f] dark:text-white">
+              <p className="text-sm font-semibold text-foreground">
                 Pilot has been assigned to complete missions
               </p>
               <p className="mt-1 text-xs font-medium text-[#008B8B] dark:text-primary">
@@ -217,17 +298,21 @@ export function AssignMissionView() {
         </article>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {rows.map((row) => (
+          {rows.map((row) => {
+            const savedComment = loadPilotMissionCommentText(row.requestRef);
+            const savedCommentDisplay =
+              pilotMissionCommentForDisplay(savedComment);
+            return (
             <article
               key={row.id}
-              className="rounded-2xl border border-[#dfe6ea] bg-white p-5 shadow-sm dark:border-white/15 dark:bg-[#111315]"
+              className="rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-wide text-[#008B8B]">
                     Assigned Mission
                   </p>
-                  <h3 className="mt-1 text-base font-semibold text-[#1a3e42] dark:text-white">
+                  <h3 className="mt-1 text-base font-semibold text-foreground">
                     {row.customer || "Mission"}
                   </h3>
                 </div>
@@ -274,7 +359,25 @@ export function AssignMissionView() {
                 <span>Complete this mission and update delivery status.</span>
               </div>
 
-              <div className="mt-4 flex justify-end">
+              {savedCommentDisplay ? (
+                <p className="mt-4 text-sm text-[#5a6d71] dark:text-white/75">
+                  <span className="font-semibold text-[#1a3e42] dark:text-white">
+                    Comment:{" "}
+                  </span>
+                  <span className="whitespace-pre-wrap">{savedCommentDisplay}</span>
+                </p>
+              ) : null}
+
+              <div className="mt-4 flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => openCommentsDialog(row)}
+                  disabled={savingRowId === row.id}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[#008B8B] bg-transparent px-3 py-1.5 text-xs font-semibold text-[#008B8B] transition-colors hover:bg-[#008B8B]/10 disabled:opacity-50 dark:text-primary dark:hover:bg-primary/15"
+                >
+                  <MessageSquareText className="size-3.5" aria-hidden />
+                  Comments
+                </button>
                 <button
                   type="button"
                   onClick={() => void handleCompletedMission(row)}
@@ -285,9 +388,87 @@ export function AssignMissionView() {
                 </button>
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      {commentsForRow ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pilot-comments-dialog-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-[#191c1d]/35 backdrop-blur-[2px]"
+            aria-label="Close"
+            onClick={() => setCommentsForRow(null)}
+          />
+          <div
+            className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b border-border px-5 py-4 sm:px-6">
+              <h2
+                id="pilot-comments-dialog-title"
+                className="text-base font-bold text-foreground"
+              >
+                Comments
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {commentsForRow.customer || "Mission"} ·{" "}
+                {commentsForRow.requestRef}
+              </p>
+            </div>
+            <div className="px-5 py-4 sm:px-6">
+              <label
+                htmlFor="pilot-mission-comment"
+                className="mb-2 block text-xs font-semibold text-muted-foreground"
+              >
+                Your comment
+              </label>
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                Comments:{" "}
+                <button
+                  type="button"
+                  className="font-medium text-[#008B8B] underline decoration-[#008B8B]/40 underline-offset-2 hover:decoration-[#008B8B] dark:text-primary"
+                  onClick={() =>
+                    setCommentDraft(PILOT_COMMENT_WEATHER_PRESET)
+                  }
+                >
+                  {PILOT_COMMENT_WEATHER_PRESET}
+                </button>
+              </p>
+              <textarea
+                id="pilot-mission-comment"
+                rows={5}
+                value={commentDraft}
+                onChange={(e) => setCommentDraft(e.target.value)}
+                placeholder={PILOT_COMMENT_WEATHER_PRESET}
+                className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+              />
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border bg-muted/30 px-5 py-3 sm:px-6">
+              <button
+                type="button"
+                onClick={saveCommentsDialog}
+                className="rounded-md border-2 border-[#008B8B] bg-transparent px-4 py-2 text-xs font-semibold text-[#008B8B] transition-colors hover:bg-[#008B8B]/10 dark:text-primary dark:border-primary dark:hover:bg-primary/15"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => setCommentsForRow(null)}
+                className="rounded-md border border-border bg-transparent px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

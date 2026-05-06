@@ -2,6 +2,7 @@
 
 import {
   Building2,
+  Eye,
   Map,
   Package,
   ShoppingBag,
@@ -297,12 +298,13 @@ export function UserRequestTable({
             </colgroup>
           ) : (
             <colgroup>
-              <col className="w-[12%]" />
-              <col className="w-[26%]" />
-              <col className="w-[10%]" />
-              <col className="w-[22%]" />
               <col className="w-[11%]" />
-              <col className="w-[19%]" />
+              <col className="w-[23%]" />
+              <col className="w-[10%]" />
+              <col className="w-[20%]" />
+              <col className="w-[10%]" />
+              <col className="w-[16%]" />
+              <col className="w-[10%]" />
             </colgroup>
           )}
           <thead>
@@ -318,7 +320,7 @@ export function UserRequestTable({
                   <th scope="col" className={cn(thBase, "text-left")}>
                     User Requirement
                   </th>
-                  <th scope="col" className={cn(thBase, "text-right tabular-nums")}>
+                  <th scope="col" className={cn(thBase, "text-center tabular-nums")}>
                     Payload
                   </th>
                   <th scope="col" className={cn(thBase, "text-left")}>
@@ -333,7 +335,7 @@ export function UserRequestTable({
                   <th scope="col" className={cn(thBase, "text-left")}>
                     Requirement type
                   </th>
-                  <th scope="col" className={cn(thBase, "text-right tabular-nums")}>
+                  <th scope="col" className={cn(thBase, "text-center tabular-nums")}>
                     Payload
                   </th>
                   <th scope="col" className={cn(thBase, "text-left")}>
@@ -344,6 +346,9 @@ export function UserRequestTable({
                   </th>
                   <th scope="col" className={cn(thBase, "text-center")}>
                     Status
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-center")}>
+                    Actions
                   </th>
                 </>
               )}
@@ -406,8 +411,8 @@ export function UserRequestTable({
                         </div>
                       )}
                     </td>
-                    <td className={cn(tdBase, "text-right tabular-nums")}>
-                      <span className="inline-block w-full break-words leading-snug">
+                    <td className={cn(tdBase, "text-center tabular-nums")}>
+                      <span className="mx-auto block max-w-full break-words text-center leading-snug">
                         {pilotCells.payload}
                       </span>
                     </td>
@@ -440,14 +445,15 @@ export function UserRequestTable({
                     {onViewDetails ? (
                       <button
                         type="button"
-                        className="flex min-w-0 w-full cursor-pointer items-center gap-2 rounded-md py-0.5 text-left outline-none transition-colors hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
-                        aria-label={`View request details: ${m.title}`}
+                        className="group flex min-w-0 w-full cursor-pointer items-center gap-2 rounded-md py-0.5 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
+                        title="Opens this request on the Assign To page"
+                        aria-label={`Open Assign To for request: ${m.title}`}
                         onClick={() => onViewDetails(m)}
                       >
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/15 text-[#008B8B] transition-colors group-hover:bg-[#008B8B]/25 dark:text-primary">
                           <ReqIcon className="size-3 shrink-0" aria-hidden />
                         </span>
-                        <span className="min-w-0 break-words leading-snug font-medium text-foreground underline-offset-2 hover:underline">
+                        <span className="min-w-0 break-words leading-snug font-semibold text-[#006767] underline decoration-[#008B8B]/35 underline-offset-2 transition-colors group-hover:text-[#005a5a] group-hover:decoration-[#008B8B]/70 dark:text-primary dark:group-hover:text-primary">
                           {m.title}
                         </span>
                       </button>
@@ -462,8 +468,8 @@ export function UserRequestTable({
                       </div>
                     )}
                   </td>
-                  <td className={cn(tdBase, "text-right tabular-nums")}>
-                    <span className="inline-block w-full break-words leading-snug">
+                  <td className={cn(tdBase, "text-center tabular-nums")}>
+                    <span className="mx-auto block max-w-full break-words text-center leading-snug">
                       {weightDisplay}
                     </span>
                   </td>
@@ -503,6 +509,21 @@ export function UserRequestTable({
                         </span>
                       </span>
                     ) : null}
+                  </td>
+                  <td className={cn(tdBase, "text-center")}>
+                    {onViewDetails ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#008B8B]/35 bg-[#008B8B]/8 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-wide text-[#006767] transition-colors hover:bg-[#008B8B]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 sm:text-[10px] dark:text-primary"
+                        aria-label={`View request details: ${m.title}`}
+                        onClick={() => onViewDetails(m)}
+                      >
+                        <Eye className="size-3.5 shrink-0" aria-hidden />
+                        View
+                      </button>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                 </tr>
               );

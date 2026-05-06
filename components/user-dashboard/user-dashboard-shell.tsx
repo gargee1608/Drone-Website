@@ -82,10 +82,10 @@ function SidebarNavLinks({
             href={item.href}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-normal text-[#191c1d] transition-all duration-200 active:scale-[0.98] dark:text-white",
+              "flex items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-normal text-foreground transition-all duration-200 active:scale-[0.98]",
               isActive
-                ? "bg-slate-100 shadow-sm ring-1 ring-slate-200 dark:bg-white/10 dark:ring-white/20"
-                : "hover:bg-slate-100 dark:hover:bg-white/10"
+                ? "bg-muted shadow-sm ring-1 ring-border"
+                : "hover:bg-muted"
             )}
           >
             <Icon className="size-5 shrink-0" aria-hidden />
@@ -113,7 +113,7 @@ function LogoutControl({ onAfterClick }: { onAfterClick?: () => void }) {
         }
         router.replace(USER_LOGIN_HREF);
       }}
-      className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-sm font-normal text-[#191c1d] transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400/50 dark:text-white dark:hover:bg-white/10 dark:focus-visible:outline-white/35"
+      className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-sm font-normal text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <LogOut className="size-5 shrink-0" aria-hidden />
       Logout
@@ -134,7 +134,7 @@ function MobileSidebarContent({
           onNavigate={onNavigate}
         />
       </div>
-      <div className="mt-auto shrink-0 border-t border-slate-200 pt-4 pb-2 dark:border-white/15">
+      <div className="mt-auto shrink-0 border-t border-slate-200 pt-4 pb-2 dark:border-slate-200">
         <LogoutControl onAfterClick={onNavigate} />
       </div>
     </div>
@@ -197,19 +197,19 @@ export function UserDashboardShell({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col overflow-x-hidden pt-20 text-[#191c1d] sm:pt-22 dark:text-white",
-        contentBackgroundClassName ?? "bg-white dark:bg-[#111315]"
+        "flex min-h-0 flex-1 flex-col overflow-x-hidden pt-20 text-foreground sm:pt-22",
+        contentBackgroundClassName ?? "bg-white dark:bg-white"
       )}
     >
       <div
         className={cn(
-          "flex items-center gap-2 border-b border-slate-200 px-4 py-1.5 lg:hidden dark:border-white/15",
-          contentBackgroundClassName ?? "bg-white dark:bg-[#111315]"
+          "flex items-center gap-2 border-b border-slate-200 px-4 py-1.5 lg:hidden dark:border-slate-200",
+          contentBackgroundClassName ?? "bg-white dark:bg-white"
         )}
       >
         <button
           type="button"
-          className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-[#eceff1] dark:text-white dark:hover:bg-white/10"
+          className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted"
           onClick={() => setMobileNavOpen(true)}
           aria-label="Open menu"
         >
@@ -217,7 +217,7 @@ export function UserDashboardShell({
         </button>
         <span
           className={cn(
-            "font-bold text-[#191c1d] dark:text-white",
+            "font-bold text-foreground",
             pageTitleBarClassName ?? "text-sm"
           )}
         >
@@ -233,11 +233,11 @@ export function UserDashboardShell({
             aria-label="Close menu"
             onClick={() => setMobileNavOpen(false)}
           />
-          <aside className="absolute left-0 top-0 flex h-full w-[min(18rem,85vw)] flex-col gap-2 border-r border-slate-200 bg-white p-4 shadow-xl dark:border-white/15 dark:bg-[#111315] dark:text-white">
+          <aside className="absolute left-0 top-0 flex h-full w-[min(18rem,85vw)] flex-col gap-2 border-r border-slate-200 bg-white p-4 text-[#191c1d] shadow-xl dark:border-slate-200 dark:bg-white dark:text-[#191c1d]">
             <div className="flex justify-end">
               <button
                 type="button"
-                className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-white dark:hover:bg-white/10"
+                className="rounded-lg p-2 text-muted-foreground hover:bg-muted"
                 onClick={() => setMobileNavOpen(false)}
                 aria-label="Close"
               >
@@ -258,8 +258,7 @@ export function UserDashboardShell({
         <aside
           id="user-dashboard-sidebar"
           className={cn(
-            "hidden flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[inset_-1px_0_0_rgba(15,23,42,0.02)] transition-[width] duration-300 ease-out lg:border-r-0 lg:shadow-none lg:fixed lg:bottom-0 lg:left-0 lg:top-20 lg:z-40 lg:flex",
-            "dark:border-white/15 dark:bg-[#111315] dark:text-white",
+            "hidden flex-col overflow-hidden border-r border-border bg-card text-card-foreground transition-[width] duration-300 ease-out lg:border-r-0 lg:shadow-none lg:fixed lg:bottom-0 lg:left-0 lg:top-20 lg:z-40 lg:flex",
             sidebarExpanded ? "lg:w-60" : "lg:w-0 lg:border-0 lg:p-0"
           )}
           aria-hidden={!sidebarExpanded}
@@ -268,7 +267,7 @@ export function UserDashboardShell({
             <div className="shrink-0 px-2 py-2 lg:hidden">
               <button
                 type="button"
-                className="flex size-10 shrink-0 items-center justify-center rounded-lg text-[#191c1d] transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10"
+                className="flex size-10 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35"
                 onClick={() => setSidebarExpanded(false)}
                 aria-label="Collapse sidebar"
                 aria-expanded={sidebarExpanded}
@@ -283,7 +282,7 @@ export function UserDashboardShell({
           </div>
           {sidebarExpanded ? (
             <div className="mt-auto flex w-full shrink-0 flex-col">
-              <div className="shrink-0 border-t border-slate-200 px-3.5 pt-3 pb-3 dark:border-white/15">
+              <div className="shrink-0 border-t border-slate-200 px-3.5 pt-3 pb-3 dark:border-slate-200">
                 <LogoutControl />
               </div>
             </div>
@@ -294,7 +293,7 @@ export function UserDashboardShell({
         {sidebarExpanded ? (
           <div
             aria-hidden
-            className="pointer-events-none fixed bottom-0 left-60 top-20 z-[35] hidden w-px bg-slate-200 lg:block dark:bg-white/15"
+            className="pointer-events-none fixed bottom-0 left-60 top-20 z-[35] hidden w-px bg-slate-200 lg:block dark:bg-slate-200"
           />
         ) : null}
 
@@ -325,7 +324,7 @@ export function UserDashboardShell({
               </div>
               {pageSubtitle ? (
                 <>
-                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base dark:text-white/80">
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
                     {pageSubtitle}
                   </p>
                   <div className="mt-8 sm:mt-10">{children}</div>
@@ -339,16 +338,16 @@ export function UserDashboardShell({
       </div>
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-slate-200 bg-white px-6 py-4 backdrop-blur-sm md:hidden dark:border-white/15 dark:bg-[#111315]"
+        className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-slate-200 bg-white px-6 py-4 md:hidden dark:border-slate-200 dark:bg-white"
         aria-label="Quick navigation"
       >
         <LayoutDashboard className="size-6 text-[#008B8B]" />
-        <Map className="size-6 text-[#414755] dark:text-white" />
+        <Map className="size-6 text-muted-foreground" />
         <div className="-mt-10 rounded-full bg-[#008B8B] p-3 shadow-lg shadow-[#008B8B]/30">
           <Plus className="size-6 text-white" strokeWidth={2.5} />
         </div>
-        <History className="size-6 text-[#414755] dark:text-white" />
-        <UserRound className="size-6 text-[#414755] dark:text-white" />
+        <History className="size-6 text-muted-foreground" />
+        <UserRound className="size-6 text-muted-foreground" />
       </nav>
       <div className="h-20 shrink-0 md:hidden" aria-hidden />
     </div>

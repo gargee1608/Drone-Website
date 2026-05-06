@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   ArrowRight,
   Plus,
   Upload,
@@ -9,8 +10,10 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { patchPilotDroneDetails } from "@/app/services/pilotServices";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { jwtPayloadRole, jwtPayloadSub } from "@/lib/pilot-display-name";
 import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
@@ -496,6 +499,13 @@ export function PilotRegistrationView() {
     }
   }
 
+  function goPrev() {
+    setStepError(null);
+    setSubmitError(null);
+    if (step <= 1) return;
+    setStep(step - 1);
+  }
+
   function commitDraftDrone() {
     const model = draftModel.trim();
     const type = draftType.trim();
@@ -730,6 +740,15 @@ export function PilotRegistrationView() {
     }
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
+    }
+    const tok =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (tok && jwtPayloadRole(tok) === "pilot") {
+      const rawSub = jwtPayloadSub(tok);
+      const pid = rawSub ? Number.parseInt(rawSub, 10) : NaN;
+      if (Number.isFinite(pid)) {
+        void patchPilotDroneDetails(pid, snapshot.drones ?? []);
+      }
     }
     router.push(profileReturnTo);
   }
@@ -1482,60 +1501,94 @@ export function PilotRegistrationView() {
 
             <div className="pt-2">
               {step === 2 ? (
-                <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-10 rounded-lg border-[#008B8B] bg-transparent px-4 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
-                    onClick={goNext}
+                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border-[#008B8B] bg-transparent px-4 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                    onClick={goPrev}
                   >
-                    Next
-                    <ArrowRight className="ml-1.5 inline size-4" aria-hidden />
+                    <ArrowLeft className="size-4 shrink-0" aria-hidden />
+                    Back
                   </Button>
-                  <Button
-                    type="button"
-                    onClick={submitRegistration}
-                    className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
-                  >
-                    Submit
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center justify-end gap-3">
-                  {step < 4 ? (
-                    <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
-                      {profileReturnTo === "/pilot-profile" && step === 3 ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-10 rounded-lg border-[#008B8B] bg-white px-4 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
-                          onClick={saveDronesToPilotProfile}
-                        >
-                          Save to profile
-                        </Button>
-                      ) : null}
-                      <Button
-                        type="button"
-                        onClick={goNext}
-                        className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
-                      >
-                        Next
-                        <ArrowRight
-                          className="ml-1.5 inline size-4"
-                          aria-hidden
-                        />
-                      </Button>
-                    </div>
-                  ) : (
+                  <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
                     <Button
                       type="button"
-                      className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
-                      onClick={submitRegistration}
+                      variant="outline"
+                      className="h-10 rounded-lg border-[#008B8B] bg-transparent px-4 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                      onClick={goNext}
                     >
-                      Submit Registration
+                      Next
                       <ArrowRight className="ml-1.5 inline size-4" aria-hidden />
                     </Button>
+                    <Button
+                      type="button"
+                      onClick={submitRegistration}
+                      className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                    >
+                      Submit
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    "flex flex-wrap items-center gap-3",
+                    step >= 2 ? "justify-between" : "justify-end"
                   )}
+                >
+                  {step >= 2 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border-[#008B8B] bg-transparent px-4 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                      onClick={goPrev}
+                    >
+                      <ArrowLeft className="size-4 shrink-0" aria-hidden />
+                      Back
+                    </Button>
+                  ) : null}
+                  <div
+                    className={cn(
+                      "flex flex-wrap items-center justify-end gap-2 sm:gap-3",
+                      step >= 2 && "min-w-0 flex-1"
+                    )}
+                  >
+                    {step < 4 ? (
+                      <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+                        {profileReturnTo === "/pilot-profile" && step === 3 ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-10 rounded-lg border-[#008B8B] bg-white px-4 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                            onClick={saveDronesToPilotProfile}
+                          >
+                            Save to profile
+                          </Button>
+                        ) : null}
+                        <Button
+                          type="button"
+                          onClick={goNext}
+                          className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                        >
+                          Next
+                          <ArrowRight
+                            className="ml-1.5 inline size-4"
+                            aria-hidden
+                          />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                        onClick={submitRegistration}
+                      >
+                        Submit Registration
+                        <ArrowRight className="ml-1.5 inline size-4" aria-hidden />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

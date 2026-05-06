@@ -10,6 +10,10 @@ import {
   mapApiRowToBlogPost,
   parseBlogDbSlug,
 } from "@/lib/blog-api";
+import {
+  BLOG_ADMIN_UPDATED_EVENT,
+  subscribeBlogCatalogBroadcast,
+} from "@/lib/blog-admin-storage";
 import { getMergedPostBySlug } from "@/lib/blog-merge";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
@@ -56,6 +60,35 @@ export function BlogPostPageClient({
     setReady(true);
     return undefined;
   }, [slug, initialPost]);
+
+  useEffect(() => {
+    const sync = () => {
+      const id = parseBlogDbSlug(slug);
+      if (id != null) {
+        void fetchBlogByIdFromApi(id)
+          .then((row) => {
+            setPost(row ? mapApiRowToBlogPost(row) : null);
+            setReady(true);
+          })
+          .catch(() => {
+            setPost(null);
+            setReady(true);
+          });
+      } else {
+        setPost(getMergedPostBySlug(slug) ?? null);
+        setReady(true);
+      }
+    };
+
+    window.addEventListener(BLOG_ADMIN_UPDATED_EVENT, sync);
+    window.addEventListener("storage", sync);
+    const unsubBroadcast = subscribeBlogCatalogBroadcast(sync);
+    return () => {
+      window.removeEventListener(BLOG_ADMIN_UPDATED_EVENT, sync);
+      window.removeEventListener("storage", sync);
+      unsubBroadcast();
+    };
+  }, [slug]);
 
   useEffect(() => {
     if (!post?.title) return;

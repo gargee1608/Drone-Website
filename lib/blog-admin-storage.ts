@@ -5,6 +5,40 @@ export const BLOG_EXTRAS_STORAGE_KEY = "aerolaminar_blog_extras_v1";
 export const BLOG_DELETED_BUILTINS_KEY = "aerolaminar_blog_deleted_builtins_v1";
 export const BLOG_ADMIN_UPDATED_EVENT = "aerolaminar-blog-admin-updated";
 
+const BLOG_CATALOG_BROADCAST_NAME = "aerolaminar-blogs-catalog";
+
+/** Same-tab `CustomEvent` plus cross-tab `BroadcastChannel` (API + localStorage catalog). */
+export function notifyBlogCatalogUpdated(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+  try {
+    const bc = new BroadcastChannel(BLOG_CATALOG_BROADCAST_NAME);
+    bc.postMessage({ type: "updated" } as const);
+    bc.close();
+  } catch {
+    // BroadcastChannel may be unavailable.
+  }
+}
+
+/** Other browser tabs do not receive `CustomEvent`; listen here for catalog refetches. */
+export function subscribeBlogCatalogBroadcast(onUpdate: () => void): () => void {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+  let bc: BroadcastChannel | null = null;
+  try {
+    bc = new BroadcastChannel(BLOG_CATALOG_BROADCAST_NAME);
+    bc.onmessage = () => {
+      onUpdate();
+    };
+  } catch {
+    // ignore
+  }
+  return () => {
+    bc?.close();
+  };
+}
+
 /** Partial edits on top of built-in `blog-data` posts (keyed by slug). */
 export type BlogOverrides = Record<string, Partial<BlogPost>>;
 
@@ -65,7 +99,7 @@ export function loadBlogOverrides(): BlogOverrides {
 export function saveBlogOverrides(next: BlogOverrides): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(BLOG_OVERRIDES_STORAGE_KEY, JSON.stringify(next));
-  window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+  notifyBlogCatalogUpdated();
 }
 
 export function loadBlogExtras(): AdminBlogExtra[] {
@@ -84,7 +118,7 @@ export function loadBlogExtras(): AdminBlogExtra[] {
 export function saveBlogExtras(rows: AdminBlogExtra[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(BLOG_EXTRAS_STORAGE_KEY, JSON.stringify(rows));
-  window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+  notifyBlogCatalogUpdated();
 }
 
 /** Built-in post slugs the admin chose to remove from the merged catalog. */
@@ -104,7 +138,7 @@ export function loadBlogDeletedBuiltins(): string[] {
 export function saveBlogDeletedBuiltins(slugs: string[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(BLOG_DELETED_BUILTINS_KEY, JSON.stringify(slugs));
-  window.dispatchEvent(new CustomEvent(BLOG_ADMIN_UPDATED_EVENT));
+  notifyBlogCatalogUpdated();
 }
 
 /** Hide a built-in post everywhere the merged list is used; clears overrides for that slug. */
