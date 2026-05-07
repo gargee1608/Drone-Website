@@ -88,6 +88,10 @@ function assignmentKey(n: PilotMissionNotification): string {
   return `${(n.pilotSub ?? "").trim()}::${n.requestRef.trim()}`;
 }
 
+function pilotMissionCardDomId(requestRef: string): string {
+  return `pilot-mission-${requestRef.trim().replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+}
+
 function dbMissionRowToNotification(
   row: Record<string, unknown>
 ): PilotMissionNotification | null {
@@ -182,6 +186,29 @@ export function AssignMissionView() {
       window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, bump);
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const focus = params.get("focus");
+    if (!focus || rows.length === 0) return;
+    const trimmed = focus.trim();
+    if (!rows.some((r) => r.requestRef.trim() === trimmed)) return;
+    const el = document.getElementById(pilotMissionCardDomId(trimmed));
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("focus") === focus) {
+      url.searchParams.delete("focus");
+      window.history.replaceState(
+        null,
+        "",
+        url.pathname + (url.search ? url.search : "")
+      );
+    }
+  }, [rows]);
 
   useEffect(() => {
     if (!commentsForRow) return;
@@ -305,6 +332,7 @@ export function AssignMissionView() {
             return (
             <article
               key={row.id}
+              id={pilotMissionCardDomId(row.requestRef)}
               className="rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">

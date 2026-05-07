@@ -86,8 +86,10 @@ const missionRoutes = require("./routes/missionRoutes");
 const missionsRequestRoutes = require("./routes/missionsRequestRoutes");
 
 const requestRoutes = require("./routes/request");
+const userRequestsRoutes = require("./routes/userRequests");
 app.use("/api", requestRoutes);
 app.use("/api", contactRoutes);
+app.use("/api", userRequestsRoutes);
 
 
 app.use("/api/blogs", blogRoutes);

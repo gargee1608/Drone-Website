@@ -151,6 +151,10 @@ export function LandingHeader() {
     isUserDashboard ||
     (isSettingsPage &&
       (settingsFrom === "admin" || settingsFrom === "user"));
+  const adminInboxAudience =
+    isUserDashboard || (isSettingsPage && settingsFrom === "user")
+      ? "user"
+      : "admin";
   const showPilotNotifications =
     isPilotDashboard || isPilotSettingsContext;
   const profileHref =
@@ -590,7 +594,9 @@ export function LandingHeader() {
             !isPilotRegistration &&
             !hideNotificationsAndSettings ? (
               <>
-                {showHeaderNotifications ? <AdminInboxMenu /> : null}
+                {showHeaderNotifications ? (
+                  <AdminInboxMenu audience={adminInboxAudience} />
+                ) : null}
                 {showDashboardShellThemeToggle ? (
                   <PilotHeaderThemeToggle />
                 ) : null}

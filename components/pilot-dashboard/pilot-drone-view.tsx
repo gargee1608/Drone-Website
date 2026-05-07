@@ -6,7 +6,7 @@ import { PilotSettingsAddDronePanel } from "@/components/settings/pilot-settings
 export function PilotDroneView() {
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <PilotSettingsAddDronePanel />
+      <PilotSettingsAddDronePanel showAdminRequest={true} />
     </div>
   );
 }

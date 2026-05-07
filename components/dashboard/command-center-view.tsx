@@ -577,7 +577,7 @@ function PendingPilotCard({
           View profile
         </Button>
       ) : (
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-4 gap-2.5">
           <Button
             type="button"
             size="sm"
@@ -593,7 +593,25 @@ function PendingPilotCard({
             className="border border-[#008B8B] bg-transparent text-xs font-bold text-[#008B8B] hover:bg-[#008B8B]/10"
             onClick={onReject}
           >
-            Add Drone Details
+            Add New Drone Details
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="border border-blue-500 bg-transparent text-xs font-bold text-blue-600 hover:bg-blue-50"
+            onClick={() => console.log("Edit drone details clicked")}
+          >
+            Edit
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="border border-red-500 bg-transparent text-xs font-bold text-red-600 hover:bg-red-50"
+            onClick={() => console.log("Delete drone details clicked")}
+          >
+            Delete
           </Button>
         </div>
       )}

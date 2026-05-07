@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { getPilots } from "@/app/services/pilotServices";
+import { ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { getPilotById, getPilots } from "@/app/services/pilotServices";
+import { DetailField } from "@/components/dashboard/user-request-detail-modal";
 import { apiUrl } from "@/lib/api-url";
 import {
   flightHoursFromPilotRow,
@@ -44,6 +45,301 @@ function CertificationBadge({ level }: { level: number }) {
   );
 }
 
+function pickStr(
+  row: Record<string, unknown>,
+  keys: readonly string[]
+): string {
+  for (const k of keys) {
+    const v = row[k];
+    if (v == null) continue;
+    const s = String(v).trim();
+    if (s) return s;
+  }
+  return "";
+}
+
+/** Duty status in pilot detail modal: Active / Inactive (not ALL CAPS). */
+function formatPilotDutyStatusLabel(raw: string): string {
+  const u = raw.trim().toUpperCase().replace(/\s+/g, "_");
+  if (u === "ACTIVE") return "Active";
+  if (
+    u === "INACTIVE" ||
+    u === "OFFLINE" ||
+    u === "ON_LEAVE" ||
+    u === "ONLEAVE"
+  ) {
+    return "Inactive";
+  }
+  const t = raw.trim();
+  if (!t) return "";
+  return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+}
+
+function parseDroneDetailsArray(raw: unknown): Record<string, unknown>[] {
+  if (Array.isArray(raw)) {
+    return raw.filter(
+      (x): x is Record<string, unknown> =>
+        x != null && typeof x === "object" && !Array.isArray(x)
+    );
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const p: unknown = JSON.parse(raw);
+      if (Array.isArray(p)) {
+        return p.filter(
+          (x): x is Record<string, unknown> =>
+            x != null && typeof x === "object" && !Array.isArray(x)
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return [];
+}
+
+function formatUseCases(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => String(v ?? "").trim())
+      .filter(Boolean)
+      .join(", ");
+  }
+  return String(value ?? "").trim();
+}
+
+function DroneDetailCard({ drone }: { drone: Record<string, unknown> }) {
+  const fields: { label: string; value: string }[] = [];
+  const add = (label: string, value: string) => {
+    if (value) fields.push({ label, value });
+  };
+  add("Model", pickStr(drone, ["modelName", "model_name"]));
+  add("Type", pickStr(drone, ["type"]));
+  add("Camera", pickStr(drone, ["camera"]));
+  const payload = pickStr(drone, ["payloadKg", "payload_kg"]);
+  if (payload) add("Payload", `${payload} kg`);
+  const ft = pickStr(drone, ["flightTimeMin", "flight_time_min"]);
+  if (ft) add("Flight time", `${ft} min`);
+  const rng = pickStr(drone, ["rangeKm", "range_km"]);
+  if (rng) add("Range", `${rng} km`);
+  const uc = formatUseCases(drone.useCases ?? drone.use_cases);
+  if (uc) add("Use cases", uc);
+
+  if (fields.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground sm:px-4 sm:py-4">
+        No fields recorded.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-muted/25 px-3 py-3 sm:px-4 sm:py-4">
+      <dl className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+        {fields.map(({ label, value }, i) => (
+          <DetailField key={`${label}-${i}`} label={label}>
+            {value}
+          </DetailField>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function PilotDetailModal({
+  open,
+  loading,
+  error,
+  record,
+  onClose,
+}: {
+  open: boolean;
+  loading: boolean;
+  error: string | null;
+  record: Record<string, unknown> | null;
+  onClose: () => void;
+}) {
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const contentId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open || loading) return;
+    const t = window.requestAnimationFrame(() => {
+      closeBtnRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(t);
+  }, [open, loading]);
+
+  if (!open) return null;
+
+  const rows: { label: string; value: string }[] = [];
+  let droneRowsFromJson: Record<string, unknown>[] = [];
+  const legacyDroneFields: { label: string; value: string }[] = [];
+
+  if (record) {
+    const push = (label: string, value: string) => {
+      if (value) rows.push({ label, value });
+    };
+    push(
+      "Name",
+      pickStr(record, ["name", "full_name", "fullName"]) || "—"
+    );
+    push("Email", pickStr(record, ["email"]));
+    push("Phone", pickStr(record, ["phone"]));
+    const flightHrs = pickStr(record, ["flight_hours", "flightHours"]);
+    if (flightHrs !== "") push("Flight hours", `${flightHrs} hrs`);
+    push(
+      "Missions completed",
+      pickStr(record, [
+        "missions_completed",
+        "missionsCompleted",
+        "flight_count",
+        "flightCount",
+      ])
+    );
+    push(
+      "Experience rank",
+      pickStr(record, ["experience_rank", "experienceRank"])
+    );
+    const dutyRaw = pickStr(record, ["duty_status", "dutyStatus", "status"]);
+    if (dutyRaw !== "") {
+      push("Duty status", formatPilotDutyStatusLabel(dutyRaw));
+    }
+    push("Certification level", pickStr(record, ["cert_level", "certLevel"]));
+
+    droneRowsFromJson = parseDroneDetailsArray(record.drone_details);
+
+    if (droneRowsFromJson.length === 0) {
+      const leg = (label: string, value: string) => {
+        if (value) legacyDroneFields.push({ label, value });
+      };
+      leg("Drone name", pickStr(record, ["drone_name", "droneName"]));
+      leg("Camera", pickStr(record, ["camera"]));
+      leg("Payload", pickStr(record, ["payload"]));
+      leg("Flight time", pickStr(record, ["flight_time", "flightTime"]));
+      leg("Range", pickStr(record, ["range_km", "rangeKm"]));
+      const uc = formatUseCases(record.use_cases ?? record.useCases);
+      if (uc) leg("Use cases", uc);
+    }
+  }
+
+  const hasAnyContent = !loading && !error && record != null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-[#191c1d]/50 backdrop-blur-[2px]"
+        aria-label="Close dialog"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pilots-detail-modal-title"
+        aria-describedby={contentId}
+        className="relative z-10 flex max-h-[min(92dvh,48rem)] w-full max-w-lg flex-col overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-card text-card-foreground shadow-2xl sm:my-auto sm:rounded-2xl"
+      >
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-5 py-3 sm:px-6">
+          <h2
+            id="pilots-detail-modal-title"
+            className="min-w-0 pr-2 text-base font-bold leading-snug text-foreground sm:text-lg"
+          >
+            Pilots Details
+          </h2>
+          <button
+            ref={closeBtnRef}
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted"
+            aria-label="Close"
+          >
+            <X className="size-5" aria-hidden />
+          </button>
+        </div>
+
+        <div id={contentId} className="px-5 py-4 sm:px-6 sm:py-5">
+          {loading ? (
+            <div className="flex min-h-[6rem] items-center justify-center py-2">
+              <p className="text-sm text-muted-foreground">Loading pilot…</p>
+            </div>
+          ) : error ? (
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          ) : !hasAnyContent ? (
+            <p className="text-sm text-muted-foreground">No details available.</p>
+          ) : (
+            <>
+              {rows.length > 0 ? (
+                <section aria-label="Pilot information">
+                  <h3 className="text-[10px] font-extrabold uppercase tracking-widest text-foreground">
+                    Pilot information
+                  </h3>
+                  <div className="mt-3 rounded-xl border border-border bg-muted/25 px-3 py-3 sm:px-4 sm:py-4">
+                    <dl className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                      {rows.map(({ label, value }, i) => (
+                        <DetailField key={`${label}-${i}`} label={label}>
+                          {value}
+                        </DetailField>
+                      ))}
+                    </dl>
+                  </div>
+                </section>
+              ) : null}
+
+              <section
+                aria-label="Drone details"
+                className={cn(
+                  rows.length > 0 && "mt-5 border-t border-border pt-5"
+                )}
+              >
+                <h3 className="text-[10px] font-extrabold uppercase tracking-widest text-foreground">
+                  Drone details
+                </h3>
+                {droneRowsFromJson.length > 0 ? (
+                  <div className="mt-3 space-y-3">
+                    {droneRowsFromJson.map((d, i) => (
+                      <DroneDetailCard key={i} drone={d} />
+                    ))}
+                  </div>
+                ) : legacyDroneFields.length > 0 ? (
+                  <div className="mt-3 rounded-xl border border-border bg-muted/25 px-3 py-3 sm:px-4 sm:py-4">
+                    <dl className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                      {legacyDroneFields.map(({ label, value }, i) => (
+                        <DetailField key={`${label}-${i}`} label={label}>
+                          {value}
+                        </DetailField>
+                      ))}
+                    </dl>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                    No drone details on file. The pilot can add drones in their
+                    profile.
+                  </p>
+                )}
+              </section>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DutyBadge({ status }: { status: DutyStatus }) {
   const active = status === "ACTIVE";
   return (
@@ -78,6 +374,44 @@ export function PilotStatusView({
     null
   );
   const [page, setPage] = useState(1);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [detailRecord, setDetailRecord] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+
+  const closePilotDetail = useCallback(() => {
+    setDetailOpen(false);
+    setDetailLoading(false);
+    setDetailError(null);
+    setDetailRecord(null);
+  }, []);
+
+  const openPilotDetail = useCallback(async (pilotId: string) => {
+    if (!pilotId.trim()) return;
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setDetailError(null);
+    setDetailRecord(null);
+    try {
+      const data = await getPilotById(pilotId);
+      if (data == null || (typeof data === "object" && "error" in data)) {
+        setDetailError("Could not load pilot details.");
+        return;
+      }
+      if (typeof data === "object" && !Array.isArray(data)) {
+        setDetailRecord(data as Record<string, unknown>);
+      } else {
+        setDetailError("Unexpected response from server.");
+      }
+    } catch {
+      setDetailError("Could not load pilot details.");
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
 
   const filteredRows = useMemo(() => {
     return apiPilots.filter((row) => {
@@ -287,12 +621,18 @@ export function PilotStatusView({
                       className="transition-colors hover:bg-muted/50"
                     >
                       <td className="px-6 py-5">
-                        <div className="text-sm font-bold text-[#1a1c1e] dark:text-white">
-                          {row.name}
-                        </div>
-                        <div className="text-[10px] uppercase tracking-tighter text-muted-foreground/80 dark:text-white/85">
-                          ID: {row.id}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void openPilotDetail(row.id)}
+                          className="group block w-full max-w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#006a6e]"
+                        >
+                          <span className="text-sm font-bold text-[#1a1c1e] underline decoration-transparent decoration-2 underline-offset-2 transition group-hover:decoration-[#006a6e] dark:text-white dark:group-hover:decoration-white/80">
+                            {row.name}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] uppercase tracking-tighter text-muted-foreground/80 dark:text-white/85">
+                            ID: {row.id}
+                          </span>
+                        </button>
                       </td>
                       <td className="px-6 py-5">
                         <CertificationBadge level={row.certLevel} />
@@ -355,6 +695,14 @@ export function PilotStatusView({
           </div>
         </div>
       </div>
+
+      <PilotDetailModal
+        open={detailOpen}
+        loading={detailLoading}
+        error={detailError}
+        record={detailRecord}
+        onClose={closePilotDetail}
+      />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   buildUnreadAdminInboxRows,
   countUnreadAdminInbox,
   markAdminInboxKeysSeen,
+  type AdminInboxAudience,
   type AdminInboxRow,
 } from "@/lib/admin-inbox";
 import { CONTACT_INQUIRIES_UPDATED_EVENT } from "@/lib/contact-inquiries";
@@ -17,16 +18,20 @@ import { cn } from "@/lib/utils";
 
 const MAX_ROWS = 12;
 
-export function AdminInboxMenu() {
+export function AdminInboxMenu({
+  audience = "admin",
+}: {
+  audience?: AdminInboxAudience;
+} = {}) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<AdminInboxRow[]>([]);
   const [unread, setUnread] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const sync = useCallback(() => {
-    setRows(buildUnreadAdminInboxRows().slice(0, MAX_ROWS));
-    setUnread(countUnreadAdminInbox());
-  }, []);
+    setRows(buildUnreadAdminInboxRows(audience).slice(0, MAX_ROWS));
+    setUnread(countUnreadAdminInbox(audience));
+  }, [audience]);
 
   useEffect(() => {
     const onDoc = (e: PointerEvent) => {
@@ -153,7 +158,7 @@ export function AdminInboxMenu() {
                 className="h-8 w-full text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => {
                   markAdminInboxKeysSeen(
-                    buildUnreadAdminInboxRows().map((r) => r.key)
+                    buildUnreadAdminInboxRows(audience).map((r) => r.key)
                   );
                   sync();
                 }}

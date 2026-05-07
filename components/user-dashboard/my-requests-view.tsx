@@ -1,6 +1,7 @@
 "use client";
 
 import { ClipboardList } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-shell";
@@ -39,6 +40,8 @@ function adminStatusBadgeClass(status: UserMissionRequest["adminStatus"]) {
 }
 
 export function MyRequestsView() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [requests, setRequests] = useState<UserMissionRequest[]>([]);
   /** Ascending by `createdAt` — same ordering as `#RQ-…` display ids. */
   const [requestsChrono, setRequestsChrono] = useState<UserMissionRequest[]>(
@@ -61,11 +64,32 @@ export function MyRequestsView() {
         )
       );
     };
-    refresh();
+    queueMicrotask(() => {
+      refresh();
+    });
     window.addEventListener(USER_REQUESTS_UPDATED_EVENT, refresh);
     return () =>
       window.removeEventListener(USER_REQUESTS_UPDATED_EVENT, refresh);
   }, []);
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (!id || requests.length === 0) return;
+    if (!requests.some((r) => r.id === id)) return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`user-my-request-${id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("id") === id) {
+        url.searchParams.delete("id");
+        router.replace(url.pathname + (url.search ? url.search : ""), {
+          scroll: false,
+        });
+      }
+    });
+  }, [searchParams, requests, router]);
 
   return (
     <UserDashboardShell
@@ -149,6 +173,7 @@ export function MyRequestsView() {
                   {requests.map((req) => (
                     <tr
                       key={req.id}
+                      id={`user-my-request-${req.id}`}
                       className="transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.04]"
                     >
                       <td className="align-middle whitespace-nowrap px-4 py-3.5">
