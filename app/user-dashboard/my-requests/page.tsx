@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { MyRequestsView } from "@/components/user-dashboard/my-requests-view";
 
 export const metadata = {
@@ -6,5 +8,9 @@ export const metadata = {
 };
 
 export default function MyRequestsPage() {
-  return <MyRequestsView />;
+  return (
+    <Suspense>
+      <MyRequestsView />
+    </Suspense>
+  );
 }
