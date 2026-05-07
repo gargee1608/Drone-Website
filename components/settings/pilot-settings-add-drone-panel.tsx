@@ -1,7 +1,7 @@
 "use client";
 
-import { Plus, Edit, Trash2, X } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { Plus, Edit, Trash2, X, Send } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
@@ -131,12 +131,19 @@ export type PilotSettingsAddDronePanelProps = {
    * Use inside PilotProfileView embedded drone section.
    */
   withDroneList?: boolean;
+  /**
+   * When true, shows option to send request to admin for adding pilot details.
+   * Used in Pilot Dashboard context.
+   */
+  showAdminRequest?: boolean;
 };
 
 export function PilotSettingsAddDronePanel({
   withDroneList = true,
+  showAdminRequest = false,
 }: PilotSettingsAddDronePanelProps = {}) {
   const pathname = usePathname();
+  const router = useRouter();
   const formId = useId();
   const [showForm, setShowForm] = useState(false);
   const [editingDroneId, setEditingDroneId] = useState<string | null>(null);
@@ -256,7 +263,7 @@ export function PilotSettingsAddDronePanel({
       console.log("Drone ID type:", typeof editingDroneData.id);
 
       // Check if drone ID is a local storage ID (starts with "drone-") or a database ID
-      let droneId = editingDroneData.id;
+      let droneId: string | number = editingDroneData.id;
       let isNewDrone = false;
       
       if (typeof droneId === 'string' && droneId.startsWith('drone-')) {
@@ -652,6 +659,90 @@ export function PilotSettingsAddDronePanel({
     }
   }
 
+  async function handleSendAdminRequest() {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("You must be logged in to send a request to admin.");
+        return;
+      }
+
+      // Get pilot ID from token
+      let pilotId = null;
+      let pilotName = "";
+      try {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          pilotId = payload.sub ? parseInt(payload.sub, 10) : null;
+          pilotName = payload.name || getPilotDisplayName(token);
+        }
+      } catch (tokenError) {
+        console.warn("Invalid token format:", tokenError);
+        setError("Invalid authentication token.");
+        return;
+      }
+
+      if (!pilotId) {
+        setError("Could not determine pilot ID.");
+        return;
+      }
+
+      // Get current pilot profile and drone details
+      const base = readBaseSnapshot();
+      const pilotDetails = base ? {
+        fullName: base.fullName,
+        email: base.email,
+        city: base.city,
+        state: base.state,
+        flightHours: base.flightHours,
+        bio: base.bio,
+        skills: base.skills,
+        drones: base.drones,
+        dgca: base.dgca
+      } : null;
+
+      // Send request to admin with pilot details
+      const response = await fetch("http://localhost:4000/api/user-requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          pilot_id: pilotId,
+          pilot_name: pilotName,
+          request_type: "add_pilot_details",
+          description: "Request to add/update pilot details and drone information",
+          pilot_details: pilotDetails,
+          status: "pending"
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to send request to admin");
+      }
+
+      const result = await response.json();
+      console.log("Admin request sent successfully:", result);
+      
+      // Show success message
+      setError("Request sent successfully!");
+      setJustAdded(true);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setJustAdded(false);
+        setError(null);
+      }, 3000);
+      
+    } catch (error) {
+      console.error("Error sending admin request:", error);
+      setError(error instanceof Error ? error.message : "Failed to send request to admin. Please try again.");
+    }
+  }
+
   const formFields = (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -829,6 +920,16 @@ export function PilotSettingsAddDronePanel({
           <Edit className="mr-2 h-4 w-4" />
           Edit
         </Button>
+        {showAdminRequest && (
+          <Button
+            onClick={handleSendAdminRequest}
+            variant="outline"
+            className="border-purple-500 text-purple-600 hover:bg-purple-50 px-6 py-2"
+          >
+            <Send className="mr-2 h-4 w-4" />
+            Send request to admin
+          </Button>
+        )}
       </div>
       
       <div className="rounded-xl border border-border bg-muted/25 p-4 sm:p-5">

@@ -13,6 +13,7 @@ import {
   Plane,
   Settings,
   UserRound,
+  Users,
 } from "lucide-react";
 
 export type CommandCenterNavItem = {
@@ -40,6 +41,11 @@ export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
     href: "/dashboard/pilot-details",
     label: "Add Pilot Details",
     icon: UserRound,
+  },
+  {
+    href: "/dashboard/user-details",
+    label: "Add User Details",
+    icon: Users,
   },
   { href: "/dashboard/pilot-status", label: "Pilot Status", icon: BadgeCheck },
   { href: "/dashboard/blogs", label: "Blogs", icon: BookOpen },
