@@ -1148,7 +1148,12 @@ export function SettingsDashboard({
             onClick={closeProfileInfoPopup}
           />
           <div
-            className="relative z-10 flex max-h-[min(92dvh,840px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border-2 border-border bg-card text-card-foreground shadow-xl ring-1 ring-black/5"
+            className={cn(
+              "relative z-10 flex w-full flex-col rounded-2xl border-2 border-border bg-card text-card-foreground shadow-xl ring-1 ring-black/5",
+              settingsContext === "pilot"
+                ? "max-w-4xl overflow-visible"
+                : "max-h-[min(92dvh,840px)] max-w-2xl overflow-hidden"
+            )}
             onClick={(e) => e.stopPropagation()}
           >
             <Button
@@ -1161,11 +1166,22 @@ export function SettingsDashboard({
             >
               <X className="size-4" aria-hidden />
             </Button>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-12 sm:px-5 sm:pb-5 sm:pt-14">
+            <div
+              className={cn(
+                "px-3 pb-4 pt-12 sm:px-5 sm:pb-5 sm:pt-14",
+                settingsContext === "pilot"
+                  ? "min-h-0"
+                  : "min-h-0 flex-1 overflow-y-auto overscroll-contain"
+              )}
+            >
               {settingsContext === "admin" ? (
                 <AdminProfileView embedded />
               ) : settingsContext === "pilot" ? (
-                <PilotProfileView variant="dashboard" embedded />
+                <PilotProfileView
+                  variant="dashboard"
+                  embedded
+                  showDroneDetails={false}
+                />
               ) : (
                 <UserProfileView embedded />
               )}

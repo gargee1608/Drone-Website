@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Mail, Trash2 } from "lucide-react";
 
@@ -24,6 +25,8 @@ function formatWhen(iso: string) {
 }
 
 export function ContactInquiriesView() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [rows, setRows] = useState<ContactInquiry[]>([]);
 
   const refresh = useCallback(() => {
@@ -34,12 +37,33 @@ export function ContactInquiriesView() {
   }, []);
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => {
+      refresh();
+    });
     const on = () => refresh();
     window.addEventListener(CONTACT_INQUIRIES_UPDATED_EVENT, on);
     return () =>
       window.removeEventListener(CONTACT_INQUIRIES_UPDATED_EVENT, on);
   }, [refresh]);
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (!id || rows.length === 0) return;
+    if (!rows.some((r) => r.id === id)) return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`contact-inquiry-${id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("id") === id) {
+        url.searchParams.delete("id");
+        router.replace(url.pathname + (url.search ? url.search : ""), {
+          scroll: false,
+        });
+      }
+    });
+  }, [searchParams, rows, router]);
 
   return (
     <div className="mx-auto w-full max-w-4xl pb-8">
@@ -64,6 +88,7 @@ export function ContactInquiriesView() {
           {rows.map((row) => (
             <li
               key={row.id}
+              id={`contact-inquiry-${row.id}`}
               className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5"
             >
               <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-2">

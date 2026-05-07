@@ -96,6 +96,36 @@ export const updatePilotStatus = async (id, dutyStatus) => {
   }
 };
 
+/** Admin dashboard: update editable pilot profile fields from card modal. */
+export const patchPilotProfile = async (id, payload) => {
+  try {
+    const response = await fetch(apiUrl(`/api/pilots/${id}/profile`), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch (error) {
+    console.error("Patch pilot profile failed:", error);
+    return null;
+  }
+};
+
+/** Admin dashboard: delete one pilot by id. */
+export const deletePilotById = async (id) => {
+  try {
+    const response = await fetch(apiUrl(`/api/pilots/${id}`), {
+      method: "DELETE",
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch (error) {
+    console.error("Delete pilot failed:", error);
+    return null;
+  }
+};
+
 /** @param {number} [delta] */
 export const incrementPilotMissionsCompleted = async (id, delta = 1) => {
   try {

@@ -1,8 +1,14 @@
 import { loadContactInquiries } from "@/lib/contact-inquiries";
-import { loadUserRequests } from "@/lib/user-requests";
+import {
+  loadUserRequests,
+  loadUserRequestsForCurrentUser,
+} from "@/lib/user-requests";
 
 export const ADMIN_INBOX_SEEN_KEYS_STORAGE_KEY =
   "aerolaminar_admin_inbox_seen_keys_v1";
+
+/** Admin command center vs signed-in app user (header bell on `/user-dashboard`). */
+export type AdminInboxAudience = "admin" | "user";
 
 export type AdminInboxRow = {
   key: string;
@@ -46,10 +52,17 @@ export function markAdminInboxKeysSeen(keys: string[]): void {
   persistSeenKeys(next);
 }
 
-export function buildAdminInboxRows(): AdminInboxRow[] {
+export function buildAdminInboxRows(
+  audience: AdminInboxAudience = "admin"
+): AdminInboxRow[] {
   const rows: AdminInboxRow[] = [];
 
-  for (const r of loadUserRequests()) {
+  const userRequestRows =
+    audience === "user"
+      ? loadUserRequestsForCurrentUser()
+      : loadUserRequests();
+
+  for (const r of userRequestRows) {
     if (r.adminStatus !== "pending") continue;
     rows.push({
       key: `ur:${r.id}`,
@@ -58,20 +71,25 @@ export function buildAdminInboxRows(): AdminInboxRow[] {
       sourceLabel: "User Dashboard",
       title: r.reasonOrTitle.trim() || "Mission request",
       subtitle: userRequestSubtitle(r),
-      href: "/dashboard/user-requests",
+      href:
+        audience === "user"
+          ? `/user-dashboard/my-requests?id=${encodeURIComponent(r.id)}`
+          : `/dashboard/assign?focus=${encodeURIComponent(r.id)}`,
     });
   }
 
-  for (const c of loadContactInquiries()) {
-    rows.push({
-      key: `ci:${c.id}`,
-      kind: "contact",
-      createdAt: c.createdAt,
-      sourceLabel: "Contact Us",
-      title: c.fullName,
-      subtitle: previewMessage(c.message, c.email),
-      href: "/dashboard/contact-inquiries",
-    });
+  if (audience === "admin") {
+    for (const c of loadContactInquiries()) {
+      rows.push({
+        key: `ci:${c.id}`,
+        kind: "contact",
+        createdAt: c.createdAt,
+        sourceLabel: "Contact Us",
+        title: c.fullName,
+        subtitle: previewMessage(c.message, c.email),
+        href: `/dashboard/contact-inquiries?id=${encodeURIComponent(c.id)}`,
+      });
+    }
   }
 
   rows.sort(
@@ -102,13 +120,17 @@ function previewMessage(message: string, email: string): string {
   return short ? `${email} — ${short}` : email;
 }
 
-export function countUnreadAdminInbox(): number {
+export function countUnreadAdminInbox(
+  audience: AdminInboxAudience = "admin"
+): number {
   const seen = loadSeenKeys();
-  return buildAdminInboxRows().filter((r) => !seen.has(r.key)).length;
+  return buildAdminInboxRows(audience).filter((r) => !seen.has(r.key)).length;
 }
 
 /** Rows not yet dismissed in the notifications panel (same basis as the unread badge). */
-export function buildUnreadAdminInboxRows(): AdminInboxRow[] {
+export function buildUnreadAdminInboxRows(
+  audience: AdminInboxAudience = "admin"
+): AdminInboxRow[] {
   const seen = loadSeenKeys();
-  return buildAdminInboxRows().filter((r) => !seen.has(r.key));
+  return buildAdminInboxRows(audience).filter((r) => !seen.has(r.key));
 }

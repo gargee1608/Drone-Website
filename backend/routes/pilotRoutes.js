@@ -90,6 +90,27 @@ async function ensurePilotAssignDroneColumns() {
   );
 }
 
+async function ensurePilotEditableColumns() {
+  await pool.query("ALTER TABLE pilots ADD COLUMN IF NOT EXISTS name TEXT");
+  await pool.query("ALTER TABLE pilots ADD COLUMN IF NOT EXISTS email TEXT");
+  await pool.query("ALTER TABLE pilots ADD COLUMN IF NOT EXISTS phone TEXT");
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS license_number TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS cert_level INTEGER DEFAULT 3"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS experience_rank TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS duty_status TEXT DEFAULT 'ACTIVE'"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS flight_hours INTEGER NOT NULL DEFAULT 0"
+  );
+}
+
 function normalizePilotDroneDetails(value) {
   if (!Array.isArray(value)) return [];
   const out = [];
@@ -487,6 +508,107 @@ router.patch("/:id/assign-drone", async (req, res) => {
       return res.status(404).json({ error: "Pilot not found" });
     }
     return res.json({ success: true, data: pilotRowForJson(result.rows[0]) });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+/** Update editable pilot fields from admin dashboard cards. */
+router.patch("/:id/profile", async (req, res) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ error: "Invalid pilot id" });
+    }
+
+    const name = String(req.body?.name ?? "").trim().slice(0, 160);
+    const email = String(req.body?.email ?? "")
+      .trim()
+      .toLowerCase()
+      .slice(0, 220);
+    const phone = String(req.body?.phone ?? "").trim().slice(0, 40);
+    const licenseNumber = String(req.body?.licenseNumber ?? "")
+      .trim()
+      .slice(0, 120);
+    const rawDuty = String(req.body?.dutyStatus ?? "")
+      .trim()
+      .toUpperCase();
+    const dutyStatus = rawDuty === "INACTIVE" ? "INACTIVE" : "ACTIVE";
+    const certLevelRaw = Number.parseInt(
+      String(req.body?.certLevel ?? "3"),
+      10
+    );
+    const certLevel =
+      Number.isFinite(certLevelRaw) && certLevelRaw >= 1 && certLevelRaw <= 10
+        ? certLevelRaw
+        : 3;
+    const experienceRank = String(req.body?.experienceRank ?? "")
+      .trim()
+      .slice(0, 120);
+    const hoursRaw = Number.parseInt(String(req.body?.flightHours ?? "0"), 10);
+    const flightHours =
+      Number.isFinite(hoursRaw) && hoursRaw >= 0 && hoursRaw <= 50000
+        ? hoursRaw
+        : 0;
+
+    if (!name) {
+      return res.status(400).json({ error: "name is required" });
+    }
+
+    await ensurePilotEditableColumns();
+    const result = await pool.query(
+      `UPDATE pilots
+       SET name = $1,
+           email = $2,
+           phone = $3,
+           license_number = $4,
+           duty_status = $5,
+           cert_level = $6,
+           experience_rank = $7,
+           flight_hours = $8,
+           experience = $9
+       WHERE id = $10
+       RETURNING *`,
+      [
+        name,
+        email || null,
+        phone || null,
+        licenseNumber || null,
+        dutyStatus,
+        certLevel,
+        experienceRank || null,
+        flightHours,
+        String(flightHours),
+        id,
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Pilot not found" });
+    }
+    return res.json({ success: true, data: pilotRowForJson(result.rows[0]) });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+/** Remove a pilot profile from admin dashboard. */
+router.delete("/:id", async (req, res) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ error: "Invalid pilot id" });
+    }
+    const result = await pool.query(
+      `DELETE FROM pilots WHERE id = $1 RETURNING id, name`,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Pilot not found" });
+    }
+    return res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Server error" });

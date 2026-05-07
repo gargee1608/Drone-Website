@@ -29,6 +29,8 @@ import {
   DEMO_ASSIGN_BRIDGE_STORAGE_KEY,
   DEMO_ASSIGN_BRIDGE_UPDATED_EVENT,
   mergeAssignPilotDisplayQueue,
+  setAssignInspectRow,
+  userRequestAdminRowToAssignPilotRow,
 } from "@/lib/assign-demo-bridge";
 import {
   pushPilotMissionNotification,
@@ -48,6 +50,8 @@ import {
 import {
   findStoredUserRequestByAdminRef,
   loadUserRequests,
+  mapUserRequestToAdminRow,
+  normalizeUserMissionAdminStatus,
   notifyMissionsDbUpdated,
   updateUserRequestAdminStatus,
   USER_REQUESTS_STORAGE_KEY,
@@ -757,18 +761,29 @@ export function AssignPilotDroneView() {
     const params = new URLSearchParams(window.location.search);
     const focus = params.get("focus");
     if (!focus) return;
+    const stored = findStoredUserRequestByAdminRef(focus);
+    if (
+      stored &&
+      normalizeUserMissionAdminStatus(stored.adminStatus) === "pending"
+    ) {
+      setAssignInspectRow(
+        userRequestAdminRowToAssignPilotRow(mapUserRequestToAdminRow(stored))
+      );
+    }
     const el = document.getElementById(assignRequestDetailDomId(focus));
     if (!el) return;
     requestAnimationFrame(() => {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     });
     const url = new URL(window.location.href);
-    url.searchParams.delete("focus");
-    window.history.replaceState(
-      null,
-      "",
-      url.pathname + (url.search ? url.search : "")
-    );
+    if (url.searchParams.get("focus") === focus) {
+      url.searchParams.delete("focus");
+      window.history.replaceState(
+        null,
+        "",
+        url.pathname + (url.search ? url.search : "")
+      );
+    }
   }, [assignQueue]);
 
   const completedRequestRefs = useMemo(

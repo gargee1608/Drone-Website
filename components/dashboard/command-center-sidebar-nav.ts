@@ -6,11 +6,13 @@ import {
   Briefcase,
   CheckCircle2,
   ClipboardList,
+  Drone,
   LayoutDashboard,
   LogOut,
   Mail,
   Plane,
   Settings,
+  UserRound,
 } from "lucide-react";
 
 export type CommandCenterNavItem = {
@@ -28,6 +30,16 @@ export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
     href: "/dashboard/completed-deliveries",
     label: "Completed Deliveries",
     icon: CheckCircle2,
+  },
+  {
+    href: "/dashboard/drone",
+    label: "Add New Drone Details",
+    icon: Drone,
+  },
+  {
+    href: "/dashboard/pilot-details",
+    label: "Add Pilot Details",
+    icon: UserRound,
   },
   { href: "/dashboard/pilot-status", label: "Pilot Status", icon: BadgeCheck },
   { href: "/dashboard/blogs", label: "Blogs", icon: BookOpen },

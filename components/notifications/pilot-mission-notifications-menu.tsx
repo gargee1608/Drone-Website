@@ -126,7 +126,7 @@ export function PilotMissionNotificationsMenu() {
                 {rows.map((row) => (
                   <li key={row.id}>
                     <Link
-                      href="/pilot-dashboard"
+                      href={`/pilot-dashboard/assign-mission?focus=${encodeURIComponent(row.requestRef.trim())}`}
                       className="flex gap-3 px-3 py-2.5 text-left transition hover:bg-muted/60"
                       onClick={() => {
                         markPilotMissionNotificationIdsSeen([row.id]);
