@@ -294,9 +294,9 @@ export function PilotSettingsAddDronePanel({
         }
         
         const createResult = await createResponse.json();
-        droneId = createResult.id;
+        droneId = String(createResult.id);
         console.log("Created new drone with ID:", droneId);
-        
+
         // Update the editing drone data with the new database ID
         setEditingDroneData({
           ...editingDroneData,
