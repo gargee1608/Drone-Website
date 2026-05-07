@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { ContactInquiriesView } from "@/components/dashboard/contact-inquiries-view";
 
 export const metadata = {
@@ -6,5 +8,9 @@ export const metadata = {
 };
 
 export default function ContactInquiriesPage() {
-  return <ContactInquiriesView />;
+  return (
+    <Suspense>
+      <ContactInquiriesView />
+    </Suspense>
+  );
 }
