@@ -224,7 +224,7 @@ export function AdminUserManagement() {
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#008B8B] hover:bg-[#006b6b]">
+            <Button variant="outline" className="border-[#008B8B] text-[#008B8B] hover:bg-[#008B8B]/10">
               <Plus className="mr-2 h-4 w-4" />
               Add New User
             </Button>
