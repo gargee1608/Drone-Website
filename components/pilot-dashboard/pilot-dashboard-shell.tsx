@@ -37,7 +37,7 @@ const sidebarNav = [
     href: "/pilot-dashboard/completed-deliveries",
   },
   {
-    label: "Add New Drone Details",
+    label: "My Drones",
     icon: Drone,
     href: "/pilot-dashboard/drone",
   },

@@ -427,6 +427,12 @@ export function PilotSettingsAddDronePanel({
         }
       }
 
+      // Ensure we have a pilot ID for drone operations
+      if (!pilotId) {
+        setError("Unable to determine pilot ID. Please log in again to update drones.");
+        return;
+      }
+
       // Update drone in backend
       const droneData = {
         model_name: updatedDrone.modelName,
@@ -554,6 +560,12 @@ export function PilotSettingsAddDronePanel({
         }
       }
 
+      // Ensure we have a pilot ID for drone creation
+      if (!pilotId && !editingDroneId) {
+        setError("Unable to determine pilot ID. Please log in again to add drones.");
+        return;
+      }
+
       // Save to backend
       const droneData = {
         model_name: model,
@@ -570,27 +582,43 @@ export function PilotSettingsAddDronePanel({
       let response;
       if (editingDroneId) {
         // Update existing drone
-        response = await fetch(`http://localhost:4000/api/drones/${editingDroneId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": token ? `Bearer ${token}` : "",
-          },
-          body: JSON.stringify(droneData),
-        });
+        try {
+          response = await fetch(`http://localhost:4000/api/drones/${editingDroneId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": token ? `Bearer ${token}` : "",
+            },
+            body: JSON.stringify(droneData),
+          });
+        } catch (networkError) {
+          console.error("Network error when updating drone:", networkError);
+          // Set response to indicate network failure
+          response = { ok: false, status: 0, text: () => Promise.resolve("Network error") };
+        }
       } else {
-        // Create new drone
-        response = await fetch("http://localhost:4000/api/drones", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": token ? `Bearer ${token}` : "",
-          },
-          body: JSON.stringify({
-            ...droneData,
-            pilot_id: pilotId,
-          }),
-        });
+        // Create new drone - always include pilot_id
+        const createData = {
+          ...droneData,
+          pilot_id: pilotId,
+        };
+        
+        console.log("Creating new drone for pilot:", pilotId, createData);
+        
+        try {
+          response = await fetch("http://localhost:4000/api/drones", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": token ? `Bearer ${token}` : "",
+            },
+            body: JSON.stringify(createData),
+          });
+        } catch (networkError) {
+          console.error("Network error when creating drone:", networkError);
+          // Set response to indicate network failure
+          response = { ok: false, status: 0, text: () => Promise.resolve("Network error") };
+        }
       }
       
       console.log("Response status:", response.status);
@@ -606,6 +634,48 @@ export function PilotSettingsAddDronePanel({
         } catch (parseError) {
           console.warn("Could not parse error response:", parseError);
         }
+        
+        // Fallback: Save to local storage only if backend is not available
+        if (response.status === 500 || response.status === 0) {
+          console.warn("Backend server error, saving to local storage only");
+          const row: PilotProfileDrone = {
+            ...emptyDrone(),
+            id: `drone-${Date.now()}`,
+            modelName: model,
+            type,
+            camera: draftCamera.trim(),
+            payloadKg: draftPayload.trim(),
+            flightTimeMin: draftFlightMin.trim(),
+            rangeKm: draftRangeKm.trim(),
+            useCases: [...draftUseCases],
+          };
+
+          const next: PilotProfileSnapshot = {
+            ...base,
+            drones: [...base.drones, row],
+          };
+          
+          persistSnapshot(next);
+          if (withDroneList) {
+            setDrones(next.drones);
+          }
+
+          // Reset form
+          setDraftModel("");
+          setDraftType("");
+          setDraftCamera("");
+          setDraftPayload("");
+          setDraftFlightMin("");
+          setDraftRangeKm("");
+          setDraftUseCases([]);
+          setEditingDroneId(null);
+          setError(null);
+          setJustAdded(true);
+          window.setTimeout(() => setJustAdded(false), 2200);
+          
+          return; // Exit successfully after local storage save
+        }
+        
         throw new Error(errorMessage);
       }
 

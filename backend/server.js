@@ -84,6 +84,7 @@ const blogRoutes = require("./routes/blogRoutes");
 const contactRoutes = require("./routes/contact");
 const missionRoutes = require("./routes/missionRoutes");
 const missionsRequestRoutes = require("./routes/missionsRequestRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const requestRoutes = require("./routes/request");
 const userRequestsRoutes = require("./routes/userRequests");
@@ -96,6 +97,7 @@ app.use("/api/blogs", blogRoutes);
 
 app.use("/api/pilots", pilotRoutes);
 app.use("/api/drones", droneRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/missions", missionRoutes);
 app.use("/api/missions-requests", missionsRequestRoutes);
 

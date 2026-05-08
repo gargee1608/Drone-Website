@@ -26,8 +26,7 @@ export type CommandCenterNavItem = {
 export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/assign", label: "Assign To", icon: Plane },
-  { href: "/dashboard/user-requests", label: "User Request", icon: ClipboardList },
-  {
+    {
     href: "/dashboard/completed-deliveries",
     label: "Completed Deliveries",
     icon: CheckCircle2,
@@ -42,12 +41,7 @@ export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
     label: "Add Pilot Details",
     icon: UserRound,
   },
-  {
-    href: "/dashboard/user-details",
-    label: "Add User Details",
-    icon: Users,
-  },
-  { href: "/dashboard/pilot-status", label: "Pilot Status", icon: BadgeCheck },
+    { href: "/dashboard/pilot-status", label: "Pilot Status", icon: BadgeCheck },
   { href: "/dashboard/blogs", label: "Blogs", icon: BookOpen },
   { href: "/dashboard/services", label: "Services", icon: Briefcase },
   {
