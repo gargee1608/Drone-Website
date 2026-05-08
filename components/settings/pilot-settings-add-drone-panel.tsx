@@ -136,16 +136,21 @@ export type PilotSettingsAddDronePanelProps = {
    * Used in Pilot Dashboard context.
    */
   showAdminRequest?: boolean;
+  /**
+   * Whether to open the form by default (default false)
+   */
+  openFormByDefault?: boolean;
 };
 
 export function PilotSettingsAddDronePanel({
   withDroneList = true,
   showAdminRequest = false,
+  openFormByDefault = false,
 }: PilotSettingsAddDronePanelProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const formId = useId();
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(openFormByDefault);
   const [editingDroneId, setEditingDroneId] = useState<string | null>(null);
   const [editingDroneData, setEditingDroneData] = useState<PilotProfileDrone | null>(null);
   const [drones, setDrones] = useState<PilotProfileDrone[]>([]);
@@ -913,13 +918,6 @@ export function PilotSettingsAddDronePanel({
           <Plus className="mr-2 h-4 w-4" />
           Add New Drone Details
         </Button>
-        <Button
-          variant="outline"
-          className="border-blue-500 text-blue-600 hover:bg-blue-50 px-6 py-2"
-        >
-          <Edit className="mr-2 h-4 w-4" />
-          Edit
-        </Button>
         {showAdminRequest && (
           <Button
             onClick={handleSendAdminRequest}
@@ -932,209 +930,6 @@ export function PilotSettingsAddDronePanel({
         )}
       </div>
       
-      <div className="rounded-xl border border-border bg-muted/25 p-4 sm:p-5">
-        <h3 className="mb-4 text-center text-sm font-semibold text-foreground">
-          Your Drone Details
-        </h3>
-        {drones.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-            You haven&apos;t added any drones yet. Use the form below to add
-            your first aircraft.
-          </p>
-        ) : (
-          <ul className="space-y-3">
-            {drones.map((d, index) => {
-              const isEditing = editingDroneId === d.id;
-              const currentData = isEditing && editingDroneData ? editingDroneData : d;
-              
-              return (
-              <li
-                key={d.id || `${d.modelName}-${index}`}
-                className="rounded-xl border border-border bg-card p-3.5"
-              >
-                {/* Row 1: Model | Type | Camera — row 2: Payload | Flight | Range — row 3: Use cases */}
-                <div className="grid grid-cols-1 gap-y-4 gap-x-4 text-xs text-muted-foreground sm:grid-cols-3 sm:gap-y-4">
-                  <div className="min-w-0 leading-snug">
-                    <span className="font-semibold text-foreground">
-                      Model Name
-                    </span>
-                    {": "}
-                    {isEditing ? (
-                      <Input
-                        value={currentData.modelName}
-                        onChange={(e) => updateEditingDroneField('modelName', e.target.value)}
-                        className="h-8 mt-1 text-xs"
-                        placeholder="Model name"
-                      />
-                    ) : (
-                      currentData.modelName.trim() || "—"
-                    )}
-                  </div>
-                  <div className="min-w-0 leading-snug">
-                    <span className="font-semibold text-foreground">Type</span>
-                    {": "}
-                    {isEditing ? (
-                      <select
-                        value={currentData.type}
-                        onChange={(e) => updateEditingDroneField('type', e.target.value)}
-                        className="h-8 mt-1 text-xs w-full border border-input bg-background px-2 py-1 rounded"
-                      >
-                        <option value="">Select type</option>
-                        {["FPV", "Autonomous", "Line of Sight"].map((opt) => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      currentData.type.trim() || "—"
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <span className="font-semibold text-foreground">
-                      Camera
-                    </span>
-                    {": "}
-                    {isEditing ? (
-                      <Input
-                        value={currentData.camera}
-                        onChange={(e) => updateEditingDroneField('camera', e.target.value)}
-                        className="h-8 mt-1 text-xs"
-                        placeholder="Camera specs"
-                      />
-                    ) : (
-                      currentData.camera.trim() || "—"
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <span className="font-semibold text-foreground">
-                      Payload (kg)
-                    </span>
-                    {": "}
-                    {isEditing ? (
-                      <Input
-                        value={currentData.payloadKg}
-                        onChange={(e) => updateEditingDroneField('payloadKg', e.target.value)}
-                        className="h-8 mt-1 text-xs"
-                        placeholder="2.5"
-                      />
-                    ) : (
-                      currentData.payloadKg.trim() || "—"
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <span className="font-semibold text-foreground">
-                      Flight time (min)
-                    </span>
-                    {": "}
-                    {isEditing ? (
-                      <Input
-                        value={currentData.flightTimeMin}
-                        onChange={(e) => updateEditingDroneField('flightTimeMin', e.target.value)}
-                        className="h-8 mt-1 text-xs"
-                        placeholder="30"
-                      />
-                    ) : (
-                      currentData.flightTimeMin.trim() || "—"
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <span className="font-semibold text-foreground">
-                      Range (km)
-                    </span>
-                    {": "}
-                    {isEditing ? (
-                      <Input
-                        value={currentData.rangeKm}
-                        onChange={(e) => updateEditingDroneField('rangeKm', e.target.value)}
-                        className="h-8 mt-1 text-xs"
-                        placeholder="10"
-                      />
-                    ) : (
-                      currentData.rangeKm.trim() || "—"
-                    )}
-                  </div>
-                  <div className="min-w-0 leading-snug sm:col-span-3">
-                    <span className="font-semibold text-foreground">
-                      Use cases
-                    </span>
-                    {": "}
-                    {isEditing ? (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {["Survey", "Filming", "Inspection", "Delivery", "Security"].map((label) => {
-                          const on = currentData.useCases?.includes(label);
-                          return (
-                            <button
-                              key={label}
-                              type="button"
-                              onClick={() => {
-                                const newUseCases = on 
-                                  ? currentData.useCases.filter(x => x !== label)
-                                  : [...currentData.useCases, label];
-                                updateEditingDroneField('useCases', newUseCases);
-                              }}
-                              className={`rounded-full border px-2 py-0.5 text-xs font-medium transition-colors ${
-                                on
-                                  ? "border-[#008B8B] bg-[#008B8B]/10 text-[#006060]"
-                                  : "border-border bg-background text-foreground hover:bg-muted/50"
-                              }`}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      currentData.useCases?.length ? currentData.useCases.join(", ") : "—"
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-border">
-                  {isEditing ? (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCancelEdit}
-                        className="border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-1"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleSaveInlineEdit}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1"
-                      >
-                        Save
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditDrone(d)}
-                        className="border-blue-500 text-blue-600 hover:bg-blue-50 px-3 py-1"
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteDrone(d)}
-                        className="border-red-500 text-red-600 hover:bg-red-50 px-3 py-1"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Delete
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </li>
-            )})}
-          </ul>
-        )}
-      </div>
-
       {showForm && (
         <div className="rounded-xl border border-border bg-muted/25 p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">

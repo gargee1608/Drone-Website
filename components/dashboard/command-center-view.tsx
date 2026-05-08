@@ -525,7 +525,7 @@ function PendingPilotCard({
   const isApproved = variant === "approved";
 
   return (
-    <div className="rounded-xl border border-border/80 bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="rounded-xl border border-border/80 bg-card px-5 pt-5 pb-3 shadow-sm transition-shadow hover:shadow-md">
       <div className="mb-3 flex items-start justify-between">
         <div className="flex items-center space-x-2.5">
           <div
@@ -538,10 +538,10 @@ function PendingPilotCard({
             />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-foreground">{name}</h4>
+            <h4 className="whitespace-nowrap text-sm font-bold text-foreground">{name}</h4>
             <span
               className={cn(
-                "mt-0.5 inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase",
+                "mt-0.5 inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-[9px] font-bold uppercase",
                 isApproved
                   ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
                   : "bg-[#cfe8e8] text-[#0a3030] dark:bg-primary/25 dark:text-primary"
@@ -577,43 +577,15 @@ function PendingPilotCard({
           View profile
         </Button>
       ) : (
-        <div className="grid grid-cols-4 gap-2.5">
-          <Button
-            type="button"
-            size="sm"
-            className="border border-[#008B8B] bg-transparent text-xs font-bold text-[#008B8B] hover:bg-[#008B8B]/10"
-            onClick={onAccept}
-          >
-            Accept
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="border border-[#008B8B] bg-transparent text-xs font-bold text-[#008B8B] hover:bg-[#008B8B]/10"
-            onClick={onReject}
-          >
-            Add New Drone Details
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="border border-blue-500 bg-transparent text-xs font-bold text-blue-600 hover:bg-blue-50"
-            onClick={() => console.log("Edit drone details clicked")}
-          >
-            Edit
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="border border-red-500 bg-transparent text-xs font-bold text-red-600 hover:bg-red-50"
-            onClick={() => console.log("Delete drone details clicked")}
-          >
-            Delete
-          </Button>
-        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="mt-2 w-full rounded-lg border-[#008B8B] bg-transparent text-xs font-bold text-[#008B8B] hover:bg-[#008B8B] hover:text-white"
+          onClick={onReject}
+        >
+          Add New Drone Details
+        </Button>
       )}
     </div>
   );
