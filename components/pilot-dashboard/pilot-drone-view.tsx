@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Edit, Trash2, Drone as DroneIcon, Send } from "lucide-react";
+import { Plus, Edit, Trash2, Drone as DroneIcon, Send, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
@@ -82,27 +82,116 @@ export function PilotDroneView() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const refreshFromStorage = useCallback(() => {
     const base = readBaseSnapshot();
     setDrones(base ? [...base.drones] : []);
   }, []);
 
+  const fetchDroneDataFromBackend = useCallback(async (manual = false) => {
+    try {
+      if (manual) setIsRefreshing(true);
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      // Get pilot ID from token
+      let pilotId = null;
+      try {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          pilotId = payload.sub ? parseInt(payload.sub, 10) : null;
+        }
+      } catch (tokenError) {
+        console.warn("Invalid token format:", tokenError);
+        return;
+      }
+
+      if (!pilotId) return;
+
+      // Fetch pilot data with drone details from backend
+      const response = await fetch(`http://localhost:4000/api/pilots/${pilotId}`, {
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : "",
+        },
+      });
+
+      if (response.ok) {
+        const pilotData = await response.json();
+        if (pilotData.drone_details && Array.isArray(pilotData.drone_details)) {
+          // Update local storage with backend data
+          const base = readBaseSnapshot();
+          if (base) {
+            const updatedSnapshot: PilotProfileSnapshot = {
+              ...base,
+              drones: pilotData.drone_details.map((drone: any, index: number) => ({
+                id: drone.id || `backend-${index}`,
+                modelName: drone.modelName || drone.model_name || '',
+                type: drone.type || '',
+                camera: drone.camera || '',
+                payloadKg: drone.payloadKg || drone.payload_kg || '',
+                flightTimeMin: drone.flightTimeMin || drone.flight_time_min || '',
+                rangeKm: drone.rangeKm || drone.range_km || '',
+                useCases: drone.useCases || drone.use_cases || []
+              }))
+            };
+            persistSnapshot(updatedSnapshot);
+            setDrones(updatedSnapshot.drones);
+            
+            if (manual) {
+              setError("Drone data synced successfully!");
+              setJustAdded(true);
+              setTimeout(() => {
+                setJustAdded(false);
+                setError(null);
+              }, 2000);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching drone data from backend:", error);
+      if (manual) {
+        setError("Failed to sync drone data from server");
+        setTimeout(() => setError(null), 3000);
+      }
+    } finally {
+      if (manual) setIsRefreshing(false);
+    }
+  }, []);
+
   useEffect(() => {
     refreshFromStorage();
-  }, [refreshFromStorage]);
+    fetchDroneDataFromBackend();
+  }, [refreshFromStorage, fetchDroneDataFromBackend]);
 
   useEffect(() => {
-    const onUpdated = () => refreshFromStorage();
+    const onUpdated = () => {
+      refreshFromStorage();
+      fetchDroneDataFromBackend();
+    };
     window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, onUpdated);
     return () => window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, onUpdated);
-  }, [refreshFromStorage]);
+  }, [refreshFromStorage, fetchDroneDataFromBackend]);
 
   useEffect(() => {
-    const onFocus = () => refreshFromStorage();
+    const onFocus = () => {
+      refreshFromStorage();
+      fetchDroneDataFromBackend();
+    };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [refreshFromStorage]);
+  }, [refreshFromStorage, fetchDroneDataFromBackend]);
+
+  // Periodic sync every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchDroneDataFromBackend();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [fetchDroneDataFromBackend]);
 
   async function handleDeleteDrone(drone: PilotProfileDrone) {
     if (!confirm("Are you sure you want to delete this drone?")) {

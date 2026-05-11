@@ -1280,70 +1280,41 @@ export function AssignPilotDroneView() {
           </p>
         ) : null}
 
-        {pilotCommentReassignItems.length > 0 ? (
+        {activePilotCommentForCurrent && currentRequest ? (
           <section
             className="space-y-4"
             aria-label="Requests with pilot comments"
           >
-            {pilotCommentReassignItems.map((item) => (
-              <div
-                key={item.requestRef}
-                className="rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/35"
-              >
-                <p className="text-xs font-bold uppercase tracking-wide text-amber-900 dark:text-amber-100">
-                  Pilot comment ·{" "}
-                  <span className="font-mono normal-case text-amber-950 dark:text-amber-50">
-                    {item.displayId}
-                  </span>
-                  {" · "}
-                  <span className="font-semibold normal-case">
-                    {item.assignRow.customer}
-                  </span>
-                </p>
-                <p className="mt-1 line-clamp-3 text-sm text-amber-950/90 dark:text-amber-50/90">
-                  {item.comment}
-                </p>
-                {item.assignedPilotName || item.assignedDroneModel ? (
-                  <p className="mt-2 text-sm text-foreground">
-                    <span className="font-semibold text-amber-950 dark:text-amber-100">
-                      Currently assigned pilot &amp; drone:{" "}
-                    </span>
-                    <span className="font-semibold">
-                      {item.assignedPilotName ?? "—"}
-                    </span>
-                    {" · "}
-                    <span className="font-semibold">
-                      {item.assignedDroneModel
-                        ? assignDroneModelForDisplay(item.assignedDroneModel)
-                        : "—"}
-                    </span>
-                  </p>
-                ) : null}
-                <p className="mt-2 text-xs leading-relaxed text-amber-950/95 dark:text-amber-100/90">
-                  {item.requestRef === currentRequest?.requestRef ? (
-                    <>
-                      <span className="font-semibold">Active mission:</span> only{" "}
-                      <span className="font-semibold">you (admin)</span> can assign
-                      resources for this comment—click the{" "}
-                      <span className="font-semibold">drone</span> and{" "}
-                      <span className="font-semibold">pilot</span> you want under{" "}
-                      <span className="font-semibold">Compatible drones</span> and{" "}
-                      <span className="font-semibold">Available pilots</span>.{" "}
-                      <span className="font-semibold">Update User Tracking</span>{" "}
-                      saves exactly that admin selection; User Tracking shows{" "}
-                      <span className="font-semibold">In progress</span> with those
-                      names only.
-                    </>
-                  ) : (
-                    <>
-                      When this request is the active mission, the admin must select
-                      pilot &amp; drone below—only that selection can be assigned via{" "}
-                      <span className="font-semibold">Update User Tracking</span>.
-                    </>
-                  )}
-                </p>
-              </div>
-            ))}
+            <div
+              className="rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/35"
+            >
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-900 dark:text-amber-100">
+                Pilot comment ·{" "}
+                <span className="font-mono normal-case text-amber-950 dark:text-amber-50">
+                  {currentRequest.displayId}
+                </span>
+                {" · "}
+                <span className="font-semibold normal-case">
+                  {currentRequest.customer}
+                </span>
+              </p>
+              <p className="mt-1 line-clamp-3 text-sm text-amber-950/90 dark:text-amber-50/90">
+                {activePilotCommentForCurrent}
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-amber-950/95 dark:text-amber-100/90">
+                <span className="font-semibold">Active mission:</span> only{" "}
+                <span className="font-semibold">you (admin)</span> can assign
+                resources for this comment—click the{" "}
+                <span className="font-semibold">drone</span> and{" "}
+                <span className="font-semibold">pilot</span> you want under{" "}
+                <span className="font-semibold">Compatible drones</span> and{" "}
+                <span className="font-semibold">Available pilots</span>.{" "}
+                <span className="font-semibold">Update User Tracking</span>{" "}
+                saves exactly that admin selection; User Tracking shows{" "}
+                <span className="font-semibold">In progress</span> with those
+                names only.
+              </p>
+            </div>
           </section>
         ) : null}
 
