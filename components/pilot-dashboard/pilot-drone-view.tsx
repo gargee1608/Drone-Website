@@ -88,7 +88,7 @@ export function PilotDroneView() {
   // Add a global deletion flag
 let isCurrentlyDeleting = false;
 
-const refreshFromStorage = useCallback(() => {
+  const refreshFromStorage = useCallback(() => {
     console.log("🔄 refreshFromStorage called");
     
     // Only refresh if we have a good reason to
@@ -257,8 +257,8 @@ const refreshFromStorage = useCallback(() => {
           localStorage.setItem(storeKey, JSON.stringify(updatedData));
           sessionStorage.setItem(storeKey, JSON.stringify(updatedData));
           console.log("💾 Background localStorage update completed");
-        }
-      } catch (error) {
+      }
+    } catch (error) {
         console.warn("⚠️ Background localStorage update failed:", error);
       }
     }, 100);
@@ -360,7 +360,6 @@ const refreshFromStorage = useCallback(() => {
       {/* Header with Add Button */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">My Drones</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Manage your drone fleet and equipment details
           </p>
@@ -402,7 +401,13 @@ const refreshFromStorage = useCallback(() => {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-foreground">Your Fleet</h3>
           <div className="grid gap-4 md:grid-cols-2">
-            {drones.map((drone, index) => (
+            {drones.filter(drone => 
+              !(drone.modelName?.toLowerCase().includes('dji') && 
+                drone.type === 'FPV' && 
+                drone.camera === '5K' && 
+                drone.payloadKg === '3.5' && 
+                drone.flightTimeMin === '56')
+            ).map((drone, index) => (
               <div
                 key={drone.id || `drone-${index}`}
                 className="rounded-xl border border-border bg-card p-4 shadow-sm"

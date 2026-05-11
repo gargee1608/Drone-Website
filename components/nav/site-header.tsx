@@ -116,8 +116,7 @@ export function SiteHeader({
     ? "/settings?from=user"
     : "/settings?from=admin";
 
-  const whiteHeaderChrome =
-    isSettingsPage || isAdminDashboard || isUserDashboard || isPilotDashboard;
+  const whiteHeaderChrome = true; // Always use white background
 
   /** Hide New Registration / Registered Pilot on admin & user dashboards only. */
   const showPilotRegistrationCtas =

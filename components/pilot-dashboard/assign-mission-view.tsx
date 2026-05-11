@@ -132,14 +132,29 @@ function mergePilotMissionRows(
   );
 }
 
+function NoSSR({ children }: { children: React.ReactNode }) {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  return isMounted ? <>{children}</> : null;
+}
+
 export function AssignMissionView() {
   const router = useRouter();
   const [apiRows, setApiRows] = useState<PilotMissionNotification[]>([]);
   const [localVers, setLocalVers] = useState(0);
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
-  const [commentsForRow, setCommentsForRow] =
-    useState<PilotMissionNotification | null>(null);
-  const [commentDraft, setCommentDraft] = useState("");
+  const [commentsForRow, setCommentsForRow] = useState<PilotMissionNotification | null>(null);
+  const [completedMissionIds, setCompletedMissionIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const stored = localStorage.getItem("aerolaminar_completed_mission_ids");
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
   /** Bumps after saving a comment so cards re-read localStorage. */
   const [commentsDisplayVers, setCommentsDisplayVers] = useState(0);
 
@@ -295,6 +310,18 @@ export function AssignMissionView() {
       // Update user tracking status to completed
       updateUserMissionTrackingStatusToCompleted(row.requestRef);
 
+      // Mark mission as completed in UI
+      setCompletedMissionIds(prev => {
+        const newSet = new Set(prev).add(row.id);
+        // Persist to localStorage
+        try {
+          localStorage.setItem("aerolaminar_completed_mission_ids", JSON.stringify([...newSet]));
+        } catch {
+          /* ignore */
+        }
+        return newSet;
+      });
+
       if (!row.id.startsWith("db:")) {
         removePilotMissionNotificationById(row.id);
       }
@@ -307,8 +334,9 @@ export function AssignMissionView() {
   }
 
   return (
-    <section className="space-y-5">
-      {rows.length === 0 ? (
+    <NoSSR>
+      <section className="space-y-5">
+        {rows.length === 0 ? (
         <article className="rounded-2xl border border-dashed border-border bg-card p-6 text-card-foreground shadow-sm sm:p-8">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#008B8B]/12 text-[#008B8B]">
@@ -342,15 +370,28 @@ export function AssignMissionView() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-wide text-[#008B8B]">
-                    Assigned Mission
+                    {completedMissionIds.has(row.id) ? "Completed Mission" : "Assigned Mission"}
                   </p>
                   <h3 className="mt-1 text-base font-semibold text-foreground">
                     {row.customer || "Mission"}
                   </h3>
                 </div>
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-700 dark:border-emerald-400/40 dark:text-emerald-300">
-                  <ShieldCheck className="size-3.5" aria-hidden />
-                  Assigned
+                <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase ${
+                  completedMissionIds.has(row.id) 
+                    ? "border-sky-200 text-sky-700 dark:border-sky-400/40 dark:text-sky-300"
+                    : "border-emerald-200 text-emerald-700 dark:border-emerald-400/40 dark:text-emerald-300"
+                }`}>
+                  {completedMissionIds.has(row.id) ? (
+                    <>
+                      <CheckCircle2 className="size-3.5" aria-hidden />
+                      Completed
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="size-3.5" aria-hidden />
+                      Assigned
+                    </>
+                  )}
                 </span>
               </div>
 
@@ -387,8 +428,17 @@ export function AssignMissionView() {
               </div>
 
               <div className="mt-4 flex items-center gap-2 text-xs text-[#5a6d71] dark:text-white/65">
-                <CheckCircle2 className="size-4 text-[#008B8B]" aria-hidden />
-                <span>Complete this mission and update delivery status.</span>
+                {completedMissionIds.has(row.id) ? (
+                  <>
+                    <CheckCircle2 className="size-4 text-sky-600" aria-hidden />
+                    <span>Mission completed successfully.</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="size-4 text-[#008B8B]" aria-hidden />
+                    <span>Complete this mission and update delivery status.</span>
+                  </>
+                )}
               </div>
 
               {savedCommentDisplay ? (
@@ -401,22 +451,37 @@ export function AssignMissionView() {
               ) : null}
 
               <div className="mt-4 flex flex-wrap justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => openCommentsDialog(row)}
-                  disabled={savingRowId === row.id}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-[#008B8B] bg-transparent px-3 py-1.5 text-xs font-semibold text-[#008B8B] transition-colors hover:bg-[#008B8B]/10 disabled:opacity-50 dark:text-primary dark:hover:bg-primary/15"
-                >
-                  <MessageSquareText className="size-3.5" aria-hidden />
-                  Comments
-                </button>
+                {!completedMissionIds.has(row.id) && (
+                  <button
+                    type="button"
+                    onClick={() => openCommentsDialog(row)}
+                    disabled={savingRowId === row.id}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#008B8B] bg-transparent px-3 py-1.5 text-xs font-semibold text-[#008B8B] transition-colors hover:bg-[#008B8B]/10 disabled:opacity-50 dark:text-primary dark:hover:bg-primary/15"
+                  >
+                    <MessageSquareText className="size-3.5" aria-hidden />
+                    Comments
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => void handleCompletedMission(row)}
-                  disabled={savingRowId === row.id}
-                  className="inline-flex items-center rounded-md border border-emerald-600 bg-transparent px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-400 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+                  disabled={savingRowId === row.id || completedMissionIds.has(row.id)}
+                  className={`inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    completedMissionIds.has(row.id)
+                      ? "border-sky-600 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/30 dark:text-sky-300"
+                      : "border-emerald-600 bg-transparent text-emerald-700 hover:bg-emerald-50 dark:border-emerald-400 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+                  }`}
                 >
-                  {savingRowId === row.id ? "Saving..." : "Completed Mission"}
+                  {completedMissionIds.has(row.id) ? (
+                    <>
+                      <CheckCircle2 className="size-3.5" aria-hidden />
+                      Mission Completed
+                    </>
+                  ) : (
+                    <>
+                      {savingRowId === row.id ? "Saving..." : "Completed Mission"}
+                    </>
+                  )}
                 </button>
               </div>
             </article>
@@ -502,5 +567,6 @@ export function AssignMissionView() {
         </div>
       ) : null}
     </section>
+    </NoSSR>
   );
 }
