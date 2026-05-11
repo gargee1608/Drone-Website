@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -8,7 +9,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Plane,
   Search,
   Settings,
   User,
@@ -410,10 +410,13 @@ export function LandingHeader() {
               href="/"
               className="inline-flex min-w-0 items-center gap-2 font-[family-name:var(--font-landing-headline)] text-lg font-bold tracking-tighter text-[#008B8B] uppercase sm:gap-2.5 sm:text-xl"
             >
-              <Plane
-                className="size-6 shrink-0 text-[#008B8B] sm:size-7"
-                strokeWidth={1.75}
-                aria-hidden
+              <Image
+                src="/drone-logo.png"
+                alt="Drone Hire Logo"
+                width={48}
+                height={48}
+                className="size-12 shrink-0 sm:size-14"
+                style={{ filter: 'brightness(0) saturate(100%) invert(36%) sepia(93%) saturate(1594%) hue-rotate(151deg) brightness(92%) contrast(89%)' }}
               />
               <span>Drone Hire</span>
             </Link>

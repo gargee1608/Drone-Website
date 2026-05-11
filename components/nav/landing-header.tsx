@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -44,8 +45,16 @@ export function LandingHeader() {
         <div className="flex min-w-0 items-center gap-8 lg:gap-12">
           <Link
             href="/"
-            className="font-[family-name:var(--font-landing-headline)] text-lg font-bold tracking-tighter text-[#008B8B] uppercase shrink-0"
+            className="flex items-center gap-2 font-[family-name:var(--font-landing-headline)] text-lg font-bold tracking-tighter text-[#008B8B] uppercase shrink-0"
           >
+            <Image
+              src="/drone-logo.png"
+              alt="Drone Hire Logo"
+              width={44}
+              height={44}
+              className="size-11"
+              style={{ filter: 'brightness(0) saturate(100%) invert(36%) sepia(93%) saturate(1594%) hue-rotate(151deg) brightness(92%) contrast(89%)' }}
+            />
             Drone Hire
           </Link>
           <nav
