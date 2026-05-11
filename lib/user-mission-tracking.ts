@@ -1,6 +1,7 @@
 import {
   loadUserRequestsForCurrentUser,
   resolveRequestOwnerSnapshot,
+  updateUserRequestAdminStatus,
   type UserMissionRequest,
 } from "@/lib/user-requests";
 
@@ -21,6 +22,8 @@ export type UserMissionTrackingRequestSnapshot = {
   requestType: string;
   requestPriority: string;
   createdAt: string;
+  /** Request admin status from the original request */
+  adminStatus?: "pending" | "accepted" | "rejected" | "completed";
   /** Present when only an assign-queue row existed (e.g. demo / inspect). */
   sectorLine?: string;
 };
@@ -67,6 +70,15 @@ function isRequestSnapshot(
     "createdAt",
   ] as const;
   if (!keys.every((k) => typeof v[k] === "string")) return false;
+  if (
+    v.adminStatus !== undefined &&
+    v.adminStatus !== "pending" &&
+    v.adminStatus !== "accepted" &&
+    v.adminStatus !== "rejected" &&
+    v.adminStatus !== "completed"
+  ) {
+    return false;
+  }
   return (
     v.sectorLine === undefined || typeof v.sectorLine === "string"
   );
@@ -166,6 +178,7 @@ function snapshotFromUserRequest(
     requestType: req.requestType,
     requestPriority: req.requestPriority,
     createdAt: req.createdAt,
+    adminStatus: req.adminStatus,
   };
 }
 
@@ -209,6 +222,7 @@ export function recordUserMissionAssignment(args: {
         requestType: args.assignRowFallback.service,
         requestPriority: "—",
         createdAt: new Date().toISOString(),
+        adminStatus: "pending",
         sectorLine: args.assignRowFallback.sectorLine,
       };
 
@@ -279,4 +293,69 @@ export function loadUserMissionTrackingForCurrentUser(): UserMissionTrackingEntr
         new Date(a.assignedAt).getTime() - new Date(b.assignedAt).getTime()
       );
     });
+}
+
+/**
+ * Update the user status of a mission tracking entry to "completed".
+ * Called when a pilot marks a mission as completed.
+ */
+export function updateUserMissionTrackingStatusToCompleted(requestRef: string): void {
+  if (typeof window === "undefined") return;
+  
+  const entries = loadUserMissionTrackingEntries();
+  const normRef = requestRef.trim();
+  
+  const updatedEntries = entries.map((entry) => {
+    if (entry.request.requestRef.trim() === normRef) {
+      return {
+        ...entry,
+        userStatus: "completed" as const,
+        request: {
+          ...entry.request,
+          adminStatus: "completed" as const,
+        },
+      };
+    }
+    return entry;
+  });
+  
+  try {
+    localStorage.setItem(
+      USER_MISSION_TRACKING_STORAGE_KEY,
+      JSON.stringify(updatedEntries)
+    );
+    window.dispatchEvent(new Event(USER_MISSION_TRACKING_UPDATED_EVENT));
+    
+    // Also update the user request's admin status to sync with My Request
+    updateUserRequestAdminStatus(normRef, "completed");
+  } catch {
+    /* quota */
+  }
+}
+
+/**
+ * Update all existing tracking entries to completed status (for fixing existing data)
+ */
+export function updateAllTrackingEntriesToCompleted(): void {
+  if (typeof window === "undefined") return;
+  
+  const entries = loadUserMissionTrackingEntries();
+  const updatedEntries = entries.map((entry) => ({
+    ...entry,
+    userStatus: "completed" as const,
+    request: {
+      ...entry.request,
+      adminStatus: "completed" as const,
+    },
+  }));
+  
+  try {
+    localStorage.setItem(
+      USER_MISSION_TRACKING_STORAGE_KEY,
+      JSON.stringify(updatedEntries)
+    );
+    window.dispatchEvent(new Event(USER_MISSION_TRACKING_UPDATED_EVENT));
+  } catch {
+    /* quota */
+  }
 }

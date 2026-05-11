@@ -13,6 +13,7 @@ import {
 import { apiUrl } from "@/lib/api-url";
 import { pilotMissionCommentForDisplay } from "@/lib/pilot-mission-comment-display";
 import { userRequestQueueDisplayId } from "@/lib/user-requests";
+import { updateAllTrackingEntriesToCompleted } from "@/lib/user-mission-tracking";
 
 const PILOT_MISSION_COMMENTS_KEY = "aerolaminar_pilot_mission_comments_v1";
 
@@ -82,20 +83,43 @@ export function UserTrackingView() {
   }, []);
 
   useEffect(() => {
-    const sync = () => setEntries(loadUserMissionTrackingForCurrentUser());
+    let isUpdating = false;
+    
+    const sync = () => {
+      if (isUpdating) return;
+      isUpdating = true;
+      setEntries(loadUserMissionTrackingForCurrentUser());
+      setTimeout(() => { isUpdating = false; }, 100);
+    };
+    
     sync();
-    window.addEventListener(USER_MISSION_TRACKING_UPDATED_EVENT, sync);
-    const onFocus = () => setCommentsVersion((v) => v + 1);
+    
+    const handleTrackingUpdate = () => {
+      if (isUpdating) return;
+      sync();
+    };
+    
+    const onFocus = () => {
+      if (isUpdating) return;
+      setCommentsVersion((v) => v + 1);
+    };
+    
     const onStorage = (e: StorageEvent) => {
-      if (e.key === USER_MISSION_TRACKING_STORAGE_KEY) sync();
+      if (isUpdating) return;
+      if (e.key === USER_MISSION_TRACKING_STORAGE_KEY) {
+        sync();
+      }
       if (e.key === PILOT_MISSION_COMMENTS_KEY) {
         setCommentsVersion((v) => v + 1);
       }
     };
+    
+    window.addEventListener(USER_MISSION_TRACKING_UPDATED_EVENT, handleTrackingUpdate);
     window.addEventListener("focus", onFocus);
     window.addEventListener("storage", onStorage);
+    
     return () => {
-      window.removeEventListener(USER_MISSION_TRACKING_UPDATED_EVENT, sync);
+      window.removeEventListener(USER_MISSION_TRACKING_UPDATED_EVENT, handleTrackingUpdate);
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("storage", onStorage);
     };
@@ -128,18 +152,17 @@ export function UserTrackingView() {
         ) : (
           <div className="overflow-hidden rounded-xl border border-[#c1c6d7]/15 bg-white shadow-sm dark:border-[#c1c6d7]/25 dark:bg-white">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[820px] table-fixed border-collapse">
+              <table className="w-full table-fixed border-collapse">
                 <colgroup>
-                  <col className="w-[7.5rem]" />
-                  <col className="w-[6.5rem]" />
-                  <col className="w-[12%]" />
+                  <col className="w-[8rem]" />
+                  <col className="w-[7rem]" />
+                  <col className="w-[11%]" />
                   <col className="w-[14%]" />
                   <col className="w-[11%]" />
                   <col className="w-[11%]" />
                   <col className="w-[8%]" />
-                  <col className="w-[7.5%]" />
-                  <col className="w-[7.5%]" />
-                  <col className="w-[15%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[12%]" />
                 </colgroup>
                 <thead className="bg-[#f3f4f5]/85 dark:bg-[#f3f4f5]/85">
                   <tr className="border-b border-[#edeeef] dark:border-[#edeeef]">
@@ -170,9 +193,6 @@ export function UserTrackingView() {
                     <th className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-[#4d5b7f]">
                       Status
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-[#4d5b7f]">
-                      Comments
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -194,7 +214,7 @@ export function UserTrackingView() {
                       entry.pilotName?.trim() ||
                       "";
                     const statusLabel =
-                      entry.userStatus === "completed"
+                      entry.userStatus === "completed" || r.adminStatus === "completed"
                         ? "Completed"
                         : "In progress";
                     return (
@@ -228,12 +248,6 @@ export function UserTrackingView() {
                         </td>
                         <td className="whitespace-nowrap px-3 py-3 text-xs font-medium text-[#006767] dark:text-primary">
                           {statusLabel}
-                        </td>
-                        <td
-                          className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-[#191c1d]"
-                          title={comment || undefined}
-                        >
-                          {comment ? comment : "\u00a0"}
                         </td>
                       </tr>
                     );

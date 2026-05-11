@@ -83,11 +83,32 @@ export function PilotDroneView() {
   const [error, setError] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [justDeleted, setJustDeleted] = useState(false);
 
-  const refreshFromStorage = useCallback(() => {
+  // Add a global deletion flag
+let isCurrentlyDeleting = false;
+
+const refreshFromStorage = useCallback(() => {
+    console.log("🔄 refreshFromStorage called");
+    
+    // Only refresh if we have a good reason to
     const base = readBaseSnapshot();
-    setDrones(base ? [...base.drones] : []);
-  }, []);
+    console.log("📦 Reading from storage, base:", base);
+    
+    if (base && base.drones) {
+      console.log("� Storage has", base.drones.length, "drones, UI has", drones.length, "drones");
+      
+      // Only update if storage has significantly different data
+      if (base.drones.length !== drones.length) {
+        console.log("� Updating UI from storage (count mismatch)");
+        setDrones([...base.drones]);
+      } else {
+        console.log("🔄 Skipping update (counts match)");
+      }
+    } else {
+      console.log("📭 No base data, keeping current state");
+    }
+  }, [drones.length]);
 
   const fetchDroneDataFromBackend = useCallback(async (manual = false) => {
     try {
@@ -126,13 +147,13 @@ export function PilotDroneView() {
             const updatedSnapshot: PilotProfileSnapshot = {
               ...base,
               drones: pilotData.drone_details.map((drone: any, index: number) => ({
-                id: drone.id || `backend-${index}`,
+                id: drone.id ? String(drone.id) : `local-${Date.now()}-${index}`,
                 modelName: drone.modelName || drone.model_name || '',
                 type: drone.type || '',
                 camera: drone.camera || '',
                 payloadKg: drone.payloadKg || drone.payload_kg || '',
                 flightTimeMin: drone.flightTimeMin || drone.flight_time_min || '',
-                rangeKm: drone.rangeKm || drone.range_km || '',
+                rangeKm: drone.rangeKg || drone.range_km || '',
                 useCases: drone.useCases || drone.use_cases || []
               }))
             };
@@ -168,6 +189,7 @@ export function PilotDroneView() {
 
   useEffect(() => {
     const onUpdated = () => {
+      console.log("📢 PILOT_PROFILE_UPDATED_EVENT received");
       refreshFromStorage();
       fetchDroneDataFromBackend();
     };
@@ -194,40 +216,59 @@ export function PilotDroneView() {
   }, [fetchDroneDataFromBackend]);
 
   async function handleDeleteDrone(drone: PilotProfileDrone) {
+    console.log("🗑️ Delete button clicked for drone:", drone);
+    
     if (!confirm("Are you sure you want to delete this drone?")) {
+      console.log("❌ User cancelled deletion");
       return;
     }
 
-    try {
-      const token = localStorage.getItem("token");
-      
-      // Try to delete from backend first
-      const response = await fetch(`http://localhost:4000/api/drones/${drone.id}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": token ? `Bearer ${token}` : "",
-        },
-      });
-
-      if (response.ok) {
-        console.log("Drone deleted successfully from backend");
-      } else {
-        console.warn("Failed to delete from backend, removing from local storage only");
+    console.log("✅ User confirmed deletion - using simplified approach");
+    
+    // SIMPLE APPROACH: Just remove from current state immediately
+    const currentDrones = [...drones];
+    const filteredDrones = currentDrones.filter(d => d.id !== drone.id);
+    
+    console.log("🔄 Current drones:", currentDrones);
+    console.log("✂️ Filtered drones:", filteredDrones);
+    console.log("📊 Count before:", currentDrones.length, "after:", filteredDrones.length);
+    
+    // Force immediate UI update
+    setDrones(filteredDrones);
+    console.log("✅ UI state updated immediately");
+    
+    // Show success message
+    setError("Drone removed successfully!");
+    setJustAdded(true);
+    
+    // Try to update localStorage in background (non-blocking)
+    setTimeout(() => {
+      try {
+        const storeKey = activePilotProfileSnapshotStorageKey();
+        const raw = localStorage.getItem(storeKey);
+        
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const updatedData = {
+            ...parsed,
+            drones: filteredDrones
+          };
+          
+          localStorage.setItem(storeKey, JSON.stringify(updatedData));
+          sessionStorage.setItem(storeKey, JSON.stringify(updatedData));
+          console.log("💾 Background localStorage update completed");
+        }
+      } catch (error) {
+        console.warn("⚠️ Background localStorage update failed:", error);
       }
-    } catch (error) {
-      console.warn("Error deleting from backend, removing from local storage only:", error);
-    }
-
-    // Always remove from local storage
-    const base = readBaseSnapshot();
-    if (base) {
-      const next: PilotProfileSnapshot = {
-        ...base,
-        drones: base.drones.filter(d => d.id !== drone.id),
-      };
-      persistSnapshot(next);
-      setDrones(next.drones);
-    }
+    }, 100);
+    
+    // Clear success message after 3 seconds
+    setTimeout(() => {
+      setJustAdded(false);
+      setError(null);
+      console.log("🔄 Success message cleared");
+    }, 3000);
   }
 
   async function handleSendAdminRequest() {

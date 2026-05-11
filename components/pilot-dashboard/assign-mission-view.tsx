@@ -28,6 +28,7 @@ import {
   pilotMissionCommentForDisplay,
 } from "@/lib/pilot-mission-comment-display";
 import { notifyMissionsDbUpdated } from "@/lib/user-requests";
+import { updateUserMissionTrackingStatusToCompleted } from "@/lib/user-mission-tracking";
 
 const COMPLETED_MISSION_PREVIEW_KEY = "aerolaminar_completed_mission_preview_v1";
 const PILOT_MISSION_COMMENTS_KEY = "aerolaminar_pilot_mission_comments_v1";
@@ -290,6 +291,9 @@ export function AssignMissionView() {
       }
 
       notifyMissionsDbUpdated();
+
+      // Update user tracking status to completed
+      updateUserMissionTrackingStatusToCompleted(row.requestRef);
 
       if (!row.id.startsWith("db:")) {
         removePilotMissionNotificationById(row.id);

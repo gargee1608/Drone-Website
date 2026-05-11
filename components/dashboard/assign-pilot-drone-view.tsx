@@ -85,6 +85,14 @@ const inter = Inter({
 
 const PILOT_MISSION_COMMENTS_KEY = "aerolaminar_pilot_mission_comments_v1";
 
+// Extend Window interface to include our guard flags
+declare global {
+  interface Window {
+    __aerolaminar_syncing_completed_assignments?: boolean;
+    __aerolaminar_initialized?: boolean;
+  }
+}
+
 function readPilotMissionComment(requestRef: string): string {
   if (typeof window === "undefined") return "";
   try {
@@ -692,69 +700,45 @@ export function AssignPilotDroneView() {
   }, []);
 
   const syncCompletedAssignments = useCallback(() => {
-    const ids = assignQueueValidRefsForPrune();
-    pruneAssignPilotDoneRefs(ids);
-
-    const raw = loadCompletedAssignments();
-    const seen = new Set<string>();
-    const deduped = raw.filter((row) => {
-      if (!row.requestRef || seen.has(row.requestRef)) return false;
-      seen.add(row.requestRef);
-      return true;
-    });
-    /** Keep mission history rows (past assignments) visible in Assign To history table. */
-    const kept = deduped.slice(0, 20);
-    saveCompletedAssignments(kept);
-    setCompletedAssignments(kept);
-    if (kept[0] && !loadAssignPilotDoneRefs().includes(kept[0].requestRef)) {
-      appendAssignPilotDoneRef(kept[0].requestRef);
+    // Skip if we're already syncing to prevent infinite loop
+    if (window.__aerolaminar_syncing_completed_assignments) {
+      return;
     }
-    setDoneRefs(loadAssignPilotDoneRefs());
+    
+    window.__aerolaminar_syncing_completed_assignments = true;
+    
+    try {
+      const ids = assignQueueValidRefsForPrune();
+      pruneAssignPilotDoneRefs(ids);
+
+      const raw = loadCompletedAssignments();
+      const seen = new Set<string>();
+      const deduped = raw.filter((row) => {
+        if (!row.requestRef || seen.has(row.requestRef)) return false;
+        seen.add(row.requestRef);
+        return true;
+      });
+      /** Keep mission history rows (past assignments) visible in Assign To history table. */
+      const kept = deduped.slice(0, 20);
+      saveCompletedAssignments(kept);
+      setCompletedAssignments(kept);
+      if (kept[0] && !loadAssignPilotDoneRefs().includes(kept[0].requestRef)) {
+        appendAssignPilotDoneRef(kept[0].requestRef);
+      }
+      setDoneRefs(loadAssignPilotDoneRefs());
+    } finally {
+      window.__aerolaminar_syncing_completed_assignments = false;
+    }
   }, []);
 
   useEffect(() => {
-    syncAssignQueue();
-    syncCompletedAssignments();
-    const onUserRequestsUpdated = () => {
+    // Initialize data once on component mount
+    if (typeof window !== "undefined" && !window.__aerolaminar_initialized) {
+      window.__aerolaminar_initialized = true;
       syncAssignQueue();
       syncCompletedAssignments();
-    };
-    const onDemoBridgeUpdated = () => {
-      syncAssignQueue();
-      syncCompletedAssignments();
-    };
-    const onInspectUpdated = () => {
-      syncAssignQueue();
-      syncCompletedAssignments();
-    };
-    const onStorage = (e: StorageEvent) => {
-      if (
-        e.key !== USER_REQUESTS_STORAGE_KEY &&
-        e.key !== DEMO_ASSIGN_BRIDGE_STORAGE_KEY &&
-        e.key !== ASSIGN_INSPECT_STORAGE_KEY
-      ) {
-        return;
-      }
-      syncAssignQueue();
-      syncCompletedAssignments();
-    };
-    window.addEventListener(USER_REQUESTS_UPDATED_EVENT, onUserRequestsUpdated);
-    window.addEventListener(DEMO_ASSIGN_BRIDGE_UPDATED_EVENT, onDemoBridgeUpdated);
-    window.addEventListener(ASSIGN_INSPECT_UPDATED_EVENT, onInspectUpdated);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      window.removeEventListener(
-        USER_REQUESTS_UPDATED_EVENT,
-        onUserRequestsUpdated
-      );
-      window.removeEventListener(
-        DEMO_ASSIGN_BRIDGE_UPDATED_EVENT,
-        onDemoBridgeUpdated
-      );
-      window.removeEventListener(ASSIGN_INSPECT_UPDATED_EVENT, onInspectUpdated);
-      window.removeEventListener("storage", onStorage);
-    };
-  }, [syncAssignQueue, syncCompletedAssignments]);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
