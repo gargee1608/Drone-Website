@@ -103,7 +103,7 @@ export function BlogPostPageClient({
           "min-h-[50vh] flex-1 bg-[#fcfcff] pt-22 sm:pt-24"
         )}
       >
-        <div className="mx-auto max-w-3xl px-6 py-16 text-sm text-[#41474d]">
+        <div className="mx-auto max-w-3xl px-6 py-16 text-foreground">
           Loading…
         </div>
       </div>
@@ -120,7 +120,7 @@ export function BlogPostPageClient({
       >
         <div className="mx-auto max-w-3xl px-6 py-16">
           <h1 className={ADMIN_PAGE_TITLE_CLASS}>Post not found</h1>
-          <p className="mt-2 text-sm text-[#41474d]">
+          <p className="mt-2 text-sm text-foreground">
             This Flight Log entry does not exist or was removed.
           </p>
           <Link
@@ -138,11 +138,11 @@ export function BlogPostPageClient({
     <div
       className={cn(
         landingFontClassName,
-        "blogs-hud-grid min-h-0 flex-1 bg-[#fcfcff] pt-22 text-[#1a1c1e] sm:pt-24"
+        "blogs-hud-grid min-h-0 flex-1 bg-background pt-22 text-foreground sm:pt-24"
       )}
       style={{
         backgroundImage:
-          "radial-gradient(circle at 50% 50%, #f1f3f9 0%, #fcfcff 100%)",
+          "radial-gradient(circle at 50% 50%, var(--color-background-100) 0%, var(--color-background-50) 100%)",
       }}
     >
       <div className="mx-auto max-w-3xl px-6 py-12">

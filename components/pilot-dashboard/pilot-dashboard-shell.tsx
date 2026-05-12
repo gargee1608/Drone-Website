@@ -202,8 +202,8 @@ export function PilotDashboardShell({
   }, [sidebarExpanded]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-white pt-20 text-foreground sm:pt-22">
-      <div className="flex items-center gap-2 border-b border-border bg-white px-4 py-1.5 lg:hidden">
+    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-background pt-20 text-foreground sm:pt-22">
+      <div className="flex items-center gap-2 border-b border-border bg-background px-4 py-1.5 lg:hidden">
         <button
           type="button"
           className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted"
@@ -276,7 +276,7 @@ export function PilotDashboardShell({
               </button>
             </div>
           ) : null}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pt-2 lg:px-3 lg:pb-3 lg:pt-0">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pt-2 lg:px-4 lg:pb-4 lg:pt-4">
             <SidebarNavLinks />
           </div>
           {sidebarExpanded ? (
@@ -301,9 +301,9 @@ export function PilotDashboardShell({
             sidebarExpanded ? "lg:ml-60" : "lg:ml-0"
           )}
         >
-          <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4 lg:px-6 lg:pb-6 lg:pt-0">
+          <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4 lg:px-6 lg:pb-6 lg:pt-6">
             <div
-              className={cn(omitPageTitle ? "mb-4 sm:mb-6" : "mb-8 sm:mb-10")}
+              className={cn(omitPageTitle ? "mb-6 sm:mb-8" : "mb-10 sm:mb-12")}
             >
               {pilotWelcome && isMainPilotDashboard ? (
                 <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">

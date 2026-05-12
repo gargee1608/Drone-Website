@@ -84,7 +84,7 @@ export function RequestServiceModalTrigger({
 
       {open ? (
         <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/50 p-4 sm:items-center">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-card p-5 shadow-2xl sm:p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">
                 Create New Request
@@ -121,7 +121,7 @@ export function RequestServiceModalTrigger({
                   value={pickupLocation}
                   onChange={(e) => setPickupLocation(e.target.value)}
                   placeholder="Enter hangar or coordinates"
-                  className="w-full rounded-lg border border-[#c1c6d7] bg-white px-3 py-2.5 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
+                  className="w-full rounded-lg border border-[#c1c6d7] bg-card px-3 py-2.5 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
                 />
               </div>
 
@@ -134,7 +134,7 @@ export function RequestServiceModalTrigger({
                   value={dropLocation}
                   onChange={(e) => setDropLocation(e.target.value)}
                   placeholder="Enter destination"
-                  className="w-full rounded-lg border border-[#c1c6d7] bg-white px-3 py-2.5 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
+                  className="w-full rounded-lg border border-[#c1c6d7] bg-card px-3 py-2.5 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
                 />
               </div>
 
@@ -150,7 +150,7 @@ export function RequestServiceModalTrigger({
                     step={0.1}
                     value={payloadWeightKg}
                     onChange={(e) => setPayloadWeightKg(e.target.value)}
-                    className="w-full rounded-lg border border-[#c1c6d7] bg-white px-3 py-2.5 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
+                    className="w-full rounded-lg border border-[#c1c6d7] bg-card px-3 py-2.5 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -160,7 +160,7 @@ export function RequestServiceModalTrigger({
                   <select
                     value={requestType}
                     onChange={(e) => setRequestType(e.target.value)}
-                    className="w-full rounded-lg border border-[#c1c6d7] bg-white px-3 py-2.5 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
+                    className="w-full rounded-lg border border-[#c1c6d7] bg-card px-3 py-2.5 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
                   >
                     <option value="">Select the Type</option>
                     <option value="Medical">Medical</option>
@@ -178,7 +178,7 @@ export function RequestServiceModalTrigger({
                 <select
                   value={requestPriority}
                   onChange={(e) => setRequestPriority(e.target.value)}
-                  className="w-full rounded-lg border border-[#c1c6d7] bg-white px-3 py-2.5 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
+                  className="w-full rounded-lg border border-[#c1c6d7] bg-card px-3 py-2.5 text-xs text-[#191c1d] outline-none transition focus:border-[#008B8B] focus:ring-2 focus:ring-[#008B8B]/25"
                 >
                   <option value="">Select the priority</option>
                   <option value="urgent">Urgent</option>
@@ -193,7 +193,7 @@ export function RequestServiceModalTrigger({
                 </p>
               ) : null}
               {submitSuccess ? (
-                <p className="text-xs text-emerald-700" role="status">
+                <p className="text-xs text-foreground" role="status">
                   {submitSuccess}
                 </p>
               ) : null}
@@ -203,7 +203,7 @@ export function RequestServiceModalTrigger({
                   type="button"
                   variant="outline"
                   onClick={closeModal}
-                  className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  className="border-slate-300 bg-card text-slate-700 hover:bg-slate-50"
                 >
                   Close
                 </Button>

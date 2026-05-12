@@ -133,7 +133,7 @@ export function UserTrackingView() {
     >
       <div className="space-y-6">
         {entries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#c1c6d7] bg-white px-6 py-16 text-center dark:border-[#c1c6d7] dark:bg-white">
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card px-6 py-16 text-center dark:border-border dark:bg-card">
             <MapPinned
               className="mb-4 size-12 text-[#c1c6d7] dark:text-[#c1c6d7]"
               strokeWidth={1.5}
@@ -150,7 +150,7 @@ export function UserTrackingView() {
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-[#c1c6d7]/15 bg-white shadow-sm dark:border-[#c1c6d7]/25 dark:bg-white">
+          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm dark:border-border dark:bg-card">
             <div className="overflow-x-auto">
               <table className="w-full table-fixed border-collapse">
                 <colgroup>

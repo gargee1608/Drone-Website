@@ -64,7 +64,7 @@ function buildListedServices(
 }
 
 const serviceCardArticle =
-  "group flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border border-[#c1c7cf]/30 bg-white transition-all duration-300 hover:shadow-xl hover:shadow-[#006a6e]/5";
+  "group flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border border-[#c1c7cf]/30 bg-card transition-all duration-300 hover:shadow-xl hover:shadow-[#006a6e]/5";
 
 const serviceCardImageWrap = "relative block h-44 w-full overflow-hidden sm:h-48";
 
@@ -106,7 +106,7 @@ function ServiceGridCard({
             />
           </Link>
           <div className="pointer-events-none absolute left-3 top-3">
-            <span className="rounded border border-[#c1c7cf]/30 bg-white/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
+            <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
               {item.topBadge.text}
             </span>
           </div>
@@ -169,7 +169,7 @@ function ServiceGridCard({
             />
           </Link>
           <div className="pointer-events-none absolute left-3 top-3">
-            <span className="rounded border border-[#c1c7cf]/30 bg-white/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-emerald-700 shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
+            <span className="rounded border border-border bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-foreground shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
               {item.priceLabel}
             </span>
           </div>
@@ -243,7 +243,7 @@ function ServiceGridCard({
         )}
         {price ? (
           <div className="pointer-events-none absolute left-3 top-3">
-            <span className="rounded border border-[#c1c7cf]/30 bg-white/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
+            <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
               ${price}
             </span>
           </div>
@@ -297,14 +297,14 @@ function FeaturedPriceRow({
   return (
     <div className="mb-4 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 sm:mb-5">
       {showPrefix ? (
-        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#41474d] sm:text-[11px]">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground sm:text-[11px]">
           {prefix}
         </span>
       ) : null}
       <span
         className={cn(
           headline,
-          "text-lg font-bold tabular-nums text-[#1a1c1e] sm:text-xl"
+          "text-lg font-bold tabular-nums text-foreground sm:text-xl"
         )}
       >
         {value}
@@ -326,11 +326,11 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         <p
           className={cn(
             body,
-            "max-w-prose text-sm leading-relaxed text-[#41474d] sm:text-base"
+            "max-w-prose text-sm leading-relaxed text-foreground sm:text-base"
           )}
         >
           Choose a service from the catalog below. It will appear here in a{" "}
-          <span className="font-semibold text-[#1a1c1e]">featured</span> layout
+          <span className="font-semibold text-foreground">featured</span> layout
           with quick actions—same style as the Blogs page.
         </p>
       </section>
@@ -348,14 +348,14 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
           Featured service
         </span>
         <h2
-          className={cn("mb-2 sm:mb-3", ADMIN_PAGE_TITLE_CLASS, "text-black")}
+          className={cn("mb-2 sm:mb-3", ADMIN_PAGE_TITLE_CLASS, "text-foreground")}
         >
           {item.title}
         </h2>
         <p
           className={cn(
             body,
-            "mb-4 max-w-xl text-sm leading-relaxed text-slate-600 sm:mb-5 sm:text-[15px] md:max-w-2xl"
+            "mb-4 max-w-xl text-sm leading-relaxed text-foreground sm:mb-5 sm:text-[15px] md:max-w-2xl"
           )}
         >
           {catalogExcerpt(item.description)}
@@ -401,14 +401,14 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
           Featured service
         </span>
         <h2
-          className={cn("mb-2 sm:mb-3", ADMIN_PAGE_TITLE_CLASS, "text-black")}
+          className={cn("mb-2 sm:mb-3", ADMIN_PAGE_TITLE_CLASS, "text-foreground")}
         >
           {item.title}
         </h2>
         <p
           className={cn(
             body,
-            "mb-4 max-w-xl text-sm leading-relaxed text-slate-600 sm:mb-5 sm:text-[15px] md:max-w-2xl"
+            "mb-4 max-w-xl text-sm leading-relaxed text-foreground sm:mb-5 sm:text-[15px] md:max-w-2xl"
           )}
         >
           {catalogExcerpt(item.description)}
@@ -453,14 +453,14 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
           Featured listing
         </span>
         <h2
-          className={cn("mb-2 sm:mb-3", ADMIN_PAGE_TITLE_CLASS, "text-black")}
+          className={cn("mb-2 sm:mb-3", ADMIN_PAGE_TITLE_CLASS, "text-foreground")}
         >
           {title}
         </h2>
         <p
           className={cn(
             body,
-            "mb-4 max-w-xl text-sm leading-relaxed text-slate-600 sm:mb-5 sm:text-[15px] md:max-w-2xl"
+            "mb-4 max-w-xl text-sm leading-relaxed text-foreground sm:mb-5 sm:text-[15px] md:max-w-2xl"
           )}
         >
           {desc}
@@ -503,7 +503,7 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
 
   return (
     <section
-      className="group relative mb-8 overflow-hidden rounded-xl border border-[#c1c7cf]/40 bg-white shadow-lg sm:mb-10"
+      className="group relative mb-8 overflow-hidden rounded-xl border border-[#c1c7cf]/40 bg-card shadow-lg sm:mb-10"
       role="region"
       aria-label="Service preview"
     >
@@ -511,7 +511,7 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         <div className="flex w-full max-w-xl flex-col justify-center p-4 sm:p-5 md:p-6 md:w-[min(100%,24rem)] md:max-w-[46%] md:flex-shrink-0 lg:w-[min(100%,26rem)]">
           {left}
         </div>
-        <div className="relative h-[min(200px,36vh)] w-full bg-white md:h-auto md:min-h-[220px] md:flex-1">
+        <div className="relative h-[min(200px,36vh)] w-full bg-card md:h-auto md:min-h-[220px] md:flex-1">
           {right}
         </div>
       </div>
@@ -588,7 +588,7 @@ export function ServicesView({
     <div
       className={cn(
         landingFontClassName,
-        "blogs-hud-grid relative flex min-h-0 flex-1 flex-col bg-white text-[#1a1c1e]",
+        "blogs-hud-grid relative flex min-h-0 flex-1 flex-col bg-background text-foreground",
         embeddedInDashboard ? "pt-0" : "pt-22 sm:pt-24"
       )}
     >

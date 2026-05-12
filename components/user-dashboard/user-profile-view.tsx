@@ -228,10 +228,10 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
 
   const body = (
     <>
-      <article className="rounded-xl border border-[#dfe6ea] bg-white px-5 py-4 shadow-sm dark:border-white/15 dark:bg-[#111315]">
+      <article className="rounded-xl border border-[#dfe6ea] bg-card px-5 py-4 shadow-sm dark:border-border dark:bg-card">
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <div className="relative">
-              <div className="flex size-16 items-center justify-center overflow-hidden rounded-full border border-[#d4dce1] bg-white text-lg font-bold text-[#1f3e42] dark:border-white/20 dark:bg-[#161a1d] dark:text-white">
+              <div className="flex size-16 items-center justify-center overflow-hidden rounded-full border border-[#d4dce1] bg-card text-lg font-bold text-foreground dark:border-border dark:bg-card dark:text-foreground">
                 {avatarSrc ? (
                   <img
                     src={avatarSrc}
@@ -247,7 +247,7 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
                   <button
                     type="button"
                     onClick={onAvatarPick}
-                    className="absolute -bottom-1 -right-1 inline-flex size-6 items-center justify-center rounded-full border border-[#d9dee3] bg-white text-[#2e4f53] shadow-sm transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                    className="absolute -bottom-1 -right-1 inline-flex size-6 items-center justify-center rounded-full border border-[#d9dee3] bg-card text-[#2e4f53] shadow-sm transition-colors hover:bg-[#f7f9fa] dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-muted"
                     aria-label="Edit profile photo"
                   >
                     <Pencil className="size-3" aria-hidden />
@@ -276,7 +276,7 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
           </div>
         </article>
 
-        <article className="rounded-xl border border-[#dfe6ea] bg-white p-5 shadow-sm dark:border-white/15 dark:bg-[#111315] sm:p-6">
+        <article className="rounded-xl border border-[#dfe6ea] bg-card p-5 shadow-sm dark:border-border dark:bg-card sm:p-6">
           <div
             className={cn(
               "mb-4 flex border-b border-[#edf2f5] pb-3 dark:border-white/15",
@@ -308,7 +308,7 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
                 <button
                   type="button"
                   onClick={onPersonalEditStart}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[#d9dee3] bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-[#f7f9fa] dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-muted"
                 >
                   Edit
                   <Pencil className="size-3.5" aria-hidden />
@@ -337,10 +337,10 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
                     onChange={(e) =>
                       setPersonalDraft((prev) => ({ ...prev, [key]: e.target.value }))
                     }
-                    className="mt-1 w-full rounded-md border border-[#d9dee3] bg-white px-2.5 py-2 text-xs text-[#1f3e42] outline-none focus:border-[#f29b38] dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
+                    className="mt-1 w-full rounded-md border border-[#d9dee3] bg-card px-2.5 py-2 text-xs text-foreground outline-none focus:border-[#f29b38] dark:border-border dark:bg-card dark:text-foreground"
                   />
                 ) : (
-                  <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">
+                  <p className="mt-1 text-sm font-medium text-foreground dark:text-foreground">
                     {profile[key]}
                   </p>
                 )}

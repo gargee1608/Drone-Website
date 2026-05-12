@@ -118,17 +118,17 @@ export function BlogsView({
     <div
       className={cn(
         landingFontClassName,
-        "blogs-hud-grid min-h-0 flex-1 bg-white pt-22 text-[#1a1c1e] sm:pt-24"
+        "blogs-hud-grid min-h-0 flex-1 bg-background pt-22 text-foreground sm:pt-24"
       )}
     >
     <div className="mx-auto max-w-7xl px-6 py-12">
-      <section className="group relative mb-12 overflow-hidden rounded-xl border border-[#c1c7cf]/40 bg-white shadow-lg sm:mb-14">
+      <section className="group relative mb-12 overflow-hidden rounded-xl border border-[#c1c7cf]/40 bg-card shadow-lg sm:mb-14">
         <div className="flex flex-col md:flex-row md:items-stretch md:min-h-[min(320px,45vh)] lg:min-h-[360px]">
           <div className="flex w-full max-w-2xl flex-col justify-center p-5 sm:p-7 md:p-8 md:w-[min(100%,26rem)] md:max-w-[48%] md:flex-shrink-0 lg:w-[min(100%,28rem)]">
             <span className="mb-2 inline-block w-fit rounded-full border border-[#006a6e]/25 bg-[#006a6e]/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#006a6e] sm:mb-3 sm:px-3 sm:py-1 sm:text-[10px]">
               Featured Publication
             </span>
-            <h1 className={cn("mb-3 sm:mb-4", ADMIN_PAGE_TITLE_CLASS, "text-black")}>
+            <h1 className={cn("mb-3 sm:mb-4", ADMIN_PAGE_TITLE_CLASS, "text-foreground")}>
               {featuredHero.headlineLead}{" "}
               <span className="text-black">{featuredHero.headlineGradient}</span>
             </h1>
@@ -142,7 +142,7 @@ export function BlogsView({
               Read this blog
             </Link>
           </div>
-          <div className="relative h-[min(240px,42vh)] w-full bg-white md:h-auto md:min-h-[280px] md:flex-1">
+          <div className="relative h-[min(240px,42vh)] w-full bg-card md:h-auto md:min-h-[280px] md:flex-1">
             <Image
               src={featuredHero.image}
               alt={featuredHero.imageAlt}
@@ -171,7 +171,7 @@ export function BlogsView({
                   "whitespace-nowrap rounded-full px-6 py-2 font-[family-name:var(--font-landing-headline)] text-xs font-bold uppercase tracking-widest transition-colors",
                   active
                     ? "bg-[#006a6e] text-white"
-                    : "bg-[#edeef2] text-[#41474d] hover:bg-[#e7e9ef]"
+                    : "bg-card text-foreground hover:bg-[#e7e9ef]"
                 )}
               >
                 {label}
@@ -185,7 +185,7 @@ export function BlogsView({
         {filtered.map((post) => (
           <article
             key={post.slug}
-            className="group flex flex-col overflow-hidden rounded-xl border border-[#c1c7cf]/30 bg-white transition-all duration-300 hover:shadow-xl hover:shadow-[#006a6e]/5"
+            className="group flex flex-col overflow-hidden rounded-xl border border-[#c1c7cf]/30 bg-card transition-all duration-300 hover:shadow-xl hover:shadow-[#006a6e]/5"
           >
             <Link href={`/blogs/${post.slug}`} className="relative block h-56 overflow-hidden">
               <Image
@@ -202,7 +202,7 @@ export function BlogsView({
               <div className="absolute left-4 top-4">
                 <span
                   className={cn(
-                    "rounded border border-[#c1c7cf]/30 bg-white/90 px-3 py-1 text-[10px] font-bold uppercase tracking-widest shadow-sm backdrop-blur-md",
+                    "rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-foreground shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]",
                     tagToneClasses(post.tagTone)
                   )}
                 >

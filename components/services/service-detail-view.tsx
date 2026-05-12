@@ -20,7 +20,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
     <div
       className={cn(
         landingFontClassName,
-        "min-h-0 flex-1 bg-white pt-22 text-slate-900 sm:pt-24"
+        "min-h-0 flex-1 bg-white pt-22 text-foreground sm:pt-24"
       )}
     >
       <main className="mx-auto min-w-0 max-w-5xl px-4 pb-16 pt-6 sm:px-6 sm:pb-20 sm:pt-8 lg:max-w-6xl lg:pb-24">
@@ -43,7 +43,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
             aria-hidden
           />
           <span
-            className={cn(body, "max-w-[min(100%,28rem)] truncate text-slate-600")}
+            className={cn(body, "max-w-[min(100%,28rem)] truncate text-foreground")}
           >
             {item.title}
           </span>
@@ -56,7 +56,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
             <p
               className={cn(
                 body,
-                "mt-3 whitespace-pre-line text-[0.9375rem] leading-relaxed text-slate-600 sm:text-base"
+                "mt-3 whitespace-pre-line text-[0.9375rem] leading-relaxed text-foreground sm:text-base"
               )}
             >
               {item.description}
@@ -66,7 +66,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
               <h2
                 className={cn(
                   headline,
-                  "text-base font-semibold text-slate-900"
+                  "text-base font-semibold text-foreground"
                 )}
               >
                 Overview
@@ -77,7 +77,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
                     key={i}
                     className={cn(
                       body,
-                      "text-[0.9375rem] leading-relaxed text-slate-600 sm:text-base"
+                      "text-[0.9375rem] leading-relaxed text-foreground sm:text-base"
                     )}
                   >
                     {paragraph}
@@ -90,7 +90,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
               <h2
                 className={cn(
                   headline,
-                  "text-base font-semibold text-slate-900"
+                  "text-base font-semibold text-foreground"
                 )}
               >
                 What you get
@@ -133,7 +133,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
               <p
                 className={cn(
                   headline,
-                  "text-xs font-semibold uppercase tracking-wide text-slate-500"
+                  "text-xs font-semibold uppercase tracking-wide text-foreground"
                 )}
               >
                 Indicative rate
@@ -141,12 +141,12 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
               <p
                 className={cn(
                   headline,
-                  "mt-0.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+                  "mt-0.5 text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
                 )}
               >
                 {item.topBadge.text}
               </p>
-              <p className={cn(body, "mt-2 text-sm leading-relaxed text-slate-500")}>
+              <p className={cn(body, "mt-2 text-sm leading-relaxed text-foreground")}>
                 Final quote may vary by scope, region, and compliance.
               </p>
               <RequestServiceModalTrigger

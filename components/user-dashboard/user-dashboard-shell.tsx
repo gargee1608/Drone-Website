@@ -204,7 +204,7 @@ export function UserDashboardShell({
       <div
         className={cn(
           "flex items-center gap-2 border-b border-slate-200 px-4 py-1.5 lg:hidden dark:border-slate-200",
-          contentBackgroundClassName ?? "bg-white dark:bg-white"
+          contentBackgroundClassName ?? "bg-background dark:bg-background"
         )}
       >
         <button
@@ -233,7 +233,7 @@ export function UserDashboardShell({
             aria-label="Close menu"
             onClick={() => setMobileNavOpen(false)}
           />
-          <aside className="absolute left-0 top-0 flex h-full w-[min(18rem,85vw)] flex-col gap-2 border-r border-slate-200 bg-white p-4 text-[#191c1d] shadow-xl dark:border-slate-200 dark:bg-white dark:text-[#191c1d]">
+          <aside className="absolute left-0 top-0 flex h-full w-[min(18rem,85vw)] flex-col gap-2 border-r border-border bg-background p-4 text-foreground shadow-xl dark:border-border dark:bg-background dark:text-foreground">
             <div className="flex justify-end">
               <button
                 type="button"
@@ -338,7 +338,7 @@ export function UserDashboardShell({
       </div>
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-slate-200 bg-white px-6 py-4 md:hidden dark:border-slate-200 dark:bg-white"
+        className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-border bg-background px-6 py-4 md:hidden dark:border-border dark:bg-background"
         aria-label="Quick navigation"
       >
         <LayoutDashboard className="size-6 text-[#008B8B]" />
