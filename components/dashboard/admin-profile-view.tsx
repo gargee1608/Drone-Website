@@ -19,9 +19,11 @@ const DEFAULT_PROFILE = DEFAULT_ADMIN_PROFILE;
 export type AdminProfileViewProps = {
   /** When true, render profile content only (e.g. settings modal). */
   embedded?: boolean;
+  /** When true, allow inline editing even when embedded (for settings popup). */
+  allowEditWhenEmbedded?: boolean;
 };
 
-export function AdminProfileView({ embedded = false }: AdminProfileViewProps) {
+export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = false }: AdminProfileViewProps) {
   const [profile, setProfile] = useState<AdminProfileDraft>(DEFAULT_PROFILE);
   const [personalDraft, setPersonalDraft] = useState<AdminProfileDraft>(DEFAULT_PROFILE);
   const [addressDraft, setAddressDraft] = useState<AdminProfileDraft>(DEFAULT_PROFILE);
@@ -173,7 +175,7 @@ export function AdminProfileView({ embedded = false }: AdminProfileViewProps) {
     );
   }
 
-  const allowInlineEdit = !embedded;
+  const allowInlineEdit = !embedded || allowEditWhenEmbedded;
 
   const body = (
     <section className="space-y-4">

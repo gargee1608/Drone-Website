@@ -1175,7 +1175,7 @@ export function SettingsDashboard({
               )}
             >
               {settingsContext === "admin" ? (
-                <AdminProfileView embedded />
+                <AdminProfileView embedded allowEditWhenEmbedded />
               ) : settingsContext === "pilot" ? (
                 <PilotProfileView
                   variant="dashboard"
@@ -1183,7 +1183,7 @@ export function SettingsDashboard({
                   showDroneDetails={false}
                 />
               ) : (
-                <UserProfileView embedded />
+                <UserProfileView embedded allowEditWhenEmbedded />
               )}
             </div>
           </div>

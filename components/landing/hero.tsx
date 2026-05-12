@@ -6,7 +6,7 @@ import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-[min(800px,90svh)] flex-col items-center justify-center overflow-hidden bg-background px-4 py-16 sm:px-8">
+    <section className="relative flex min-h-[min(800px,90svh)] flex-col items-center justify-start overflow-hidden bg-background px-4 pt-2 pb-16 sm:px-8">
       <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <div className="max-w-2xl">
           <h1 className={ADMIN_PAGE_TITLE_CLASS}>
@@ -35,10 +35,10 @@ export function Hero() {
 
         <div className="group relative mx-auto w-full max-w-xl lg:max-w-none">
           <div className="absolute -inset-4 rounded-[2rem] bg-[#008B8B]/10 opacity-20 blur-3xl transition-opacity group-hover:opacity-40" />
-          <div className="relative rounded-xl border border-border bg-card p-4 shadow-xl">
+          <div className="relative">
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
               <Image
-                src="/hero-drone-platform.png"
+                src="/drone-hero1.png"
                 alt="Heavy-lift industrial drone carrying cargo"
                 fill
                 className="object-contain object-center"
@@ -46,7 +46,7 @@ export function Hero() {
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
             </div>
-            <div className="absolute top-8 right-8 flex flex-col gap-2">
+            <div className="mt-4 flex justify-center gap-4">
               <div className="landing-glass-card flex items-center gap-4 rounded-lg border border-border p-3 shadow-sm">
                 <div className="flex size-10 items-center justify-center rounded bg-[#008B8B]/10 text-[#008B8B]">
                   <Gauge className="size-5" strokeWidth={2} aria-hidden />

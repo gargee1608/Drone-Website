@@ -161,13 +161,7 @@ export function MyRequestsView() {
                     >
                       Priority
                     </th>
-                    <th
-                      scope="col"
-                      className="align-middle px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
-                    >
-                      Status
-                    </th>
-                  </tr>
+                                      </tr>
                 </thead>
                 <tbody className="divide-y divide-[#edeeef] dark:divide-white/10">
                   {requests.map((req) => (
@@ -202,14 +196,7 @@ export function MyRequestsView() {
                       <td className="align-middle whitespace-nowrap px-4 py-3.5 text-sm font-normal text-[#191c1d] dark:text-white/90">
                         {formatPriority(req.requestPriority)}
                       </td>
-                      <td className="align-middle px-4 py-3.5">
-                        <span
-                          className={`inline-flex max-w-full items-center rounded-full px-3 py-1 text-[11px] font-bold leading-snug ${adminStatusBadgeClass(req.adminStatus)}`}
-                        >
-                          {userMissionAdminStatusLabel(req.adminStatus)}
-                        </span>
-                      </td>
-                    </tr>
+                                          </tr>
                   ))}
                 </tbody>
               </table>

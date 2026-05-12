@@ -85,6 +85,14 @@ const inter = Inter({
 
 const PILOT_MISSION_COMMENTS_KEY = "aerolaminar_pilot_mission_comments_v1";
 
+// Extend Window interface to include our guard flags
+declare global {
+  interface Window {
+    __aerolaminar_syncing_completed_assignments?: boolean;
+    __aerolaminar_initialized?: boolean;
+  }
+}
+
 function readPilotMissionComment(requestRef: string): string {
   if (typeof window === "undefined") return "";
   try {
@@ -692,69 +700,45 @@ export function AssignPilotDroneView() {
   }, []);
 
   const syncCompletedAssignments = useCallback(() => {
-    const ids = assignQueueValidRefsForPrune();
-    pruneAssignPilotDoneRefs(ids);
-
-    const raw = loadCompletedAssignments();
-    const seen = new Set<string>();
-    const deduped = raw.filter((row) => {
-      if (!row.requestRef || seen.has(row.requestRef)) return false;
-      seen.add(row.requestRef);
-      return true;
-    });
-    /** Keep mission history rows (past assignments) visible in Assign To history table. */
-    const kept = deduped.slice(0, 20);
-    saveCompletedAssignments(kept);
-    setCompletedAssignments(kept);
-    if (kept[0] && !loadAssignPilotDoneRefs().includes(kept[0].requestRef)) {
-      appendAssignPilotDoneRef(kept[0].requestRef);
+    // Skip if we're already syncing to prevent infinite loop
+    if (window.__aerolaminar_syncing_completed_assignments) {
+      return;
     }
-    setDoneRefs(loadAssignPilotDoneRefs());
+    
+    window.__aerolaminar_syncing_completed_assignments = true;
+    
+    try {
+      const ids = assignQueueValidRefsForPrune();
+      pruneAssignPilotDoneRefs(ids);
+
+      const raw = loadCompletedAssignments();
+      const seen = new Set<string>();
+      const deduped = raw.filter((row) => {
+        if (!row.requestRef || seen.has(row.requestRef)) return false;
+        seen.add(row.requestRef);
+        return true;
+      });
+      /** Keep mission history rows (past assignments) visible in Assign To history table. */
+      const kept = deduped.slice(0, 20);
+      saveCompletedAssignments(kept);
+      setCompletedAssignments(kept);
+      if (kept[0] && !loadAssignPilotDoneRefs().includes(kept[0].requestRef)) {
+        appendAssignPilotDoneRef(kept[0].requestRef);
+      }
+      setDoneRefs(loadAssignPilotDoneRefs());
+    } finally {
+      window.__aerolaminar_syncing_completed_assignments = false;
+    }
   }, []);
 
   useEffect(() => {
-    syncAssignQueue();
-    syncCompletedAssignments();
-    const onUserRequestsUpdated = () => {
+    // Initialize data once on component mount
+    if (typeof window !== "undefined" && !window.__aerolaminar_initialized) {
+      window.__aerolaminar_initialized = true;
       syncAssignQueue();
       syncCompletedAssignments();
-    };
-    const onDemoBridgeUpdated = () => {
-      syncAssignQueue();
-      syncCompletedAssignments();
-    };
-    const onInspectUpdated = () => {
-      syncAssignQueue();
-      syncCompletedAssignments();
-    };
-    const onStorage = (e: StorageEvent) => {
-      if (
-        e.key !== USER_REQUESTS_STORAGE_KEY &&
-        e.key !== DEMO_ASSIGN_BRIDGE_STORAGE_KEY &&
-        e.key !== ASSIGN_INSPECT_STORAGE_KEY
-      ) {
-        return;
-      }
-      syncAssignQueue();
-      syncCompletedAssignments();
-    };
-    window.addEventListener(USER_REQUESTS_UPDATED_EVENT, onUserRequestsUpdated);
-    window.addEventListener(DEMO_ASSIGN_BRIDGE_UPDATED_EVENT, onDemoBridgeUpdated);
-    window.addEventListener(ASSIGN_INSPECT_UPDATED_EVENT, onInspectUpdated);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      window.removeEventListener(
-        USER_REQUESTS_UPDATED_EVENT,
-        onUserRequestsUpdated
-      );
-      window.removeEventListener(
-        DEMO_ASSIGN_BRIDGE_UPDATED_EVENT,
-        onDemoBridgeUpdated
-      );
-      window.removeEventListener(ASSIGN_INSPECT_UPDATED_EVENT, onInspectUpdated);
-      window.removeEventListener("storage", onStorage);
-    };
-  }, [syncAssignQueue, syncCompletedAssignments]);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1280,70 +1264,41 @@ export function AssignPilotDroneView() {
           </p>
         ) : null}
 
-        {pilotCommentReassignItems.length > 0 ? (
+        {activePilotCommentForCurrent && currentRequest ? (
           <section
             className="space-y-4"
             aria-label="Requests with pilot comments"
           >
-            {pilotCommentReassignItems.map((item) => (
-              <div
-                key={item.requestRef}
-                className="rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/35"
-              >
-                <p className="text-xs font-bold uppercase tracking-wide text-amber-900 dark:text-amber-100">
-                  Pilot comment ·{" "}
-                  <span className="font-mono normal-case text-amber-950 dark:text-amber-50">
-                    {item.displayId}
-                  </span>
-                  {" · "}
-                  <span className="font-semibold normal-case">
-                    {item.assignRow.customer}
-                  </span>
-                </p>
-                <p className="mt-1 line-clamp-3 text-sm text-amber-950/90 dark:text-amber-50/90">
-                  {item.comment}
-                </p>
-                {item.assignedPilotName || item.assignedDroneModel ? (
-                  <p className="mt-2 text-sm text-foreground">
-                    <span className="font-semibold text-amber-950 dark:text-amber-100">
-                      Currently assigned pilot &amp; drone:{" "}
-                    </span>
-                    <span className="font-semibold">
-                      {item.assignedPilotName ?? "—"}
-                    </span>
-                    {" · "}
-                    <span className="font-semibold">
-                      {item.assignedDroneModel
-                        ? assignDroneModelForDisplay(item.assignedDroneModel)
-                        : "—"}
-                    </span>
-                  </p>
-                ) : null}
-                <p className="mt-2 text-xs leading-relaxed text-amber-950/95 dark:text-amber-100/90">
-                  {item.requestRef === currentRequest?.requestRef ? (
-                    <>
-                      <span className="font-semibold">Active mission:</span> only{" "}
-                      <span className="font-semibold">you (admin)</span> can assign
-                      resources for this comment—click the{" "}
-                      <span className="font-semibold">drone</span> and{" "}
-                      <span className="font-semibold">pilot</span> you want under{" "}
-                      <span className="font-semibold">Compatible drones</span> and{" "}
-                      <span className="font-semibold">Available pilots</span>.{" "}
-                      <span className="font-semibold">Update User Tracking</span>{" "}
-                      saves exactly that admin selection; User Tracking shows{" "}
-                      <span className="font-semibold">In progress</span> with those
-                      names only.
-                    </>
-                  ) : (
-                    <>
-                      When this request is the active mission, the admin must select
-                      pilot &amp; drone below—only that selection can be assigned via{" "}
-                      <span className="font-semibold">Update User Tracking</span>.
-                    </>
-                  )}
-                </p>
-              </div>
-            ))}
+            <div
+              className="rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/35"
+            >
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-900 dark:text-amber-100">
+                Pilot comment ·{" "}
+                <span className="font-mono normal-case text-amber-950 dark:text-amber-50">
+                  {currentRequest.displayId}
+                </span>
+                {" · "}
+                <span className="font-semibold normal-case">
+                  {currentRequest.customer}
+                </span>
+              </p>
+              <p className="mt-1 line-clamp-3 text-sm text-amber-950/90 dark:text-amber-50/90">
+                {activePilotCommentForCurrent}
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-amber-950/95 dark:text-amber-100/90">
+                <span className="font-semibold">Active mission:</span> only{" "}
+                <span className="font-semibold">you (admin)</span> can assign
+                resources for this comment—click the{" "}
+                <span className="font-semibold">drone</span> and{" "}
+                <span className="font-semibold">pilot</span> you want under{" "}
+                <span className="font-semibold">Compatible drones</span> and{" "}
+                <span className="font-semibold">Available pilots</span>.{" "}
+                <span className="font-semibold">Update User Tracking</span>{" "}
+                saves exactly that admin selection; User Tracking shows{" "}
+                <span className="font-semibold">In progress</span> with those
+                names only.
+              </p>
+            </div>
           </section>
         ) : null}
 

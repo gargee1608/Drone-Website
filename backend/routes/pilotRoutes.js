@@ -98,6 +98,12 @@ async function ensurePilotEditableColumns() {
     "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS license_number TEXT"
   );
   await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS city TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS state TEXT"
+  );
+  await pool.query(
     "ALTER TABLE pilots ADD COLUMN IF NOT EXISTS cert_level INTEGER DEFAULT 3"
   );
   await pool.query(
@@ -546,6 +552,8 @@ router.patch("/:id/profile", async (req, res) => {
     const experienceRank = String(req.body?.experienceRank ?? "")
       .trim()
       .slice(0, 120);
+    const city = String(req.body?.city ?? "").trim().slice(0, 120);
+    const state = String(req.body?.state ?? "").trim().slice(0, 120);
     const hoursRaw = Number.parseInt(String(req.body?.flightHours ?? "0"), 10);
     const flightHours =
       Number.isFinite(hoursRaw) && hoursRaw >= 0 && hoursRaw <= 50000
@@ -563,18 +571,22 @@ router.patch("/:id/profile", async (req, res) => {
            email = $2,
            phone = $3,
            license_number = $4,
-           duty_status = $5,
-           cert_level = $6,
-           experience_rank = $7,
-           flight_hours = $8,
-           experience = $9
-       WHERE id = $10
+           city = $5,
+           state = $6,
+           duty_status = $7,
+           cert_level = $8,
+           experience_rank = $9,
+           flight_hours = $10,
+           experience = $11
+       WHERE id = $12
        RETURNING *`,
       [
         name,
         email || null,
         phone || null,
         licenseNumber || null,
+        city || null,
+        state || null,
         dutyStatus,
         certLevel,
         experienceRank || null,

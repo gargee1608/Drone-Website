@@ -37,7 +37,7 @@ const sidebarNav = [
     href: "/pilot-dashboard/completed-deliveries",
   },
   {
-    label: "Add New Drone Details",
+    label: "My Drones",
     icon: Drone,
     href: "/pilot-dashboard/drone",
   },
@@ -202,8 +202,8 @@ export function PilotDashboardShell({
   }, [sidebarExpanded]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-background pt-20 text-foreground sm:pt-22">
-      <div className="flex items-center gap-2 border-b border-border bg-background px-4 py-1.5 lg:hidden">
+    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-white pt-20 text-foreground sm:pt-22">
+      <div className="flex items-center gap-2 border-b border-border bg-white px-4 py-1.5 lg:hidden">
         <button
           type="button"
           className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted"

@@ -546,7 +546,7 @@ function UserRequestStatCard({
       >
         <Icon className={cn("size-[18px]", iconClassName)} aria-hidden />
       </span>
-      <p className="mt-2.5 text-xl font-bold tabular-nums text-foreground sm:text-2xl">
+      <p className="mt-2.5 text-xs font-bold tabular-nums text-foreground sm:text-sm">
         {value}
       </p>
       <p className="mt-1 max-w-[9rem] text-[10px] font-medium leading-tight text-muted-foreground sm:max-w-none sm:text-[11px]">

@@ -12,7 +12,9 @@ import {
 import {
   readStoredUserSession,
   splitDisplayNameToFirstLast,
+  writeStoredUserSession,
 } from "@/lib/user-session-browser";
+import { cn } from "@/lib/utils";
 
 type UserProfileDraft = {
   firstName: string;
@@ -87,10 +89,14 @@ function buildProfileFromSessionAndSaved(): UserProfileDraft {
 export type UserProfileViewProps = {
   /** When true, render only profile content (e.g. inside a settings modal). */
   embedded?: boolean;
+  /** When true, allow inline editing even when embedded (for settings popup). */
+  allowEditWhenEmbedded?: boolean;
 };
 
-export function UserProfileView({ embedded = false }: UserProfileViewProps) {
+export function UserProfileView({ embedded = false, allowEditWhenEmbedded = false }: UserProfileViewProps) {
   const [profile, setProfile] = useState<UserProfileDraft>(DEFAULT_USER_PROFILE);
+  const [personalDraft, setPersonalDraft] = useState<UserProfileDraft>(DEFAULT_USER_PROFILE);
+  const [editingPersonal, setEditingPersonal] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [roleLabel, setRoleLabel] = useState("User");
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
@@ -101,6 +107,7 @@ export function UserProfileView({ embedded = false }: UserProfileViewProps) {
     queueMicrotask(() => {
       const merged = buildProfileFromSessionAndSaved();
       setProfile(merged);
+      setPersonalDraft(merged);
 
       const token = localStorage.getItem("token");
       const session = readStoredUserSession();
@@ -126,11 +133,13 @@ export function UserProfileView({ embedded = false }: UserProfileViewProps) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const sync = () => {
-      setProfile(buildProfileFromSessionAndSaved());
+      const next = buildProfileFromSessionAndSaved();
+      setProfile(next);
+      setPersonalDraft((prev) => (editingPersonal ? prev : next));
     };
     window.addEventListener(USER_PROFILE_UPDATED_EVENT, sync);
     return () => window.removeEventListener(USER_PROFILE_UPDATED_EVENT, sync);
-  }, []);
+  }, [editingPersonal]);
 
   function onAvatarPick() {
     avatarInputRef.current?.click();
@@ -149,6 +158,43 @@ export function UserProfileView({ embedded = false }: UserProfileViewProps) {
       }
     };
     reader.readAsDataURL(file);
+  }
+
+  function onPersonalEditStart() {
+    setPersonalDraft(profile);
+    setEditingPersonal(true);
+  }
+
+  function onPersonalSave() {
+    const next = personalDraft;
+    setProfile(next);
+    setPersonalDraft(next);
+    
+    // Save to localStorage
+    if (typeof window !== "undefined") {
+      localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(next));
+      
+      // Update user session if needed
+      const session = readStoredUserSession();
+      if (session) {
+        const fullName = `${next.firstName} ${next.lastName}`.trim();
+        writeStoredUserSession({
+          ...session,
+          fullName: fullName,
+          name: fullName,
+          email: next.email,
+          phone: next.phone,
+        });
+      }
+    }
+    
+    setEditingPersonal(false);
+    window.dispatchEvent(new Event(USER_PROFILE_UPDATED_EVENT));
+  }
+
+  function onPersonalCancel() {
+    setPersonalDraft(profile);
+    setEditingPersonal(false);
   }
 
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
@@ -178,6 +224,8 @@ export function UserProfileView({ embedded = false }: UserProfileViewProps) {
     );
   }
 
+  const allowInlineEdit = !embedded || allowEditWhenEmbedded;
+
   const body = (
     <>
       <article className="rounded-xl border border-[#dfe6ea] bg-white px-5 py-4 shadow-sm dark:border-white/15 dark:bg-[#111315]">
@@ -194,7 +242,7 @@ export function UserProfileView({ embedded = false }: UserProfileViewProps) {
                   initials
                 )}
               </div>
-              {!embedded ? (
+              {allowInlineEdit ? (
                 <>
                   <button
                     type="button"
@@ -229,10 +277,44 @@ export function UserProfileView({ embedded = false }: UserProfileViewProps) {
         </article>
 
         <article className="rounded-xl border border-[#dfe6ea] bg-white p-5 shadow-sm dark:border-white/15 dark:bg-[#111315] sm:p-6">
-          <div className="mb-4 border-b border-[#edf2f5] pb-3 dark:border-white/15">
+          <div
+            className={cn(
+              "mb-4 flex border-b border-[#edf2f5] pb-3 dark:border-white/15",
+              allowInlineEdit ? "items-center justify-between" : ""
+            )}
+          >
             <h2 className="text-lg font-semibold text-[#004444] dark:text-white">
               Personal Information
             </h2>
+            {allowInlineEdit ? (
+              editingPersonal ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onPersonalCancel}
+                    className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onPersonalSave}
+                    className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                  >
+                    Save
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onPersonalEditStart}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                >
+                  Edit
+                  <Pencil className="size-3.5" aria-hidden />
+                </button>
+              )
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -249,9 +331,19 @@ export function UserProfileView({ embedded = false }: UserProfileViewProps) {
             ).map(([label, key]) => (
               <div key={key}>
                 <p className="text-[11px] text-[#6a7d81] dark:text-white/65">{label}</p>
-                <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">
-                  {profile[key]}
-                </p>
+                {editingPersonal && allowInlineEdit ? (
+                  <input
+                    value={personalDraft[key]}
+                    onChange={(e) =>
+                      setPersonalDraft((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                    className="mt-1 w-full rounded-md border border-[#d9dee3] bg-white px-2.5 py-2 text-xs text-[#1f3e42] outline-none focus:border-[#f29b38] dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
+                  />
+                ) : (
+                  <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">
+                    {profile[key]}
+                  </p>
+                )}
               </div>
             ))}
             <div>

@@ -69,7 +69,7 @@ const serviceCardArticle =
 const serviceCardImageWrap = "relative block h-44 w-full overflow-hidden sm:h-48";
 
 const serviceGridBtnClass =
-  "flex w-full items-center justify-center rounded-md border-2 border-[#006a6e] bg-[#006a6e] px-3 py-2 text-center font-[family-name:var(--font-landing-headline)] text-[11px] font-bold uppercase tracking-widest text-white shadow-sm transition hover:border-[#005a5d] hover:bg-[#005a5d] sm:text-xs";
+  "flex w-full items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-3 py-2 text-center font-[family-name:var(--font-landing-headline)] text-[11px] font-bold uppercase tracking-widest text-[#006a6e] shadow-sm transition hover:border-[#005a5d] hover:bg-[#006a6e]/10 sm:text-xs";
 
 function ServiceGridCard({
   entry,
@@ -284,7 +284,7 @@ const featuredBtnOutline =
   "inline-flex w-fit items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-5 py-2 text-center font-[family-name:var(--font-landing-headline)] text-[11px] font-bold uppercase tracking-widest text-[#006a6e] transition-all hover:bg-[#006a6e]/10 active:scale-95 sm:px-6 sm:py-2.5 sm:text-xs";
 
 const featuredBtnPrimary =
-  "inline-flex w-fit items-center justify-center rounded-md border-2 border-[#006a6e] bg-[#006a6e] px-5 py-2 text-center font-[family-name:var(--font-landing-headline)] text-[11px] font-bold uppercase tracking-widest text-white shadow-sm transition-all hover:border-[#005a5d] hover:bg-[#005a5d] active:scale-95 sm:px-6 sm:py-2.5 sm:text-xs";
+  "inline-flex w-fit items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-5 py-2 text-center font-[family-name:var(--font-landing-headline)] text-[11px] font-bold uppercase tracking-widest text-[#006a6e] shadow-sm transition-all hover:border-[#005a5d] hover:bg-[#006a6e]/10 active:scale-95 sm:px-6 sm:py-2.5 sm:text-xs";
 
 function FeaturedPriceRow({
   prefix = "Starting at",

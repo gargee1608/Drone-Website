@@ -1,5 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Globe, Plane, X } from "lucide-react";
+import { Globe, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -43,10 +44,13 @@ export function SiteFooter({
               href="/"
               className="inline-flex w-fit items-center gap-2.5 text-left transition-opacity hover:opacity-90"
             >
-              <Plane
-                className="size-8 shrink-0 text-[#008B8B] sm:size-9"
-                strokeWidth={1.75}
-                aria-hidden
+              <Image
+                src="/drone-logo.png"
+                alt="Drone Hire Logo"
+                width={52}
+                height={52}
+                className="size-13 shrink-0 sm:size-16"
+                style={{ filter: 'brightness(0) saturate(100%) invert(36%) sepia(93%) saturate(1594%) hue-rotate(151deg) brightness(92%) contrast(89%)' }}
               />
               <span className="font-heading text-lg font-bold tracking-tight text-foreground">
                 Drone Hire
@@ -135,10 +139,13 @@ export function SiteFooter({
           href="/"
           className="inline-flex w-full min-w-0 shrink-0 items-center justify-center gap-2 font-heading text-sm font-bold tracking-tight text-foreground transition-opacity hover:opacity-90 sm:w-auto sm:justify-start"
         >
-          <Plane
-            className="size-6 shrink-0 text-[#008B8B]"
-            strokeWidth={1.75}
-            aria-hidden
+          <Image
+            src="/drone-logo.png"
+            alt="Drone Hire Logo"
+            width={44}
+            height={44}
+            className="size-11 shrink-0"
+            style={{ filter: 'brightness(0) saturate(100%) invert(36%) sepia(93%) saturate(1594%) hue-rotate(151deg) brightness(92%) contrast(89%)' }}
           />
           <span>Drone Hire</span>
         </Link>

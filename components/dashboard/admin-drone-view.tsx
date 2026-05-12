@@ -23,6 +23,14 @@ export function AdminDroneView() {
   const [pendingRequests, setPendingRequests] = useState<UserRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [showDroneForm, setShowDroneForm] = useState(false);
+  const [droneFormData, setDroneFormData] = useState({
+    modelName: '',
+    type: '',
+    camera: '',
+    payloadKg: '',
+    flightTimeMin: '',
+    rangeKm: ''
+  });
 
   useEffect(() => {
     if (requestId) {
@@ -265,13 +273,15 @@ export function AdminDroneView() {
                     type="text"
                     className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]"
                     placeholder="e.g., DJI Mavic 3"
+                    value={droneFormData.modelName}
+                    onChange={(e) => setDroneFormData({...droneFormData, modelName: e.target.value})}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">
                     Type
                   </label>
-                  <select className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]">
+                  <select className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]" value={droneFormData.type} onChange={(e) => setDroneFormData({...droneFormData, type: e.target.value})}>
                     <option value="">Select type</option>
                     <option value="FPV">FPV</option>
                     <option value="Autonomous">Autonomous</option>
@@ -289,6 +299,8 @@ export function AdminDroneView() {
                     type="text"
                     className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]"
                     placeholder="e.g., 4K HDR"
+                    value={droneFormData.camera}
+                    onChange={(e) => setDroneFormData({...droneFormData, camera: e.target.value})}
                   />
                 </div>
                 <div>
@@ -299,6 +311,8 @@ export function AdminDroneView() {
                     type="text"
                     className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]"
                     placeholder="e.g., 2.5"
+                    value={droneFormData.payloadKg}
+                    onChange={(e) => setDroneFormData({...droneFormData, payloadKg: e.target.value})}
                   />
                 </div>
               </div>
@@ -312,6 +326,8 @@ export function AdminDroneView() {
                     type="text"
                     className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]"
                     placeholder="e.g., 45"
+                    value={droneFormData.flightTimeMin}
+                    onChange={(e) => setDroneFormData({...droneFormData, flightTimeMin: e.target.value})}
                   />
                 </div>
                 <div>
@@ -322,6 +338,8 @@ export function AdminDroneView() {
                     type="text"
                     className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]"
                     placeholder="e.g., 15"
+                    value={droneFormData.rangeKm}
+                    onChange={(e) => setDroneFormData({...droneFormData, rangeKm: e.target.value})}
                   />
                 </div>
               </div>
@@ -334,10 +352,151 @@ export function AdminDroneView() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
-                    // Here you would handle the form submission
-                    alert('Drone details would be added to pilot profile');
-                    setShowDroneForm(false);
+                  onClick={async () => {
+                    // Validate form data
+                    if (!droneFormData.modelName || !droneFormData.type) {
+                      alert('Please fill in at least Model Name and Type fields.');
+                      return;
+                    }
+
+                    // Debug: Check pilot_id
+                    console.log('Adding drone details for pilot_id:', request.pilot_id);
+                    console.log('Request data:', request);
+                    console.log('Type of pilot_id:', typeof request.pilot_id);
+                    
+                    if (!request.pilot_id) {
+                      alert('No pilot_id found in request. Cannot add drone details.');
+                      return;
+                    }
+
+                    try {
+                      const token = localStorage.getItem("token");
+                      
+                      // First check if pilot exists by ID
+                      console.log('Checking if pilot exists with ID:', request.pilot_id);
+                      let pilotCheckResponse = await fetch(`http://localhost:4000/api/pilots/${request.pilot_id}`, {
+                        headers: {
+                          "Authorization": token ? `Bearer ${token}` : "",
+                        },
+                      });
+
+                      console.log('Pilot check response status:', pilotCheckResponse.status);
+                      
+                      let pilotData = null;
+                      let actualPilotId = request.pilot_id;
+
+                      if (!pilotCheckResponse.ok) {
+                        // If pilot not found by ID, try to find by name
+                        console.log('Pilot not found by ID, searching by name:', request.pilot_name);
+                        
+                        const allPilotsResponse = await fetch(`http://localhost:4000/api/pilots`, {
+                          headers: {
+                            "Authorization": token ? `Bearer ${token}` : "",
+                          },
+                        });
+                        
+                        if (allPilotsResponse.ok) {
+                          const allPilots = await allPilotsResponse.json();
+                          console.log('Available pilots:', allPilots.map((p: any) => ({ id: p.id, name: p.name })));
+                          
+                          // Find pilot by name (case-insensitive)
+                          const foundPilot = allPilots.find((p: any) => 
+                            p.name && p.name.toLowerCase() === request.pilot_name.toLowerCase()
+                          );
+                          
+                          if (foundPilot) {
+                            console.log('Found pilot by name:', foundPilot);
+                            pilotData = foundPilot;
+                            actualPilotId = foundPilot.id;
+                          } else {
+                            // Create new pilot if not found
+                            console.log('Pilot not found, creating new pilot:', request.pilot_name);
+                            const createPilotResponse = await fetch(`http://localhost:4000/api/pilots`, {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": token ? `Bearer ${token}` : "",
+                              },
+                              body: JSON.stringify({
+                                name: request.pilot_name,
+                                email: request.pilot_details?.email || '',
+                                phone: request.pilot_details?.phone || '',
+                                city: request.pilot_details?.city || '',
+                                state: request.pilot_details?.state || '',
+                                flight_hours: parseInt(request.pilot_details?.flightHours || '0'),
+                                duty_status: 'ACTIVE',
+                                cert_level: 3,
+                              }),
+                            });
+                            
+                            if (createPilotResponse.ok) {
+                              const newPilot = await createPilotResponse.json();
+                              console.log('Created new pilot:', newPilot);
+                              pilotData = newPilot.data || newPilot;
+                              actualPilotId = pilotData.id;
+                            } else {
+                              const errorText = await createPilotResponse.text();
+                              console.error('Failed to create pilot:', errorText);
+                              alert(`Could not find or create pilot ${request.pilot_name}. Please check the pilot management system.`);
+                              return;
+                            }
+                          }
+                        }
+                      } else {
+                        pilotData = await pilotCheckResponse.json();
+                        console.log('Pilot found by ID:', pilotData);
+                      }
+
+                      // Add drone details to pilot profile
+                      const droneResponse = await fetch(`http://localhost:4000/api/pilots/${actualPilotId}/drones`, {
+                        method: "PATCH",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "Authorization": token ? `Bearer ${token}` : "",
+                        },
+                        body: JSON.stringify({ drones: [droneFormData] }),
+                      });
+
+                      if (droneResponse.ok) {
+                        // Update request status to show drone details were added
+                        const statusResponse = await fetch(`http://localhost:4000/api/user-requests/${request.id}`, {
+                          method: "PATCH",
+                          headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": token ? `Bearer ${token}` : "",
+                          },
+                          body: JSON.stringify({ 
+                            status: 'completed',
+                            description: request.description + ' - added the drone details'
+                          }),
+                        });
+
+                        if (statusResponse.ok) {
+                          alert('Drone details successfully added to pilot profile!');
+                          setShowDroneForm(false);
+                          // Reset form
+                          setDroneFormData({
+                            modelName: '',
+                            type: '',
+                            camera: '',
+                            payloadKg: '',
+                            flightTimeMin: '',
+                            rangeKm: ''
+                          });
+                          // Refresh the request to show updated status
+                          fetchRequestDetails(requestId);
+                        } else {
+                          throw new Error('Failed to update request status');
+                        }
+                      } else {
+                        const errorData = await droneResponse.json().catch(() => ({}));
+                        console.error('Drone API Error:', errorData);
+                        throw new Error(errorData.error || 'Failed to add drone details');
+                      }
+                    } catch (error) {
+                      console.error('Error:', error);
+                      alert(`Failed to add drone details: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                    }
                   }}
                   className="px-4 py-2 bg-[#008B8B] text-white rounded-lg hover:bg-[#008B8B]/90 transition-colors"
                 >
@@ -377,26 +536,6 @@ export function AdminDroneView() {
                     <p className="text-xs text-muted-foreground mt-2">
                       Created: {new Date(req.created_at).toLocaleDateString()}
                     </p>
-                  </div>
-                  <div className="flex gap-2 ml-4">
-                    <button
-                      onClick={() => window.location.href = `/dashboard/drone?request=${req.id}`}
-                      className="px-3 py-2 bg-[#008B8B] text-white rounded-lg hover:bg-[#008B8B]/90 transition-colors text-sm"
-                    >
-                      Add New Drone Details
-                    </button>
-                    <button
-                      onClick={() => handleEditRequest(req)}
-                      className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteRequest(req.id)}
-                      className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
-                    >
-                      Delete
-                    </button>
                   </div>
                 </div>
               </div>

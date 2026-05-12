@@ -27,6 +27,7 @@ export default function RootLayout({
         <Script
           id="drone-hire-theme-init"
           strategy="beforeInteractive"
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html:
               "!function(){try{var k='drone-hire-theme',v=localStorage.getItem(k),d=v==='dark'||v!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d)}catch(e){}}();",

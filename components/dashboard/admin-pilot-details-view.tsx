@@ -78,12 +78,15 @@ export function AdminPilotDetailsView() {
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editLicense, setEditLicense] = useState("");
+  const [editCity, setEditCity] = useState("");
+  const [editState, setEditState] = useState("");
   const [editDutyStatus, setEditDutyStatus] = useState<"ACTIVE" | "INACTIVE">(
     "ACTIVE"
   );
   const [editCertLevel, setEditCertLevel] = useState("3");
   const [editExperienceRank, setEditExperienceRank] = useState("");
   const [editFlightHours, setEditFlightHours] = useState("0");
+  const [editMissions, setEditMissions] = useState("0");
 
   async function loadPilots() {
     setLoading(true);
@@ -124,12 +127,15 @@ export function AdminPilotDetailsView() {
     setEditEmail(pickStr(row, ["email"]));
     setEditPhone(pickStr(row, ["phone"]));
     setEditLicense(pickStr(row, ["license_number", "licenseNumber"]));
+    setEditCity(pickStr(row, ["city"]));
+    setEditState(pickStr(row, ["state"]));
     setEditDutyStatus(
       normalizePilotDutyStatus(row.duty_status ?? row.dutyStatus ?? row.status)
     );
     setEditCertLevel(pickStr(row, ["cert_level", "certLevel"]) || "3");
     setEditExperienceRank(pickStr(row, ["experience_rank", "experienceRank"]));
     setEditFlightHours(String(flightHoursFromPilotRow(row)));
+    setEditMissions(String(missionsCompletedFromPilotRow(row)));
   }
 
   async function handleEditSave(e: FormEvent<HTMLFormElement>) {
@@ -142,9 +148,14 @@ export function AdminPilotDetailsView() {
       return;
     }
     const flightHours = Number.parseInt(editFlightHours, 10);
+    const missions = Number.parseInt(editMissions, 10);
     const certLevel = Number.parseInt(editCertLevel, 10);
     if (!Number.isFinite(flightHours) || flightHours < 0 || flightHours > 50000) {
       setActionError("Flight hours must be between 0 and 50000.");
+      return;
+    }
+    if (!Number.isFinite(missions) || missions < 0 || missions > 10000) {
+      setActionError("Mission completed must be between 0 and 10000.");
       return;
     }
     if (!Number.isFinite(certLevel) || certLevel < 1 || certLevel > 10) {
@@ -158,10 +169,13 @@ export function AdminPilotDetailsView() {
       email: editEmail.trim(),
       phone: editPhone.trim(),
       licenseNumber: editLicense.trim(),
+      city: editCity.trim(),
+      state: editState.trim(),
       dutyStatus: editDutyStatus,
       certLevel,
       experienceRank: editExperienceRank.trim(),
       flightHours,
+      missions,
     });
     setSavingEdit(false);
     if (!result || (typeof result === "object" && "error" in result)) {
@@ -253,7 +267,9 @@ export function AdminPilotDetailsView() {
                   key={`${id}-${name}`}
                   className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
                 >
-                  <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+                    <h2 className="text-sm font-semibold text-foreground">Pilot details</h2>
+                    <div className="flex flex-wrap items-center gap-2">
                     <Button
                       type="button"
                       variant="outline"
@@ -271,157 +287,41 @@ export function AdminPilotDetailsView() {
                     >
                       {isDeleting ? "Deleting..." : "Delete"}
                     </Button>
-                  </div>
-
-                  <div className="grid gap-4 px-4 py-4 md:grid-cols-2">
-                    <div className="rounded-xl border border-border/80 p-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Personal
-                      </h3>
-                      <dl className="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                        <div>
-                          <dt className="text-xs text-muted-foreground">Name</dt>
-                          <dd>{name}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted-foreground">Email</dt>
-                          <dd>{email}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted-foreground">Phone</dt>
-                          <dd>{phone}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted-foreground">City</dt>
-                          <dd>{city}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted-foreground">State</dt>
-                          <dd>{state}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted-foreground">License</dt>
-                          <dd>{license}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted-foreground">DGCA</dt>
-                          <dd>{dgca}</dd>
-                        </div>
-                      </dl>
-                    </div>
-
-                    <div className="rounded-xl border border-border/80 p-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Professional
-                      </h3>
-                      <dl className="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                        <div>
-                          <dt className="text-xs text-muted-foreground">
-                            Flight hours
-                          </dt>
-                          <dd className="tabular-nums">
-                            {flightHours.toLocaleString("en-IN")} h
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted-foreground">
-                            Missions completed
-                          </dt>
-                          <dd className="tabular-nums">
-                            {missions.toLocaleString("en-IN")}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted-foreground">
-                            Certification level
-                          </dt>
-                          <dd>{certLevel}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted-foreground">
-                            Experience rank
-                          </dt>
-                          <dd>{experienceRank}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted-foreground">Status</dt>
-                          <dd>{statusLabel}</dd>
-                        </div>
-                      </dl>
                     </div>
                   </div>
 
-                  <div className="border-t border-border px-4 py-4">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Drone details
-                    </h3>
-                    {drones.length > 0 ? (
-                      <div className="mt-2 space-y-2">
-                        {drones.map((drone, index) => (
-                          <div
-                            key={`${id}-drone-${index}`}
-                            className="rounded-lg border border-border/80 p-3"
-                          >
-                            <dl className="grid gap-2 text-sm sm:grid-cols-3">
-                              <div>
-                                <dt className="text-xs text-muted-foreground">
-                                  Model
-                                </dt>
-                                <dd>{droneField(drone, ["modelName", "model_name"])}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-xs text-muted-foreground">
-                                  Type
-                                </dt>
-                                <dd>{droneField(drone, ["type"])}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-xs text-muted-foreground">
-                                  Camera
-                                </dt>
-                                <dd>{droneField(drone, ["camera"])}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-xs text-muted-foreground">
-                                  Payload (kg)
-                                </dt>
-                                <dd>{droneField(drone, ["payloadKg", "payload_kg"])}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-xs text-muted-foreground">
-                                  Flight time (min)
-                                </dt>
-                                <dd>
-                                  {droneField(drone, ["flightTimeMin", "flight_time_min"])}
-                                </dd>
-                              </div>
-                              <div>
-                                <dt className="text-xs text-muted-foreground">
-                                  Range (km)
-                                </dt>
-                                <dd>{droneField(drone, ["rangeKm", "range_km"])}</dd>
-                              </div>
-                              <div className="sm:col-span-3">
-                                <dt className="text-xs text-muted-foreground">
-                                  Use cases
-                                </dt>
-                                <dd>
-                                  {formatUseCases(drone.useCases ?? drone.use_cases) ||
-                                    "—"}
-                                </dd>
-                              </div>
-                            </dl>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {legacyUseCases !== "—"
-                          ? `Legacy use cases: ${legacyUseCases}`
-                          : "No drone details on file."}
-                      </p>
-                    )}
-                  </div>
+                  <div className="px-4 py-4">
+                      <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="sm:col-span-2 lg:col-span-3">
+                          <dt className="text-xs font-semibold tracking-wide text-muted-foreground">Name</dt>
+                          <dd className="mt-1 font-medium text-sm">{name}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold tracking-wide text-muted-foreground">Email</dt>
+                          <dd className="mt-1 break-all">{email}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold tracking-wide text-muted-foreground">Phone</dt>
+                          <dd className="mt-1">{phone}</dd>
+                        </div>
+                                                <div>
+                          <dt className="text-xs font-semibold tracking-wide text-muted-foreground">Flight hours</dt>
+                          <dd className="mt-1 tabular-nums">{flightHours.toLocaleString("en-IN")} h</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold tracking-wide text-muted-foreground">Missions completed</dt>
+                          <dd className="mt-1 tabular-nums">{missions.toLocaleString("en-IN")}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold tracking-wide text-muted-foreground">Certification level</dt>
+                          <dd className="mt-1">{certLevel}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold tracking-wide text-muted-foreground">Status</dt>
+                          <dd className="mt-1">{statusLabel}</dd>
+                        </div>
+                      </dl>
+                    </div>
                 </section>
               );
             })}
@@ -507,17 +407,6 @@ export function AdminPilotDetailsView() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label htmlFor="edit-pilot-license" className="text-sm text-foreground">
-                      License number
-                    </label>
-                    <Input
-                      id="edit-pilot-license"
-                      value={editLicense}
-                      onChange={(e) => setEditLicense(e.target.value)}
-                      className="h-10 rounded-lg border-border bg-background text-foreground"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
                     <label
                       htmlFor="edit-pilot-flight-hours"
                       className="text-sm text-foreground"
@@ -531,6 +420,20 @@ export function AdminPilotDetailsView() {
                       max={50000}
                       value={editFlightHours}
                       onChange={(e) => setEditFlightHours(e.target.value)}
+                      className="h-10 rounded-lg border-border bg-background text-foreground"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="edit-pilot-missions" className="text-sm text-foreground">
+                      Mission Completed
+                    </label>
+                    <Input
+                      id="edit-pilot-missions"
+                      type="number"
+                      min={0}
+                      max={10000}
+                      value={editMissions}
+                      onChange={(e) => setEditMissions(e.target.value)}
                       className="h-10 rounded-lg border-border bg-background text-foreground"
                     />
                   </div>
@@ -548,17 +451,6 @@ export function AdminPilotDetailsView() {
                       max={10}
                       value={editCertLevel}
                       onChange={(e) => setEditCertLevel(e.target.value)}
-                      className="h-10 rounded-lg border-border bg-background text-foreground"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="edit-pilot-rank" className="text-sm text-foreground">
-                      Experience rank
-                    </label>
-                    <Input
-                      id="edit-pilot-rank"
-                      value={editExperienceRank}
-                      onChange={(e) => setEditExperienceRank(e.target.value)}
                       className="h-10 rounded-lg border-border bg-background text-foreground"
                     />
                   </div>
