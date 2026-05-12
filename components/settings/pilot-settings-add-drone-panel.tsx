@@ -628,7 +628,7 @@ export function PilotSettingsAddDronePanel({
         } catch (networkError) {
           console.error("Network error when updating drone:", networkError);
           // Set response to indicate network failure
-          response = { ok: false, status: 0, text: () => Promise.resolve("Network error") };
+          response = { ok: false, status: 0, text: () => Promise.resolve("Network error"), json: () => Promise.resolve({}) };
         }
       } else {
         // Create new drone - always include pilot_id
@@ -651,7 +651,7 @@ export function PilotSettingsAddDronePanel({
         } catch (networkError) {
           console.error("Network error when creating drone:", networkError);
           // Set response to indicate network failure
-          response = { ok: false, status: 0, text: () => Promise.resolve("Network error") };
+          response = { ok: false, status: 0, text: () => Promise.resolve("Network error"), json: () => Promise.resolve({}) };
         }
       }
       

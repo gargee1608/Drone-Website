@@ -404,6 +404,7 @@ export function appendUserRequest(
 export type AssignPilotRequestRow = {
   id: string;
   requestRef: string;
+  displayId: string;
   customer: string;
   service: string;
   dropoff: string;
@@ -425,6 +426,7 @@ export function userMissionRequestToAssignPilotRow(
   return {
     id: req.id,
     requestRef: req.id,
+    displayId: userRequestQueueDisplayIdInList(req.id, loadUserRequests()),
     customer: req.reasonOrTitle.trim() || "—",
     service: req.requestType.trim() || "—",
     dropoff: req.dropLocation.trim() || "—",

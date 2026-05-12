@@ -28,6 +28,7 @@ function isAssignPilotRequestRow(v: unknown): v is AssignPilotRequestRow {
   return (
     typeof o.id === "string" &&
     typeof o.requestRef === "string" &&
+    typeof o.displayId === "string" &&
     typeof o.customer === "string" &&
     typeof o.service === "string" &&
     typeof o.dropoff === "string" &&
@@ -50,6 +51,7 @@ export function demoAdminRowToAssignPilotRow(m: UserRequestAdminRow): AssignPilo
   return {
     id: ref,
     requestRef: ref,
+    displayId: userRequestQueueDisplayIdInList(ref, loadUserRequests()),
     customer: m.title,
     service: serviceLabelFromTitle(m.title),
     dropoff: target,

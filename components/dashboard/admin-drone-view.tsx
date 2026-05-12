@@ -484,7 +484,9 @@ export function AdminDroneView() {
                             rangeKm: ''
                           });
                           // Refresh the request to show updated status
-                          fetchRequestDetails(requestId);
+                          if (requestId) {
+                            fetchRequestDetails(requestId);
+                          }
                         } else {
                           throw new Error('Failed to update request status');
                         }

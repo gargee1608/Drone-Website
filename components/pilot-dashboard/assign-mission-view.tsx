@@ -145,6 +145,7 @@ export function AssignMissionView() {
   const [apiRows, setApiRows] = useState<PilotMissionNotification[]>([]);
   const [localVers, setLocalVers] = useState(0);
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState("");
   const [commentsForRow, setCommentsForRow] = useState<PilotMissionNotification | null>(null);
   const [completedMissionIds, setCompletedMissionIds] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
