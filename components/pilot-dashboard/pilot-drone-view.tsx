@@ -84,26 +84,28 @@ export function PilotDroneView() {
   const [justAdded, setJustAdded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [justDeleted, setJustDeleted] = useState(false);
+  const [deletedDroneIds, setDeletedDroneIds] = useState<Set<string>>(new Set());
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingDrone, setEditingDrone] = useState<PilotProfileDrone | null>(null);
 
   // Add a global deletion flag
 let isCurrentlyDeleting = false;
 
-  const refreshFromStorage = useCallback(() => {
-    console.log("🔄 refreshFromStorage called");
+  const refreshFromStorage = useCallback((forceUpdate = false) => {
+    console.log("🔄 refreshFromStorage called, forceUpdate:", forceUpdate);
     
-    // Only refresh if we have a good reason to
     const base = readBaseSnapshot();
     console.log("📦 Reading from storage, base:", base);
     
     if (base && base.drones) {
-      console.log("� Storage has", base.drones.length, "drones, UI has", drones.length, "drones");
+      console.log("📦 Storage has", base.drones.length, "drones, UI has", drones.length, "drones");
       
-      // Only update if storage has significantly different data
-      if (base.drones.length !== drones.length) {
-        console.log("� Updating UI from storage (count mismatch)");
+      // Always update if forceUpdate is true, or if counts differ
+      if (forceUpdate || base.drones.length !== drones.length) {
+        console.log("✅ Updating UI from storage");
         setDrones([...base.drones]);
       } else {
-        console.log("🔄 Skipping update (counts match)");
+        console.log("🔄 Skipping update (counts match and not forced)");
       }
     } else {
       console.log("📭 No base data, keeping current state");
@@ -190,7 +192,7 @@ let isCurrentlyDeleting = false;
   useEffect(() => {
     const onUpdated = () => {
       console.log("📢 PILOT_PROFILE_UPDATED_EVENT received");
-      refreshFromStorage();
+      refreshFromStorage(true);
       fetchDroneDataFromBackend();
     };
     window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, onUpdated);
@@ -206,6 +208,14 @@ let isCurrentlyDeleting = false;
     return () => window.removeEventListener("focus", onFocus);
   }, [refreshFromStorage, fetchDroneDataFromBackend]);
 
+  // Refresh drone data when add form is closed (to show newly added drones)
+  useEffect(() => {
+    if (!showAddForm) {
+      console.log("🔄 Add form closed, refreshing drone data");
+      fetchDroneDataFromBackend();
+    }
+  }, [showAddForm, fetchDroneDataFromBackend]);
+
   // Periodic sync every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
@@ -218,57 +228,84 @@ let isCurrentlyDeleting = false;
   async function handleDeleteDrone(drone: PilotProfileDrone) {
     console.log("🗑️ Delete button clicked for drone:", drone);
     
-    if (!confirm("Are you sure you want to delete this drone?")) {
+    const confirmDelete = confirm("Are you sure you want to delete this drone?");
+    
+    if (!confirmDelete) {
       console.log("❌ User cancelled deletion");
       return;
     }
 
-    console.log("✅ User confirmed deletion - using simplified approach");
-    
-    // SIMPLE APPROACH: Just remove from current state immediately
-    const currentDrones = [...drones];
-    const filteredDrones = currentDrones.filter(d => d.id !== drone.id);
-    
-    console.log("🔄 Current drones:", currentDrones);
-    console.log("✂️ Filtered drones:", filteredDrones);
-    console.log("📊 Count before:", currentDrones.length, "after:", filteredDrones.length);
-    
-    // Force immediate UI update
-    setDrones(filteredDrones);
-    console.log("✅ UI state updated immediately");
-    
-    // Show success message
-    setError("Drone removed successfully!");
-    setJustAdded(true);
-    
-    // Try to update localStorage in background (non-blocking)
-    setTimeout(() => {
-      try {
-        const storeKey = activePilotProfileSnapshotStorageKey();
-        const raw = localStorage.getItem(storeKey);
-        
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          const updatedData = {
-            ...parsed,
-            drones: filteredDrones
-          };
-          
-          localStorage.setItem(storeKey, JSON.stringify(updatedData));
-          sessionStorage.setItem(storeKey, JSON.stringify(updatedData));
-          console.log("💾 Background localStorage update completed");
+    console.log("✅ User confirmed deletion");
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("You must be logged in to delete a drone.");
+        return;
       }
+
+      // Check if drone ID is a local storage ID (doesn't exist in backend yet)
+      const isLocalStorageDrone = typeof drone.id === 'string' && drone.id.startsWith('drone-');
+      
+      if (!isLocalStorageDrone) {
+        // Try to delete from backend first
+        try {
+          const response = await fetch(`http://localhost:4000/api/drones/${drone.id}`, {
+            method: "DELETE",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+            },
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.warn("Backend delete failed:", errorData.error);
+            // Continue with local storage deletion even if backend fails
+          } else {
+            console.log("✅ Drone deleted from backend successfully");
+          }
+        } catch (backendError) {
+          console.warn("Error deleting from backend, removing from local storage only:", backendError);
+          // Continue with local storage deletion
+        }
+      } else {
+        console.log("📦 Local storage drone detected, skipping backend delete");
+      }
+
+      // Add to deleted IDs set to prevent re-appearing from backend fetch
+      setDeletedDroneIds(prev => new Set(prev).add(drone.id));
+
+      // Update local state
+      const filteredDrones = drones.filter(d => d.id !== drone.id);
+      setDrones(filteredDrones);
+
+      // Update localStorage
+      const storeKey = activePilotProfileSnapshotStorageKey();
+      const raw = localStorage.getItem(storeKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const updatedData = {
+          ...parsed,
+          drones: filteredDrones
+        };
+        localStorage.setItem(storeKey, JSON.stringify(updatedData));
+        sessionStorage.setItem(storeKey, JSON.stringify(updatedData));
+      }
+
+      // Show success message
+      setError("Drone details deleted successfully!");
+      setJustAdded(true);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setJustAdded(false);
+        setError(null);
+      }, 3000);
+
     } catch (error) {
-        console.warn("⚠️ Background localStorage update failed:", error);
-      }
-    }, 100);
-    
-    // Clear success message after 3 seconds
-    setTimeout(() => {
-      setJustAdded(false);
-      setError(null);
-      console.log("🔄 Success message cleared");
-    }, 3000);
+      console.error("Error deleting drone:", error);
+      setError(error instanceof Error ? error.message : "Failed to delete drone. Please try again.");
+    }
   }
 
   async function handleSendAdminRequest() {
@@ -374,12 +411,18 @@ let isCurrentlyDeleting = false;
             Send Request to Admin
           </Button>
           <Button
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={() => {
+              setShowAddForm(!showAddForm);
+              if (!showAddForm) {
+                setIsEditMode(false);
+                setEditingDrone(null);
+              }
+            }}
             variant="outline"
             className="border-[#008B8B] text-[#008B8B] hover:bg-[#008B8B]/10"
           >
             <Plus className="mr-2 h-4 w-4" />
-            {showAddForm ? "Cancel" : "Add New Drone"}
+            {isEditMode ? "Save Changes" : (showAddForm ? "Cancel" : "Add New Drone")}
           </Button>
         </div>
       </div>
@@ -402,6 +445,7 @@ let isCurrentlyDeleting = false;
           <h3 className="text-lg font-semibold text-foreground">Your Fleet</h3>
           <div className="grid gap-4 md:grid-cols-2">
             {drones.filter(drone => 
+              !deletedDroneIds.has(drone.id) &&
               !(drone.modelName?.toLowerCase().includes('dji') && 
                 drone.type === 'FPV' && 
                 drone.camera === '5K' && 
@@ -423,7 +467,11 @@ let isCurrentlyDeleting = false;
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setShowAddForm(true)}
+                      onClick={() => {
+                        setIsEditMode(true);
+                        setEditingDrone(drone);
+                        setShowAddForm(true);
+                      }}
                       className="h-8 px-2"
                     >
                       <Edit className="h-3 w-3" />
@@ -483,7 +531,7 @@ let isCurrentlyDeleting = false;
       )}
 
       {/* No Drones State */}
-      {drones.length === 0 && !showAddForm && (
+      {drones.length === 0 && (
         <div className="text-center py-12">
           <DroneIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold text-foreground mb-2">No Drones Added Yet</h3>
@@ -515,10 +563,14 @@ let isCurrentlyDeleting = false;
         <div className="rounded-xl border border-border bg-muted/25 p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-foreground">
-              Add New Drone Details
+              {isEditMode ? "Save Changes" : "Add New Drone Details"}
             </h3>
             <Button
-              onClick={() => setShowAddForm(false)}
+              onClick={() => {
+                setShowAddForm(false);
+                setIsEditMode(false);
+                setEditingDrone(null);
+              }}
               variant="outline"
               size="sm"
             >
@@ -529,6 +581,13 @@ let isCurrentlyDeleting = false;
             showAdminRequest={true} 
             withDroneList={false}
             openFormByDefault={true}
+            editingDrone={editingDrone}
+            onDroneAdded={() => {
+              refreshFromStorage(true);
+              fetchDroneDataFromBackend();
+              setIsEditMode(false);
+              setEditingDrone(null);
+            }}
           />
         </div>
       )}

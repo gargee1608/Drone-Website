@@ -140,12 +140,22 @@ export type PilotSettingsAddDronePanelProps = {
    * Whether to open the form by default (default false)
    */
   openFormByDefault?: boolean;
+  /**
+   * Callback called when a drone is successfully added
+   */
+  onDroneAdded?: () => void;
+  /**
+   * Drone data to edit (if provided, form will be in edit mode)
+   */
+  editingDrone?: PilotProfileDrone | null;
 };
 
 export function PilotSettingsAddDronePanel({
   withDroneList = true,
   showAdminRequest = false,
   openFormByDefault = false,
+  onDroneAdded,
+  editingDrone,
 }: PilotSettingsAddDronePanelProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
@@ -179,6 +189,30 @@ export function PilotSettingsAddDronePanel({
       });
     }
   }, [draftModel, draftType, draftCamera, draftPayload, draftFlightMin, draftRangeKm, draftUseCases, showForm, editingDroneId]);
+
+  // Populate form when editingDrone prop is provided
+  useEffect(() => {
+    if (editingDrone) {
+      setEditingDroneId(editingDrone.id);
+      setDraftModel(editingDrone.modelName || "");
+      setDraftType(editingDrone.type || "");
+      setDraftCamera(editingDrone.camera || "");
+      setDraftPayload(editingDrone.payloadKg || "");
+      setDraftFlightMin(editingDrone.flightTimeMin || "");
+      setDraftRangeKm(editingDrone.rangeKm || "");
+      setDraftUseCases(editingDrone.useCases || []);
+    } else {
+      // Reset form when not editing
+      setEditingDroneId(null);
+      setDraftModel("");
+      setDraftType("");
+      setDraftCamera("");
+      setDraftPayload("");
+      setDraftFlightMin("");
+      setDraftRangeKm("");
+      setDraftUseCases([]);
+    }
+  }, [editingDrone]);
 
   const refreshFromStorage = useCallback(() => {
     const base = readBaseSnapshot();
@@ -327,9 +361,9 @@ export function PilotSettingsAddDronePanel({
       console.log("Response status:", response.status);
       console.log("Response headers:", response.headers);
 
-      if (!response.ok) {
+      if (!response.ok) { 
         let errorMessage = "Failed to update drone";
-        try {
+        try {  
           const responseText = await response.text();
           console.log("Error response text:", responseText);
           const errorData = JSON.parse(responseText);
@@ -715,6 +749,11 @@ export function PilotSettingsAddDronePanel({
         setDrones(next.drones);
       }
 
+      // Call the callback to notify parent
+      if (onDroneAdded) {
+        onDroneAdded();
+      }
+
       // Reset form
       setDraftModel("");
       setDraftType("");
@@ -960,8 +999,17 @@ export function PilotSettingsAddDronePanel({
         className="w-full border-[#008B8B] py-5 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
         onClick={commitDraftDrone}
       >
-        <Plus className="mr-2 inline size-4" aria-hidden />
-        Add new drone
+        {editingDroneId ? (
+          <>
+            <Edit className="mr-2 inline size-4" aria-hidden />
+            Save Changes
+          </>
+        ) : (
+          <>
+            <Plus className="mr-2 inline size-4" aria-hidden />
+            Add new drone
+          </>
+        )}
       </Button>
     </div>
   );
