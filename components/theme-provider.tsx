@@ -14,6 +14,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 
 import {
   applyThemeToDocument,
@@ -29,16 +30,40 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+// Marketing pages that should always be light mode
+const MARKETING_PAGES = ["/", "/blogs", "/services", "/contact"];
+
+function isMarketingPage(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return MARKETING_PAGES.some(
+    (page) => pathname === page || pathname.startsWith(`${page}/`)
+  );
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [theme, setThemeState] = useState<AppTheme>("light");
 
   useLayoutEffect(() => {
+    // Force light mode for marketing pages
+    if (isMarketingPage(pathname)) {
+      setThemeState("light");
+      applyThemeToDocument("light");
+      return;
+    }
+
+    // Use stored theme for dashboards
     const initial = resolveThemeWithFallback();
     setThemeState(initial);
     applyThemeToDocument(initial);
-  }, []);
+  }, [pathname]);
 
   const setTheme = useCallback((next: AppTheme) => {
+    // Don't allow theme changes on marketing pages
+    if (isMarketingPage(pathname)) {
+      return;
+    }
+
     setThemeState(next);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, next);
@@ -46,7 +71,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
     applyThemeToDocument(next);
-  }, []);
+  }, [pathname]);
 
   const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
 

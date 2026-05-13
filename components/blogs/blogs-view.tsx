@@ -125,19 +125,19 @@ export function BlogsView({
       <section className="group relative mb-12 overflow-hidden rounded-xl border border-[#c1c7cf]/40 bg-card shadow-lg sm:mb-14">
         <div className="flex flex-col md:flex-row md:items-stretch md:min-h-[min(320px,45vh)] lg:min-h-[360px]">
           <div className="flex w-full max-w-2xl flex-col justify-center p-5 sm:p-7 md:p-8 md:w-[min(100%,26rem)] md:max-w-[48%] md:flex-shrink-0 lg:w-[min(100%,28rem)]">
-            <span className="mb-2 inline-block w-fit rounded-full border border-[#006a6e]/25 bg-[#006a6e]/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#006a6e] sm:mb-3 sm:px-3 sm:py-1 sm:text-[10px]">
+            <span className="mb-2 inline-block w-fit rounded-full border border-[#006a6e]/25 bg-[#006a6e]/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#006a6e] dark:text-[#4ddbd9] sm:mb-3 sm:px-3 sm:py-1 sm:text-[10px]">
               Featured Publication
             </span>
             <h1 className={cn("mb-3 sm:mb-4", ADMIN_PAGE_TITLE_CLASS, "text-foreground")}>
               {featuredHero.headlineLead}{" "}
-              <span className="text-black">{featuredHero.headlineGradient}</span>
+              <span className="text-black dark:text-white">{featuredHero.headlineGradient}</span>
             </h1>
-            <p className="mb-5 max-w-xl font-[family-name:var(--font-landing-body)] text-sm leading-relaxed text-slate-600 sm:mb-6 sm:text-base md:max-w-2xl">
+            <p className="mb-5 max-w-xl font-[family-name:var(--font-landing-body)] text-sm leading-relaxed text-slate-600 dark:text-slate-300 sm:mb-6 sm:text-base md:max-w-2xl">
               {featuredPost?.excerpt ?? featuredHero.subhead}
             </p>
             <Link
               href={`/blogs/${FEATURED_SLUG}`}
-              className="inline-flex w-fit items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-6 py-2.5 text-center font-[family-name:var(--font-landing-headline)] text-xs font-bold uppercase tracking-widest text-[#006a6e] transition-all hover:bg-[#006a6e]/10 active:scale-95 sm:px-7 sm:py-3 sm:text-sm"
+              className="inline-flex w-fit items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-6 py-2.5 text-center font-[family-name:var(--font-landing-headline)] text-xs font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] transition-all hover:bg-[#006a6e]/10 active:scale-95 sm:px-7 sm:py-3 sm:text-sm"
             >
               Read this blog
             </Link>
@@ -171,7 +171,7 @@ export function BlogsView({
                   "whitespace-nowrap rounded-full px-6 py-2 font-[family-name:var(--font-landing-headline)] text-xs font-bold uppercase tracking-widest transition-colors",
                   active
                     ? "bg-[#006a6e] text-white"
-                    : "bg-card text-foreground hover:bg-[#e7e9ef]"
+                    : "bg-card text-foreground hover:bg-[#e7e9ef] dark:hover:bg-slate-800"
                 )}
               >
                 {label}
@@ -211,19 +211,19 @@ export function BlogsView({
               </div>
             </Link>
             <div className="flex flex-1 flex-col p-6">
-              <h3 className="mb-3 font-[family-name:var(--font-landing-headline)] text-xl font-bold leading-tight text-[#1a1c1e] transition-colors group-hover:text-[#006a6e]">
+              <h3 className="mb-3 font-[family-name:var(--font-landing-headline)] text-xl font-bold leading-tight text-[#1a1c1e] dark:text-white transition-colors group-hover:text-[#006a6e] dark:group-hover:text-[#4ddbd9]">
                 <Link href={`/blogs/${post.slug}`}>{post.title}</Link>
               </h3>
-              <p className="mb-6 line-clamp-3 font-[family-name:var(--font-landing-body)] text-sm text-[#41474d]">
+              <p className="mb-6 line-clamp-3 font-[family-name:var(--font-landing-body)] text-sm text-[#41474d] dark:text-slate-300">
                 {post.excerpt}
               </p>
               <div className="mt-auto space-y-2 border-t border-[#c1c7cf]/10 pt-4">
-                <p className="text-xs font-bold uppercase tracking-tighter text-[#1a1c1e]">
+                <p className="text-xs font-bold uppercase tracking-tighter text-[#1a1c1e] dark:text-white">
                   By {post.author}
                 </p>
                 <div className="flex items-center gap-2">
                   <Calendar className="size-3.5 shrink-0 text-[#006a6e]" aria-hidden />
-                  <span className="text-xs text-[#41474d]">{post.date}</span>
+                  <span className="text-xs text-[#41474d] dark:text-slate-300">{post.date}</span>
                 </div>
               </div>
             </div>
@@ -232,7 +232,7 @@ export function BlogsView({
       </div>
 
       {filtered.length === 0 ? (
-        <p className="pb-24 text-center text-sm text-[#41474d]">
+        <p className="pb-24 text-center text-sm text-[#41474d] dark:text-slate-300">
           No flight logs match your filters.
         </p>
       ) : null}

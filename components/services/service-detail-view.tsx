@@ -20,7 +20,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
     <div
       className={cn(
         landingFontClassName,
-        "min-h-0 flex-1 bg-white pt-22 text-foreground sm:pt-24"
+        "min-h-0 flex-1 bg-white dark:bg-background pt-22 text-foreground sm:pt-24"
       )}
     >
       <main className="mx-auto min-w-0 max-w-5xl px-4 pb-16 pt-6 sm:px-6 sm:pb-20 sm:pt-8 lg:max-w-6xl lg:pb-24">
@@ -33,13 +33,13 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
             href="/services"
             className={cn(
               body,
-              "font-medium text-[#008B8B] transition-colors hover:text-[#006b6b]"
+              "font-medium text-[#008B8B] dark:text-[#4ddbd9] transition-colors hover:text-[#006b6b] dark:hover:text-[#7ce8e5]"
             )}
           >
             Services
           </Link>
           <ChevronRight
-            className="size-4 shrink-0 text-slate-400"
+            className="size-4 shrink-0 text-slate-400 dark:text-slate-500"
             aria-hidden
           />
           <span
@@ -101,11 +101,11 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
                     key={line}
                     className={cn(
                       body,
-                      "flex gap-3 text-[0.9375rem] leading-snug text-slate-700 sm:text-base"
+                      "flex gap-3 text-[0.9375rem] leading-snug text-slate-700 dark:text-slate-300 sm:text-base"
                     )}
                   >
                     <CheckCircle2
-                      className="mt-0.5 size-4 shrink-0 text-[#008B8B]"
+                      className="mt-0.5 size-4 shrink-0 text-[#008B8B] dark:text-[#4ddbd9]"
                       aria-hidden
                     />
                     <span>{line}</span>
@@ -116,7 +116,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
           </div>
 
           <div className="order-1 mx-auto flex w-full max-w-[11rem] flex-col sm:max-w-[12rem] md:order-2 md:mx-0 md:max-w-none md:justify-self-end md:w-full">
-            <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+            <div className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
               <div className="relative aspect-[3/4] w-full">
                 <Image
                   src={item.image}
@@ -154,7 +154,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
                 label="Request this service"
                 className={cn(
                   headline,
-                  "mt-5 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[#008B8B] bg-transparent px-4 py-2.5 text-sm font-semibold text-[#008B8B] transition hover:bg-[#008B8B]/10"
+                  "mt-5 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[#008B8B] bg-transparent px-4 py-2.5 text-sm font-semibold text-[#008B8B] dark:text-[#4ddbd9] transition hover:bg-[#008B8B]/10 dark:hover:bg-[#008B8B]/20"
                 )}
               />
             </div>

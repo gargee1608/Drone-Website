@@ -60,14 +60,14 @@ export function ConditionalSiteFooter() {
         <div
           className={cn(
             "h-px w-full shrink-0",
-            isUserDashboard ? "bg-slate-200 dark:bg-slate-200" : "bg-slate-200 dark:bg-white/15"
+            isUserDashboard ? "bg-slate-200 dark:bg-transparent" : "bg-slate-200 dark:bg-white/15"
           )}
           aria-hidden
         />
         <SiteFooter
           className={
             isUserDashboard
-              ? "bg-white text-[#191c1d] dark:bg-white dark:text-[#191c1d]"
+              ? "bg-white text-foreground dark:bg-[#111315] dark:text-white"
               : "bg-white text-foreground dark:bg-[#111315] dark:text-white"
           }
         />

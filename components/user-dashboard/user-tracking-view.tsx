@@ -135,14 +135,14 @@ export function UserTrackingView() {
         {entries.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card px-6 py-16 text-center dark:border-border dark:bg-card">
             <MapPinned
-              className="mb-4 size-12 text-[#c1c6d7] dark:text-[#c1c6d7]"
+              className="mb-4 size-12 text-[#c1c6d7] dark:text-white/60"
               strokeWidth={1.5}
               aria-hidden
             />
-            <p className="text-base font-semibold text-[#191c1d] dark:text-[#191c1d]">
+            <p className="text-base font-semibold text-[#191c1d] dark:text-white">
               No assigned missions yet
             </p>
-            <p className="mt-2 max-w-md text-xs text-[#414755] dark:text-[#414755]">
+            <p className="mt-2 max-w-md text-xs text-[#414755] dark:text-white/70">
               When an admin assigns a pilot to your request from the dashboard,
               you&apos;ll see the pilot name and your request
               details here. Assignments are stored in this browser for demo
@@ -164,33 +164,33 @@ export function UserTrackingView() {
                   <col className="w-[8%]" />
                   <col className="w-[12%]" />
                 </colgroup>
-                <thead className="bg-[#f3f4f5]/85 dark:bg-[#f3f4f5]/85">
-                  <tr className="border-b border-[#edeeef] dark:border-[#edeeef]">
-                    <th className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-[#4d5b7f]">
+                <thead className="bg-[#f3f4f5]/85 dark:bg-white/5">
+                  <tr className="border-b border-[#edeeef] dark:border-white/10">
+                    <th className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
                       Assigned
                     </th>
-                    <th className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-[#4d5b7f]">
+                    <th className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
                       Request ID
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-[#4d5b7f]">
+                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
                       Pilot name
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-[#4d5b7f]">
+                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
                       Title
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-[#4d5b7f]">
+                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
                       Pickup
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-[#4d5b7f]">
+                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
                       Drop-off
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-[#4d5b7f]">
+                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
                       Type
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-[#4d5b7f]">
+                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
                       Priority
                     </th>
-                    <th className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-[#4d5b7f]">
+                    <th className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
                       Status
                     </th>
                   </tr>
@@ -220,33 +220,33 @@ export function UserTrackingView() {
                     return (
                       <tr
                         key={`${entry.id}-${commentsVersion}`}
-                        className="border-b border-[#edeeef] last:border-b-0 dark:border-[#edeeef]"
+                        className="border-b border-[#edeeef] last:border-b-0 dark:border-white/10"
                       >
-                        <td className="whitespace-nowrap px-3 py-3 text-xs text-[#191c1d] dark:text-[#191c1d]">
+                        <td className="whitespace-nowrap px-3 py-3 text-xs text-[#191c1d] dark:text-white">
                           {formatAssignedAt(entry.assignedAt)}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs text-[#191c1d] dark:text-[#191c1d]">
+                        <td className="whitespace-nowrap px-3 py-3 text-xs text-[#191c1d] dark:text-white">
                           <span className="font-mono">{displayReqId}</span>
                         </td>
-                        <td className="px-3 py-3 text-xs font-medium break-words text-[#191c1d] dark:text-[#191c1d]">
+                        <td className="px-3 py-3 text-xs font-medium break-words text-[#191c1d] dark:text-white">
                           {pilotDisplayName || "—"}
                         </td>
-                        <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-[#191c1d]">
+                        <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-white">
                           {r.reasonOrTitle?.trim() || "—"}
                         </td>
-                        <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-[#191c1d]">
+                        <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-white">
                           {r.pickupLocation?.trim() || "—"}
                         </td>
-                        <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-[#191c1d]">
+                        <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-white">
                           {r.dropLocation?.trim() || "—"}
                         </td>
-                        <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-[#191c1d]">
+                        <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-white">
                           {r.requestType?.trim() || "—"}
                         </td>
-                        <td className="px-3 py-3 text-xs whitespace-nowrap text-[#191c1d] dark:text-[#191c1d]">
+                        <td className="px-3 py-3 text-xs whitespace-nowrap text-[#191c1d] dark:text-white">
                           {r.requestPriority?.trim() || "—"}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs font-medium text-[#006767] dark:text-primary">
+                        <td className="whitespace-nowrap px-3 py-3 text-xs font-medium text-[#006767] dark:text-[#4ddbd9]">
                           {statusLabel}
                         </td>
                       </tr>

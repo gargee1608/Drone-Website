@@ -69,7 +69,7 @@ const serviceCardArticle =
 const serviceCardImageWrap = "relative block h-44 w-full overflow-hidden sm:h-48";
 
 const serviceGridBtnClass =
-  "flex w-full items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-3 py-2 text-center font-[family-name:var(--font-landing-headline)] text-[11px] font-bold uppercase tracking-widest text-[#006a6e] shadow-sm transition hover:border-[#005a5d] hover:bg-[#006a6e]/10 sm:text-xs";
+  "flex w-full items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-3 py-2 text-center font-[family-name:var(--font-landing-headline)] text-[11px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] shadow-sm transition hover:border-[#005a5d] hover:bg-[#006a6e]/10 sm:text-xs";
 
 function ServiceGridCard({
   entry,
@@ -106,7 +106,7 @@ function ServiceGridCard({
             />
           </Link>
           <div className="pointer-events-none absolute left-3 top-3">
-            <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
+            <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
               {item.topBadge.text}
             </span>
           </div>
@@ -115,14 +115,14 @@ function ServiceGridCard({
           <h3
             className={cn(
               headline,
-              "mb-2 text-lg font-bold leading-tight text-[#1a1c1e] transition-colors group-hover:text-[#006a6e] sm:text-xl"
+              "mb-2 text-lg font-bold leading-tight text-[#1a1c1e] dark:text-white transition-colors group-hover:text-[#006a6e] dark:group-hover:text-[#4ddbd9] sm:text-xl"
             )}
           >
             <Link href={`/services/${item.slug}`} onClick={blockNav}>
               {item.title}
             </Link>
           </h3>
-          <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-[#41474d]">
+          <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-[#41474d] dark:text-slate-300">
             {catalogExcerpt(item.description)}
           </p>
           <div
@@ -169,7 +169,7 @@ function ServiceGridCard({
             />
           </Link>
           <div className="pointer-events-none absolute left-3 top-3">
-            <span className="rounded border border-border bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-foreground shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
+            <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
               {item.priceLabel}
             </span>
           </div>
@@ -178,7 +178,7 @@ function ServiceGridCard({
           <h3
             className={cn(
               headline,
-              "mb-2 text-lg font-bold leading-tight text-[#1a1c1e] transition-colors group-hover:text-[#006a6e] sm:text-xl"
+              "mb-2 text-lg font-bold leading-tight text-[#1a1c1e] dark:text-white transition-colors group-hover:text-[#006a6e] dark:group-hover:text-[#4ddbd9] sm:text-xl"
             )}
           >
             <Link
@@ -188,7 +188,7 @@ function ServiceGridCard({
               {item.title}
             </Link>
           </h3>
-          <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-[#41474d]">
+          <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-[#41474d] dark:text-slate-300">
             {catalogExcerpt(item.description)}
           </p>
           <div
@@ -237,13 +237,13 @@ function ServiceGridCard({
             />
           </Link>
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[#edeef2] text-xs font-semibold uppercase tracking-wider text-[#41474d]">
+          <div className="flex h-full w-full items-center justify-center bg-[#edeef2] dark:bg-slate-800 text-xs font-semibold uppercase tracking-wider text-[#41474d] dark:text-slate-300">
             No image
           </div>
         )}
         {price ? (
           <div className="pointer-events-none absolute left-3 top-3">
-            <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
+            <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
               ${price}
             </span>
           </div>
@@ -253,7 +253,7 @@ function ServiceGridCard({
         <h3
           className={cn(
             headline,
-            "mb-2 text-lg font-bold leading-tight text-[#1a1c1e] transition-colors group-hover:text-[#006a6e] sm:text-xl"
+            "mb-2 text-lg font-bold leading-tight text-[#1a1c1e] dark:text-white transition-colors group-hover:text-[#006a6e] dark:group-hover:text-[#4ddbd9] sm:text-xl"
           )}
         >
           <Link
@@ -263,7 +263,7 @@ function ServiceGridCard({
             {title}
           </Link>
         </h3>
-        <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-[#41474d]">
+        <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-[#41474d] dark:text-slate-300">
           {description}
         </p>
         <div
@@ -281,10 +281,10 @@ function ServiceGridCard({
 }
 
 const featuredBtnOutline =
-  "inline-flex w-fit items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-5 py-2 text-center font-[family-name:var(--font-landing-headline)] text-[11px] font-bold uppercase tracking-widest text-[#006a6e] transition-all hover:bg-[#006a6e]/10 active:scale-95 sm:px-6 sm:py-2.5 sm:text-xs";
+  "inline-flex w-fit items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-5 py-2 text-center font-[family-name:var(--font-landing-headline)] text-[11px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] transition-all hover:bg-[#006a6e]/10 active:scale-95 sm:px-6 sm:py-2.5 sm:text-xs";
 
 const featuredBtnPrimary =
-  "inline-flex w-fit items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-5 py-2 text-center font-[family-name:var(--font-landing-headline)] text-[11px] font-bold uppercase tracking-widest text-[#006a6e] shadow-sm transition-all hover:border-[#005a5d] hover:bg-[#006a6e]/10 active:scale-95 sm:px-6 sm:py-2.5 sm:text-xs";
+  "inline-flex w-fit items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-5 py-2 text-center font-[family-name:var(--font-landing-headline)] text-[11px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] shadow-sm transition-all hover:border-[#005a5d] hover:bg-[#006a6e]/10 active:scale-95 sm:px-6 sm:py-2.5 sm:text-xs";
 
 function FeaturedPriceRow({
   prefix = "Starting at",
@@ -344,7 +344,7 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
     const item = entry.item;
     left = (
       <>
-        <span className="mb-2 inline-block w-fit rounded-full border border-[#006a6e]/25 bg-[#006a6e]/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#006a6e] sm:mb-3 sm:px-3 sm:py-1 sm:text-[10px]">
+        <span className="mb-2 inline-block w-fit rounded-full border border-[#006a6e]/25 bg-[#006a6e]/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#006a6e] dark:text-[#4ddbd9] sm:mb-3 sm:px-3 sm:py-1 sm:text-[10px]">
           Featured service
         </span>
         <h2
@@ -397,7 +397,7 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
     const href = `/user-dashboard/create-request?reason=${encodeURIComponent(item.title)}`;
     left = (
       <>
-        <span className="mb-2 inline-block w-fit rounded-full border border-[#006a6e]/25 bg-[#006a6e]/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#006a6e] sm:mb-3 sm:px-3 sm:py-1 sm:text-[10px]">
+        <span className="mb-2 inline-block w-fit rounded-full border border-[#006a6e]/25 bg-[#006a6e]/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#006a6e] dark:text-[#4ddbd9] sm:mb-3 sm:px-3 sm:py-1 sm:text-[10px]">
           Featured service
         </span>
         <h2
@@ -449,7 +449,7 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
       typeof entry.item.image === "string" ? entry.item.image.trim() : "";
     left = (
       <>
-        <span className="mb-2 inline-block w-fit rounded-full border border-[#006a6e]/25 bg-[#006a6e]/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#006a6e] sm:mb-3 sm:px-3 sm:py-1 sm:text-[10px]">
+        <span className="mb-2 inline-block w-fit rounded-full border border-[#006a6e]/25 bg-[#006a6e]/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#006a6e] dark:text-[#4ddbd9] sm:mb-3 sm:px-3 sm:py-1 sm:text-[10px]">
           Featured listing
         </span>
         <h2
@@ -495,7 +495,7 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         />
       </Link>
     ) : (
-      <div className="flex h-full min-h-[200px] w-full items-center justify-center bg-[#edeef2] text-xs font-medium text-[#41474d] md:min-h-[220px]">
+      <div className="flex h-full min-h-[200px] w-full items-center justify-center bg-[#edeef2] dark:bg-slate-800 text-xs font-medium text-[#41474d] dark:text-slate-300 md:min-h-[220px]">
         No image
       </div>
     );
