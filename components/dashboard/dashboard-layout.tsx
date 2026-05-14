@@ -56,11 +56,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   }, [sidebarExpanded, sidebarOpen]);
 
   return (
-    <div className="admin-dashboard flex min-h-0 flex-1 flex-col bg-background pt-20 text-foreground antialiased sm:pt-22">
+    <div className="admin-dashboard flex min-h-0 flex-1 flex-col bg-white pt-24 text-foreground antialiased sm:pt-26">
       {sidebarOpen && (
         <button
           type="button"
-          className="fixed inset-x-0 bottom-0 top-20 z-40 bg-[#191c1d]/40 lg:hidden"
+          className="fixed inset-x-0 bottom-0 top-24 z-40 bg-[#191c1d]/40 lg:hidden"
           aria-label="Close navigation"
           onClick={closeSidebar}
         />
@@ -69,7 +69,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       <aside
         id="command-center-nav"
         className={cn(
-          "fixed bottom-0 left-0 top-20 z-50 flex h-[calc(100dvh-5rem)] max-h-[calc(100dvh-5rem)] min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-border bg-card lg:border-r-0",
+          "fixed bottom-0 left-0 top-24 z-50 flex h-[calc(100dvh-6rem)] max-h-[calc(100dvh-6rem)] min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-border bg-card lg:border-r-0",
           "transform transition-[transform,width] duration-200 ease-out will-change-transform",
           sidebarExpanded ? "lg:w-64" : "lg:w-0 lg:max-w-0 lg:overflow-hidden lg:border-0 lg:p-0",
           "-translate-x-full lg:translate-x-0",
@@ -115,7 +115,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                         "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
                         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35",
                         isActive
-                          ? "bg-muted text-foreground shadow-sm ring-1 ring-border"
+                          ? "bg-muted text-foreground shadow-sm"
                           : "text-foreground hover:bg-muted/90 active:bg-muted"
                       )}
                     >
@@ -134,7 +134,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
           <div
             className={cn(
-              "relative z-10 w-full shrink-0 border-t border-border bg-card px-2 pt-4",
+              "relative z-10 w-full shrink-0 bg-card px-2 pt-4",
               "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
             )}
           >
@@ -176,7 +176,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       {sidebarExpanded ? (
         <div
           aria-hidden
-          className="pointer-events-none fixed bottom-0 left-64 top-20 z-[35] hidden w-px bg-border lg:block"
+          className="pointer-events-none fixed bottom-0 left-64 top-24 z-[35] hidden w-px bg-border lg:block"
         />
       ) : null}
 
@@ -186,7 +186,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           sidebarExpanded ? "lg:ml-64" : "lg:ml-0"
         )}
       >
-        <div className="flex items-center border-b border-border bg-card px-4 py-2.5 lg:hidden">
+        <div className="flex items-center border-b border-border bg-white px-4 py-2.5 lg:hidden">
           <button
             type="button"
             className="rounded-lg p-2 text-foreground transition-colors hover:bg-muted"
@@ -199,7 +199,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col space-y-10 bg-background px-3 pb-2 pt-0 sm:px-5 sm:pb-2">
+        <div className="flex flex-1 flex-col space-y-10 bg-white px-3 pb-2 pt-0 sm:px-5 sm:pb-2">
           {children}
         </div>
       </main>
