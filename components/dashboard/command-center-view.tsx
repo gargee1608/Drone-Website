@@ -338,7 +338,7 @@ export function DashboardHomeContent() {
 
   return (
     <>
-      <h1 className={ADMIN_PAGE_TITLE_CLASS}>Admin Dashboard</h1>
+      <h1 className={cn(ADMIN_PAGE_TITLE_CLASS, "mt-8 mb-8")}>Admin Dashboard</h1>
 
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard

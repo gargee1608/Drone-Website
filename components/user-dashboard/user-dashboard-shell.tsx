@@ -277,12 +277,12 @@ export function UserDashboardShell({
               </button>
             </div>
           ) : null}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pt-2 lg:px-3 lg:pb-3 lg:pt-0">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pt-2 lg:px-3 lg:pb-3 lg:pt-6">
             <SidebarNavLinks />
           </div>
           {sidebarExpanded ? (
             <div className="mt-auto flex w-full shrink-0 flex-col">
-              <div className="shrink-0 border-t border-border px-3.5 pt-3 pb-3">
+              <div className="shrink-0 border-t border-slate-200 pt-4 pb-2 dark:border-slate-200 px-3.5">
                 <LogoutControl />
               </div>
             </div>

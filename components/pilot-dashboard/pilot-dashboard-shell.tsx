@@ -203,7 +203,7 @@ export function PilotDashboardShell({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-background pt-20 text-foreground sm:pt-22">
-      <div className="flex items-center gap-2 border-b border-border bg-background px-4 py-1.5 lg:hidden">
+      <div className="flex items-center gap-2 border-b border-border bg-background px-4 py-3 lg:hidden">
         <button
           type="button"
           className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted"
@@ -276,12 +276,12 @@ export function PilotDashboardShell({
               </button>
             </div>
           ) : null}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pt-2 lg:px-4 lg:pb-4 lg:pt-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pt-2 lg:px-4 lg:pb-4 lg:pt-6">
             <SidebarNavLinks />
           </div>
           {sidebarExpanded ? (
             <div className="mt-auto flex w-full shrink-0 flex-col">
-              <div className="shrink-0 border-t border-border px-3.5 pt-3 pb-3">
+              <div className="shrink-0 border-t border-border px-3.5 pt-4 pb-3">
                 <LogoutControl />
               </div>
             </div>

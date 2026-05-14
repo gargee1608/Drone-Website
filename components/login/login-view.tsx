@@ -100,6 +100,7 @@ export function LoginView({
   embedded = false,
   hideWelcomeHeader = false,
   plainCard = false,
+  forceLightMode = false,
 }: {
   /** Hide Admin login; use on pages that only offer user sign-in (e.g. next to Pilot login). */
   userOnly?: boolean;
@@ -107,10 +108,12 @@ export function LoginView({
   adminOnly?: boolean;
   /** Omit outer page shell — parent supplies layout (e.g. sliding panel). */
   embedded?: boolean;
-  /** Hide icon, “User Login”, and “Welcome Back” — parent shows shared title (e.g. pilot login page). */
+  /** Hide icon, "User Login", and "Welcome Back" — parent shows shared title (e.g. pilot login page). */
   hideWelcomeHeader?: boolean;
   /** No inner card chrome — sits inside a parent box (e.g. pilot login outer shell). */
   plainCard?: boolean;
+  /** Force light mode regardless of system theme preference. */
+  forceLightMode?: boolean;
 } = {}) {
   const router = useRouter();
   const [mode, setMode] = useState<LoginMode>(
@@ -280,14 +283,15 @@ export function LoginView({
             "relative w-full overflow-hidden",
             plainCard
               ? "border-0 bg-transparent p-0 shadow-none"
-              : "login-glass-card rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md sm:p-5",
-            !embedded && !plainCard && "max-w-[min(100%,360px)] sm:max-w-[420px]"
+              : "login-glass-card rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md dark:border-white/15 dark:bg-[#161a1d]/95 sm:p-5",
+            !embedded && !plainCard && "max-w-[min(100%,360px)] sm:max-w-[420px]",
+            forceLightMode && "!bg-white !text-slate-900"
           )}
         >
           {!hideWelcomeHeader ? (
             <div className="mb-2 text-center sm:mb-2.5">
               <div className="mb-1.5 flex justify-center sm:mb-2">
-                <div className="flex size-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 shadow-sm sm:size-11">
+                <div className="flex size-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 shadow-sm dark:border-white/20 dark:bg-white/10 sm:size-11">
                   <User
                     className="size-[22px] text-[#008B8B] sm:size-6"
                     strokeWidth={1.75}
@@ -307,7 +311,7 @@ export function LoginView({
               </h1>
               {showAdminUserTabs ? (
                 <div
-                  className="mb-1.5 flex rounded-lg border border-slate-200 bg-slate-100/80 p-0.5"
+                  className="mb-1.5 flex rounded-lg border border-slate-200 bg-slate-100/80 p-0.5 dark:border-white/20 dark:bg-white/10"
                   role="tablist"
                   aria-label="Login type"
                 >
@@ -327,8 +331,8 @@ export function LoginView({
                     className={cn(
                       "min-h-8 flex-1 rounded-md px-2 py-1 text-xs font-semibold tracking-wide transition-all sm:min-h-9 sm:px-2.5 sm:text-sm",
                       mode === "admin"
-                        ? "border border-slate-300 bg-white text-[#191c1d] shadow-sm"
-                        : "text-[#414755] hover:text-[#191c1d]"
+                        ? "border border-slate-300 bg-white text-[#191c1d] shadow-sm dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
+                        : "text-[#414755] hover:text-[#191c1d] dark:text-white/70 dark:hover:text-white"
                     )}
                   >
                     Admin Login
@@ -369,7 +373,7 @@ export function LoginView({
                         ? "login-tab-admin"
                         : "login-tab-user"
                 }
-                className="text-xs font-medium leading-snug text-[#414755] sm:text-sm"
+                className="text-xs font-medium leading-snug text-[#414755] dark:text-white/75 sm:text-sm"
               >
                 {isAdminMode ? "Admin dashboard" : "User dashboard"}
               </p>
@@ -478,7 +482,7 @@ export function LoginView({
 >
             {isUserMode ? (
               <div
-                className="flex w-full rounded-lg border border-slate-200 bg-slate-100/80 p-0.5"
+                className="flex w-full rounded-lg border border-slate-200 bg-slate-100/80 p-0.5 dark:border-white/20 dark:bg-white/10"
                 role="tablist"
                 aria-label="User sign-in method"
               >
@@ -529,7 +533,7 @@ export function LoginView({
             <div className="space-y-1.5">
               <label
                 htmlFor="login-identity"
-                className="block px-1 text-xs font-semibold text-[#414755] sm:text-sm"
+                className="block px-1 text-xs font-semibold text-[#414755] dark:text-white/70 sm:text-sm"
               >
                 {isUserMode && userAuthMethod === "otp"
                   ? "Email or mobile"
@@ -570,7 +574,7 @@ export function LoginView({
                     errors.identity ? "login-identity-error" : undefined
                   }
                   className={cn(
-                    "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
+                    "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:placeholder:text-white/40 sm:py-2.5 sm:pl-10",
                     errors.identity
                       ? "border-red-500 focus:border-red-500"
                       : "focus:border-slate-500"
@@ -592,7 +596,7 @@ export function LoginView({
               <div className="space-y-2">
                <button
   type="button"
-  className="w-full rounded-md border border-slate-300 bg-white py-2 text-xs font-semibold text-[#191c1d] shadow-sm transition hover:border-slate-400 hover:bg-slate-50 sm:text-sm"
+  className="w-full rounded-md border border-slate-300 bg-white py-2 text-xs font-semibold text-[#191c1d] shadow-sm transition hover:border-slate-400 hover:bg-slate-50 dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:border-white/30 dark:hover:bg-white/10 sm:text-sm"
   onClick={sendOtp}
 >
                   Send OTP
@@ -600,7 +604,7 @@ export function LoginView({
                 <div className="space-y-1.5">
                   <label
                     htmlFor="login-otp"
-                    className="block px-1 text-xs font-semibold text-[#414755] sm:text-sm"
+                    className="block px-1 text-xs font-semibold text-[#414755] dark:text-white/70 sm:text-sm"
                   >
                     OTP code
                   </label>
@@ -628,7 +632,7 @@ export function LoginView({
                         errors.otp ? "login-otp-error" : undefined
                       }
                       className={cn(
-                        "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
+                        "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-2.5 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:placeholder:text-white/40 sm:py-2.5 sm:pl-10",
                         errors.otp
                           ? "border-red-500 focus:border-red-500"
                           : "focus:border-slate-500"
@@ -651,7 +655,7 @@ export function LoginView({
                 <div className="space-y-1.5">
                   <label
                     htmlFor="login-password"
-                    className="block px-1 text-xs font-semibold text-[#414755] sm:text-sm"
+                    className="block px-1 text-xs font-semibold text-[#414755] dark:text-white/70 sm:text-sm"
                   >
                     Password
                   </label>
@@ -677,7 +681,7 @@ export function LoginView({
                         errors.password ? "login-password-error" : undefined
                       }
                       className={cn(
-                        "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-11 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 sm:py-2.5 sm:pl-10",
+                        "w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-11 text-sm text-[#191c1d] placeholder:text-[#717786] outline-none transition-colors focus:outline-none focus:ring-0 dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:placeholder:text-white/40 sm:py-2.5 sm:pl-10",
                         errors.password
                           ? "border-red-500 focus:border-red-500"
                           : "focus:border-slate-500"
@@ -714,11 +718,11 @@ export function LoginView({
                         type="checkbox"
                         checked={remember}
                         onChange={(e) => setRemember(e.target.checked)}
-                        className="size-4 shrink-0 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-0 sm:size-[18px]"
+                        className="size-4 shrink-0 rounded border border-slate-300 bg-white text-[#008B8B] focus:outline-none focus:ring-0 dark:border-white/20 dark:bg-[#161a1d] sm:size-[18px]"
                       />
                       <label
                         htmlFor="login-remember"
-                        className="cursor-pointer text-xs font-medium text-[#414755] sm:text-sm"
+                        className="cursor-pointer text-xs font-medium text-[#414755] dark:text-white/75 sm:text-sm"
                       >
                         Remember me
                       </label>
@@ -756,7 +760,7 @@ export function LoginView({
 
           {!adminOnly ? (
             <div className="mt-3 text-center sm:mt-4">
-              <p className="text-xs font-medium text-[#414755] sm:text-sm">
+              <p className="text-xs font-medium text-[#414755] dark:text-white/75 sm:text-sm">
                 Don&apos;t have an account?{" "}
                 <Link
                   href="/signup"
