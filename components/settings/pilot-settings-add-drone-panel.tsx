@@ -817,7 +817,7 @@ export function PilotSettingsAddDronePanel({
       } : null;
 
       // Send request to admin with pilot details
-      const response = await fetch("http://localhost:4000/api/user-requests", {
+      const response = await fetch(apiUrl("/api/user-requests"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

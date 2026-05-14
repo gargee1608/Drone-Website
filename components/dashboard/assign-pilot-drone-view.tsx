@@ -69,6 +69,9 @@ import {
   PILOT_PROFILE_UPDATED_EVENT,
   type PilotProfileDrone,
 } from "@/lib/pilot-profile-snapshot";
+import {
+  ADMIN_FLEET_UPDATED_EVENT,
+} from "@/lib/admin-fleet-updated";
 import { cn } from "@/lib/utils";
 
 const manrope = Manrope({
@@ -644,9 +647,41 @@ export function AssignPilotDroneView() {
           acc[row.id] = { name: row.name, badgeId: row.pilotId };
           return acc;
         }, {});
+        
+        // Load drones from both backend API (drone_details) and browser storage
         const profileDrones = loadProfileDronesFromBrowser(pilotBySub);
+        const backendDrones: DroneCard[] = [];
+        
+        // Extract drones from pilot API response's drone_details field
+        for (const pilot of pilotsArr) {
+          const pilotRow = pilot as ApiPilotRow & { drone_details?: unknown };
+          if (Array.isArray(pilotRow.drone_details)) {
+            const pilotCard = pilotCards.find((p) => p.id === String(pilotRow.id));
+            const ownerName = pilotCard?.name || "Pilot";
+            const badgeId = pilotCard?.pilotId || `PLT-${pilotRow.id}`;
+            const sub = String(pilotRow.id);
+            
+            for (let i = 0; i < pilotRow.drone_details.length; i++) {
+              const d = pilotRow.drone_details[i] as PilotProfileDrone;
+              if (d && typeof d === 'object') {
+                backendDrones.push(mapProfileDroneToCard(
+                  d,
+                  ownerName,
+                  badgeId,
+                  sub,
+                  i,
+                  `api-pilot-${sub}`
+                ));
+              }
+            }
+          }
+        }
+        
+        // Merge drones from backend and browser storage, deduplicating by model and serial
+        const allDrones = dedupeDrones([...backendDrones, ...profileDrones]);
+        
         setFleetPilots(activePilotCards);
-        setFleetDrones(profileDrones);
+        setFleetDrones(allDrones);
       } catch (e) {
         if (!cancelled) {
           setFleetError(
@@ -668,12 +703,17 @@ export function AssignPilotDroneView() {
         void loadFleet();
       }
     };
+    const onAdminFleetUpdate = () => {
+      void loadFleet();
+    };
     window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, onProfileUpdate);
     window.addEventListener("storage", onStorage);
+    window.addEventListener(ADMIN_FLEET_UPDATED_EVENT, onAdminFleetUpdate);
     return () => {
       cancelled = true;
       window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, onProfileUpdate);
       window.removeEventListener("storage", onStorage);
+      window.removeEventListener(ADMIN_FLEET_UPDATED_EVENT, onAdminFleetUpdate);
     };
   }, []);
 

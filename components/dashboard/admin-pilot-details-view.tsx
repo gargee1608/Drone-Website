@@ -15,6 +15,7 @@ import {
 } from "@/lib/pilot-db-metrics";
 import { normalizePilotDutyStatus } from "@/lib/pilot-duty-status";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import { notifyAdminFleetUpdated } from "@/lib/admin-fleet-updated";
 
 type PilotRow = Record<string, unknown>;
 
@@ -184,6 +185,7 @@ export function AdminPilotDetailsView() {
     }
     setEditingId(null);
     await loadPilots();
+    notifyAdminFleetUpdated();
   }
 
   async function handleDelete(row: PilotRow) {
@@ -200,6 +202,7 @@ export function AdminPilotDetailsView() {
       return;
     }
     setRows((prev) => prev.filter((r) => pickStr(r, ["id"]) !== id));
+    notifyAdminFleetUpdated();
   }
 
   const sortedRows = useMemo(() => {
