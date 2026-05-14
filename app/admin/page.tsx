@@ -1,4 +1,4 @@
-import { LoginView } from "@/components/login/login-view";
+import { AdminLoginView } from "@/components/admin-login/admin-login-view";
 
 export const metadata = {
   title: "Drone Hire — Admin Login",
@@ -7,5 +7,5 @@ export const metadata = {
 };
 
 export default function AdminLoginPage() {
-  return <LoginView adminOnly />;
+  return <AdminLoginView />;
 }

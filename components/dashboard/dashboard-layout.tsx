@@ -92,10 +92,10 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
         <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
           <nav
-            className="min-h-0 overflow-y-auto overscroll-contain border-t border-border px-2 py-2 lg:border-t-0 lg:pb-2 lg:pt-0"
+            className="min-h-0 overflow-y-auto overscroll-contain border-t border-border px-2 py-2 lg:border-t-0 lg:pb-2 lg:pt-4"
             aria-label="Primary"
           >
-            <ul className="flex flex-col gap-0.5" role="list">
+            <ul className="flex flex-col gap-2" role="list">
               {navMain.map(({ href, label, icon: Icon }) => {
                 const isActive = navItemIsActive(pathname, href);
                 return (
@@ -134,12 +134,12 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
           <div
             className={cn(
-              "relative z-10 w-full shrink-0 border-t border-border bg-card px-2 pt-2",
+              "relative z-10 w-full shrink-0 border-t border-border bg-card px-2 pt-4",
               "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
             )}
           >
             <nav aria-label="Logout">
-              <ul className="flex flex-col gap-0.5" role="list">
+              <ul className="flex flex-col gap-2" role="list">
                 {navFooter.map(({ href, label, icon: Icon }) => (
                   <li key={href}>
                     <Link
