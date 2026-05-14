@@ -332,7 +332,7 @@ export function LandingHeader() {
       className={cn(
         "fixed top-0 z-50 w-full border-b",
         isUserDashboard
-          ? "border-slate-200 bg-white text-[#191c1d] dark:bg-white dark:text-[#191c1d]"
+          ? "border-slate-200 bg-white text-[#191c1d] dark:border-white/10 dark:bg-background dark:text-foreground"
           : "border-border bg-background text-foreground dark:text-white"
       )}
     >

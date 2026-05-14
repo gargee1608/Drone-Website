@@ -116,7 +116,7 @@ export function SiteHeader({
     ? "/settings?from=user"
     : "/settings?from=admin";
 
-  const whiteHeaderChrome = true; // Always use white background
+  const whiteHeaderChrome = false; // Use theme-based backgroundound
 
   /** Hide New Registration / Registered Pilot on admin & user dashboards only. */
   const showPilotRegistrationCtas =

@@ -85,17 +85,17 @@ export function ContactView() {
     <div
       className={cn(
         landingFontClassName,
-        "relative flex min-h-0 flex-1 flex-col bg-white pt-20 font-[family-name:var(--font-landing-body)] text-[#141a20] selection:bg-[#006a6e]/10 antialiased sm:pt-22"
+        "relative flex min-h-0 flex-1 flex-col bg-background pt-20 font-[family-name:var(--font-landing-body)] text-foreground selection:bg-[#006a6e]/10 antialiased sm:pt-22"
       )}
     >
       {/* Hero */}
       <section className="contact-hud-grid relative py-8 sm:py-10 lg:py-12">
         <div className="container mx-auto grid items-center gap-8 px-6 md:grid-cols-2 md:gap-10 lg:px-8">
           <div className="w-full">
-            <h1 className={cn("mb-4", ADMIN_PAGE_TITLE_CLASS, "text-black")}>
+            <h1 className={cn("mb-4", ADMIN_PAGE_TITLE_CLASS, "text-foreground")}>
               Get in Touch with Us
             </h1>
-            <p className="max-w-xl text-base leading-relaxed text-[#43484e] sm:text-lg">
+            <p className="max-w-xl text-base leading-relaxed text-foreground sm:text-lg">
               Have questions or need drone services? We&apos;re here to help.
               Reach out to our flight operations team for technical support or
               partnerships.
@@ -117,11 +117,11 @@ export function ContactView() {
       {/* Inquiry + contact details side-by-side */}
       <section className="container mx-auto mb-20 px-6 pt-2 sm:mb-24 lg:px-8">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6">
-            <h2 className="mb-2 font-[family-name:var(--font-landing-headline)] text-xl font-bold tracking-tight text-[#1a2027] sm:text-2xl">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-lg sm:p-6">
+            <h2 className="mb-2 font-[family-name:var(--font-landing-headline)] text-xl font-bold tracking-tight text-foreground sm:text-2xl">
               Send an Inquiry
             </h2>
-            <p className="mb-6 text-sm text-[#43484e] sm:text-base">
+            <p className="mb-6 text-sm text-foreground sm:text-base">
               Fill in your details and our team will get back to you shortly.
             </p>
 
@@ -174,7 +174,7 @@ export function ContactView() {
                   name="message"
                   required
                   rows={5}
-                  className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-[#1a2027] outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
+                  className="w-full resize-y rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-[#006a6e] focus:ring-2 focus:ring-[#006a6e]/20"
                   placeholder="Tell us about your inquiry..."
                 />
               </label>
@@ -203,7 +203,7 @@ export function ContactView() {
             </form>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-lg sm:p-6">
             <h2 className="mb-6 flex items-center gap-2.5 font-[family-name:var(--font-landing-headline)] text-xl font-bold tracking-tight text-[#1a2027] sm:text-2xl">
               <span
                 className="h-6 w-1 shrink-0 rounded-full sm:h-7"
