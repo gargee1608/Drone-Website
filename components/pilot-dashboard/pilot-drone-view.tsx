@@ -1,10 +1,10 @@
 "use client";
 
 import { Plus, Edit, Trash2, Drone as DroneIcon, Send, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
-import { PilotSettingsAddDronePanel } from "@/components/settings/pilot-settings-add-drone-panel";
+import { PilotSettingsAddDronePanel, PilotSettingsAddDronePanelRef } from "@/components/settings/pilot-settings-add-drone-panel";
 import { Button } from "@/components/ui/button";
 import {
   getPilotDisplayName,
@@ -79,6 +79,7 @@ function persistSnapshot(next: PilotProfileSnapshot) {
 
 /** Enhanced pilot dashboard drone view with existing drone display */
 export function PilotDroneView() {
+  const dronePanelRef = useRef<PilotSettingsAddDronePanelRef>(null);
   const [drones, setDrones] = useState<PilotProfileDrone[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,24 +95,34 @@ let isCurrentlyDeleting = false;
 
   const refreshFromStorage = useCallback((forceUpdate = false) => {
     console.log("🔄 refreshFromStorage called, forceUpdate:", forceUpdate);
-    
+
     const base = readBaseSnapshot();
     console.log("📦 Reading from storage, base:", base);
-    
+
     if (base && base.drones) {
-      console.log("📦 Storage has", base.drones.length, "drones, UI has", drones.length, "drones");
-      
-      // Always update if forceUpdate is true, or if counts differ
-      if (forceUpdate || base.drones.length !== drones.length) {
-        console.log("✅ Updating UI from storage");
+      console.log("📦 Storage has", base.drones.length, "drones");
+
+      // Always update if forceUpdate is true
+      if (forceUpdate) {
+        console.log("✅ Force updating UI from storage");
         setDrones([...base.drones]);
       } else {
-        console.log("🔄 Skipping update (counts match and not forced)");
+        // Otherwise check if counts differ
+        setDrones(prevDrones => {
+          console.log("📦 UI has", prevDrones.length, "drones");
+          if (base.drones.length !== prevDrones.length) {
+            console.log("✅ Updating UI from storage (count changed)");
+            return [...base.drones];
+          } else {
+            console.log("🔄 Skipping update (counts match)");
+            return prevDrones;
+          }
+        });
       }
     } else {
       console.log("📭 No base data, keeping current state");
     }
-  }, [drones.length]);
+  }, []);
 
   const fetchDroneDataFromBackend = useCallback(async (manual = false) => {
     try {
@@ -413,17 +424,33 @@ let isCurrentlyDeleting = false;
           </Button>
           <Button
             onClick={() => {
-              setShowAddForm(!showAddForm);
-              if (!showAddForm) {
-                setIsEditMode(false);
-                setEditingDrone(null);
+              if (isEditMode) {
+                // Trigger save when in edit mode
+                if (dronePanelRef.current) {
+                  dronePanelRef.current.triggerSave();
+                }
+              } else {
+                setShowAddForm(!showAddForm);
+                if (!showAddForm) {
+                  setIsEditMode(false);
+                  setEditingDrone(null);
+                }
               }
             }}
             variant="outline"
             className="border-[#008B8B] text-[#008B8B] hover:bg-[#008B8B]/10"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            {isEditMode ? "Save Changes" : (showAddForm ? "Cancel" : "Add New Drone")}
+            {isEditMode ? (
+              <>
+                <Edit className="mr-2 h-4 w-4" />
+                Save Changes
+              </>
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" />
+                {showAddForm ? "Cancel" : "Add New Drone"}
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -578,16 +605,18 @@ let isCurrentlyDeleting = false;
               Cancel
             </Button>
           </div>
-          <PilotSettingsAddDronePanel 
-            showAdminRequest={true} 
+          <PilotSettingsAddDronePanel
+            ref={dronePanelRef}
+            showAdminRequest={true}
             withDroneList={false}
             openFormByDefault={true}
             editingDrone={editingDrone}
             onDroneAdded={() => {
+              console.log("🎯 onDroneAdded callback triggered");
               refreshFromStorage(true);
-              fetchDroneDataFromBackend();
               setIsEditMode(false);
               setEditingDrone(null);
+              setShowAddForm(false);
             }}
           />
         </div>
