@@ -2,7 +2,7 @@
 
 import { Plus, Edit, Trash2, X, Send } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState, forwardRef, useImperativeHandle } from "react";
 
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
 import { Button } from "@/components/ui/button";
@@ -148,15 +148,27 @@ export type PilotSettingsAddDronePanelProps = {
    * Drone data to edit (if provided, form will be in edit mode)
    */
   editingDrone?: PilotProfileDrone | null;
+  /**
+   * Callback to trigger save from parent component
+   */
+  onSaveTrigger?: () => void;
 };
 
-export function PilotSettingsAddDronePanel({
+export interface PilotSettingsAddDronePanelRef {
+  triggerSave: () => void;
+}
+
+export const PilotSettingsAddDronePanel = forwardRef<
+  PilotSettingsAddDronePanelRef,
+  PilotSettingsAddDronePanelProps
+>(function PilotSettingsAddDronePanel({
   withDroneList = true,
   showAdminRequest = false,
   openFormByDefault = false,
   onDroneAdded,
   editingDrone,
-}: PilotSettingsAddDronePanelProps = {}) {
+  onSaveTrigger,
+}, ref) {
   const pathname = usePathname();
   const router = useRouter();
   const formId = useId();
@@ -173,6 +185,13 @@ export function PilotSettingsAddDronePanel({
   const [draftUseCases, setDraftUseCases] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState(false);
+
+  // Expose the save function to parent component
+  useImperativeHandle(ref, () => ({
+    triggerSave: () => {
+      commitDraftDrone();
+    }
+  }), [editingDroneId, draftModel, draftType, draftCamera, draftPayload, draftFlightMin, draftRangeKm, draftUseCases]);
 
   // Debug: Log draft values when they change
   useEffect(() => {
@@ -429,6 +448,11 @@ export function PilotSettingsAddDronePanel({
       setEditingDroneId(null);
       setEditingDroneData(null);
 
+      // Notify parent component that drone was updated
+      if (onDroneAdded) {
+        onDroneAdded();
+      }
+
     } catch (error) {
       console.error("Error updating drone:", error);
       setError(error instanceof Error ? error.message : "Failed to update drone");
@@ -614,21 +638,79 @@ export function PilotSettingsAddDronePanel({
       console.log("Saving drone data:", droneData);
       
       let response;
+      let isNewDrone = false;
+      let droneId = editingDroneId;
+
+      console.log("Editing drone ID:", editingDroneId, "Type:", typeof editingDroneId);
+
       if (editingDroneId) {
-        // Update existing drone
-        try {
-          response = await fetch(`http://localhost:4000/api/drones/${editingDroneId}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": token ? `Bearer ${token}` : "",
-            },
-            body: JSON.stringify(droneData),
-          });
-        } catch (networkError) {
-          console.error("Network error when updating drone:", networkError);
-          // Set response to indicate network failure
-          response = { ok: false, status: 0, text: () => Promise.resolve("Network error") };
+        // Check if drone ID is a local storage ID (starts with "drone-") or a database ID
+        if (typeof editingDroneId === 'string' && editingDroneId.startsWith('drone-')) {
+          console.log("Local drone detected, creating new drone in database first");
+          isNewDrone = true;
+
+          // Create new drone in database first
+          const createData = {
+            ...droneData,
+            pilot_id: pilotId,
+          };
+
+          try {
+            const createResponse = await fetch("http://localhost:4000/api/drones", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": token ? `Bearer ${token}` : "",
+              },
+              body: JSON.stringify(createData),
+            });
+
+            if (!createResponse.ok) {
+              const errorText = await createResponse.text();
+              console.error("Failed to create drone in database:", errorText);
+              throw new Error("Failed to create drone in database");
+            }
+
+            const createResult = await createResponse.json();
+            droneId = createResult.id;
+            console.log("Created new drone with ID:", droneId);
+
+            // Update the editing drone ID with the new database ID
+            setEditingDroneId(droneId);
+
+            // Now update the drone with the correct data
+            response = await fetch(`http://localhost:4000/api/drones/${droneId}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": token ? `Bearer ${token}` : "",
+              },
+              body: JSON.stringify(droneData),
+            });
+          } catch (createError) {
+            console.error("Error creating drone:", createError);
+            // If creation fails, just save to local storage
+            console.warn("Falling back to local storage only");
+            // Don't set response - let it fall through to local storage save
+            response = { ok: false, status: 500, text: () => Promise.resolve("Backend unavailable") };
+          }
+        } else {
+          // Update existing drone in database
+          console.log("Updating existing drone with ID:", editingDroneId);
+          try {
+            response = await fetch(`http://localhost:4000/api/drones/${editingDroneId}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": token ? `Bearer ${token}` : "",
+              },
+              body: JSON.stringify(droneData),
+            });
+          } catch (networkError) {
+            console.error("Network error when updating drone:", networkError);
+            // Set response to indicate network failure
+            response = { ok: false, status: 0, text: () => Promise.resolve("Network error") };
+          }
         }
       } else {
         // Create new drone - always include pilot_id
@@ -668,13 +750,13 @@ export function PilotSettingsAddDronePanel({
         } catch (parseError) {
           console.warn("Could not parse error response:", parseError);
         }
-        
-        // Fallback: Save to local storage only if backend is not available
-        if (response.status === 500 || response.status === 0) {
-          console.warn("Backend server error, saving to local storage only");
+
+        // Fallback: Save to local storage only if backend is not available or drone not found
+        if (response.status === 500 || response.status === 0 || response.status === 404) {
+          console.warn("Backend error (status:", response.status, "), saving to local storage only");
           const row: PilotProfileDrone = {
             ...emptyDrone(),
-            id: `drone-${Date.now()}`,
+            id: editingDroneId || `drone-${Date.now()}`,
             modelName: model,
             type,
             camera: draftCamera.trim(),
@@ -684,11 +766,21 @@ export function PilotSettingsAddDronePanel({
             useCases: [...draftUseCases],
           };
 
-          const next: PilotProfileSnapshot = {
-            ...base,
-            drones: [...base.drones, row],
-          };
-          
+          let next: PilotProfileSnapshot;
+          if (editingDroneId) {
+            // Update existing drone in local storage
+            next = {
+              ...base,
+              drones: base.drones.map(d => d.id === editingDroneId ? row : d),
+            };
+          } else {
+            // Add new drone to local storage
+            next = {
+              ...base,
+              drones: [...base.drones, row],
+            };
+          }
+
           persistSnapshot(next);
           if (withDroneList) {
             setDrones(next.drones);
@@ -703,13 +795,13 @@ export function PilotSettingsAddDronePanel({
           setDraftRangeKm("");
           setDraftUseCases([]);
           setEditingDroneId(null);
-          setError(null);
+          setError("Save successfully");
           setJustAdded(true);
           window.setTimeout(() => setJustAdded(false), 2200);
-          
+
           return; // Exit successfully after local storage save
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -719,7 +811,7 @@ export function PilotSettingsAddDronePanel({
       // Also save to local storage for backward compatibility
       const row: PilotProfileDrone = {
         ...emptyDrone(),
-        id: result.id || editingDroneId || `drone-${Date.now()}`,
+        id: result.id || droneId || editingDroneId || `drone-${Date.now()}`,
         modelName: model,
         type,
         camera: draftCamera.trim(),
@@ -732,9 +824,12 @@ export function PilotSettingsAddDronePanel({
       let next: PilotProfileSnapshot;
       if (editingDroneId) {
         // Update existing drone in local storage
+        // If we created a new drone (isNewDrone), we need to match by the old editingDroneId
+        // If we updated an existing drone, we match by editingDroneId
+        const oldId = isNewDrone ? editingDroneId : editingDroneId;
         next = {
           ...base,
-          drones: base.drones.map(d => d.id === editingDroneId ? row : d),
+          drones: base.drones.map(d => d.id === oldId ? row : d),
         };
       } else {
         // Add new drone to local storage
@@ -743,7 +838,7 @@ export function PilotSettingsAddDronePanel({
           drones: [...base.drones, row],
         };
       }
-      
+
       persistSnapshot(next);
       if (withDroneList) {
         setDrones(next.drones);
@@ -763,7 +858,7 @@ export function PilotSettingsAddDronePanel({
       setDraftRangeKm("");
       setDraftUseCases([]);
       setEditingDroneId(null);
-      setError(null);
+      setError("Save successfully");
       setJustAdded(true);
       window.setTimeout(() => setJustAdded(false), 2200);
       
@@ -1087,4 +1182,4 @@ export function PilotSettingsAddDronePanel({
       )}
     </div>
   );
-}
+});

@@ -1,10 +1,10 @@
 "use client";
 
 import { Plus, Edit, Trash2, Drone as DroneIcon, Send, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
-import { PilotSettingsAddDronePanel } from "@/components/settings/pilot-settings-add-drone-panel";
+import { PilotSettingsAddDronePanel, PilotSettingsAddDronePanelRef } from "@/components/settings/pilot-settings-add-drone-panel";
 import { Button } from "@/components/ui/button";
 import {
   getPilotDisplayName,
@@ -79,6 +79,7 @@ function persistSnapshot(next: PilotProfileSnapshot) {
 
 /** Enhanced pilot dashboard drone view with existing drone display */
 export function PilotDroneView() {
+  const dronePanelRef = useRef<PilotSettingsAddDronePanelRef>(null);
   const [drones, setDrones] = useState<PilotProfileDrone[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -413,17 +414,33 @@ let isCurrentlyDeleting = false;
           </Button>
           <Button
             onClick={() => {
-              setShowAddForm(!showAddForm);
-              if (!showAddForm) {
-                setIsEditMode(false);
-                setEditingDrone(null);
+              if (isEditMode) {
+                // Trigger save when in edit mode
+                if (dronePanelRef.current) {
+                  dronePanelRef.current.triggerSave();
+                }
+              } else {
+                setShowAddForm(!showAddForm);
+                if (!showAddForm) {
+                  setIsEditMode(false);
+                  setEditingDrone(null);
+                }
               }
             }}
             variant="outline"
             className="border-[#008B8B] text-[#008B8B] hover:bg-[#008B8B]/10"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            {isEditMode ? "Save Changes" : (showAddForm ? "Cancel" : "Add New Drone")}
+            {isEditMode ? (
+              <>
+                <Edit className="mr-2 h-4 w-4" />
+                Save Changes
+              </>
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" />
+                {showAddForm ? "Cancel" : "Add New Drone"}
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -579,6 +596,7 @@ let isCurrentlyDeleting = false;
             </Button>
           </div>
           <PilotSettingsAddDronePanel 
+            ref={dronePanelRef}
             showAdminRequest={true} 
             withDroneList={false}
             openFormByDefault={true}
@@ -588,6 +606,7 @@ let isCurrentlyDeleting = false;
               fetchDroneDataFromBackend();
               setIsEditMode(false);
               setEditingDrone(null);
+              setShowAddForm(false);
             }}
           />
         </div>
