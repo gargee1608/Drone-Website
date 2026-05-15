@@ -786,6 +786,11 @@ export const PilotSettingsAddDronePanel = forwardRef<
             setDrones(next.drones);
           }
 
+          // Call the callback to notify parent
+          if (onDroneAdded) {
+            onDroneAdded();
+          }
+
           // Reset form
           setDraftModel("");
           setDraftType("");
@@ -824,12 +829,23 @@ export const PilotSettingsAddDronePanel = forwardRef<
       let next: PilotProfileSnapshot;
       if (editingDroneId) {
         // Update existing drone in local storage
-        // If we created a new drone (isNewDrone), we need to match by the old editingDroneId
-        // If we updated an existing drone, we match by editingDroneId
-        const oldId = isNewDrone ? editingDroneId : editingDroneId;
+        // Match by the original editingDroneId (before any potential ID change from backend)
+        const oldId = editingDroneId;
+        const newId = result.id || droneId || editingDroneId;
+        
+        console.log("Updating drone in local storage - oldId:", oldId, "newId:", newId);
+        
         next = {
           ...base,
-          drones: base.drones.map(d => d.id === oldId ? row : d),
+          drones: base.drones.map(d => {
+            // Match by old ID (string or number comparison)
+            const match = String(d.id) === String(oldId);
+            if (match) {
+              console.log("Found drone to update:", d.id, "->", newId);
+              return { ...row, id: newId };
+            }
+            return d;
+          }),
         };
       } else {
         // Add new drone to local storage
@@ -844,10 +860,16 @@ export const PilotSettingsAddDronePanel = forwardRef<
         setDrones(next.drones);
       }
 
-      // Call the callback to notify parent
-      if (onDroneAdded) {
-        onDroneAdded();
-      }
+      // Call the callback to notify parent after a small delay to ensure storage is updated
+      console.log("🔔 Calling onDroneAdded callback after successful save");
+      setTimeout(() => {
+        if (onDroneAdded) {
+          onDroneAdded();
+          console.log("✅ onDroneAdded callback executed");
+        } else {
+          console.log("⚠️ onDroneAdded callback is not defined");
+        }
+      }, 100);
 
       // Reset form
       setDraftModel("");

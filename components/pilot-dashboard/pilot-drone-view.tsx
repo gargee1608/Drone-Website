@@ -95,24 +95,34 @@ let isCurrentlyDeleting = false;
 
   const refreshFromStorage = useCallback((forceUpdate = false) => {
     console.log("🔄 refreshFromStorage called, forceUpdate:", forceUpdate);
-    
+
     const base = readBaseSnapshot();
     console.log("📦 Reading from storage, base:", base);
-    
+
     if (base && base.drones) {
-      console.log("📦 Storage has", base.drones.length, "drones, UI has", drones.length, "drones");
-      
-      // Always update if forceUpdate is true, or if counts differ
-      if (forceUpdate || base.drones.length !== drones.length) {
-        console.log("✅ Updating UI from storage");
+      console.log("📦 Storage has", base.drones.length, "drones");
+
+      // Always update if forceUpdate is true
+      if (forceUpdate) {
+        console.log("✅ Force updating UI from storage");
         setDrones([...base.drones]);
       } else {
-        console.log("🔄 Skipping update (counts match and not forced)");
+        // Otherwise check if counts differ
+        setDrones(prevDrones => {
+          console.log("📦 UI has", prevDrones.length, "drones");
+          if (base.drones.length !== prevDrones.length) {
+            console.log("✅ Updating UI from storage (count changed)");
+            return [...base.drones];
+          } else {
+            console.log("🔄 Skipping update (counts match)");
+            return prevDrones;
+          }
+        });
       }
     } else {
       console.log("📭 No base data, keeping current state");
     }
-  }, [drones.length]);
+  }, []);
 
   const fetchDroneDataFromBackend = useCallback(async (manual = false) => {
     try {
@@ -595,15 +605,15 @@ let isCurrentlyDeleting = false;
               Cancel
             </Button>
           </div>
-          <PilotSettingsAddDronePanel 
+          <PilotSettingsAddDronePanel
             ref={dronePanelRef}
-            showAdminRequest={true} 
+            showAdminRequest={true}
             withDroneList={false}
             openFormByDefault={true}
             editingDrone={editingDrone}
             onDroneAdded={() => {
+              console.log("🎯 onDroneAdded callback triggered");
               refreshFromStorage(true);
-              fetchDroneDataFromBackend();
               setIsEditMode(false);
               setEditingDrone(null);
               setShowAddForm(false);
