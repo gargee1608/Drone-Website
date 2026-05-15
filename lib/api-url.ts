@@ -24,6 +24,10 @@ export function apiUrl(path: string): string {
   if (normalized.startsWith("/api/auth")) {
     return normalized;
   }
+  /** User requests endpoint is served directly by backend, not through express proxy */
+  if (normalized.startsWith("/api/user-requests")) {
+    return normalized;
+  }
   /** All other /api routes: strip leading /api to avoid duplicate /api/express/api/... */
   if (normalized.startsWith("/api/")) {
     return `/api/express${normalized.replace(/^\/api/, "")}`;
