@@ -175,7 +175,7 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
             aria-label="Close menu"
             onClick={() => setMobileNavOpen(false)}
           />
-          <nav className="absolute left-0 right-0 top-16 z-50 max-h-[min(70vh,calc(100dvh-4rem))] overflow-y-auto border-b border-[#e8eaef] bg-[#f8f9fa] px-4 py-4 shadow-lg">
+          <nav className="absolute left-0 right-0 top-16 z-50 max-h-[min(70vh,calc(100dvh-4rem))] overflow-y-auto border-b border-[#e8eaef] bg-white px-4 py-4 shadow-lg">
             <ul className="flex flex-col gap-1">
               {standardAppNavLinks.map((item) => (
                 <li key={item.label}>

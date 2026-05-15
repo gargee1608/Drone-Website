@@ -197,14 +197,14 @@ export function UserDashboardShell({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col overflow-x-hidden pt-20 text-foreground sm:pt-22",
-        contentBackgroundClassName ?? "bg-white dark:bg-white"
+        "flex min-h-0 flex-1 flex-col overflow-x-hidden pt-24 text-foreground sm:pt-26",
+        contentBackgroundClassName ?? "bg-background"
       )}
     >
       <div
         className={cn(
-          "flex items-center gap-2 border-b border-slate-200 px-4 py-1.5 lg:hidden dark:border-slate-200",
-          contentBackgroundClassName ?? "bg-white dark:bg-white"
+          "flex items-center gap-2 border-b border-border px-4 py-3 lg:hidden",
+          contentBackgroundClassName ?? "bg-background"
         )}
       >
         <button
@@ -233,7 +233,7 @@ export function UserDashboardShell({
             aria-label="Close menu"
             onClick={() => setMobileNavOpen(false)}
           />
-          <aside className="absolute left-0 top-0 flex h-full w-[min(18rem,85vw)] flex-col gap-2 border-r border-slate-200 bg-white p-4 text-[#191c1d] shadow-xl dark:border-slate-200 dark:bg-white dark:text-[#191c1d]">
+          <aside className="absolute left-0 top-0 flex h-full w-[min(18rem,85vw)] flex-col gap-2 border-r border-border bg-background p-4 text-foreground shadow-xl">
             <div className="flex justify-end">
               <button
                 type="button"
@@ -258,7 +258,7 @@ export function UserDashboardShell({
         <aside
           id="user-dashboard-sidebar"
           className={cn(
-            "hidden flex-col overflow-hidden border-r border-border bg-card text-card-foreground transition-[width] duration-300 ease-out lg:border-r-0 lg:shadow-none lg:fixed lg:bottom-0 lg:left-0 lg:top-20 lg:z-40 lg:flex",
+            "hidden flex-col overflow-hidden border-r border-border bg-card text-card-foreground transition-[width] duration-300 ease-out lg:border-r-0 lg:shadow-none lg:fixed lg:bottom-0 lg:left-0 lg:top-24 lg:z-40 lg:flex",
             sidebarExpanded ? "lg:w-60" : "lg:w-0 lg:border-0 lg:p-0"
           )}
           aria-hidden={!sidebarExpanded}
@@ -277,12 +277,12 @@ export function UserDashboardShell({
               </button>
             </div>
           ) : null}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pt-2 lg:px-3 lg:pb-3 lg:pt-0">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pt-2 lg:px-3 lg:pb-3 lg:pt-6">
             <SidebarNavLinks />
           </div>
           {sidebarExpanded ? (
             <div className="mt-auto flex w-full shrink-0 flex-col">
-              <div className="shrink-0 border-t border-slate-200 px-3.5 pt-3 pb-3 dark:border-slate-200">
+              <div className="shrink-0 border-t border-slate-200 pt-4 pb-2 dark:border-slate-200 px-3.5">
                 <LogoutControl />
               </div>
             </div>
@@ -293,7 +293,7 @@ export function UserDashboardShell({
         {sidebarExpanded ? (
           <div
             aria-hidden
-            className="pointer-events-none fixed bottom-0 left-60 top-20 z-[35] hidden w-px bg-slate-200 lg:block dark:bg-slate-200"
+            className="pointer-events-none fixed bottom-0 left-60 top-24 z-[35] hidden w-px bg-border lg:block"
           />
         ) : null}
 
@@ -338,7 +338,7 @@ export function UserDashboardShell({
       </div>
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-slate-200 bg-white px-6 py-4 md:hidden dark:border-slate-200 dark:bg-white"
+        className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-border bg-background px-6 py-4 md:hidden"
         aria-label="Quick navigation"
       >
         <LayoutDashboard className="size-6 text-[#008B8B]" />

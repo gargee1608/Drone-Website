@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PilotSettingsAddDronePanel } from "@/components/settings/pilot-settings-add-drone-panel";
+import { notifyAdminFleetUpdated } from "@/lib/admin-fleet-updated";
 
 interface UserRequest {
   id: number;
@@ -484,9 +485,9 @@ export function AdminDroneView() {
                             rangeKm: ''
                           });
                           // Refresh the request to show updated status
-                          if (requestId) {
-                            fetchRequestDetails(requestId);
-                          }
+                          if (requestId) fetchRequestDetails(requestId);
+                          // Notify Assign To view to refresh fleet data
+                          notifyAdminFleetUpdated();
                         } else {
                           throw new Error('Failed to update request status');
                         }

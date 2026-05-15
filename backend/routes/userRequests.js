@@ -3,6 +3,19 @@ const router = express.Router();
 const pool = require("../db");
 
 async function ensureUserRequestsSchema() {
+  // Ensure pilots table exists first (required for foreign key constraint)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pilots (
+      id BIGSERIAL PRIMARY KEY,
+      name TEXT,
+      email TEXT,
+      phone TEXT,
+      experience TEXT,
+      license_number TEXT,
+      password TEXT
+    );
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS user_requests (
       id BIGSERIAL PRIMARY KEY,
@@ -64,7 +77,8 @@ router.post("/user-requests", async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating user request:", error);
-    res.status(500).json({ error: "Failed to create user request" });
+    console.error("Error details:", error.message, error.code);
+    res.status(500).json({ error: "Failed to create user request", detail: error.message });
   }
 });
 

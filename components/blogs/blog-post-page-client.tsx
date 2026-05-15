@@ -100,10 +100,10 @@ export function BlogPostPageClient({
       <div
         className={cn(
           landingFontClassName,
-          "min-h-[50vh] flex-1 bg-[#fcfcff] pt-22 sm:pt-24"
+          "min-h-[50vh] flex-1 bg-[#fcfcff] dark:bg-background pt-22 sm:pt-24"
         )}
       >
-        <div className="mx-auto max-w-3xl px-6 py-16 text-sm text-[#41474d]">
+        <div className="mx-auto max-w-3xl px-6 py-16 text-foreground">
           Loading…
         </div>
       </div>
@@ -115,17 +115,17 @@ export function BlogPostPageClient({
       <div
         className={cn(
           landingFontClassName,
-          "min-h-[50vh] flex-1 bg-[#fcfcff] pt-22 sm:pt-24"
+          "min-h-[50vh] flex-1 bg-[#fcfcff] dark:bg-background pt-22 sm:pt-24"
         )}
       >
         <div className="mx-auto max-w-3xl px-6 py-16">
           <h1 className={ADMIN_PAGE_TITLE_CLASS}>Post not found</h1>
-          <p className="mt-2 text-sm text-[#41474d]">
+          <p className="mt-2 text-sm text-foreground">
             This Flight Log entry does not exist or was removed.
           </p>
           <Link
             href="/blogs"
-            className="mt-8 inline-block text-sm font-bold uppercase tracking-widest text-[#008B8B]"
+            className="mt-8 inline-block text-sm font-bold uppercase tracking-widest text-[#008B8B] dark:text-[#4ddbd9]"
           >
             ← Back to Flight Log
           </Link>
@@ -138,22 +138,22 @@ export function BlogPostPageClient({
     <div
       className={cn(
         landingFontClassName,
-        "blogs-hud-grid min-h-0 flex-1 bg-[#fcfcff] pt-22 text-[#1a1c1e] sm:pt-24"
+        "blogs-hud-grid min-h-0 flex-1 bg-background pt-22 text-foreground sm:pt-24"
       )}
       style={{
         backgroundImage:
-          "radial-gradient(circle at 50% 50%, #f1f3f9 0%, #fcfcff 100%)",
+          "radial-gradient(circle at 50% 50%, var(--color-background-100) 0%, var(--color-background-50) 100%)",
       }}
     >
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <p className="text-xs font-bold uppercase tracking-widest text-[#006a6e]">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9]">
           {post.category}
         </p>
         <h1 className={cn("mt-3", ADMIN_PAGE_TITLE_CLASS)}>{post.title}</h1>
-        <p className="mt-2 text-sm text-[#41474d]">
+        <p className="mt-2 text-sm text-[#41474d] dark:text-slate-300">
           {post.date} · By {post.author}
         </p>
-        <div className="mt-10 space-y-6 font-[family-name:var(--font-landing-body)] text-base leading-relaxed text-[#41474d]">
+        <div className="mt-10 space-y-6 font-[family-name:var(--font-landing-body)] text-base leading-relaxed text-[#41474d] dark:text-slate-200">
           {post.body.map((paragraph, i) => (
             <p key={i}>{paragraph}</p>
           ))}
@@ -161,7 +161,7 @@ export function BlogPostPageClient({
         <Link
           href="/blogs"
           className={cn(
-            "mt-12 inline-block font-[family-name:var(--font-landing-headline)] text-sm font-bold uppercase tracking-widest text-[#008B8B] transition-colors hover:text-[#006b6b]"
+            "mt-12 inline-block font-[family-name:var(--font-landing-headline)] text-sm font-bold uppercase tracking-widest text-[#008B8B] dark:text-[#4ddbd9] transition-colors hover:text-[#006b6b] dark:hover:text-[#7ce8e5]"
           )}
         >
           ← Back to Flight Log

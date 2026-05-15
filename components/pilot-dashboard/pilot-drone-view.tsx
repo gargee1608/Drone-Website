@@ -23,6 +23,7 @@ import {
   type PilotProfileSnapshot,
 } from "@/lib/pilot-profile-snapshot";
 import { cn } from "@/lib/utils";
+import { apiUrl } from "@/lib/api-url";
 
 function readBaseSnapshot(): PilotProfileSnapshot | null {
   if (typeof window === "undefined") return null;
@@ -352,7 +353,7 @@ let isCurrentlyDeleting = false;
       } : null;
 
       // Send request to admin with pilot details
-      const response = await fetch("http://localhost:4000/api/user-requests", {
+      const response = await fetch(apiUrl("/api/user-requests"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
