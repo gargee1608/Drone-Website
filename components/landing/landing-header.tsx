@@ -29,6 +29,10 @@ import { PilotMissionNotificationsMenu } from "@/components/notifications/pilot-
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getPilotDisplayName, jwtPayloadRole } from "@/lib/pilot-display-name";
 import {
+  buildAdminProfileForDisplay,
+  type AdminProfileDraft,
+} from "@/lib/admin-profile-storage";
+import {
   clearStoredUserSession,
   readStoredUserSession,
   type StoredUserSession,
@@ -210,13 +214,15 @@ export function LandingHeader() {
   const [appUserSession, setAppUserSession] =
     useState<StoredUserSession | null>(null);
   const [pilotMarketingActive, setPilotMarketingActive] = useState(false);
+  const [adminMarketingActive, setAdminMarketingActive] = useState(false);
   const [marketingUserMenuOpen, setMarketingUserMenuOpen] = useState(false);
   const marketingUserMenuRef = useRef<HTMLDivElement>(null);
 
   const hasLoggedInAppUser = appUserSession != null;
+  const hasLoggedInAdmin = adminMarketingActive;
   const onMarketingAuthSurface = isHomePage || isMarketingAuthPage;
   const hideMarketingRegisterAndLogin =
-    (hasLoggedInAppUser || pilotMarketingActive) && onMarketingAuthSurface;
+    (hasLoggedInAppUser || pilotMarketingActive || hasLoggedInAdmin) && onMarketingAuthSurface;
 
   const appUserDisplayName =
     appUserSession?.fullName?.trim() ||
@@ -235,6 +241,12 @@ export function LandingHeader() {
   const pilotInitialForChip =
     (pilotDisplayNameForChip.slice(0, 1) || "?").toUpperCase();
 
+  const adminProfile = buildAdminProfileForDisplay();
+  const adminDisplayName =
+    `${adminProfile.firstName} ${adminProfile.lastName}`.trim() || "Admin";
+  const adminInitial =
+    (adminDisplayName.slice(0, 1) || "?").toUpperCase();
+
   /** On `/`, logged-in app user: one tap opens user dashboard (no dropdown). */
   const appUserMarketingHomeDirect = hasLoggedInAppUser && isHomePage;
 
@@ -247,6 +259,7 @@ export function LandingHeader() {
       setAppUserSession(user);
       if (typeof window === "undefined") {
         setPilotMarketingActive(false);
+        setAdminMarketingActive(false);
         return;
       }
       const token = localStorage.getItem("token");
@@ -254,6 +267,8 @@ export function LandingHeader() {
         !user &&
         Boolean(token && jwtPayloadRole(token) === "pilot");
       setPilotMarketingActive(pilotSession);
+      const adminSession = Boolean(token && jwtPayloadRole(token) === "admin");
+      setAdminMarketingActive(adminSession);
     }
     syncMarketingSessions();
     if (typeof window === "undefined") return;
@@ -492,7 +507,23 @@ export function LandingHeader() {
             >
               New Registration
             </Link>
-            {showHeaderLoginButton && !hideMarketingRegisterAndLogin ? (
+            {hasLoggedInAdmin && onMarketingAuthSurface ? (
+              <Link
+                href="/dashboard"
+                className={cn(marketingUserChipClassName, "no-underline")}
+                aria-label="Open admin dashboard"
+              >
+                <span
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/15 text-xs font-semibold text-[#008B8B] dark:bg-white/15 dark:text-white"
+                  aria-hidden
+                >
+                  {adminInitial}
+                </span>
+                <span className="max-w-[6rem] truncate text-sm font-medium sm:max-w-[10rem]">
+                  {adminDisplayName}
+                </span>
+              </Link>
+            ) : showHeaderLoginButton && !hideMarketingRegisterAndLogin ? (
               <Link
                 href="/pilot-login"
                 className={cn("hidden sm:inline-flex", landingOutlineButtonClassName)}
