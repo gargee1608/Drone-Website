@@ -645,24 +645,22 @@ export const PilotSettingsAddDronePanel = forwardRef<
       console.log("Editing drone ID:", editingDroneId, "Type:", typeof editingDroneId);
 
       if (editingDroneId) {
-<<<<<<< HEAD
         // Check if drone ID is a local storage ID (starts with "drone-") or a database ID
-        if (typeof editingDroneId === 'string' && editingDroneId.startsWith('drone-')) {
+        if (typeof editingDroneId === "string" && editingDroneId.startsWith("drone-")) {
           console.log("Local drone detected, creating new drone in database first");
           isNewDrone = true;
 
-          // Create new drone in database first
           const createData = {
             ...droneData,
             pilot_id: pilotId,
           };
 
           try {
-            const createResponse = await fetch("http://localhost:4000/api/drones", {
+            const createResponse = await fetch(apiUrl("/api/drones"), {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": token ? `Bearer ${token}` : "",
+                Authorization: token ? `Bearer ${token}` : "",
               },
               body: JSON.stringify(createData),
             });
@@ -677,58 +675,46 @@ export const PilotSettingsAddDronePanel = forwardRef<
             droneId = createResult.id;
             console.log("Created new drone with ID:", droneId);
 
-            // Update the editing drone ID with the new database ID
             setEditingDroneId(droneId);
 
-            // Now update the drone with the correct data
-            response = await fetch(`http://localhost:4000/api/drones/${droneId}`, {
+            response = await fetch(apiUrl(`/api/drones/${droneId}`), {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": token ? `Bearer ${token}` : "",
+                Authorization: token ? `Bearer ${token}` : "",
               },
               body: JSON.stringify(droneData),
             });
           } catch (createError) {
             console.error("Error creating drone:", createError);
-            // If creation fails, just save to local storage
             console.warn("Falling back to local storage only");
-            // Don't set response - let it fall through to local storage save
-            response = { ok: false, status: 500, text: () => Promise.resolve("Backend unavailable") };
+            response = {
+              ok: false,
+              status: 500,
+              text: () => Promise.resolve("Backend unavailable"),
+              json: () => Promise.resolve({}),
+            };
           }
         } else {
-          // Update existing drone in database
           console.log("Updating existing drone with ID:", editingDroneId);
           try {
-            response = await fetch(`http://localhost:4000/api/drones/${editingDroneId}`, {
+            response = await fetch(apiUrl(`/api/drones/${editingDroneId}`), {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": token ? `Bearer ${token}` : "",
+                Authorization: token ? `Bearer ${token}` : "",
               },
               body: JSON.stringify(droneData),
             });
           } catch (networkError) {
             console.error("Network error when updating drone:", networkError);
-            // Set response to indicate network failure
-            response = { ok: false, status: 0, text: () => Promise.resolve("Network error") };
+            response = {
+              ok: false,
+              status: 0,
+              text: () => Promise.resolve("Network error"),
+              json: () => Promise.resolve({}),
+            };
           }
-=======
-        // Update existing drone
-        try {
-          response = await fetch(apiUrl(`/api/drones/${editingDroneId}`), {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": token ? `Bearer ${token}` : "",
-            },
-            body: JSON.stringify(droneData),
-          });
-        } catch (networkError) {
-          console.error("Network error when updating drone:", networkError);
-          // Set response to indicate network failure
-          response = { ok: false, status: 0, text: () => Promise.resolve("Network error"), json: () => Promise.resolve({}) };
->>>>>>> 3f79966db3fa49b4ac30ab329c44acb6a167c750
         }
       } else {
         // Create new drone - always include pilot_id
