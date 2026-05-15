@@ -71,7 +71,7 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
           >
             <span className="relative flex size-12 shrink-0 translate-y-0.5 items-center justify-center sm:size-14">
               <Image
-                src="/aerolaminar-header-logo.png"
+                src="/drone-logo.png"
                 alt=""
                 width={56}
                 height={56}

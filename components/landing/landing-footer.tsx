@@ -1,5 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Mail, MapPin, Plane } from "lucide-react";
+import { Mail, MapPin } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -38,9 +39,12 @@ export function LandingFooter({ className }: LandingFooterProps) {
               href="/"
               className="inline-flex w-fit items-center gap-2.5 text-left transition-opacity hover:opacity-90"
             >
-              <Plane
-                className="size-8 shrink-0 text-[#008B8B] sm:size-9"
-                strokeWidth={1.75}
+              <Image
+                src="/drone-logo.png"
+                alt=""
+                width={36}
+                height={36}
+                className="size-8 shrink-0 object-contain sm:size-9"
                 aria-hidden
               />
               <span className="font-[family-name:var(--font-landing-headline)] text-lg leading-tight sm:text-xl">
