@@ -162,6 +162,7 @@ function completedAssignmentToAssignRow(
   return {
     id: row.requestRef,
     requestRef: row.requestRef,
+    displayId: assignRequestDisplayId(row.requestRef, row.customer),
     customer: row.customer,
     service: row.service,
     dropoff: row.dropoff,
@@ -186,6 +187,7 @@ function assignRowFromTrackingEntry(
   return {
     id: req.requestRef,
     requestRef: req.requestRef,
+    displayId: assignRequestDisplayId(req.requestRef, req.reasonOrTitle),
     customer: req.reasonOrTitle.trim() || "—",
     service: req.requestType.trim() || "—",
     dropoff: req.dropLocation.trim() || "—",
