@@ -457,7 +457,7 @@ export function AssignMissionView() {
                     type="button"
                     onClick={() => openCommentsDialog(row)}
                     disabled={savingRowId === row.id}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#008B8B] bg-transparent px-3 py-1.5 text-xs font-semibold text-[#008B8B] transition-colors hover:bg-[#008B8B]/10 disabled:opacity-50 dark:text-primary dark:hover:bg-primary/15"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#008B8B] bg-transparent px-3 py-1.5 text-xs font-semibold text-[#008B8B] transition-colors hover:bg-[#008B8B]/10 disabled:opacity-50 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
                   >
                     <MessageSquareText className="size-3.5" aria-hidden />
                     Comments

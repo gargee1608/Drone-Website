@@ -644,7 +644,6 @@ export const PilotSettingsAddDronePanel = forwardRef<
       console.log("Editing drone ID:", editingDroneId, "Type:", typeof editingDroneId);
 
       if (editingDroneId) {
-<<<<<<< HEAD
         // Check if drone ID is a local storage ID (starts with "drone-") or a database ID
         if (typeof editingDroneId === 'string' && editingDroneId.startsWith('drone-')) {
           console.log("Local drone detected, creating new drone in database first");
@@ -712,22 +711,6 @@ export const PilotSettingsAddDronePanel = forwardRef<
             // Set response to indicate network failure
             response = { ok: false, status: 0, text: () => Promise.resolve("Network error") };
           }
-=======
-        // Update existing drone
-        try {
-          response = await fetch(`http://localhost:4000/api/drones/${editingDroneId}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": token ? `Bearer ${token}` : "",
-            },
-            body: JSON.stringify(droneData),
-          });
-        } catch (networkError) {
-          console.error("Network error when updating drone:", networkError);
-          // Set response to indicate network failure
-          response = { ok: false, status: 0, text: () => Promise.resolve("Network error"), json: () => Promise.resolve({}) };
->>>>>>> 3f79966db3fa49b4ac30ab329c44acb6a167c750
         }
       } else {
         // Create new drone - always include pilot_id

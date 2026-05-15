@@ -63,7 +63,7 @@ function formatNumber(value: number) {
   return value.toLocaleString("en-US");
 }
 
-const PAGE_SIZE = 4;
+const PAGE_SIZE = 1000;
 
 function dedupeDeliveryRows(rows: DeliveryRow[]): DeliveryRow[] {
   const bySignature = new Map<string, DeliveryRow>();
@@ -432,133 +432,80 @@ export function CompletedDeliveriesView({
         </div>
       </header>
 
-      <section className="rounded-xl border border-border bg-card shadow-sm dark:border-white/20">
-        <div className="p-4 sm:p-6">
-          <div className="overflow-hidden">
-            <table className="w-full table-fixed border-collapse text-left text-[11px]">
-              <thead>
-                <tr className="border-b border-border bg-muted/50 dark:border-white/20 dark:bg-white/10">
-                  {[
-                    "Request ID",
-                    "User Requirement",
-                    "Service",
-                    "Drone",
-                    "Pilot Name",
-                    "Assigned At",
-                    "Destination",
-                    "Completed At",
-                    "Status",
-                  ].map((head) => (
-                    <th
-                      key={head}
-                      className="px-4 py-4 font-[family-name:var(--font-landing-headline)] text-[9px] font-normal uppercase tracking-[0.12em] text-muted-foreground dark:text-white"
-                    >
-                      {head}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {loading ? (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      className="px-4 py-10 text-center text-xs text-muted-foreground dark:text-white"
-                    >
-                      Loading completed missions...
-                    </td>
-                  </tr>
-                ) : null}
-                {paginatedRows.map((row) => (
-                  <tr
-                    key={`${row.missionId}-${row.completedAt}`}
-                    className="group transition-colors hover:bg-muted/50/80"
-                  >
-                    <td className="px-4 py-4">
-                      <span className="font-mono text-sm font-normal tracking-wider text-[#006a6e]">
-                        {row.missionId}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-muted-foreground dark:text-white">
-                      {row.customer}
-                    </td>
-                    <td className="px-4 py-4 text-muted-foreground dark:text-white">
-                      {row.service}
-                    </td>
-                    <td className="px-4 py-4 text-muted-foreground dark:text-white">
-                      {row.droneUnit}
-                    </td>
-                    <td className="px-4 py-4 text-muted-foreground dark:text-white">
-                      {row.pilot}
-                    </td>
-                    <td className="px-4 py-4 text-muted-foreground dark:text-white">
-                      {formatDateTime(row.assignedAt)}
-                    </td>
-                    <td className="px-4 py-4 text-muted-foreground dark:text-white">{row.dropoff}</td>
-                    <td className="px-4 py-4 text-foreground dark:text-white">
-                      {formatDateTime(row.completedAt)}
-                    </td>
-                    <td className="px-4 py-4">
-                      <span
-                        className="rounded border border-green-200 bg-green-50 px-2 py-0.5 text-[9px] font-normal uppercase tracking-wider text-green-700 dark:border-white/40 dark:bg-transparent dark:text-white"
-                      >
-                        {row.status.toUpperCase()}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {!loading && paginatedRows.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      className="px-4 py-10 text-center text-xs text-muted-foreground dark:text-white"
-                    >
-                      No completed missions yet.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+      <section className="space-y-4">
+        {loading ? (
+          <div className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground dark:border-white/20 dark:text-white">
+            Loading completed missions...
           </div>
+        ) : paginatedRows.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground dark:border-white/20 dark:text-white">
+            No completed missions yet.
+          </div>
+        ) : (
+          paginatedRows.map((row) => (
+            <article
+              key={`${row.missionId}-${row.completedAt}`}
+              className="rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm dark:border-white/20"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#008B8B]">
+                    Completed Mission
+                  </p>
+                  <h3 className="mt-1 text-base font-semibold text-foreground">
+                    {row.customer || "Mission"}
+                  </h3>
+                </div>
+                <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase text-sky-700 dark:border-sky-400/40 dark:bg-sky-950/30 dark:text-sky-300">
+                  Completed
+                </span>
+              </div>
 
-          <div className="mt-6 flex justify-end">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground disabled:bg-muted disabled:text-muted-foreground/80 dark:border-white/25 dark:text-white dark:disabled:bg-white/10 dark:disabled:text-white/60"
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="size-4" aria-hidden />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).slice(0, 5).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPage(p)}
-                  className={`inline-flex size-8 items-center justify-center rounded-lg border text-sm font-semibold ${
-                    p === page
-                      ? "border-[#006a6e] bg-[#006a6e] text-white"
-                      : "border-border bg-card text-muted-foreground hover:bg-muted/50 dark:border-white/25 dark:text-white dark:hover:bg-white/10"
-                  }`}
-                  aria-current={p === page ? "page" : undefined}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground disabled:bg-muted disabled:text-muted-foreground/80 dark:border-white/25 dark:text-white dark:disabled:bg-white/10 dark:disabled:text-white/60"
-                aria-label="Next page"
-              >
-                <ChevronRight className="size-4" aria-hidden />
-              </button>
-            </div>
-          </div>
-        </div>
+              <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <p className="text-[#5a6d71] dark:text-white/75">
+                  <span className="font-semibold text-[#1a3e42] dark:text-white">
+                    Request ID:
+                  </span>{" "}
+                  {row.missionId}
+                </p>
+                <p className="text-[#5a6d71] dark:text-white/75">
+                  <span className="font-semibold text-[#1a3e42] dark:text-white">
+                    Service:
+                  </span>{" "}
+                  {row.service || "—"}
+                </p>
+                <p className="text-[#5a6d71] dark:text-white/75">
+                  <span className="font-semibold text-[#1a3e42] dark:text-white">
+                    Drone:
+                  </span>{" "}
+                  {row.droneUnit || "—"}
+                </p>
+                <p className="text-[#5a6d71] dark:text-white/75">
+                  <span className="font-semibold text-[#1a3e42] dark:text-white">
+                    Pilot:
+                  </span>{" "}
+                  {row.pilot || "—"}
+                </p>
+                <p className="text-[#5a6d71] dark:text-white/75">
+                  <span className="font-semibold text-[#1a3e42] dark:text-white">
+                    Assigned At:
+                  </span>{" "}
+                  {formatDateTime(row.assignedAt)}
+                </p>
+                <p className="text-[#5a6d71] dark:text-white/75">
+                  <span className="font-semibold text-[#1a3e42] dark:text-white">
+                    Completed At:
+                  </span>{" "}
+                  {formatDateTime(row.completedAt)}
+                </p>
+              </div>
+
+              <div className="mt-3 inline-flex items-center gap-2 text-sm text-[#2d4f53] dark:text-white/85">
+                <span className="font-semibold">Destination:</span> {row.dropoff || "Destination TBD"}
+              </div>
+            </article>
+          ))
+        )}
       </section>
 
     </section>
