@@ -7,6 +7,7 @@ import { useCallback, useEffect, useId, useState } from "react";
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiUrl } from "@/lib/api-url";
 import {
   getPilotDisplayName,
   jwtPayloadRole,
@@ -310,7 +311,7 @@ export function PilotSettingsAddDronePanel({
         isNewDrone = true;
         
         // Create new drone in database first
-        const createResponse = await fetch("http://localhost:4000/api/drones", {
+        const createResponse = await fetch(apiUrl("/api/drones"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -349,7 +350,7 @@ export function PilotSettingsAddDronePanel({
         console.log("Converted string ID to number:", droneId);
       }
 
-      const response = await fetch(`http://localhost:4000/api/drones/${droneId}`, {
+      const response = await fetch(apiUrl(`/api/drones/${droneId}`), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -478,7 +479,7 @@ export function PilotSettingsAddDronePanel({
         use_cases: updatedDrone.useCases,
       };
 
-      const response = await fetch(`http://localhost:4000/api/drones/${updatedDrone.id}`, {
+      const response = await fetch(apiUrl(`/api/drones/${updatedDrone.id}`), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -530,7 +531,7 @@ export function PilotSettingsAddDronePanel({
       const token = localStorage.getItem("token");
       
       // Try to delete from backend first
-      const response = await fetch(`http://localhost:4000/api/drones/${drone.id}`, {
+      const response = await fetch(apiUrl(`/api/drones/${drone.id}`), {
         method: "DELETE",
         headers: {
           "Authorization": token ? `Bearer ${token}` : "",
@@ -617,7 +618,7 @@ export function PilotSettingsAddDronePanel({
       if (editingDroneId) {
         // Update existing drone
         try {
-          response = await fetch(`http://localhost:4000/api/drones/${editingDroneId}`, {
+          response = await fetch(apiUrl(`/api/drones/${editingDroneId}`), {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -640,7 +641,7 @@ export function PilotSettingsAddDronePanel({
         console.log("Creating new drone for pilot:", pilotId, createData);
         
         try {
-          response = await fetch("http://localhost:4000/api/drones", {
+          response = await fetch(apiUrl("/api/drones"), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -817,7 +818,7 @@ export function PilotSettingsAddDronePanel({
       } : null;
 
       // Send request to admin with pilot details
-      const response = await fetch("http://localhost:4000/api/user-requests", {
+      const response = await fetch(apiUrl("/api/user-requests"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
