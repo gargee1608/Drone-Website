@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Drone,
+  Home,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -24,7 +25,7 @@ export type CommandCenterNavItem = {
 
 /** Admin command center — same list as `DashboardLayout` sidebar. */
 export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/", label: "Home", icon: Home },
   { href: "/dashboard/assign", label: "Assign To", icon: Plane },
   { href: "/dashboard/user-requests", label: "User Request", icon: ClipboardList },
     {
