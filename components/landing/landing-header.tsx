@@ -573,15 +573,6 @@ export function LandingHeader() {
                     className="absolute right-0 top-full z-[60] mt-1.5 min-w-[12rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg ring-1 ring-black/5"
                   >
                     <Link
-                      href="/"
-                      role="menuitem"
-                      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                      onClick={() => setMarketingUserMenuOpen(false)}
-                    >
-                      <HomeIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                      Home
-                    </Link>
-                    <Link
                       href="/user-dashboard"
                       role="menuitem"
                       className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
@@ -591,7 +582,7 @@ export function LandingHeader() {
                         className="size-4 shrink-0 text-muted-foreground"
                         aria-hidden
                       />
-                      User dashboard
+                      Dashboard
                     </Link>
                     <button
                       type="button"
@@ -679,16 +670,16 @@ export function LandingHeader() {
                     isAdminDashboard ||
                     isAdminSettingsContext ? (
                       <Link
-                        href="/"
+                        href="/dashboard"
                         role="menuitem"
                         className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                         onClick={() => setAccountMenuOpen(false)}
                       >
-                        <HomeIcon
+                        <LayoutDashboard
                           className="size-4 shrink-0 text-muted-foreground"
                           aria-hidden
                         />
-                        Home
+                        Dashboard
                       </Link>
                     ) : null}
                     <Link
@@ -830,11 +821,11 @@ export function LandingHeader() {
               <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-3">
                 {isUserLogoutContext || isPilotLogoutContext ? (
                   <Link
-                    href="/"
+                    href={isUserLogoutContext ? "/user-dashboard" : "/pilot-dashboard"}
                     className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                     onClick={() => setOpen(false)}
                   >
-                    Home
+                    Dashboard
                   </Link>
                 ) : null}
                 <Link

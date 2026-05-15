@@ -1872,7 +1872,7 @@ export function AssignPilotDroneView() {
             onClick={() => setAssignedDialogOpen(false)}
           />
           <div
-            className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border-2 border-border bg-card shadow-xl ring-1 ring-black/5"
+            className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border-2 border-border bg-white shadow-xl ring-1 ring-black/5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-6 sm:px-10 sm:py-8">
