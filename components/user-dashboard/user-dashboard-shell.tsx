@@ -5,6 +5,7 @@ import {
   Activity,
   ClipboardList,
   History,
+  Home as HomeIcon,
   LayoutDashboard,
   LogOut,
   Map,
@@ -32,6 +33,7 @@ const MY_REQUESTS_HREF = "/user-dashboard/my-requests";
 const USER_LOGIN_HREF = "/pilot-login?panel=user";
 
 const sidebarNav = [
+  { label: "Home", icon: HomeIcon, href: "/" },
   { label: "Dashboard", icon: LayoutDashboard, href: "/user-dashboard" },
   { label: "My Request", icon: ClipboardList, href: MY_REQUESTS_HREF },
   {

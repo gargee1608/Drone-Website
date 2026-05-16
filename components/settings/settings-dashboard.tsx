@@ -1149,7 +1149,7 @@ export function SettingsDashboard({
           />
           <div
             className={cn(
-              "relative z-10 flex w-full flex-col rounded-2xl border-2 border-border bg-card text-card-foreground shadow-xl ring-1 ring-black/5",
+              "relative z-10 flex w-full flex-col rounded-2xl border-2 border-border bg-white text-card-foreground shadow-xl ring-1 ring-black/5",
               settingsContext === "pilot"
                 ? "max-w-4xl overflow-visible"
                 : "max-h-[min(92dvh,840px)] max-w-2xl overflow-hidden"
