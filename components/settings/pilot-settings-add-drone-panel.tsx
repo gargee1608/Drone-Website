@@ -7,6 +7,7 @@ import { useCallback, useEffect, useId, useState, forwardRef, useImperativeHandl
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiUrl } from "@/lib/api-url";
 import {
   getPilotDisplayName,
   jwtPayloadRole,
@@ -330,7 +331,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
         isNewDrone = true;
         
         // Create new drone in database first
-        const createResponse = await fetch("http://localhost:4000/api/drones", {
+        const createResponse = await fetch(apiUrl("/api/drones"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -369,7 +370,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
         console.log("Converted string ID to number:", droneId);
       }
 
-      const response = await fetch(`http://localhost:4000/api/drones/${droneId}`, {
+      const response = await fetch(apiUrl(`/api/drones/${droneId}`), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -503,7 +504,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
         use_cases: updatedDrone.useCases,
       };
 
-      const response = await fetch(`http://localhost:4000/api/drones/${updatedDrone.id}`, {
+      const response = await fetch(apiUrl(`/api/drones/${updatedDrone.id}`), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -555,7 +556,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
       const token = localStorage.getItem("token");
       
       // Try to delete from backend first
-      const response = await fetch(`http://localhost:4000/api/drones/${drone.id}`, {
+      const response = await fetch(apiUrl(`/api/drones/${drone.id}`), {
         method: "DELETE",
         headers: {
           "Authorization": token ? `Bearer ${token}` : "",
@@ -646,22 +647,21 @@ export const PilotSettingsAddDronePanel = forwardRef<
 
       if (editingDroneId) {
         // Check if drone ID is a local storage ID (starts with "drone-") or a database ID
-        if (typeof editingDroneId === 'string' && editingDroneId.startsWith('drone-')) {
+        if (typeof editingDroneId === "string" && editingDroneId.startsWith("drone-")) {
           console.log("Local drone detected, creating new drone in database first");
           isNewDrone = true;
 
-          // Create new drone in database first
           const createData = {
             ...droneData,
             pilot_id: pilotId,
           };
 
           try {
-            const createResponse = await fetch("http://localhost:4000/api/drones", {
+            const createResponse = await fetch(apiUrl("/api/drones"), {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": token ? `Bearer ${token}` : "",
+                Authorization: token ? `Bearer ${token}` : "",
               },
               body: JSON.stringify(createData),
             });
@@ -676,21 +676,18 @@ export const PilotSettingsAddDronePanel = forwardRef<
             droneId = createResult.id;
             console.log("Created new drone with ID:", droneId);
 
-            // Update the editing drone ID with the new database ID
             setEditingDroneId(droneId);
 
-            // Now update the drone with the correct data
-            response = await fetch(`http://localhost:4000/api/drones/${droneId}`, {
+            response = await fetch(apiUrl(`/api/drones/${droneId}`), {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": token ? `Bearer ${token}` : "",
+                Authorization: token ? `Bearer ${token}` : "",
               },
               body: JSON.stringify(droneData),
             });
           } catch (createError) {
             console.error("Error creating drone:", createError);
-            // If creation fails, just save to local storage
             console.warn("Falling back to local storage only");
             // Don't set response - let it fall through to local storage save
             response = {
@@ -701,14 +698,13 @@ export const PilotSettingsAddDronePanel = forwardRef<
             };
           }
         } else {
-          // Update existing drone in database
           console.log("Updating existing drone with ID:", editingDroneId);
           try {
-            response = await fetch(`http://localhost:4000/api/drones/${editingDroneId}`, {
+            response = await fetch(apiUrl(`/api/drones/${editingDroneId}`), {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": token ? `Bearer ${token}` : "",
+                Authorization: token ? `Bearer ${token}` : "",
               },
               body: JSON.stringify(droneData),
             });
@@ -733,7 +729,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
         console.log("Creating new drone for pilot:", pilotId, createData);
         
         try {
-          response = await fetch("http://localhost:4000/api/drones", {
+          response = await fetch(apiUrl("/api/drones"), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
