@@ -49,7 +49,9 @@ export async function POST(req: NextRequest) {
         user: result.user,
       });
     }
-    return NextResponse.json(result.body, { status: result.status });
+    if ("status" in result) {
+      return NextResponse.json(result.body, { status: result.status });
+    }
   } catch (error) {
     console.error("Auth signin handler error:", error);
   }

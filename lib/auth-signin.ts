@@ -307,9 +307,6 @@ export async function handleAuthSignIn(
     }
 
     const role = String(user.role || "user").toLowerCase();
-    if (wantedRole === "pilot" && role !== "pilot") {
-      return { status: 403, body: { message: "Not a pilot account" } };
-    }
     if (wantedRole === "user" && role === "admin") {
       return {
         status: 403,
