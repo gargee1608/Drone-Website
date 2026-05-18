@@ -26,6 +26,27 @@ import { notifyMissionsDbUpdated } from "@/lib/user-requests";
 
 type HubTab = "missions" | "pilots";
 
+const MATCHING_HUB_REGION_CITIES = [
+  "Mumbai",
+  "Delhi",
+  "Kolkata",
+  "Chennai",
+  "Bengaluru",
+  "Hyderabad",
+  "Pune",
+  "Ahmedabad",
+  "Vadodara",
+  "Surat",
+  "Indore",
+  "Jaipur",
+  "Lucknow",
+  "Coimbatore",
+  "Bhubaneswar",
+  "Kochi",
+  "Nagpur",
+  "Visakhapatnam",
+] as const;
+
 type HubMission = {
   id: string;
   title: string;
@@ -678,11 +699,18 @@ export function MatchingHubView() {
               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
                 Region
               </label>
-              <select className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm">
-                <option>Global</option>
-                <option>North America</option>
-                <option>Europe</option>
-                <option>Asia Pacific</option>
+              <select
+                defaultValue="India"
+                className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
+              >
+                <option value="India" hidden>
+                  India
+                </option>
+                {MATCHING_HUB_REGION_CITIES.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
