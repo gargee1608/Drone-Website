@@ -10,6 +10,10 @@ import {
   missionsCompletedFromPilotRow,
 } from "@/lib/pilot-db-metrics";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  PROFILE_INFO_POPUP_INNER_PANEL_CLASS,
+  PROFILE_INFO_POPUP_SHELL_CLASS,
+} from "@/lib/profile-popup-styles";
 import { cn } from "@/lib/utils";
 
 type DutyStatus = "ACTIVE" | "INACTIVE";
@@ -127,14 +131,19 @@ function DroneDetailCard({ drone }: { drone: Record<string, unknown> }) {
 
   if (fields.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground sm:px-4 sm:py-4">
+      <div
+        className={cn(
+          PROFILE_INFO_POPUP_INNER_PANEL_CLASS,
+          "border-dashed px-3 py-3 text-sm text-muted-foreground sm:px-4 sm:py-4"
+        )}
+      >
         No fields recorded.
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-border bg-muted/25 px-3 py-3 sm:px-4 sm:py-4">
+    <div className={cn(PROFILE_INFO_POPUP_INNER_PANEL_CLASS, "px-3 py-3 sm:px-4 sm:py-4")}>
       <dl className="grid gap-3 sm:grid-cols-2 sm:gap-4">
         {fields.map(({ label, value }, i) => (
           <DetailField key={`${label}-${i}`} label={label}>
@@ -252,9 +261,12 @@ function PilotDetailModal({
         aria-modal="true"
         aria-labelledby="pilots-detail-modal-title"
         aria-describedby={contentId}
-        className="relative z-10 flex max-h-[min(92dvh,48rem)] w-full max-w-lg flex-col overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white text-card-foreground shadow-2xl sm:my-auto sm:rounded-2xl"
+        className={cn(
+          "relative z-10 flex max-h-[min(92dvh,48rem)] w-full max-w-lg flex-col overflow-y-auto overscroll-contain rounded-t-2xl border-2 border-border shadow-2xl sm:my-auto sm:rounded-2xl dark:border-white/20",
+          PROFILE_INFO_POPUP_SHELL_CLASS
+        )}
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-5 py-3 sm:px-6">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-5 py-3 dark:border-white/20 sm:px-6">
           <h2
             id="pilots-detail-modal-title"
             className="min-w-0 pr-2 text-base font-bold leading-snug text-foreground sm:text-lg"
@@ -265,7 +277,7 @@ function PilotDetailModal({
             ref={closeBtnRef}
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted"
+            className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted dark:hover:bg-white/10"
             aria-label="Close"
           >
             <X className="size-5" aria-hidden />
@@ -288,7 +300,7 @@ function PilotDetailModal({
                   <h3 className="text-[10px] font-extrabold uppercase tracking-widest text-foreground">
                     Pilot information
                   </h3>
-                  <div className="mt-3 rounded-xl border border-border bg-muted/25 px-3 py-3 sm:px-4 sm:py-4">
+                  <div className={cn(PROFILE_INFO_POPUP_INNER_PANEL_CLASS, "mt-3 px-3 py-3 sm:px-4 sm:py-4")}>
                     <dl className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                       {rows.map(({ label, value }, i) => (
                         <DetailField key={`${label}-${i}`} label={label}>
@@ -303,7 +315,7 @@ function PilotDetailModal({
               <section
                 aria-label="Drone details"
                 className={cn(
-                  rows.length > 0 && "mt-5 border-t border-border pt-5"
+                  rows.length > 0 && "mt-5 border-t border-border pt-5 dark:border-white/20"
                 )}
               >
                 <h3 className="text-[10px] font-extrabold uppercase tracking-widest text-foreground">
@@ -316,7 +328,7 @@ function PilotDetailModal({
                     ))}
                   </div>
                 ) : legacyDroneFields.length > 0 ? (
-                  <div className="mt-3 rounded-xl border border-border bg-muted/25 px-3 py-3 sm:px-4 sm:py-4">
+                  <div className={cn(PROFILE_INFO_POPUP_INNER_PANEL_CLASS, "mt-3 px-3 py-3 sm:px-4 sm:py-4")}>
                     <dl className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                       {legacyDroneFields.map(({ label, value }, i) => (
                         <DetailField key={`${label}-${i}`} label={label}>

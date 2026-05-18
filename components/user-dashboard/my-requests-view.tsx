@@ -12,6 +12,15 @@ import {
   userRequestQueueDisplayIdInList,
   type UserMissionRequest,
 } from "@/lib/user-requests";
+import {
+  USER_DASH_DIVIDER_BORDER,
+  USER_DASH_PANEL_BORDER,
+  USER_DASH_TABLE,
+  USER_DASH_TABLE_HEAD,
+  USER_DASH_TABLE_TD,
+  USER_DASH_TABLE_TH,
+} from "@/lib/user-dashboard-styles";
+import { cn } from "@/lib/utils";
 
 const priorityLabels: Record<string, string> = {
   urgent: "Urgent",
@@ -27,13 +36,13 @@ function formatPriority(value: string): string {
 function adminStatusBadgeClass(status: UserMissionRequest["adminStatus"]) {
   switch (status) {
     case "pending":
-      return "bg-amber-50 text-amber-900 ring-1 ring-amber-200/80 dark:bg-amber-500/20 dark:text-amber-100 dark:ring-amber-300/20";
+      return "bg-amber-50 text-amber-800 dark:bg-amber-500/20 dark:text-amber-100";
     case "accepted":
-      return "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200/80 dark:bg-emerald-500/20 dark:text-emerald-100 dark:ring-emerald-300/20";
+      return "bg-emerald-50 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-100";
     case "completed":
-      return "bg-sky-50 text-sky-950 ring-1 ring-sky-200/80 dark:bg-sky-500/20 dark:text-sky-100 dark:ring-sky-300/20";
+      return "bg-sky-50 text-sky-900 dark:bg-sky-500/20 dark:text-sky-100";
     case "rejected":
-      return "bg-red-50 text-red-900 ring-1 ring-red-200/80 dark:bg-red-500/20 dark:text-red-100 dark:ring-red-300/20";
+      return "bg-red-50 text-red-800 dark:bg-red-500/20 dark:text-red-100";
     default:
       return "bg-[#008B8B]/14 text-[#0a3030] dark:text-white";
   }
@@ -99,104 +108,118 @@ export function MyRequestsView() {
     >
       <div className="space-y-6">
         {requests.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#c1c6d7] bg-[#f8f9fa] px-6 py-16 text-center dark:border-white/20 dark:bg-[#161a1d]">
+          <div
+            className={cn(
+              "flex flex-col items-center justify-center rounded-xl bg-neutral-50/80 px-6 py-16 text-center dark:bg-white/[0.04]"
+            )}
+          >
             <ClipboardList
-              className="mb-4 size-12 text-[#c1c6d7] dark:text-white/50"
+              className="mb-4 size-12 text-muted-foreground"
               strokeWidth={1.5}
               aria-hidden
             />
-            <p className="text-base font-semibold text-[#191c1d] dark:text-white">
+            <p className="text-base font-semibold text-foreground">
               No requests yet
             </p>
-            <p className="mt-2 max-w-sm text-xs text-[#414755] dark:text-white/75">
+            <p className="mt-2 max-w-sm text-xs text-muted-foreground">
               Submit a request while signed in. Only your account&apos;s
               inquiries appear here.
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-[#c1c6d7]/15 bg-white shadow-sm dark:border-white/15 dark:bg-[#161a1d]">
+          <div
+            className={cn(
+              "overflow-hidden rounded-xl bg-card",
+              USER_DASH_PANEL_BORDER
+            )}
+          >
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[920px] border-collapse text-left text-sm">
-                <thead className="bg-[#f3f4f5]/85 dark:bg-[#1b2024]">
-                  <tr className="border-b border-[#edeeef] dark:border-white/10">
-                    <th
-                      scope="col"
-                      className="align-middle whitespace-nowrap px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
-                    >
+              <table className={USER_DASH_TABLE}>
+                <colgroup>
+                  <col className="w-[7rem]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[11%]" />
+                </colgroup>
+                <thead className={USER_DASH_TABLE_HEAD}>
+                  <tr className={USER_DASH_DIVIDER_BORDER}>
+                    <th scope="col" className={cn(USER_DASH_TABLE_TH, "whitespace-nowrap")}>
                       Request ID
                     </th>
-                    <th
-                      scope="col"
-                      className="align-middle px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
-                    >
+                    <th scope="col" className={USER_DASH_TABLE_TH}>
                       Title
                     </th>
-                    <th
-                      scope="col"
-                      className="align-middle min-w-[7.5rem] px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
-                    >
+                    <th scope="col" className={USER_DASH_TABLE_TH}>
                       Pickup
                     </th>
-                    <th
-                      scope="col"
-                      className="align-middle min-w-[7.5rem] px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
-                    >
+                    <th scope="col" className={USER_DASH_TABLE_TH}>
                       Drop
                     </th>
-                    <th
-                      scope="col"
-                      className="align-middle whitespace-nowrap px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
-                    >
+                    <th scope="col" className={cn(USER_DASH_TABLE_TH, "whitespace-nowrap")}>
                       Payload
                     </th>
-                    <th
-                      scope="col"
-                      className="align-middle whitespace-nowrap px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
-                    >
+                    <th scope="col" className={cn(USER_DASH_TABLE_TH, "whitespace-nowrap")}>
                       Type
                     </th>
-                    <th
-                      scope="col"
-                      className="align-middle whitespace-nowrap px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#4d5b7f] dark:text-white/70"
-                    >
+                    <th scope="col" className={cn(USER_DASH_TABLE_TH, "whitespace-nowrap")}>
                       Priority
                     </th>
-                                      </tr>
+                    <th scope="col" className={cn(USER_DASH_TABLE_TH, "whitespace-nowrap")}>
+                      Status
+                    </th>
+                  </tr>
                 </thead>
-                <tbody className="divide-y divide-[#edeeef] dark:divide-white/10">
+                <tbody>
                   {requests.map((req) => (
                     <tr
                       key={req.id}
                       id={`user-my-request-${req.id}`}
-                      className="transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.04]"
+                      className={cn(
+                        USER_DASH_DIVIDER_BORDER,
+                        "transition-colors last:border-b-0 hover:bg-neutral-50/80 dark:hover:bg-white/[0.03]"
+                      )}
                     >
-                      <td className="align-middle whitespace-nowrap px-4 py-3.5">
-                        <span className="font-mono text-sm font-normal tabular-nums text-[#191c1d] dark:text-white/90">
+                      <td className={cn(USER_DASH_TABLE_TD, "whitespace-nowrap")}>
+                        <span className="font-mono tabular-nums">
                           {userRequestQueueDisplayIdInList(
                             req.id,
                             requestsChrono
                           )}
                         </span>
                       </td>
-                      <td className="align-middle px-4 py-3.5 text-sm font-semibold break-words text-[#191c1d] dark:text-white">
+                      <td className={cn(USER_DASH_TABLE_TD, "break-words font-medium")}>
                         {req.reasonOrTitle || "(No title)"}
                       </td>
-                      <td className="align-middle px-4 py-3.5 text-sm font-normal break-words text-[#191c1d] dark:text-white/90">
+                      <td className={cn(USER_DASH_TABLE_TD, "break-words")}>
                         {req.pickupLocation || "—"}
                       </td>
-                      <td className="align-middle px-4 py-3.5 text-sm font-normal break-words text-[#191c1d] dark:text-white/90">
+                      <td className={cn(USER_DASH_TABLE_TD, "break-words")}>
                         {req.dropLocation || "—"}
                       </td>
-                      <td className="align-middle whitespace-nowrap px-4 py-3.5 text-sm font-normal tabular-nums text-[#191c1d] dark:text-white/90">
+                      <td className={cn(USER_DASH_TABLE_TD, "whitespace-nowrap tabular-nums")}>
                         {req.payloadWeightKg ? `${req.payloadWeightKg} kg` : "—"}
                       </td>
-                      <td className="align-middle whitespace-nowrap px-4 py-3.5 text-sm font-normal text-[#191c1d] dark:text-white/90">
+                      <td className={cn(USER_DASH_TABLE_TD, "break-words")}>
                         {req.requestType || "—"}
                       </td>
-                      <td className="align-middle whitespace-nowrap px-4 py-3.5 text-sm font-normal text-[#191c1d] dark:text-white/90">
+                      <td className={cn(USER_DASH_TABLE_TD, "whitespace-nowrap")}>
                         {formatPriority(req.requestPriority)}
                       </td>
-                                          </tr>
+                      <td className={cn(USER_DASH_TABLE_TD, "whitespace-nowrap")}>
+                        <span
+                          className={cn(
+                            "inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                            adminStatusBadgeClass(req.adminStatus)
+                          )}
+                        >
+                          {userMissionAdminStatusLabel(req.adminStatus)}
+                        </span>
+                      </td>
+                    </tr>
                   ))}
                 </tbody>
               </table>

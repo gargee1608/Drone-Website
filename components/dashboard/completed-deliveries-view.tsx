@@ -448,7 +448,7 @@ export function CompletedDeliveriesView({
           <button
             type="button"
             onClick={handleExportCsv}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted/50 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted/50"
           >
             <Download className="size-4" aria-hidden />
             Export CSV

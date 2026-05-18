@@ -199,6 +199,15 @@ export function LandingHeader() {
     isAdminDashboard ||
     isAdminSettingsContext;
 
+  /** Dashboard shells use theme tokens in light and dark (not marketing `dark:text-white`). */
+  const appDashboardShell =
+    isAdminDashboard ||
+    isUserDashboard ||
+    isPilotDashboard ||
+    isAdminSettingsContext ||
+    isUserSettingsContext ||
+    isPilotSettingsContext;
+
   const showHeaderSettingsIcon = !(
     isPilotDashboard ||
     isPilotSettingsContext ||
@@ -339,10 +348,8 @@ export function LandingHeader() {
   return (
     <header
       className={cn(
-        "fixed top-0 z-50 w-full border-b",
-        isUserDashboard
-          ? "border-slate-200 bg-white text-[#191c1d] dark:border-white/10 dark:bg-background dark:text-foreground"
-          : "border-border bg-background text-foreground dark:text-white"
+        "fixed top-0 z-50 w-full border-b border-border bg-background text-foreground",
+        !appDashboardShell && "dark:text-white"
       )}
     >
       <nav
@@ -377,12 +384,7 @@ export function LandingHeader() {
             {showUserDashboardSidebar ? (
               <button
                 type="button"
-                className={cn(
-                  "hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 lg:inline-flex",
-                  isUserDashboard
-                    ? "dark:text-[#4d5b7f] dark:hover:bg-slate-100 dark:hover:text-[#008B8B]"
-                    : "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
-                )}
+                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white lg:inline-flex"
                 onClick={() =>
                   setUserSidebarExpanded(!userSidebarExpanded)
                 }
@@ -478,8 +480,8 @@ export function LandingHeader() {
                 size="icon"
                 className={cn(
                   "text-slate-700 md:hidden",
-                  isUserDashboard
-                    ? "dark:text-slate-700 dark:hover:bg-slate-100"
+                  appDashboardShell
+                    ? "dark:text-white dark:hover:bg-white/10"
                     : "dark:text-white"
                 )}
                 onClick={() => setOpen((v) => !v)}
@@ -659,8 +661,8 @@ export function LandingHeader() {
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "icon" }),
                     "shrink-0 text-slate-500 hover:text-[#008B8B] focus-visible:ring-2 focus-visible:ring-[#008B8B]/35",
-                    isUserDashboard
-                      ? "dark:text-slate-600 dark:hover:bg-slate-100 dark:hover:text-[#008B8B]"
+                    appDashboardShell
+                      ? "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                       : "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                   )}
                 >
@@ -742,8 +744,8 @@ export function LandingHeader() {
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon" }),
                   "shrink-0 text-slate-500 hover:text-[#008B8B]",
-                  isUserDashboard
-                    ? "dark:text-slate-600 dark:hover:bg-slate-100"
+                  appDashboardShell
+                    ? "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                     : "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                 )}
                 aria-label="Login"

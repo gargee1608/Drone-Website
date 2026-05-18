@@ -14,6 +14,16 @@ import {
   splitDisplayNameToFirstLast,
   writeStoredUserSession,
 } from "@/lib/user-session-browser";
+import {
+  PROFILE_INFO_POPUP_INPUT_CLASS,
+  PROFILE_INFO_POPUP_PANEL_CLASS,
+} from "@/lib/profile-popup-styles";
+import {
+  USER_DASH_BORDER_COLOR,
+  USER_DASH_DIVIDER_BORDER,
+  USER_DASH_INPUT_BORDER,
+  USER_DASH_PANEL_BORDER,
+} from "@/lib/user-dashboard-styles";
 import { cn } from "@/lib/utils";
 
 type UserProfileDraft = {
@@ -225,29 +235,49 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
   }
 
   const allowInlineEdit = !embedded || allowEditWhenEmbedded;
+  const panelClass = embedded
+    ? PROFILE_INFO_POPUP_PANEL_CLASS
+    : cn("rounded-xl bg-card px-5 py-4", USER_DASH_PANEL_BORDER);
+  const panelClassLg = embedded
+    ? `${PROFILE_INFO_POPUP_PANEL_CLASS} p-5 sm:p-6`
+    : cn("rounded-xl bg-card p-5 sm:p-6", USER_DASH_PANEL_BORDER);
+  const inputClass = embedded
+    ? PROFILE_INFO_POPUP_INPUT_CLASS
+    : cn(
+        "mt-1 w-full rounded-md bg-input px-2.5 py-2 text-xs text-foreground outline-none focus:border-[#f29b38]",
+        USER_DASH_INPUT_BORDER
+      );
 
   const body = (
     <>
-      <article className="rounded-xl border border-[#dfe6ea] bg-card px-5 py-4 shadow-sm dark:border-border dark:bg-card">
+      <article className={cn(panelClass, "px-5 py-4")}>
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <div className="relative">
-              <div className="flex size-16 items-center justify-center overflow-hidden rounded-full border border-[#d4dce1] bg-card text-lg font-bold text-foreground dark:border-border dark:bg-card dark:text-foreground">
-                {avatarSrc ? (
-                  <img
-                    src={avatarSrc}
-                    alt="Profile"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  initials
-                )}
-              </div>
-              {allowInlineEdit ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={onAvatarPick}
-                    className="absolute -bottom-1 -right-1 inline-flex size-6 items-center justify-center rounded-full border border-[#d9dee3] bg-card text-[#2e4f53] shadow-sm transition-colors hover:bg-[#f7f9fa] dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-muted"
+              <div
+              className={cn(
+                "flex size-16 items-center justify-center overflow-hidden rounded-full bg-card text-lg font-bold text-foreground",
+                USER_DASH_BORDER_COLOR
+              )}
+            >
+              {avatarSrc ? (
+                <img
+                  src={avatarSrc}
+                  alt="Profile"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                initials
+              )}
+            </div>
+            {allowInlineEdit ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onAvatarPick}
+                  className={cn(
+                    "absolute -bottom-1 -right-1 inline-flex size-6 items-center justify-center rounded-full bg-card text-foreground transition-colors hover:bg-muted",
+                    USER_DASH_BORDER_COLOR
+                  )}
                     aria-label="Edit profile photo"
                   >
                     <Pencil className="size-3" aria-hidden />
@@ -276,10 +306,11 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
           </div>
         </article>
 
-        <article className="rounded-xl border border-[#dfe6ea] bg-card p-5 shadow-sm dark:border-border dark:bg-card sm:p-6">
+        <article className={panelClassLg}>
           <div
             className={cn(
-              "mb-4 flex border-b border-[#edf2f5] pb-3 dark:border-white/15",
+              "mb-4 flex pb-3",
+              USER_DASH_DIVIDER_BORDER,
               allowInlineEdit ? "items-center justify-between" : ""
             )}
           >
@@ -292,14 +323,20 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
                   <button
                     type="button"
                     onClick={onPersonalCancel}
-                    className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                    className={cn(
+                      "inline-flex items-center rounded-md bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted",
+                      USER_DASH_BORDER_COLOR
+                    )}
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={onPersonalSave}
-                    className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                    className={cn(
+                      "inline-flex items-center rounded-md bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted",
+                      USER_DASH_BORDER_COLOR
+                    )}
                   >
                     Save
                   </button>
@@ -308,7 +345,10 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
                 <button
                   type="button"
                   onClick={onPersonalEditStart}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-[#d9dee3] bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-[#f7f9fa] dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-muted"
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted",
+                    USER_DASH_BORDER_COLOR
+                  )}
                 >
                   Edit
                   <Pencil className="size-3.5" aria-hidden />
@@ -337,7 +377,7 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
                     onChange={(e) =>
                       setPersonalDraft((prev) => ({ ...prev, [key]: e.target.value }))
                     }
-                    className="mt-1 w-full rounded-md border border-[#d9dee3] bg-card px-2.5 py-2 text-xs text-foreground outline-none focus:border-[#f29b38] dark:border-border dark:bg-card dark:text-foreground"
+                    className={inputClass}
                   />
                 ) : (
                   <p className="mt-1 text-sm font-medium text-foreground dark:text-foreground">

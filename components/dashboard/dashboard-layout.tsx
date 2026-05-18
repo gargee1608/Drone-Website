@@ -80,7 +80,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   }, [sidebarExpanded, sidebarOpen]);
 
   return (
-    <div className="admin-dashboard flex min-h-0 flex-1 flex-col bg-white pt-24 text-foreground antialiased sm:pt-26">
+    <div className="admin-dashboard flex min-h-0 flex-1 flex-col bg-background pt-24 text-foreground antialiased sm:pt-26">
       {sidebarOpen && (
         <button
           type="button"
@@ -196,7 +196,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           sidebarExpanded ? "lg:ml-64" : "lg:ml-0"
         )}
       >
-        <div className="flex items-center border-b border-border bg-white px-4 py-2.5 lg:hidden">
+        <div className="flex items-center border-b border-border bg-background px-4 py-2.5 lg:hidden">
           <button
             type="button"
             className="rounded-lg p-2 text-foreground transition-colors hover:bg-muted"
@@ -209,7 +209,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col space-y-10 bg-white px-3 pb-2 pt-0 sm:px-5 sm:pb-2">
+        <div className="flex flex-1 flex-col space-y-10 bg-background px-3 pb-2 pt-0 sm:px-5 sm:pb-2">
           {children}
         </div>
       </main>

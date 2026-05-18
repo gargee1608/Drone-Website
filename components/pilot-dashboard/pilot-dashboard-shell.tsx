@@ -123,7 +123,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="min-h-0 flex-1 basis-0 overflow-y-auto">
         <SidebarNavLinks onNavigate={onNavigate} />
       </div>
-      <div className="mt-auto shrink-0 border-t border-border pt-4 pb-2">
+      <div className="mt-auto shrink-0 pt-4 pb-2">
         <LogoutControl onAfterClick={onNavigate} />
       </div>
     </div>
@@ -283,7 +283,7 @@ export function PilotDashboardShell({
           </div>
           {sidebarExpanded ? (
             <div className="mt-auto flex w-full shrink-0 flex-col">
-              <div className="shrink-0 border-t border-border px-3.5 pt-4 pb-3">
+              <div className="shrink-0 px-3.5 pt-4 pb-3">
                 <LogoutControl />
               </div>
             </div>

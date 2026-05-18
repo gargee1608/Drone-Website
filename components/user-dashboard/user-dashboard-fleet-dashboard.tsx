@@ -28,6 +28,16 @@ import {
   type UserMissionRequest,
 } from "@/lib/user-requests";
 import { apiUrl } from "@/lib/api-url";
+import {
+  USER_DASH_CHIP,
+  USER_DASH_CHIP_CHECKED,
+  USER_DASH_DIVIDER_BORDER,
+  USER_DASH_DIVIDER_SIDE_L,
+  USER_DASH_DIVIDER_SIDE_R,
+  USER_DASH_INPUT_BORDER,
+  USER_DASH_PANEL_BORDER,
+  USER_DASH_PRIMARY_BUTTON,
+} from "@/lib/user-dashboard-styles";
 import { cn } from "@/lib/utils";
 
 const PRIMARY = "#0058bc";
@@ -113,8 +123,8 @@ function urgencyToPriority(u: Urgency): string {
 function typeBadgeClass(requestType: string): string {
   const t = requestType.toLowerCase();
   if (t.includes("medical"))
-    return "bg-blue-50 text-[#0058bc] ring-1 ring-blue-100 dark:bg-blue-500/15 dark:text-blue-200 dark:ring-blue-500/30";
-  return "bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-white/10 dark:text-white/80 dark:ring-white/15";
+    return "bg-blue-50 text-[#0058bc] dark:bg-blue-500/15 dark:text-blue-200";
+  return "bg-muted text-muted-foreground";
 }
 
 function typeLabel(requestType: string): string {
@@ -300,13 +310,18 @@ export function UserDashboardFleetDashboard({
         className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
         style={{ gap: "24px", marginBottom: "32px" }}
       >
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-white/10 dark:bg-[#161a1d]">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/55">
+        <div
+          className={cn(
+            "rounded-xl bg-card p-6",
+            USER_DASH_PANEL_BORDER
+          )}
+        >
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Total Missions
           </p>
           <div className="flex items-end justify-between">
             <span
-              className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white"
+              className="text-3xl font-semibold tracking-tight text-foreground"
               style={headingFont}
             >
               {totalMissions}
@@ -315,7 +330,7 @@ export function UserDashboardFleetDashboard({
               All
             </span>
           </div>
-          <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+          <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full"
               style={{
@@ -327,13 +342,18 @@ export function UserDashboardFleetDashboard({
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-white/10 dark:bg-[#161a1d]">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/55">
+        <div
+          className={cn(
+            "rounded-xl bg-card p-6",
+            USER_DASH_PANEL_BORDER
+          )}
+        >
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Active Missions
           </p>
           <div className="flex items-end justify-between">
             <span
-              className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white"
+              className="text-3xl font-semibold tracking-tight text-foreground"
               style={headingFont}
             >
               {activeMissions}
@@ -342,7 +362,7 @@ export function UserDashboardFleetDashboard({
               Pending
             </span>
           </div>
-          <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+          <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-amber-500/90"
               style={{
@@ -355,13 +375,18 @@ export function UserDashboardFleetDashboard({
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-white/10 dark:bg-[#161a1d]">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/55">
+        <div
+          className={cn(
+            "rounded-xl bg-card p-6",
+            USER_DASH_PANEL_BORDER
+          )}
+        >
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Completed Missions
           </p>
           <div className="flex items-end justify-between">
             <span
-              className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white"
+              className="text-3xl font-semibold tracking-tight text-foreground"
               style={headingFont}
             >
               {completedMissions}
@@ -371,7 +396,7 @@ export function UserDashboardFleetDashboard({
             </span>
           </div>
           <div className="mt-5 h-1.5">
-            <div className="h-full w-full rounded-full bg-slate-100 dark:bg-white/10">
+            <div className="h-full w-full rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-emerald-500"
                 style={{
@@ -392,10 +417,20 @@ export function UserDashboardFleetDashboard({
       {/* Mission form + radar */}
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 flex flex-col gap-6 lg:col-span-5">
-          <section className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#161a1d]">
-            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/30 px-6 py-5 dark:border-white/10 dark:bg-white/[0.03]">
+          <section
+            className={cn(
+              "flex h-full flex-col overflow-hidden rounded-xl bg-card",
+              USER_DASH_PANEL_BORDER
+            )}
+          >
+            <div
+              className={cn(
+                "flex items-center justify-between bg-neutral-50/80 px-6 py-5 dark:bg-white/[0.04]",
+                USER_DASH_DIVIDER_BORDER
+              )}
+            >
               <h3
-                className="flex items-center gap-3 text-lg font-bold text-slate-900 dark:text-white"
+                className="flex items-center gap-3 text-lg font-bold text-foreground"
                 style={headingFont}
               >
                 <span
@@ -408,7 +443,7 @@ export function UserDashboardFleetDashboard({
               </h3>
               <button
                 type="button"
-                className="text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-white/80"
+                className="text-muted-foreground transition-colors hover:text-foreground"
                 aria-label="More options"
               >
                 <MoreHorizontal className="size-5" aria-hidden />
@@ -418,7 +453,7 @@ export function UserDashboardFleetDashboard({
               {submitSuccess ? (
                 <div
                   role="status"
-                  className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 dark:border-emerald-500/35 dark:bg-emerald-500/15 dark:text-emerald-100"
+                  className="flex items-start gap-3 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-950 dark:bg-emerald-500/15 dark:text-emerald-100"
                 >
                   <CheckCircle2
                     className="size-5 shrink-0 text-emerald-600 dark:text-emerald-300"
@@ -442,7 +477,7 @@ export function UserDashboardFleetDashboard({
                 </div>
               ) : null}
               <div>
-                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/55">
+                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Mission title / reason
                 </label>
                 <input
@@ -450,13 +485,16 @@ export function UserDashboardFleetDashboard({
                   value={missionTitle}
                   onChange={(e) => setMissionTitle(e.target.value)}
                   placeholder="e.g. Urgent Medical Supply Delivery"
-                  className="w-full rounded-lg border border-slate-200 py-2.5 text-sm transition-all focus:border-[#0058bc] focus:ring-4 focus:ring-[#0058bc]/5 focus:outline-none dark:border-white/15 dark:bg-[#111315] dark:text-white"
+                  className={cn(
+                    "w-full rounded-lg py-2.5 text-sm text-foreground transition-all focus:ring-4 focus:ring-[#0058bc]/10 focus:outline-none",
+                    USER_DASH_INPUT_BORDER
+                  )}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/55">
+                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Pickup hub
                   </label>
                   <div className="relative">
@@ -464,7 +502,10 @@ export function UserDashboardFleetDashboard({
                     <select
                       value={pickupHub}
                       onChange={(e) => setPickupHub(e.target.value)}
-                      className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-8 text-xs focus:border-[#0058bc] focus:ring-4 focus:ring-[#0058bc]/5 focus:outline-none dark:border-white/15 dark:bg-[#111315] dark:text-white"
+                      className={cn(
+                        "w-full appearance-none rounded-lg py-2.5 pl-9 pr-8 text-xs text-foreground focus:ring-4 focus:ring-[#0058bc]/10 focus:outline-none",
+                        USER_DASH_INPUT_BORDER
+                      )}
                     >
                       {PICKUP_HUBS.map((h) => (
                         <option key={h} value={h}>
@@ -476,7 +517,7 @@ export function UserDashboardFleetDashboard({
                   </div>
                 </div>
                 <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/55">
+                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Destination hub
                   </label>
                   <div className="relative">
@@ -484,7 +525,10 @@ export function UserDashboardFleetDashboard({
                     <select
                       value={destHub}
                       onChange={(e) => setDestHub(e.target.value)}
-                      className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-8 text-xs focus:border-[#0058bc] focus:ring-4 focus:ring-[#0058bc]/5 focus:outline-none dark:border-white/15 dark:bg-[#111315] dark:text-white"
+                      className={cn(
+                        "w-full appearance-none rounded-lg py-2.5 pl-9 pr-8 text-xs text-foreground focus:ring-4 focus:ring-[#0058bc]/10 focus:outline-none",
+                        USER_DASH_INPUT_BORDER
+                      )}
                     >
                       {DEST_HUBS.map((h) => (
                         <option key={h} value={h}>
@@ -499,7 +543,7 @@ export function UserDashboardFleetDashboard({
 
               <div>
                 <div className="mb-3 flex items-center justify-between">
-                  <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/55">
+                  <label className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Payload weight (kg)
                   </label>
                   <span
@@ -516,14 +560,17 @@ export function UserDashboardFleetDashboard({
                   step={0.1}
                   value={payloadKg}
                   onChange={(e) => setPayloadKg(Number(e.target.value))}
-                  className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-100 accent-[#0058bc] dark:bg-white/10"
+                  className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-[#0058bc]"
                 />
                 <div className="mt-4">
-                  <p className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/55">
+                  <p className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Preset steps (kg)
                   </p>
                   <div
-                    className="inline-flex h-9 w-full max-w-xs flex-row items-stretch overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm ring-1 ring-slate-900/5 sm:w-auto sm:max-w-none dark:border-white/15 dark:bg-[#111315] dark:ring-white/10"
+                    className={cn(
+                      "inline-flex h-9 w-full max-w-xs flex-row items-stretch overflow-hidden rounded-lg sm:w-auto sm:max-w-none",
+                      USER_DASH_INPUT_BORDER
+                    )}
                     role="group"
                     aria-label="Step payload weight through presets"
                   >
@@ -533,7 +580,10 @@ export function UserDashboardFleetDashboard({
                         setPayloadKg((kg) => stepDiscretePayloadKg(kg, -1))
                       }
                       disabled={nearestDiscreteStepIndex(payloadKg) <= 0}
-                      className="flex w-10 shrink-0 items-center justify-center border-r border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#0058bc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0058bc] disabled:pointer-events-none disabled:opacity-35 dark:border-white/15 dark:text-white/80 dark:hover:bg-white/10"
+                      className={cn(
+                        "flex w-10 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-[#0058bc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0058bc] disabled:pointer-events-none disabled:opacity-35",
+                        USER_DASH_DIVIDER_SIDE_R
+                      )}
                       aria-label="Next lighter preset"
                     >
                       <ChevronDown
@@ -542,7 +592,7 @@ export function UserDashboardFleetDashboard({
                         aria-hidden
                       />
                     </button>
-                    <div className="flex min-w-0 flex-1 items-center justify-center gap-1 bg-slate-50/90 px-2 dark:bg-white/[0.04]">
+                    <div className="flex min-w-0 flex-1 items-center justify-center gap-1 bg-muted/60 px-2">
                       <input
                         id="payload-kg-typein"
                         type="text"
@@ -564,9 +614,9 @@ export function UserDashboardFleetDashboard({
                             (e.target as HTMLInputElement).blur();
                           }
                         }}
-                        className="min-w-0 max-w-[4.75rem] border-0 bg-transparent py-0.5 text-center text-sm font-bold tabular-nums text-slate-900 outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-[#0058bc]/50 dark:text-white"
+                        className="min-w-0 max-w-[4.75rem] border-0 bg-transparent py-0.5 text-center text-sm font-bold tabular-nums text-foreground outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-[#0058bc]/50"
                       />
-                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/50">
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                         kg
                       </span>
                     </div>
@@ -579,7 +629,10 @@ export function UserDashboardFleetDashboard({
                         nearestDiscreteStepIndex(payloadKg) >=
                         PAYLOAD_DISCRETE_KG.length - 1
                       }
-                      className="flex w-10 shrink-0 items-center justify-center border-l border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#0058bc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0058bc] disabled:pointer-events-none disabled:opacity-35 dark:border-white/15 dark:text-white/80 dark:hover:bg-white/10"
+                      className={cn(
+                        "flex w-10 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-[#0058bc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0058bc] disabled:pointer-events-none disabled:opacity-35",
+                        USER_DASH_DIVIDER_SIDE_L
+                      )}
                       aria-label="Next heavier preset"
                     >
                       <ChevronUp className="size-4" strokeWidth={2.25} aria-hidden />
@@ -593,7 +646,7 @@ export function UserDashboardFleetDashboard({
               </div>
 
               <div>
-                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/55">
+                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Cargo type
                 </label>
                 <select
@@ -601,7 +654,10 @@ export function UserDashboardFleetDashboard({
                   onChange={(e) =>
                     setCargoKey(e.target.value as (typeof CARGO_OPTIONS)[number]["label"])
                   }
-                  className="w-full rounded-lg border border-slate-200 py-2.5 text-sm focus:border-[#0058bc] focus:ring-4 focus:ring-[#0058bc]/5 focus:outline-none dark:border-white/15 dark:bg-[#111315] dark:text-white"
+                  className={cn(
+                    "w-full rounded-lg py-2.5 text-sm text-foreground focus:ring-4 focus:ring-[#0058bc]/10 focus:outline-none",
+                    USER_DASH_INPUT_BORDER
+                  )}
                 >
                   {CARGO_OPTIONS.map((c) => (
                     <option key={c.label} value={c.label}>
@@ -612,7 +668,7 @@ export function UserDashboardFleetDashboard({
               </div>
 
               <div>
-                <label className="mb-3 block text-[11px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/55">
+                <label className="mb-3 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Mission urgency
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -627,10 +683,10 @@ export function UserDashboardFleetDashboard({
                       />
                       <div
                         className={cn(
-                          "rounded-lg border bg-transparent py-2.5 text-center text-[10px] font-bold uppercase tracking-wide transition-colors peer-checked:border-[#0058bc] peer-checked:text-[#0058bc]",
+                          "rounded-lg py-2.5 text-center text-[10px] font-bold uppercase tracking-wide transition-colors",
                           danger
-                            ? "border-rose-300 text-rose-600 peer-checked:border-rose-600 peer-checked:text-rose-600 dark:border-rose-500/40 dark:text-rose-300"
-                            : "border-slate-300 text-slate-700 dark:border-white/20 dark:text-white/85"
+                            ? "bg-rose-50 text-rose-600 peer-checked:bg-rose-100 peer-checked:text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 dark:peer-checked:bg-rose-500/20"
+                            : cn(USER_DASH_CHIP, USER_DASH_CHIP_CHECKED)
                         )}
                       >
                         {label}
@@ -643,11 +699,10 @@ export function UserDashboardFleetDashboard({
               <button
                 type="submit"
                 disabled={submittingRequest}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border bg-transparent py-4 text-sm font-bold transition-colors hover:bg-[#0058bc]/10 disabled:cursor-not-allowed disabled:opacity-70"
-                style={{
-                  borderColor: PRIMARY,
-                  color: PRIMARY,
-                }}
+                className={cn(
+                  "mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-4 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-70",
+                  USER_DASH_PRIMARY_BUTTON
+                )}
               >
                 {submittingRequest ? "Submitting..." : "Submit the Request"}
                 <Rocket className="size-4" aria-hidden />
@@ -657,7 +712,12 @@ export function UserDashboardFleetDashboard({
         </div>
 
         <div className="col-span-12 flex flex-col lg:col-span-7">
-          <section className="relative flex min-h-[500px] flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-2xl">
+          <section
+            className={cn(
+              "relative flex min-h-[500px] flex-col overflow-hidden rounded-xl bg-slate-900",
+              USER_DASH_PANEL_BORDER
+            )}
+          >
             <div className="pointer-events-none absolute left-5 right-5 top-5 z-20 flex items-center justify-between">
               <div
                 className="pointer-events-auto flex items-center gap-3 rounded-lg border border-white/10 px-4 py-2 backdrop-blur-md"
@@ -792,7 +852,6 @@ export function UserDashboardFleetDashboard({
           </section>
         </div>
       </div>
-
-          </div>
+    </div>
   );
 }
