@@ -252,7 +252,7 @@ function PilotDetailModal({
         aria-modal="true"
         aria-labelledby="pilots-detail-modal-title"
         aria-describedby={contentId}
-        className="relative z-10 flex max-h-[min(92dvh,48rem)] w-full max-w-lg flex-col overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-card text-card-foreground shadow-2xl sm:my-auto sm:rounded-2xl"
+        className="relative z-10 flex max-h-[min(92dvh,48rem)] w-full max-w-lg flex-col overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white text-card-foreground shadow-2xl sm:my-auto sm:rounded-2xl"
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-5 py-3 sm:px-6">
           <h2

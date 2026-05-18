@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 const FOOTER_SIDEBAR_INSET_VAR = "--admin-sidebar-footer-inset";
 
 const sidebarNav = [
+  { label: "Home", icon: LayoutDashboard, href: "/" },
   { label: "Dashboard", icon: LayoutDashboard, href: "/pilot-dashboard" },
   {
     label: "Assign Mission",

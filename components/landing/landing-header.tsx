@@ -573,6 +573,18 @@ export function LandingHeader() {
                     className="absolute right-0 top-full z-[60] mt-1.5 min-w-[12rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg ring-1 ring-black/5"
                   >
                     <Link
+                      href="/"
+                      role="menuitem"
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      onClick={() => setMarketingUserMenuOpen(false)}
+                    >
+                      <HomeIcon
+                        className="size-4 shrink-0 text-muted-foreground"
+                        aria-hidden
+                      />
+                      Home
+                    </Link>
+                    <Link
                       href="/user-dashboard"
                       role="menuitem"
                       className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
@@ -669,18 +681,32 @@ export function LandingHeader() {
                     isPilotLogoutContext ||
                     isAdminDashboard ||
                     isAdminSettingsContext ? (
-                      <Link
-                        href="/dashboard"
-                        role="menuitem"
-                        className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                        onClick={() => setAccountMenuOpen(false)}
-                      >
-                        <LayoutDashboard
-                          className="size-4 shrink-0 text-muted-foreground"
-                          aria-hidden
-                        />
-                        Dashboard
-                      </Link>
+                      <>
+                        <Link
+                          href="/"
+                          role="menuitem"
+                          className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                          onClick={() => setAccountMenuOpen(false)}
+                        >
+                          <HomeIcon
+                            className="size-4 shrink-0 text-muted-foreground"
+                            aria-hidden
+                          />
+                          Home
+                        </Link>
+                        <Link
+                          href={isUserLogoutContext ? "/user-dashboard" : isPilotLogoutContext ? "/pilot-dashboard" : "/dashboard"}
+                          role="menuitem"
+                          className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                          onClick={() => setAccountMenuOpen(false)}
+                        >
+                          <LayoutDashboard
+                            className="size-4 shrink-0 text-muted-foreground"
+                            aria-hidden
+                          />
+                          Dashboard
+                        </Link>
+                      </>
                     ) : null}
                     <Link
                       href={profileHref}
@@ -820,13 +846,22 @@ export function LandingHeader() {
             {showAccountMenu && !isAdminDashboard ? (
               <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-3">
                 {isUserLogoutContext || isPilotLogoutContext ? (
-                  <Link
-                    href={isUserLogoutContext ? "/user-dashboard" : "/pilot-dashboard"}
-                    className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                    onClick={() => setOpen(false)}
-                  >
-                    Dashboard
-                  </Link>
+                  <>
+                    <Link
+                      href="/"
+                      className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      onClick={() => setOpen(false)}
+                    >
+                      Home
+                    </Link>
+                    <Link
+                      href={isUserLogoutContext ? "/user-dashboard" : "/pilot-dashboard"}
+                      className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      onClick={() => setOpen(false)}
+                    >
+                      Dashboard
+                    </Link>
+                  </>
                 ) : null}
                 <Link
                   href={profileHref}
