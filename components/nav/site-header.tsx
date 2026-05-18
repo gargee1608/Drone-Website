@@ -99,7 +99,10 @@ export function SiteHeader({
   } = usePilotDashboardNav();
 
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
-  const isPilotDashboard = pathname?.startsWith("/pilot-dashboard") ?? false;
+  const isPilotDashboard =
+    (pathname?.startsWith("/pilot-dashboard") ||
+      pathname?.startsWith("/pilot-profile")) ??
+    false;
   const isAdminDashboard =
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
@@ -115,6 +118,14 @@ export function SiteHeader({
   const profileHref = isUserDashboard
     ? "/settings?from=user"
     : "/settings?from=admin";
+
+  const logoHref = isAdminDashboard
+    ? "/dashboard"
+    : isPilotDashboard
+      ? "/pilot-dashboard"
+      : isUserDashboard
+        ? "/user-dashboard"
+        : "/";
 
   const whiteHeaderChrome = isAdminDashboard; // Use white background for admin dashboard
 
@@ -221,7 +232,7 @@ export function SiteHeader({
             </button>
           ) : null}
           <Link
-            href="/"
+            href={logoHref}
             className="flex shrink-0 items-center gap-1 font-heading text-base font-bold tracking-tight text-black transition-opacity hover:opacity-90 sm:text-lg lg:text-xl"
           >
             <Image

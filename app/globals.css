@@ -366,7 +366,6 @@
 
   .dark .cc-glass-card {
     background: color-mix(in oklab, var(--card) 88%, transparent);
-    border-color: color-mix(in oklab, var(--border) 70%, transparent);
   }
 
   .login-glass-card {

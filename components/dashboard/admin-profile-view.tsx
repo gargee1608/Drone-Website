@@ -11,6 +11,10 @@ import {
   type AdminProfileDraft,
 } from "@/lib/admin-profile-storage";
 import { jwtPayloadRole } from "@/lib/pilot-display-name";
+import {
+  ADMIN_DASH_AVATAR_RING,
+  ADMIN_DASH_PANEL_BORDER,
+} from "@/lib/admin-dashboard-styles";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
   PROFILE_INFO_POPUP_INPUT_CLASS,
@@ -182,10 +186,10 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
   const allowInlineEdit = !embedded || allowEditWhenEmbedded;
   const panelClass = embedded
     ? cn(PROFILE_INFO_POPUP_PANEL_CLASS, "px-5 py-4")
-    : "rounded-xl border border-border bg-card px-5 py-4 shadow-sm";
+    : cn("rounded-xl bg-card px-5 py-4 shadow-sm", ADMIN_DASH_PANEL_BORDER);
   const panelClassLg = embedded
     ? cn(PROFILE_INFO_POPUP_PANEL_CLASS, "p-5 sm:p-6")
-    : "rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6";
+    : cn("rounded-xl bg-card p-5 shadow-sm sm:p-6", ADMIN_DASH_PANEL_BORDER);
   const inputClass = embedded
     ? PROFILE_INFO_POPUP_INPUT_CLASS
     : "mt-1 w-full rounded-md border border-border bg-input px-2.5 py-2 text-xs text-foreground outline-none focus:border-[#f29b38]";
@@ -195,7 +199,12 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
         <article className={panelClass}>
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <div className="relative">
-              <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-card text-xl font-bold text-foreground">
+              <div
+                className={cn(
+                  "flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card text-xl font-bold text-foreground",
+                  embedded ? "border border-border" : ADMIN_DASH_AVATAR_RING
+                )}
+              >
                 {avatarSrc ? (
                   <img
                     src={avatarSrc}

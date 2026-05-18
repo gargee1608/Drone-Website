@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { PilotRegistrationView } from "@/components/pilot-registration/pilot-registration";
+import { PilotRegistrationPageShell } from "@/components/pilot-registration/pilot-registration-page-shell";
 
 export const metadata: Metadata = {
   title: "Pilot & Drone Registration — Drone Hire",
@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function PilotRegistrationPage() {
-  return <PilotRegistrationView />;
+  return <PilotRegistrationPageShell />;
 }
