@@ -164,7 +164,7 @@ export function AdminDroneView() {
 
         {/* Pilot Details */}
         {request.pilot_details && (
-          <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
             <h3 className="text-lg font-semibold text-foreground mb-4">
               Pilot Details Submitted
             </h3>

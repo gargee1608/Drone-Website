@@ -49,6 +49,8 @@ import {
 } from "@/lib/assign-pilot-done-refs";
 import {
   findStoredUserRequestByAdminRef,
+  missionOwnerFieldsForRequestRef,
+  missionRequestRefForSave,
   loadUserRequests,
   mapUserRequestToAdminRow,
   normalizeUserMissionAdminStatus,
@@ -589,7 +591,7 @@ function assignRequestDetailDomId(requestRef: string): string {
 }
 
 const glassCard =
-  "bg-white/70 backdrop-blur-xl dark:bg-card/80 border border-white/50 shadow-[0px_12px_32px_rgba(25,28,29,0.06)]";
+  "border border-border/50 bg-card/80 shadow-sm backdrop-blur-xl";
 
 const PILOT_ASSIGN_MISSION_HREF = "/pilot-dashboard/assign-mission";
 
@@ -1052,11 +1054,13 @@ export function AssignPilotDroneView() {
     }
 
     try {
+      const missionRef = missionRequestRefForSave(ref);
+      const ownerFields = missionOwnerFieldsForRequestRef(ref);
       const missionRes = await fetch(apiUrl("/api/missions"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          requestRef: ref,
+          requestRef: missionRef,
           customer: currentRequest.customer,
           service: currentRequest.service,
           dropoff: currentRequest.dropoff,
@@ -1064,6 +1068,8 @@ export function AssignPilotDroneView() {
           pilotBadgeId: pilot.pilotId,
           pilotSub: pilot.id,
           droneModel: drone.model,
+          userName: ownerFields.userName,
+          userEmail: ownerFields.userEmail,
           assignedAt: new Date().toISOString(),
           status: "in_progress",
         }),
@@ -1219,11 +1225,13 @@ export function AssignPilotDroneView() {
     }
 
     try {
+      const missionRef = missionRequestRefForSave(row.requestRef);
+      const ownerFields = missionOwnerFieldsForRequestRef(row.requestRef);
       const missionRes = await fetch(apiUrl("/api/missions"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          requestRef: row.requestRef,
+          requestRef: missionRef,
           customer: row.customer,
           service: row.service,
           dropoff: row.dropoff,
@@ -1231,6 +1239,8 @@ export function AssignPilotDroneView() {
           pilotBadgeId: row.pilotBadgeId,
           pilotSub: selectedPilot.id,
           droneModel: row.droneModel,
+          userName: ownerFields.userName,
+          userEmail: ownerFields.userEmail,
           assignedAt: new Date().toISOString(),
           status: "completed",
         }),
@@ -1285,14 +1295,14 @@ export function AssignPilotDroneView() {
   const fontWrap = cn(
     manrope.variable,
     inter.variable,
-    "font-[family-name:var(--font-assign-body)] text-[#191c1d] antialiased"
+    "font-[family-name:var(--font-assign-body)] text-foreground antialiased"
   );
 
   return (
     <div
       className={cn(
         fontWrap,
-        "min-w-0 bg-white pb-12 pt-4 sm:pt-6 dark:bg-background"
+        "min-w-0 bg-background pb-12 pt-4 sm:pt-6"
       )}
     >
       <div className="mx-auto max-w-7xl space-y-10 px-4 sm:px-6">
@@ -1346,7 +1356,7 @@ export function AssignPilotDroneView() {
 
         {/* Queue strip — compact */}
         {pendingForRequestDetails.length > 1 ? (
-          <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white/60 p-3 text-xs dark:border-border dark:bg-card/60">
+          <div className="flex flex-wrap gap-2 rounded-lg border border-border bg-card/60 p-3 text-xs dark:border-border dark:bg-card/60">
             <span className="font-bold text-muted-foreground">Queue:</span>
             {pendingForRequestDetails.map((r) => (
               <span
@@ -1374,7 +1384,7 @@ export function AssignPilotDroneView() {
         ) : null}
 
         {assignQueue.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-300 bg-white/60 p-6 text-sm text-muted-foreground dark:border-border dark:bg-card/50">
+          <p className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-sm text-muted-foreground dark:border-border dark:bg-card/50">
             No accepted requests yet. Open{" "}
             <Link
               href="/dashboard/user-requests"
@@ -1389,7 +1399,7 @@ export function AssignPilotDroneView() {
             {queueFullyAssigned ? (
           <div className="space-y-6">
             {latestCompleted ? (
-              <div className="rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-border dark:bg-card/80">
+              <div className="rounded-xl border border-border bg-card p-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Last Assigned
                 </p>
@@ -1407,7 +1417,7 @@ export function AssignPilotDroneView() {
                 type="button"
                 disabled={updateUserTrackingDisabled}
                 title="Writes only the pilot and drone you selected below to User Tracking (admin choice)."
-                className="rounded-lg border-2 border-[#008B8B] bg-white px-4 py-2 text-xs font-bold text-[#008B8B] shadow-sm transition hover:bg-[#008B8B]/5 disabled:opacity-50 dark:bg-card"
+                className="rounded-lg border-2 border-[#008B8B] bg-card px-4 py-2 text-xs font-bold text-[#008B8B] shadow-sm transition hover:bg-[#008B8B]/10 disabled:opacity-50"
                 onClick={() => void updateUserTrackingFromPilotSelection()}
               >
                 Update User Tracking
@@ -1440,7 +1450,7 @@ export function AssignPilotDroneView() {
                   Active mission request
                 </span>
                 <h1
-                  className="mb-4 font-[family-name:var(--font-assign-headline)] text-3xl font-extrabold tracking-tight text-[#191c1d] sm:text-4xl dark:text-foreground"
+                  className="mb-4 font-[family-name:var(--font-assign-headline)] text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl"
                   style={{ fontFamily: "var(--font-assign-headline), sans-serif" }}
                 >
                   {missionTitle}
@@ -1504,7 +1514,7 @@ export function AssignPilotDroneView() {
           <button
             type="button"
             disabled={assignActionDisabled}
-            className="rounded-full border-2 border-[#008B8B] bg-white px-5 py-2 text-xs font-bold text-[#008B8B] shadow-sm transition hover:bg-[#008B8B]/5 disabled:opacity-50 dark:bg-card"
+            className="rounded-full border-2 border-[#008B8B] bg-card px-5 py-2 text-xs font-bold text-[#008B8B] shadow-sm transition hover:bg-[#008B8B]/10 disabled:opacity-50"
             onClick={() => {
               if (!assignActionDisabled) setAssignedDialogOpen(true);
             }}
@@ -1528,7 +1538,7 @@ export function AssignPilotDroneView() {
         {showAssignWorkspace ? (
           <>
         {/* Compatible drones + Available pilots — equal columns, sticky pilots on wide viewports */}
-        <div className="grid grid-cols-1 items-start gap-x-0 gap-y-10 border-t border-slate-200/80 pt-10 lg:grid-cols-2 lg:gap-x-10 lg:border-t-0 lg:pt-0 xl:gap-x-12 dark:border-border">
+        <div className="grid grid-cols-1 items-start gap-x-0 gap-y-10 border-t border-border/80 pt-10 lg:grid-cols-2 lg:gap-x-10 lg:border-t-0 lg:pt-0 xl:gap-x-12 dark:border-border">
           <section
             aria-labelledby="compatible-drones-heading"
             className="min-w-0"
@@ -1543,7 +1553,7 @@ export function AssignPilotDroneView() {
             {fleetLoading ? (
               <p className="text-sm text-muted-foreground">Loading drones…</p>
             ) : dronesForUi.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-slate-300 bg-white/60 p-4 text-sm text-muted-foreground dark:border-border dark:bg-card/50">
+              <p className="rounded-lg border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground dark:border-border dark:bg-card/50">
                 No drones found in Pilot Profile yet. Add drone details on the
                 pilot profile page and they will appear here.
               </p>
@@ -1569,8 +1579,8 @@ export function AssignPilotDroneView() {
                       "group relative overflow-hidden rounded-xl text-left shadow-sm transition-all hover:shadow-md",
                       selected
                         ? "border-2 border-[#008B8B] ring-2 ring-[#008B8B]/15"
-                        : "border border-slate-200/80 dark:border-border",
-                      "bg-white dark:bg-card"
+                        : "border border-border",
+                      "bg-card"
                     )}
                   >
                     {best ? (
@@ -1640,7 +1650,7 @@ export function AssignPilotDroneView() {
 
           <section
             aria-labelledby="available-pilots-heading"
-            className="min-w-0 border-t border-slate-200/80 pt-10 lg:sticky lg:top-24 lg:z-0 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0 xl:pl-12 dark:border-border"
+            className="min-w-0 border-t border-border/80 pt-10 lg:sticky lg:top-24 lg:z-0 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0 xl:pl-12 dark:border-border"
           >
             <h2
               id="available-pilots-heading"
@@ -1652,7 +1662,7 @@ export function AssignPilotDroneView() {
             {fleetLoading ? (
               <p className="text-sm text-muted-foreground">Loading pilots…</p>
             ) : pilotsForUi.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-slate-300 bg-white/60 p-4 text-sm text-muted-foreground dark:border-border dark:bg-card/50">
+              <p className="rounded-lg border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground dark:border-border dark:bg-card/50">
                 No pilots in the database. Register pilots via{" "}
                 <span className="font-semibold">Pilot registration</span> or
                 insert rows into the <span className="font-mono text-xs">pilots</span>{" "}
@@ -1672,7 +1682,7 @@ export function AssignPilotDroneView() {
                       "relative flex w-full items-center gap-4 rounded-xl p-4 text-left shadow-sm transition-colors",
                       selected
                         ? cn(glassCard, "border-2 border-[#008B8B]")
-                        : "border border-slate-200/80 bg-white hover:border-[#008B8B]/50 hover:shadow-md dark:border-border dark:bg-card dark:hover:border-primary/50"
+                        : "border border-border bg-card hover:border-[#008B8B]/50 hover:shadow-md hover:border-primary/50"
                     )}
                   >
                     {optimal && selected ? (
@@ -1750,13 +1760,13 @@ export function AssignPilotDroneView() {
 
         {completedAssignments.length > 0 &&
         pilotCommentReassignItems.length === 0 ? (
-          <section className="rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-border dark:bg-card/80">
+          <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Last Mission History
               </h3>
             </div>
-            <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-border">
+            <div className="overflow-hidden rounded-lg border border-border">
               <table className="w-full table-fixed border-collapse text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 dark:border-border dark:bg-muted/40">
@@ -1788,7 +1798,7 @@ export function AssignPilotDroneView() {
                     return (
                       <tr
                         key={`${row.requestRef}-${idx}`}
-                        className="border-b border-slate-200 bg-white last:border-b-0 dark:border-border dark:bg-card"
+                        className="border-b border-border bg-card last:border-b-0"
                       >
                         <td className="px-3 py-2 font-mono text-[11px] text-[#006767] dark:text-primary">
                           {userRequestQueueDisplayId(row.requestRef)}
@@ -1872,7 +1882,7 @@ export function AssignPilotDroneView() {
             onClick={() => setAssignedDialogOpen(false)}
           />
           <div
-            className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border-2 border-border bg-white shadow-xl ring-1 ring-black/5"
+            className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border-2 border-border bg-card shadow-xl ring-1 ring-border/50"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-6 sm:px-10 sm:py-8">

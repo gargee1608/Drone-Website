@@ -70,7 +70,7 @@ export function ContactInquiriesView() {
       <h1 className={cn(ADMIN_PAGE_TITLE_CLASS, "mb-8")}>Contact inquiries</h1>
 
       {rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#c1c6d7] bg-[#f8f9fa] px-6 py-14 text-center">
+        <div className="rounded-xl border border-dashed border-border bg-muted/40 px-6 py-14 text-center">
           <Mail
             className="mx-auto mb-3 size-10 text-[#c1c6d7]"
             strokeWidth={1.5}
@@ -91,7 +91,7 @@ export function ContactInquiriesView() {
               id={`contact-inquiry-${row.id}`}
               className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5"
             >
-              <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-2">
+              <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border pb-2">
                 <div>
                   <p className="text-base font-semibold text-foreground">
                     {row.fullName}

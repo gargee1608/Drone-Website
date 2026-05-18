@@ -11,11 +11,37 @@ import {
   type UserMissionTrackingEntry,
 } from "@/lib/user-mission-tracking";
 import { apiUrl } from "@/lib/api-url";
-import { pilotMissionCommentForDisplay } from "@/lib/pilot-mission-comment-display";
 import { userRequestQueueDisplayId } from "@/lib/user-requests";
-import { updateAllTrackingEntriesToCompleted } from "@/lib/user-mission-tracking";
+import {
+  USER_DASH_DIVIDER_BORDER,
+  USER_DASH_PANEL_BORDER,
+  USER_DASH_TABLE,
+  USER_DASH_TABLE_HEAD,
+  USER_DASH_TABLE_TD,
+  USER_DASH_TABLE_TH,
+} from "@/lib/user-dashboard-styles";
+import { cn } from "@/lib/utils";
 
 const PILOT_MISSION_COMMENTS_KEY = "aerolaminar_pilot_mission_comments_v1";
+
+const priorityLabels: Record<string, string> = {
+  urgent: "Urgent",
+  express: "Express",
+  standard: "Standard",
+};
+
+function formatPriority(value: string): string {
+  if (!value?.trim()) return "—";
+  const key = value.trim().toLowerCase();
+  return priorityLabels[key] ?? value.trim();
+}
+
+function trackingStatusBadgeClass(statusLabel: string): string {
+  if (statusLabel === "Completed") {
+    return "bg-emerald-50 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-100";
+  }
+  return "bg-sky-50 text-sky-900 dark:bg-sky-500/20 dark:text-sky-100";
+}
 
 function formatAssignedAt(iso: string): string {
   try {
@@ -27,25 +53,6 @@ function formatAssignedAt(iso: string): string {
     });
   } catch {
     return iso;
-  }
-}
-
-function readPilotMissionComment(requestRef: string): string {
-  if (typeof window === "undefined") return "";
-  try {
-    const raw = localStorage.getItem(PILOT_MISSION_COMMENTS_KEY);
-    if (!raw) return "";
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return "";
-    const row = (parsed as Record<string, unknown>)[requestRef.trim()];
-    if (row && typeof row === "object" && "text" in row) {
-      const text = (row as { text?: unknown }).text;
-      return typeof text === "string" ? text.trim() : "";
-    }
-    if (typeof row === "string") return row.trim();
-    return "";
-  } catch {
-    return "";
   }
 }
 
@@ -133,16 +140,20 @@ export function UserTrackingView() {
     >
       <div className="space-y-6">
         {entries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card px-6 py-16 text-center dark:border-border dark:bg-card">
+          <div
+            className={cn(
+              "flex flex-col items-center justify-center rounded-xl bg-neutral-50/80 px-6 py-16 text-center dark:bg-white/[0.04]"
+            )}
+          >
             <MapPinned
-              className="mb-4 size-12 text-[#c1c6d7] dark:text-white/60"
+              className="mb-4 size-12 text-muted-foreground"
               strokeWidth={1.5}
               aria-hidden
             />
-            <p className="text-base font-semibold text-[#191c1d] dark:text-white">
+            <p className="text-base font-semibold text-foreground">
               No assigned missions yet
             </p>
-            <p className="mt-2 max-w-md text-xs text-[#414755] dark:text-white/70">
+            <p className="mt-2 max-w-md text-xs text-muted-foreground">
               When an admin assigns a pilot to your request from the dashboard,
               you&apos;ll see the pilot name and your request
               details here. Assignments are stored in this browser for demo
@@ -150,47 +161,52 @@ export function UserTrackingView() {
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm dark:border-border dark:bg-card">
+          <div
+            className={cn(
+              "overflow-hidden rounded-xl bg-card",
+              USER_DASH_PANEL_BORDER
+            )}
+          >
             <div className="overflow-x-auto">
-              <table className="w-full table-fixed border-collapse">
+              <table className={USER_DASH_TABLE}>
                 <colgroup>
-                  <col className="w-[8rem]" />
+                  <col className="w-[9rem]" />
                   <col className="w-[7rem]" />
-                  <col className="w-[11%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[11%]" />
-                  <col className="w-[11%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[8%]" />
                   <col className="w-[12%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[10%]" />
                 </colgroup>
-                <thead className="bg-[#f3f4f5]/85 dark:bg-white/5">
-                  <tr className="border-b border-[#edeeef] dark:border-white/10">
-                    <th className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                <thead className={USER_DASH_TABLE_HEAD}>
+                  <tr className={USER_DASH_DIVIDER_BORDER}>
+                    <th scope="col" className={cn(USER_DASH_TABLE_TH, "whitespace-nowrap")}>
                       Assigned
                     </th>
-                    <th className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th scope="col" className={cn(USER_DASH_TABLE_TH, "whitespace-nowrap")}>
                       Request ID
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th scope="col" className={USER_DASH_TABLE_TH}>
                       Pilot name
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th scope="col" className={USER_DASH_TABLE_TH}>
                       Title
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th scope="col" className={USER_DASH_TABLE_TH}>
                       Pickup
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th scope="col" className={USER_DASH_TABLE_TH}>
                       Drop-off
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th scope="col" className={cn(USER_DASH_TABLE_TH, "whitespace-nowrap")}>
                       Type
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th scope="col" className={cn(USER_DASH_TABLE_TH, "whitespace-nowrap")}>
                       Priority
                     </th>
-                    <th className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#4d5b7f] dark:text-white/70">
+                    <th scope="col" className={cn(USER_DASH_TABLE_TH, "whitespace-nowrap")}>
                       Status
                     </th>
                   </tr>
@@ -201,53 +217,57 @@ export function UserTrackingView() {
                     const displayReqId = userRequestQueueDisplayId(
                       r.requestRef
                     );
-                    const liveComment = readPilotMissionComment(r.requestRef);
-                    const liveForDisplay =
-                      pilotMissionCommentForDisplay(liveComment);
-                    const comment =
-                      entry.hidePilotCommentInUserTracking === true
-                        ? ""
-                        : liveForDisplay;
                     const sub = entry.pilotSub?.trim() ?? "";
                     const pilotDisplayName =
                       (sub && pilotNameByPilotId[sub]) ||
                       entry.pilotName?.trim() ||
                       "";
                     const statusLabel =
-                      entry.userStatus === "completed" || r.adminStatus === "completed"
+                      entry.userStatus === "completed" ||
+                      r.adminStatus === "completed"
                         ? "Completed"
                         : "In progress";
                     return (
                       <tr
                         key={`${entry.id}-${commentsVersion}`}
-                        className="border-b border-[#edeeef] last:border-b-0 dark:border-white/10"
+                        className={cn(
+                          USER_DASH_DIVIDER_BORDER,
+                          "transition-colors last:border-b-0 hover:bg-neutral-50/80 dark:hover:bg-white/[0.03]"
+                        )}
                       >
-                        <td className="whitespace-nowrap px-3 py-3 text-xs text-[#191c1d] dark:text-white">
+                        <td className={cn(USER_DASH_TABLE_TD, "whitespace-nowrap")}>
                           {formatAssignedAt(entry.assignedAt)}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs text-[#191c1d] dark:text-white">
-                          <span className="font-mono">{displayReqId}</span>
+                        <td className={cn(USER_DASH_TABLE_TD, "whitespace-nowrap")}>
+                          <span className="font-mono tabular-nums">{displayReqId}</span>
                         </td>
-                        <td className="px-3 py-3 text-xs font-medium break-words text-[#191c1d] dark:text-white">
+                        <td className={cn(USER_DASH_TABLE_TD, "break-words font-medium")}>
                           {pilotDisplayName || "—"}
                         </td>
-                        <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-white">
+                        <td className={cn(USER_DASH_TABLE_TD, "break-words")}>
                           {r.reasonOrTitle?.trim() || "—"}
                         </td>
-                        <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-white">
+                        <td className={cn(USER_DASH_TABLE_TD, "break-words")}>
                           {r.pickupLocation?.trim() || "—"}
                         </td>
-                        <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-white">
+                        <td className={cn(USER_DASH_TABLE_TD, "break-words")}>
                           {r.dropLocation?.trim() || "—"}
                         </td>
-                        <td className="px-3 py-3 text-xs break-words text-[#191c1d] dark:text-white">
+                        <td className={cn(USER_DASH_TABLE_TD, "break-words")}>
                           {r.requestType?.trim() || "—"}
                         </td>
-                        <td className="px-3 py-3 text-xs whitespace-nowrap text-[#191c1d] dark:text-white">
-                          {r.requestPriority?.trim() || "—"}
+                        <td className={cn(USER_DASH_TABLE_TD, "whitespace-nowrap")}>
+                          {formatPriority(r.requestPriority ?? "")}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs font-medium text-[#006767] dark:text-[#4ddbd9]">
-                          {statusLabel}
+                        <td className={cn(USER_DASH_TABLE_TD, "whitespace-nowrap")}>
+                          <span
+                            className={cn(
+                              "inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                              trackingStatusBadgeClass(statusLabel)
+                            )}
+                          >
+                            {statusLabel}
+                          </span>
                         </td>
                       </tr>
                     );

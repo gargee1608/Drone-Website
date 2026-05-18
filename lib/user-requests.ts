@@ -52,6 +52,8 @@ export type UserMissionRequest = {
   ownerUserId?: string;
   /** Lowercase email from session when the row was created. */
   ownerEmail?: string;
+  /** Display name from session when the row was created. */
+  ownerName?: string;
   /** `drone_hire_requests.id` when the row was also saved via `/api/submit-request`. */
   backendRequestId?: string;
 };
@@ -154,6 +156,8 @@ export function loadUserRequests(): UserMissionRequest[] {
         typeof r.ownerUserId === "string" ? r.ownerUserId : undefined,
       ownerEmail:
         typeof r.ownerEmail === "string" ? r.ownerEmail : undefined,
+      ownerName:
+        typeof r.ownerName === "string" ? r.ownerName : undefined,
       backendRequestId:
         typeof r.backendRequestId === "string"
           ? r.backendRequestId
@@ -175,13 +179,14 @@ export function findStoredUserRequestByAdminRef(
   );
 }
 
-/** JWT `sub` + session email for attributing new rows to the signed-in app user. */
+/** JWT `sub` + session email/name for attributing new rows to the signed-in app user. */
 export function resolveRequestOwnerSnapshot(): {
   ownerUserId: string;
   ownerEmail: string;
+  ownerName: string;
 } {
   if (typeof window === "undefined") {
-    return { ownerUserId: "", ownerEmail: "" };
+    return { ownerUserId: "", ownerEmail: "", ownerName: "" };
   }
   const session = readStoredUserSession();
   const token = localStorage.getItem("token") ?? "";
@@ -189,7 +194,99 @@ export function resolveRequestOwnerSnapshot(): {
   const email = String(session?.email ?? "")
     .trim()
     .toLowerCase();
-  return { ownerUserId: sub, ownerEmail: email };
+  const ownerName = String(session?.fullName ?? session?.name ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return { ownerUserId: sub, ownerEmail: email, ownerName };
+}
+
+export type RequestOwnerInfo = {
+  userName: string;
+  userEmail: string;
+};
+
+/** Map request ref (DB id or `#UR-…`) → requester from `GET /api/requests`. */
+export function buildRequestOwnerLookup(
+  rows: Array<{
+    id?: number | string;
+    client_request_id?: string | null;
+    user_name?: string | null;
+    user_email?: string | null;
+  }>
+): Map<string, RequestOwnerInfo> {
+  const map = new Map<string, RequestOwnerInfo>();
+  for (const r of rows) {
+    const name = String(r.user_name ?? "").trim();
+    const email = String(r.user_email ?? "").trim().toLowerCase();
+    if (!name && !email) continue;
+    const info: RequestOwnerInfo = {
+      userName: name || "—",
+      userEmail: email || "—",
+    };
+    const id = String(r.id ?? "").trim();
+    const clientId = String(r.client_request_id ?? "").trim();
+    if (id) map.set(id, info);
+    if (clientId) map.set(clientId, info);
+  }
+  return map;
+}
+
+export function lookupRequestOwner(
+  lookup: Map<string, RequestOwnerInfo> | undefined,
+  requestRef: string
+): RequestOwnerInfo | null {
+  if (!lookup || lookup.size === 0) return null;
+  const ref = requestRef.trim();
+  if (!ref) return null;
+  return lookup.get(ref) ?? null;
+}
+
+/** Prefer backend hire-request id when saving missions (links to `drone_hire_requests`). */
+export function missionRequestRefForSave(requestRef: string): string {
+  const ref = requestRef.trim();
+  if (!ref) return ref;
+  const stored = findStoredUserRequestByAdminRef(ref);
+  const backend = stored?.backendRequestId?.trim();
+  return backend || ref;
+}
+
+/** Requester display for admin / pilot tables and completed deliveries. */
+export function resolveRequestOwnerDisplay(
+  requestRef: string,
+  lookup?: Map<string, RequestOwnerInfo>
+): RequestOwnerInfo {
+  const fromDb = lookupRequestOwner(lookup, requestRef);
+  if (fromDb) return fromDb;
+
+  const ref = requestRef.trim();
+  const req = ref ? findStoredUserRequestByAdminRef(ref) : undefined;
+  const email = String(req?.ownerEmail ?? "")
+    .trim()
+    .toLowerCase();
+  let name = String(req?.ownerName ?? "").trim();
+  if (!name && email) {
+    const local = email.split("@")[0]?.trim();
+    if (local) name = local;
+  }
+  return {
+    userName: name || "—",
+    userEmail: email || "—",
+  };
+}
+
+/** `userName` / `userEmail` for POST `/api/missions` from the user request record. */
+export function missionOwnerFieldsForRequestRef(
+  requestRef: string,
+  lookup?: Map<string, RequestOwnerInfo>
+): {
+  userName: string;
+  userEmail: string;
+} {
+  const { userName, userEmail } = resolveRequestOwnerDisplay(requestRef, lookup);
+  return {
+    userName: userName === "—" ? "" : userName,
+    userEmail: userEmail === "—" ? "" : userEmail,
+  };
 }
 
 function requestHasOwnerTag(r: UserMissionRequest): boolean {
@@ -217,7 +314,8 @@ function requestBelongsToSnapshot(
  */
 function migrateLegacyUserRequestsIfNeeded(): void {
   if (typeof window === "undefined") return;
-  const { ownerUserId: sub, ownerEmail: email } = resolveRequestOwnerSnapshot();
+  const { ownerUserId: sub, ownerEmail: email, ownerName } =
+    resolveRequestOwnerSnapshot();
   if (!sub && !email) return;
 
   const all = loadUserRequests();
@@ -236,6 +334,7 @@ function migrateLegacyUserRequestsIfNeeded(): void {
       ...r,
       ownerUserId: sub || undefined,
       ownerEmail: email || undefined,
+      ownerName: ownerName || undefined,
     };
   });
   saveUserRequests(next);
@@ -367,16 +466,35 @@ export function updateUserRequestAdminStatus(
   }
 }
 
+export function attachBackendRequestId(
+  localId: string,
+  backendRequestId: string
+): void {
+  const id = localId.trim();
+  const backend = backendRequestId.trim();
+  if (!id || !backend) return;
+  const all = loadUserRequests();
+  const idx = all.findIndex((r) => r.id === id);
+  if (idx < 0) return;
+  all[idx] = { ...all[idx]!, backendRequestId: backend };
+  saveUserRequests(all);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(USER_REQUESTS_UPDATED_EVENT));
+  }
+}
+
 export function appendUserRequest(
-  payload: Omit<UserMissionRequest, "id" | "createdAt" | "adminStatus">
+  payload: Omit<UserMissionRequest, "id" | "createdAt" | "adminStatus">,
+  options?: { id?: string }
 ): UserMissionRequest {
-  const id = `#UR-${Date.now().toString(36).toUpperCase()}`;
+  const id = options?.id?.trim() || `#UR-${Date.now().toString(36).toUpperCase()}`;
   const createdAt = new Date().toISOString();
   const owner = resolveRequestOwnerSnapshot();
   const entry: UserMissionRequest = {
     ...payload,
     ownerUserId: owner.ownerUserId || payload.ownerUserId,
     ownerEmail: owner.ownerEmail || payload.ownerEmail,
+    ownerName: owner.ownerName || payload.ownerName,
     id,
     createdAt,
     adminStatus: "pending",
@@ -462,6 +580,9 @@ export type UserRequestAdminRow = {
   requestSource?: "marketplace_inquiry";
   /** Latest `missions.status` from DB for this request (`/api/requests` join), when present. */
   missionStatus?: string | null;
+  /** From `drone_hire_requests` when loaded via `/api/requests`. */
+  userName?: string;
+  userEmail?: string;
 };
 
 export function mapUserRequestToAdminRow(

@@ -30,10 +30,7 @@ export function UserDashboardView() {
   }, []);
 
   return (
-    <UserDashboardShell
-      pageTitle="User Dashboard"
-      mainMaxWidthClassName="max-w-[1400px]"
-    >
+    <UserDashboardShell pageTitle="User Dashboard" omitPageTitle>
       <UserDashboardFleetDashboard
         allRequests={allRequests}
         tableRequests={tableRequests}

@@ -32,11 +32,12 @@ import {
   buildAdminProfileForDisplay,
   type AdminProfileDraft,
 } from "@/lib/admin-profile-storage";
+import { clearAuthSession } from "@/lib/auth-session-browser";
 import {
-  clearStoredUserSession,
   readStoredUserSession,
   type StoredUserSession,
 } from "@/lib/user-session-browser";
+import { isPilotRegistrationFromAdmin } from "@/lib/pilot-registration-from-admin";
 import { cn } from "@/lib/utils";
 
 const landingOutlineButtonClassName =
@@ -65,15 +66,25 @@ export function LandingHeader() {
     pathname?.startsWith("/pilot-dashboard") ||
     pathname?.startsWith("/pilot-profile") ||
     false;
-  /** Header search (desktop + mobile drawer) — hidden on admin dashboard and admin login. */
-  const showHeaderSearchBar = !isAdminDashboard && !isAdminLoginPage;
   const isSettingsPage =
     pathname === "/settings" || (pathname?.startsWith("/settings/") ?? false);
   const settingsFrom = searchParams.get("from");
+  const isPilotRegistration =
+    pathname === "/pilot-registration" ||
+    (pathname?.startsWith("/pilot-registration/") ?? false);
+  const isAdminPilotRegistration = isPilotRegistrationFromAdmin(
+    pathname,
+    settingsFrom
+  );
+  const isAdminCommandCenterShell =
+    isAdminDashboard || isAdminPilotRegistration;
+  /** Header search (desktop + mobile drawer) — hidden on admin dashboard and admin login. */
+  const showHeaderSearchBar =
+    !isAdminCommandCenterShell && !isAdminLoginPage;
   /** Home / Services / Blogs / Contact — hidden on user dashboard shell, admin dashboard, pilot dashboard areas, and admin login; all `/settings` URLs are excluded via `!isSettingsPage` below. */
   const isUserShellMarketingHidden = isUserDashboard;
   const showMarketingHeaderNav =
-    !isAdminDashboard &&
+    !isAdminCommandCenterShell &&
     !isAdminLoginPage &&
     !isPilotDashboard &&
     !isUserShellMarketingHidden &&
@@ -88,15 +99,12 @@ export function LandingHeader() {
   const showPilotDashboardSidebar =
     isPilotDashboard || isPilotSettingsContext;
   const compactAppHeader =
-    isAdminDashboard ||
+    isAdminCommandCenterShell ||
     isUserDashboard ||
     isPilotDashboard ||
     isSettingsPage;
   const isHomePage = pathname === "/" || pathname === "";
   const isMatchingHub = pathname === "/matching-hub";
-  const isPilotRegistration =
-    pathname === "/pilot-registration" ||
-    (pathname?.startsWith("/pilot-registration/") ?? false);
   const {
     sidebarExpanded: adminSidebarExpanded,
     setSidebarExpanded: setAdminSidebarExpanded,
@@ -151,7 +159,7 @@ export function LandingHeader() {
           : "/settings";
 
   const showHeaderNotifications =
-    isAdminDashboard ||
+    isAdminCommandCenterShell ||
     isUserDashboard ||
     (isSettingsPage &&
       (settingsFrom === "admin" || settingsFrom === "user"));
@@ -181,6 +189,19 @@ export function LandingHeader() {
     isSettingsPage && settingsFrom === "admin";
   const isUserSettingsContext =
     isSettingsPage && settingsFrom === "user";
+
+  const logoHref =
+    isAdminCommandCenterShell || isAdminSettingsContext
+      ? "/dashboard"
+      : isPilotDashboard || isPilotSettingsContext
+        ? "/pilot-dashboard"
+        : isUserDashboard ||
+            isUserSettingsContext ||
+            (isSettingsPage &&
+              settingsFrom !== "admin" &&
+              settingsFrom !== "pilot")
+          ? "/user-dashboard"
+          : "/";
   /** Includes `/settings` without `from` (user shell) and `?from=user`. */
   const isUserLogoutContext =
     isUserDashboard ||
@@ -196,8 +217,17 @@ export function LandingHeader() {
     pilotShellLightHeader ||
     isUserDashboard ||
     isUserSettingsContext ||
-    isAdminDashboard ||
+    isAdminCommandCenterShell ||
     isAdminSettingsContext;
+
+  /** Dashboard shells use theme tokens in light and dark (not marketing `dark:text-white`). */
+  const appDashboardShell =
+    isAdminCommandCenterShell ||
+    isUserDashboard ||
+    isPilotDashboard ||
+    isAdminSettingsContext ||
+    isUserSettingsContext ||
+    isPilotSettingsContext;
 
   const showHeaderSettingsIcon = !(
     isPilotDashboard ||
@@ -285,13 +315,7 @@ export function LandingHeader() {
     setOpen(false);
     setMarketingUserMenuOpen(false);
     setAccountMenuOpen(false);
-    try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("pilot");
-      clearStoredUserSession();
-    } catch {
-      /* ignore */
-    }
+    clearAuthSession();
     setAppUserSession(null);
     setPilotMarketingActive(false);
     router.replace("/");
@@ -345,10 +369,8 @@ export function LandingHeader() {
   return (
     <header
       className={cn(
-        "fixed top-0 z-50 w-full border-b",
-        isUserDashboard
-          ? "border-slate-200 bg-white text-[#191c1d] dark:border-white/10 dark:bg-background dark:text-foreground"
-          : "border-border bg-background text-foreground dark:text-white"
+        "fixed top-0 z-50 w-full border-b border-border bg-background text-foreground",
+        !appDashboardShell && "dark:text-white"
       )}
     >
       <nav
@@ -362,7 +384,7 @@ export function LandingHeader() {
       >
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4 sm:gap-8 lg:gap-12">
           <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
-            {isAdminDashboard ? (
+            {isAdminCommandCenterShell ? (
               <button
                 type="button"
                 className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white lg:inline-flex"
@@ -383,12 +405,7 @@ export function LandingHeader() {
             {showUserDashboardSidebar ? (
               <button
                 type="button"
-                className={cn(
-                  "hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 lg:inline-flex",
-                  isUserDashboard
-                    ? "dark:text-[#4d5b7f] dark:hover:bg-slate-100 dark:hover:text-[#008B8B]"
-                    : "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
-                )}
+                className="hidden size-10 shrink-0 items-center justify-center rounded-lg text-[#4d5b7f] transition-colors hover:bg-slate-100 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white lg:inline-flex"
                 onClick={() =>
                   setUserSidebarExpanded(!userSidebarExpanded)
                 }
@@ -422,7 +439,7 @@ export function LandingHeader() {
               </button>
             ) : null}
             <Link
-              href="/"
+              href={logoHref}
               className="inline-flex min-w-0 items-center gap-2 font-[family-name:var(--font-landing-headline)] text-lg font-bold tracking-tighter text-[#008B8B] uppercase sm:gap-2.5 sm:text-xl"
             >
               <Image
@@ -484,8 +501,8 @@ export function LandingHeader() {
                 size="icon"
                 className={cn(
                   "text-slate-700 md:hidden",
-                  isUserDashboard
-                    ? "dark:text-slate-700 dark:hover:bg-slate-100"
+                  appDashboardShell
+                    ? "dark:text-white dark:hover:bg-white/10"
                     : "dark:text-white"
                 )}
                 onClick={() => setOpen((v) => !v)}
@@ -665,8 +682,8 @@ export function LandingHeader() {
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "icon" }),
                     "shrink-0 text-slate-500 hover:text-[#008B8B] focus-visible:ring-2 focus-visible:ring-[#008B8B]/35",
-                    isUserDashboard
-                      ? "dark:text-slate-600 dark:hover:bg-slate-100 dark:hover:text-[#008B8B]"
+                    appDashboardShell
+                      ? "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                       : "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                   )}
                 >
@@ -723,15 +740,10 @@ export function LandingHeader() {
                       className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
                       onClick={() => {
                         setAccountMenuOpen(false);
-                        try {
-                          localStorage.removeItem("token");
-                          localStorage.removeItem("pilot");
-                          if (isUserLogoutContext || isPilotLogoutContext) {
-                            clearStoredUserSession();
-                          }
-                        } catch {
-                          /* ignore */
-                        }
+                        clearAuthSession();
+                        setAppUserSession(null);
+                        setPilotMarketingActive(false);
+                        setAdminMarketingActive(false);
                         router.replace(
                           isPilotDashboard || settingsFrom === "pilot"
                             ? "/pilot-login"
@@ -753,8 +765,8 @@ export function LandingHeader() {
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon" }),
                   "shrink-0 text-slate-500 hover:text-[#008B8B]",
-                  isUserDashboard
-                    ? "dark:text-slate-600 dark:hover:bg-slate-100"
+                  appDashboardShell
+                    ? "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                     : "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                 )}
                 aria-label="Login"
@@ -786,7 +798,7 @@ export function LandingHeader() {
             />
           </div>
         ) : null}
-        {!isAdminDashboard ? (
+        {!isAdminCommandCenterShell ? (
           <div className="flex flex-col gap-1">
             {showMarketingHeaderNav ? (
               <>
@@ -875,15 +887,10 @@ export function LandingHeader() {
                   className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
                   onClick={() => {
                     setOpen(false);
-                    try {
-                      localStorage.removeItem("token");
-                      localStorage.removeItem("pilot");
-                      if (isUserLogoutContext || isPilotLogoutContext) {
-                        clearStoredUserSession();
-                      }
-                    } catch {
-                      /* ignore */
-                    }
+                    clearAuthSession();
+                    setAppUserSession(null);
+                    setPilotMarketingActive(false);
+                    setAdminMarketingActive(false);
                     if (
                       isPilotDashboard ||
                       settingsFrom === "pilot"
@@ -925,6 +932,10 @@ export function LandingHeader() {
               className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
               onClick={() => {
                 setOpen(false);
+                clearAuthSession();
+                setAppUserSession(null);
+                setPilotMarketingActive(false);
+                setAdminMarketingActive(false);
                 router.replace("/admin");
               }}
             >

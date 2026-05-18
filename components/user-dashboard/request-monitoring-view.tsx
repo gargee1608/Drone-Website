@@ -3,6 +3,8 @@
 import { Activity } from "lucide-react";
 
 import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-shell";
+import { USER_DASH_PANEL_BORDER } from "@/lib/user-dashboard-styles";
+import { cn } from "@/lib/utils";
 
 export function RequestMonitoringView() {
   return (
@@ -12,16 +14,21 @@ export function RequestMonitoringView() {
       pageTitleBarClassName="text-xs"
       pageSubtitle="Track and review the status of your mission requests."
     >
-      <div className="rounded-xl border border-slate-200 bg-[#f8f9fa] px-6 py-12 text-center dark:border-white/15 dark:bg-[#161a1d]">
+      <div
+        className={cn(
+          "rounded-xl bg-card px-6 py-12 text-center",
+          USER_DASH_PANEL_BORDER
+        )}
+      >
         <Activity
           className="mx-auto mb-4 size-12 text-[#008B8B] opacity-90"
           strokeWidth={1.5}
           aria-hidden
         />
-        <p className="text-sm font-semibold text-[#191c1d] dark:text-white">
+        <p className="text-sm font-semibold text-foreground">
           Monitoring tools will appear here
         </p>
-        <p className="mx-auto mt-2 max-w-md text-xs text-[#414755] dark:text-white/75">
+        <p className="mx-auto mt-2 max-w-md text-xs text-muted-foreground">
           Use this area for live updates, alerts, or detailed request analytics
           when you connect them to your backend.
         </p>

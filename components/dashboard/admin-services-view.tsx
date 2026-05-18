@@ -352,7 +352,7 @@ export function AdminServicesView() {
                           />
                           <button
                             type="button"
-                            className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full border border-border bg-white text-slate-800 shadow-sm transition hover:bg-slate-50"
+                            className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition hover:bg-muted"
                             aria-label="Remove cover image"
                             onClick={() => {
                               setImage("");

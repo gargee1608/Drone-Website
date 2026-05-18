@@ -358,6 +358,10 @@ async function ensureDroneHireRequestsSchema() {
     "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS mission_urgency TEXT",
     "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS admin_status VARCHAR(24) NOT NULL DEFAULT 'pending'",
     "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS user_id TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS user_name TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS user_email TEXT",
+    "ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS client_request_id TEXT",
   ];
   for (const sql of hireAlters) {
     try {

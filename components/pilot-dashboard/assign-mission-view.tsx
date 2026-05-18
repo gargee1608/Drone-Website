@@ -17,6 +17,10 @@ import {
 } from "@/app/services/pilotServices";
 import { jwtPayloadSub } from "@/lib/pilot-display-name";
 import {
+  missionOwnerFieldsForRequestRef,
+  missionRequestRefForSave,
+} from "@/lib/user-requests";
+import {
   notificationsVisibleToPilot,
   PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT,
   removePilotMissionNotificationById,
@@ -261,6 +265,16 @@ export function AssignMissionView() {
       const currentPilotSub = token ? jwtPayloadSub(token) : null;
       const effectivePilotSub = row.pilotSub?.trim() || currentPilotSub || "";
 
+      const missionRef = missionRequestRefForSave(row.requestRef);
+      const ownerFields = missionOwnerFieldsForRequestRef(row.requestRef);
+      const ownerDisplay =
+        ownerFields.userName || ownerFields.userEmail
+          ? {
+              userName: ownerFields.userName || "—",
+              userEmail: ownerFields.userEmail || "—",
+            }
+          : { userName: "—", userEmail: "—" };
+
       // Keep immediate UI continuity after redirect, even if DB save is still in-flight/fails.
       try {
         sessionStorage.setItem(
@@ -270,6 +284,8 @@ export function AssignMissionView() {
             pilotSub: effectivePilotSub,
             assignedAt: row.assignedAt,
             completedAt: new Date().toISOString(),
+            userName: ownerDisplay.userName,
+            userEmail: ownerDisplay.userEmail,
             customer: row.customer,
             service: row.service,
             dropoff: row.dropoff,
@@ -283,7 +299,7 @@ export function AssignMissionView() {
       }
 
       const saveResult = await saveCompletedMission({
-        requestRef: row.requestRef,
+        requestRef: missionRef,
         customer: row.customer,
         service: row.service,
         dropoff: row.dropoff,
@@ -291,6 +307,8 @@ export function AssignMissionView() {
         pilotBadgeId: row.pilotBadgeId,
         pilotSub: effectivePilotSub,
         droneModel: row.droneModel,
+        userName: ownerFields.userName,
+        userEmail: ownerFields.userEmail,
         assignedAt: row.assignedAt,
       });
 

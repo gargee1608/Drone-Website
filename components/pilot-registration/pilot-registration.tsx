@@ -24,6 +24,7 @@ import {
   savePilotRegistrationDraft,
   type PilotRegistrationDraft,
 } from "@/lib/pilot-registration-draft";
+import { PILOT_REGISTRATION_FROM_ADMIN } from "@/lib/pilot-registration-from-admin";
 import {
   normalizePilotSkillsForSnapshot,
   parsePilotProfileSnapshot,
@@ -205,10 +206,21 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-export function PilotRegistrationView() {
+export function PilotRegistrationView({
+  fromAdminDashboard = false,
+  initialStep = 1,
+  adminPilotId = null,
+}: {
+  fromAdminDashboard?: boolean;
+  initialStep?: number;
+  /** Pilot row id when opened from Admin Dashboard → Add drone details. */
+  adminPilotId?: string | null;
+} = {}) {
   const router = useRouter();
   const certInputRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(() =>
+    fromAdminDashboard ? 3 : initialStep
+  );
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -234,6 +246,8 @@ export function PilotRegistrationView() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
   const [profileReturnTo, setProfileReturnTo] = useState<string | null>(null);
+  const [adminDroneSubmitting, setAdminDroneSubmitting] = useState(false);
+  const [adminDroneSubmitSuccess, setAdminDroneSubmitSuccess] = useState(false);
 
   const resetForm = useCallback(() => {
     setStep(1);
@@ -297,6 +311,14 @@ export function PilotRegistrationView() {
       const params = new URLSearchParams(window.location.search);
       const ret = params.get("returnTo");
       const stepQ = params.get("step");
+      const fromAdmin =
+        params.get("from") === PILOT_REGISTRATION_FROM_ADMIN;
+      if (fromAdmin && stepQ === "3") {
+        setStep(3);
+        setStepError(null);
+        setSubmitError(null);
+        return;
+      }
       if (stepQ === "3" && ret !== "/pilot-profile") {
         setStep(3);
         setStepError(null);
@@ -355,6 +377,7 @@ export function PilotRegistrationView() {
   }, []);
 
   useEffect(() => {
+    if (fromAdminDashboard) return;
     savePilotRegistrationDraft(
       draftFromState({
         step,
@@ -373,6 +396,7 @@ export function PilotRegistrationView() {
       })
     );
   }, [
+    fromAdminDashboard,
     step,
     fullName,
     email,
@@ -495,6 +519,7 @@ export function PilotRegistrationView() {
       return;
     }
     if (step === 3) {
+      if (fromAdminDashboard) return;
       setStep(4);
     }
   }
@@ -502,6 +527,7 @@ export function PilotRegistrationView() {
   function goPrev() {
     setStepError(null);
     setSubmitError(null);
+    if (fromAdminDashboard && step <= 3) return;
     if (step <= 1) return;
     setStep(step - 1);
   }
@@ -753,9 +779,58 @@ export function PilotRegistrationView() {
     router.push(profileReturnTo);
   }
 
+  async function submitAdminDroneDetails() {
+    if (!fromAdminDashboard) return;
+    setStepError(null);
+    setSubmitError(null);
+    setAdminDroneSubmitSuccess(false);
+
+    if (drones.length === 0) {
+      setStepError("Add at least one drone before submitting.");
+      return;
+    }
+
+    const pidRaw =
+      adminPilotId?.trim() ||
+      (typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("pilotId")
+        : null);
+    const pid = pidRaw ? Number.parseInt(pidRaw, 10) : NaN;
+    if (!Number.isFinite(pid)) {
+      setSubmitError(
+        "Missing pilot ID. Return to the dashboard and open Add drone details again."
+      );
+      return;
+    }
+
+    setAdminDroneSubmitting(true);
+    try {
+      const result = await patchPilotDroneDetails(pid, drones);
+      if (!result) {
+        setSubmitError("Could not save drone details. Please try again.");
+        return;
+      }
+      setAdminDroneSubmitSuccess(true);
+    } finally {
+      setAdminDroneSubmitting(false);
+    }
+  }
+
   return (
-    <div className="relative min-h-dvh bg-white pt-22 text-foreground sm:pt-24">
-      <div className="mx-auto max-w-3xl px-4 pb-14 pt-4 sm:px-5 sm:pt-6">
+    <div
+      className={cn(
+        "relative text-foreground",
+        fromAdminDashboard
+          ? "bg-background"
+          : "min-h-dvh bg-white pt-22 sm:pt-24"
+      )}
+    >
+      <div
+        className={cn(
+          "mx-auto max-w-3xl px-4 pb-14 sm:px-5",
+          fromAdminDashboard ? "pt-0" : "pt-4 sm:pt-6"
+        )}
+      >
         <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-lg ring-1 ring-slate-900/5">
           <div className="border-b border-slate-100 px-5 py-5 sm:px-6 sm:py-6">
             <h1
@@ -764,13 +839,18 @@ export function PilotRegistrationView() {
                 "font-normal text-[#008B8B]"
               )}
             >
-              Pilot &amp; Drone Registration
+              {fromAdminDashboard
+                ? "Add drone details"
+                : "Pilot & Drone Registration"}
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Join India&apos;s drone pilot network
+              {fromAdminDashboard
+                ? "Register drones for this pilot"
+                : "Join India's drone pilot network"}
             </p>
 
             {/* Stepper */}
+            {!fromAdminDashboard ? (
             <nav
               className="mt-6 flex items-start justify-between gap-1"
               aria-label="Registration progress"
@@ -834,6 +914,7 @@ export function PilotRegistrationView() {
                 );
               })}
             </nav>
+            ) : null}
           </div>
 
           <form
@@ -1165,6 +1246,14 @@ export function PilotRegistrationView() {
 
             {step === 3 ? (
               <div className="space-y-6">
+                {fromAdminDashboard && adminDroneSubmitSuccess ? (
+                  <p
+                    className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-center text-sm font-semibold text-green-800 dark:border-green-800 dark:bg-green-950/50 dark:text-green-300"
+                    role="status"
+                  >
+                    Drone Details Added Successfully
+                  </p>
+                ) : null}
                 {profileReturnTo === "/pilot-profile" ? (
                   <p className="rounded-lg border border-teal-200 bg-teal-50/80 px-3 py-2 text-xs font-medium text-teal-900">
                     Updating drones for your pilot profile. When finished, tap{" "}
@@ -1178,12 +1267,26 @@ export function PilotRegistrationView() {
                   </h2>
                   {drones.length === 0 ? (
                     <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-500">
-                      No drone to list yet? You can still register — add one with
-                      the form and tap{" "}
-                      <span className="font-medium text-slate-700">Add Drone</span>
-                      , or tap{" "}
-                      <span className="font-medium text-slate-700">Next</span>{" "}
-                      below to continue to the final step.
+                      {fromAdminDashboard ? (
+                        <>
+                          Add a drone with the form below, then tap{" "}
+                          <span className="font-medium text-slate-700">
+                            Submit Drone Details
+                          </span>
+                          .
+                        </>
+                      ) : (
+                        <>
+                          No drone to list yet? You can still register — add one
+                          with the form and tap{" "}
+                          <span className="font-medium text-slate-700">
+                            Add Drone
+                          </span>
+                          , or tap{" "}
+                          <span className="font-medium text-slate-700">Next</span>{" "}
+                          below to continue to the final step.
+                        </>
+                      )}
                     </p>
                   ) : (
                     <ul className="space-y-2">
@@ -1537,7 +1640,7 @@ export function PilotRegistrationView() {
                     step >= 2 ? "justify-between" : "justify-end"
                   )}
                 >
-                  {step >= 2 ? (
+                  {step >= 2 && !fromAdminDashboard ? (
                     <Button
                       type="button"
                       variant="outline"
@@ -1556,27 +1659,42 @@ export function PilotRegistrationView() {
                   >
                     {step < 4 ? (
                       <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
-                        {profileReturnTo === "/pilot-profile" && step === 3 ? (
+                        {fromAdminDashboard && step === 3 ? (
                           <Button
                             type="button"
-                            variant="outline"
-                            className="h-10 rounded-lg border-[#008B8B] bg-white px-4 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
-                            onClick={saveDronesToPilotProfile}
+                            disabled={adminDroneSubmitting || adminDroneSubmitSuccess}
+                            onClick={() => void submitAdminDroneDetails()}
+                            className="h-10 rounded-lg border border-[#008B8B] bg-[#008B8B] px-6 font-semibold text-white hover:bg-[#006b6b] disabled:opacity-60"
                           >
-                            Save to profile
+                            {adminDroneSubmitting
+                              ? "Submitting…"
+                              : "Submit Drone Details"}
                           </Button>
-                        ) : null}
-                        <Button
-                          type="button"
-                          onClick={goNext}
-                          className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
-                        >
-                          Next
-                          <ArrowRight
-                            className="ml-1.5 inline size-4"
-                            aria-hidden
-                          />
-                        </Button>
+                        ) : (
+                          <>
+                            {profileReturnTo === "/pilot-profile" && step === 3 ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-10 rounded-lg border-[#008B8B] bg-white px-4 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                                onClick={saveDronesToPilotProfile}
+                              >
+                                Save to profile
+                              </Button>
+                            ) : null}
+                            <Button
+                              type="button"
+                              onClick={goNext}
+                              className="h-10 rounded-lg border border-[#008B8B] bg-transparent px-6 font-semibold text-[#008B8B] hover:bg-[#008B8B]/10"
+                            >
+                              Next
+                              <ArrowRight
+                                className="ml-1.5 inline size-4"
+                                aria-hidden
+                              />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <Button

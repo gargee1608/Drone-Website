@@ -11,7 +11,15 @@ import {
   type AdminProfileDraft,
 } from "@/lib/admin-profile-storage";
 import { jwtPayloadRole } from "@/lib/pilot-display-name";
+import {
+  ADMIN_DASH_AVATAR_RING,
+  ADMIN_DASH_PANEL_BORDER,
+} from "@/lib/admin-dashboard-styles";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  PROFILE_INFO_POPUP_INPUT_CLASS,
+  PROFILE_INFO_POPUP_PANEL_CLASS,
+} from "@/lib/profile-popup-styles";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_PROFILE = DEFAULT_ADMIN_PROFILE;
@@ -176,13 +184,27 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
   }
 
   const allowInlineEdit = !embedded || allowEditWhenEmbedded;
+  const panelClass = embedded
+    ? cn(PROFILE_INFO_POPUP_PANEL_CLASS, "px-5 py-4")
+    : cn("rounded-xl bg-card px-5 py-4 shadow-sm", ADMIN_DASH_PANEL_BORDER);
+  const panelClassLg = embedded
+    ? cn(PROFILE_INFO_POPUP_PANEL_CLASS, "p-5 sm:p-6")
+    : cn("rounded-xl bg-card p-5 shadow-sm sm:p-6", ADMIN_DASH_PANEL_BORDER);
+  const inputClass = embedded
+    ? PROFILE_INFO_POPUP_INPUT_CLASS
+    : "mt-1 w-full rounded-md border border-border bg-input px-2.5 py-2 text-xs text-foreground outline-none focus:border-[#f29b38]";
 
   const body = (
     <section className="space-y-4">
-        <article className="rounded-xl border border-[#dfe6ea] bg-white px-5 py-4 shadow-sm dark:border-white/15 dark:bg-[#111315]">
+        <article className={panelClass}>
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <div className="relative">
-              <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#d4dce1] bg-white text-xl font-bold text-[#234] dark:border-white/20 dark:bg-[#161a1d] dark:text-white">
+              <div
+                className={cn(
+                  "flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card text-xl font-bold text-foreground",
+                  embedded ? "border border-border" : ADMIN_DASH_AVATAR_RING
+                )}
+              >
                 {avatarSrc ? (
                   <img
                     src={avatarSrc}
@@ -198,7 +220,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                   <button
                     type="button"
                     onClick={onAvatarPick}
-                    className="absolute -bottom-1 -right-1 inline-flex size-7 items-center justify-center rounded-full border border-[#d9dee3] bg-white text-[#2e4f53] shadow-sm transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                    className="absolute -bottom-1 -right-1 inline-flex size-7 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-muted"
                     aria-label="Edit profile photo"
                   >
                     <Pencil className="size-3.5" aria-hidden />
@@ -222,7 +244,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
           </div>
         </article>
 
-        <article className="rounded-xl border border-[#dfe6ea] bg-white p-5 shadow-sm sm:p-6 dark:border-white/15 dark:bg-[#111315]">
+        <article className={panelClassLg}>
           <div
             className={cn(
               "mb-4 flex border-b border-[#edf2f5] pb-3 dark:border-white/15",
@@ -236,14 +258,14 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                   <button
                     type="button"
                     onClick={() => setEditingPersonal(false)}
-                    className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                    className="inline-flex items-center rounded-md border border-border bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={onPersonalSave}
-                    className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                    className="inline-flex items-center rounded-md border border-border bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted"
                   >
                     Save
                   </button>
@@ -252,7 +274,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                 <button
                   type="button"
                   onClick={onPersonalEditStart}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted"
                 >
                   Edit
                   <Pencil className="size-3.5" aria-hidden />
@@ -270,7 +292,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                   onChange={(e) =>
                     setPersonalDraft((prev) => ({ ...prev, firstName: e.target.value }))
                   }
-                  className="mt-1 w-full rounded-md border border-[#d9dee3] bg-white px-2.5 py-2 text-xs text-[#1f3e42] outline-none focus:border-[#f29b38] dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
+                  className={inputClass}
                 />
               ) : (
                 <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">{profile.firstName}</p>
@@ -284,7 +306,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                   onChange={(e) =>
                     setPersonalDraft((prev) => ({ ...prev, lastName: e.target.value }))
                   }
-                  className="mt-1 w-full rounded-md border border-[#d9dee3] bg-white px-2.5 py-2 text-xs text-[#1f3e42] outline-none focus:border-[#f29b38] dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
+                  className={inputClass}
                 />
               ) : (
                 <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">{profile.lastName}</p>
@@ -298,7 +320,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                   onChange={(e) =>
                     setPersonalDraft((prev) => ({ ...prev, dob: e.target.value }))
                   }
-                  className="mt-1 w-full rounded-md border border-[#d9dee3] bg-white px-2.5 py-2 text-xs text-[#1f3e42] outline-none focus:border-[#f29b38] dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
+                  className={inputClass}
                 />
               ) : (
                 <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">{profile.dob}</p>
@@ -312,7 +334,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                   onChange={(e) =>
                     setPersonalDraft((prev) => ({ ...prev, email: e.target.value }))
                   }
-                  className="mt-1 w-full rounded-md border border-[#d9dee3] bg-white px-2.5 py-2 text-xs text-[#1f3e42] outline-none focus:border-[#f29b38] dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
+                  className={inputClass}
                 />
               ) : (
                 <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">{profile.email}</p>
@@ -326,7 +348,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                   onChange={(e) =>
                     setPersonalDraft((prev) => ({ ...prev, phone: e.target.value }))
                   }
-                  className="mt-1 w-full rounded-md border border-[#d9dee3] bg-white px-2.5 py-2 text-xs text-[#1f3e42] outline-none focus:border-[#f29b38] dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
+                  className={inputClass}
                 />
               ) : (
                 <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">{profile.phone}</p>
@@ -340,7 +362,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                   onChange={(e) =>
                     setPersonalDraft((prev) => ({ ...prev, userRole: e.target.value }))
                   }
-                  className="mt-1 w-full rounded-md border border-[#d9dee3] bg-white px-2.5 py-2 text-xs text-[#1f3e42] outline-none focus:border-[#f29b38] dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
+                  className={inputClass}
                 />
               ) : (
                 <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">{profile.userRole}</p>
@@ -349,7 +371,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
           </div>
         </article>
 
-        <article className="rounded-xl border border-[#dfe6ea] bg-white p-5 shadow-sm sm:p-6 dark:border-white/15 dark:bg-[#111315]">
+        <article className={panelClassLg}>
           <div
             className={cn(
               "mb-4 flex border-b border-[#edf2f5] pb-3 dark:border-white/15",
@@ -363,14 +385,14 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                   <button
                     type="button"
                     onClick={() => setEditingAddress(false)}
-                    className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                    className="inline-flex items-center rounded-md border border-border bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={onAddressSave}
-                    className="inline-flex items-center rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                    className="inline-flex items-center rounded-md border border-border bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted"
                   >
                     Save
                   </button>
@@ -379,7 +401,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                 <button
                   type="button"
                   onClick={onAddressEditStart}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-[#d9dee3] bg-white px-3 py-1 text-[11px] font-semibold text-[#2e4f53] transition-colors hover:bg-[#f7f9fa] dark:border-white/20 dark:bg-[#161a1d] dark:text-white dark:hover:bg-white/10"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted"
                 >
                   Edit
                   <Pencil className="size-3.5" aria-hidden />
@@ -397,7 +419,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                   onChange={(e) =>
                     setAddressDraft((prev) => ({ ...prev, country: e.target.value }))
                   }
-                  className="mt-1 w-full rounded-md border border-[#d9dee3] bg-white px-2.5 py-2 text-xs text-[#1f3e42] outline-none focus:border-[#f29b38] dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
+                  className={inputClass}
                 />
               ) : (
                 <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">{profile.country}</p>
@@ -411,7 +433,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                   onChange={(e) =>
                     setAddressDraft((prev) => ({ ...prev, city: e.target.value }))
                   }
-                  className="mt-1 w-full rounded-md border border-[#d9dee3] bg-white px-2.5 py-2 text-xs text-[#1f3e42] outline-none focus:border-[#f29b38] dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
+                  className={inputClass}
                 />
               ) : (
                 <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">{profile.city}</p>
@@ -425,7 +447,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
                   onChange={(e) =>
                     setAddressDraft((prev) => ({ ...prev, postalCode: e.target.value }))
                   }
-                  className="mt-1 w-full rounded-md border border-[#d9dee3] bg-white px-2.5 py-2 text-xs text-[#1f3e42] outline-none focus:border-[#f29b38] dark:border-white/20 dark:bg-[#161a1d] dark:text-white"
+                  className={inputClass}
                 />
               ) : (
                 <p className="mt-1 text-sm font-medium text-[#1f3e42] dark:text-white">{profile.postalCode}</p>

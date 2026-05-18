@@ -42,6 +42,11 @@ import {
   splitDisplayNameToFirstLast,
   writeStoredUserSession,
 } from "@/lib/user-session-browser";
+import {
+  ADMIN_DASH_DIVIDER_BORDER,
+  ADMIN_DASH_PANEL_BORDER,
+} from "@/lib/admin-dashboard-styles";
+import { PROFILE_INFO_POPUP_SHELL_CLASS } from "@/lib/profile-popup-styles";
 
 const profileInputClassName =
   "h-10 rounded-lg border-border bg-background text-sm text-foreground";
@@ -262,6 +267,18 @@ export function SettingsDashboard({
     return () => window.removeEventListener("keydown", onKey);
   }, [profileInfoPopupOpen, closeProfileInfoPopup]);
 
+  const isAdminSettings = settingsContext === "admin";
+  const settingsSectionClass = cn(
+    "flex flex-col rounded-xl bg-card p-5 sm:p-6",
+    isAdminSettings
+      ? ADMIN_DASH_PANEL_BORDER
+      : "border-2 border-border shadow-sm"
+  );
+  const settingsSectionDividerClass = cn(
+    "mt-auto space-y-4 pt-4",
+    isAdminSettings ? ADMIN_DASH_DIVIDER_BORDER : "border-t border-border"
+  );
+
   return (
     <>
       <div className="mx-auto w-full max-w-6xl antialiased">
@@ -295,7 +312,7 @@ export function SettingsDashboard({
           ) : null}
 
           {settingsContext === "admin" ? (
-            <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
+            <section className={settingsSectionClass}>
               <div className="mb-4 flex items-start gap-3">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
                   <UserRound className="size-5 text-[#008B8B]" aria-hidden />
@@ -324,7 +341,7 @@ export function SettingsDashboard({
           ) : null}
 
           {settingsContext === "pilot" ? (
-            <section className="flex flex-col rounded-xl border-2 border-border bg-white p-5 shadow-sm sm:p-6">
+            <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
               <div className="mb-4 flex items-start gap-3">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
                   <UserRound className="size-5 text-[#008B8B]" aria-hidden />
@@ -353,7 +370,7 @@ export function SettingsDashboard({
 
                 <section
                   id="account-change-password"
-                  className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6"
+                  className={settingsSectionClass}
                   data-settings-context={settingsContext}
                 >
                   <div className="mb-4 flex items-start gap-3">
@@ -387,7 +404,7 @@ export function SettingsDashboard({
                 </section>
 
                 {/* Reset Profile */}
-                <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
+                <section className={settingsSectionClass}>
                   <div className="mb-4 flex items-start gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-100">
                       <RefreshCw
@@ -417,7 +434,12 @@ export function SettingsDashboard({
                 </section>
 
                 {/* Appearance */}
-                <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6 md:col-span-2 xl:col-span-1">
+                <section
+                  className={cn(
+                    settingsSectionClass,
+                    "md:col-span-2 xl:col-span-1"
+                  )}
+                >
                   <div className="mb-5 flex items-start gap-3">
                     <span
                       className="flex size-11 shrink-0 items-center justify-center gap-0.5 rounded-full bg-violet-100 dark:bg-violet-950/50"
@@ -435,7 +457,7 @@ export function SettingsDashboard({
                       </p>
                     </div>
                   </div>
-                  <div className="mt-auto space-y-4 border-t border-border pt-4">
+                  <div className={settingsSectionDividerClass}>
                     <div className="flex items-center justify-between gap-3">
                       <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                         <Sun
@@ -1149,7 +1171,8 @@ export function SettingsDashboard({
           />
           <div
             className={cn(
-              "relative z-10 flex w-full flex-col rounded-2xl border-2 border-border bg-white text-card-foreground shadow-xl ring-1 ring-black/5",
+              "relative z-10 flex w-full flex-col rounded-2xl border-2 border-border shadow-xl ring-1 ring-black/5 dark:ring-white/10",
+              PROFILE_INFO_POPUP_SHELL_CLASS,
               settingsContext === "pilot"
                 ? "max-w-4xl overflow-visible"
                 : "max-h-[min(92dvh,840px)] max-w-2xl overflow-hidden"

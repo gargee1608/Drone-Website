@@ -18,7 +18,7 @@ export default function UserDashboardLayout({
 }>) {
   return (
     <div
-      className={`${inter.variable} ${spaceGrotesk.variable} min-h-0 min-w-0 flex flex-1 flex-col bg-white text-[#191c1d] antialiased dark:bg-white dark:text-[#191c1d]`}
+      className={`${inter.variable} ${spaceGrotesk.variable} user-dashboard min-h-0 min-w-0 flex flex-1 flex-col bg-background text-foreground antialiased`}
       style={{
         fontFamily: "var(--font-user-fleet-body), ui-sans-serif, system-ui, sans-serif",
       }}

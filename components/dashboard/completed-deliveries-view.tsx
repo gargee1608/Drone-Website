@@ -10,6 +10,11 @@ import { useEffect, useMemo, useState } from "react";
 import { apiUrl } from "@/lib/api-url";
 import { jwtPayloadPilotFullName, jwtPayloadSub } from "@/lib/pilot-display-name";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  buildRequestOwnerLookup,
+  type RequestOwnerInfo,
+  resolveRequestOwnerDisplay,
+} from "@/lib/user-requests";
 
 const COMPLETED_MISSION_PREVIEW_KEY = "aerolaminar_completed_mission_preview_v1";
 
@@ -20,6 +25,8 @@ type DeliveryRow = {
   missionId: string;
   assignedAt: string;
   completedAt: string;
+  userName: string;
+  userEmail: string;
   customer: string;
   service: string;
   dropoff: string;
@@ -33,6 +40,8 @@ type BackendMissionRow = {
   row_ctid?: string;
   pilot_sub?: string;
   request_ref?: string;
+  user_name?: string;
+  user_email?: string;
   customer?: string;
   service?: string;
   dropoff?: string;
@@ -64,6 +73,35 @@ function formatNumber(value: number) {
 }
 
 const PAGE_SIZE = 1000;
+
+function mapBackendMissionToDeliveryRow(
+  row: BackendMissionRow,
+  index: number,
+  ownerLookup?: Map<string, RequestOwnerInfo>
+): DeliveryRow {
+  const missionId =
+    String(row.request_ref ?? "").trim() ||
+    `MS-${String(row.id ?? index + 1)}`;
+  const storedName = String(row.user_name ?? "").trim();
+  const storedEmail = String(row.user_email ?? "").trim().toLowerCase();
+  const owner = resolveRequestOwnerDisplay(missionId, ownerLookup);
+  return {
+    id: String(row.id ?? "").trim(),
+    rowCtid: String(row.row_ctid ?? "").trim(),
+    pilotSub: String(row.pilot_sub ?? "").trim(),
+    missionId,
+    assignedAt: String(row.assigned_at ?? "").trim(),
+    completedAt: String(row.completed_at ?? "").trim(),
+    userName: storedName || owner.userName,
+    userEmail: storedEmail || owner.userEmail,
+    customer: String(row.customer ?? "").trim() || "—",
+    service: String(row.service ?? "").trim() || "—",
+    dropoff: String(row.dropoff ?? "").trim() || "—",
+    pilot: String(row.pilot_name ?? "").trim() || "—",
+    droneUnit: String(row.drone_model ?? "").trim() || "—",
+    status: String(row.status ?? "completed").trim() || "completed",
+  };
+}
 
 function dedupeDeliveryRows(rows: DeliveryRow[]): DeliveryRow[] {
   const bySignature = new Map<string, DeliveryRow>();
@@ -131,13 +169,17 @@ function readCompletedMissionPreview(expectedPilotSub?: string | null): Delivery
     if (expectedPilotSub && parsedPilotSub !== expectedPilotSub) {
       return null;
     }
+    const missionId = String(parsed.missionId ?? "").trim() || "—";
+    const owner = resolveRequestOwnerDisplay(missionId);
     return {
       id: String(parsed.id ?? "").trim(),
       rowCtid: String(parsed.rowCtid ?? "").trim(),
       pilotSub: parsedPilotSub,
-      missionId: String(parsed.missionId ?? "").trim() || "—",
+      missionId,
       assignedAt: String(parsed.assignedAt ?? "").trim(),
       completedAt: String(parsed.completedAt ?? "").trim() || new Date().toISOString(),
+      userName: String(parsed.userName ?? "").trim() || owner.userName,
+      userEmail: String(parsed.userEmail ?? "").trim() || owner.userEmail,
       customer: String(parsed.customer ?? "").trim() || "—",
       service: String(parsed.service ?? "").trim() || "—",
       dropoff: String(parsed.dropoff ?? "").trim() || "—",
@@ -191,40 +233,47 @@ export function CompletedDeliveriesView({
           }
           return;
         }
-        const endpoint =
+        const missionsEndpoint =
           pilotScoped && (pilotSub || pilotName)
             ? apiUrl(
                 `/api/missions?pilotSub=${encodeURIComponent(pilotSub ?? "")}&pilotName=${encodeURIComponent(pilotName)}`
               )
             : apiUrl("/api/missions");
-        const response = await fetch(endpoint, {
-          cache: "no-store",
-        });
-        if (!response.ok) {
+
+        const [missionsRes, requestsRes] = await Promise.all([
+          fetch(missionsEndpoint, { cache: "no-store" }),
+          fetch(apiUrl("/api/requests"), { cache: "no-store" }),
+        ]);
+
+        if (!missionsRes.ok) {
           if (!cancelled) setRows([]);
           return;
         }
-        const payload: unknown = await response.json();
+
+        let ownerLookup: Map<string, RequestOwnerInfo> | undefined;
+        if (requestsRes.ok) {
+          const requestsPayload: unknown = await requestsRes.json();
+          const requestRows = Array.isArray(
+            (requestsPayload as { data?: unknown[] })?.data
+          )
+            ? ((requestsPayload as { data?: unknown[] }).data as Array<{
+                id?: number | string;
+                client_request_id?: string | null;
+                user_name?: string | null;
+                user_email?: string | null;
+              }>)
+            : [];
+          ownerLookup = buildRequestOwnerLookup(requestRows);
+        }
+
+        const payload: unknown = await missionsRes.json();
         const list = Array.isArray((payload as { data?: unknown[] })?.data)
           ? ((payload as { data?: unknown[] }).data as BackendMissionRow[])
           : [];
         if (cancelled) return;
-        const apiRows = list.map((row, i) => ({
-            id: String(row.id ?? "").trim(),
-            rowCtid: String(row.row_ctid ?? "").trim(),
-            pilotSub: String(row.pilot_sub ?? "").trim(),
-            missionId:
-              String(row.request_ref ?? "").trim() ||
-              `MS-${String(row.id ?? i + 1)}`,
-            assignedAt: String(row.assigned_at ?? "").trim(),
-            completedAt: String(row.completed_at ?? "").trim(),
-            customer: String(row.customer ?? "").trim() || "—",
-            service: String(row.service ?? "").trim() || "—",
-            dropoff: String(row.dropoff ?? "").trim() || "—",
-            pilot: String(row.pilot_name ?? "").trim() || "—",
-            droneUnit: String(row.drone_model ?? "").trim() || "—",
-            status: String(row.status ?? "completed").trim() || "completed",
-          }));
+        const apiRows = list.map((row, i) =>
+          mapBackendMissionToDeliveryRow(row, i, ownerLookup)
+        );
         setRows((prev) => dedupeDeliveryRows([...(preview ? [preview] : []), ...apiRows, ...prev]));
       } catch {
         if (!cancelled) {
@@ -342,6 +391,8 @@ export function CompletedDeliveriesView({
   function handleExportCsv() {
     const header = [
       "Request ID",
+      "User Name",
+      "User Email Id",
       "User Requirement",
       "Service",
       "Drone",
@@ -353,6 +404,8 @@ export function CompletedDeliveriesView({
     ];
     const body = filteredRows.map((row) => [
       row.missionId,
+      row.userName,
+      row.userEmail,
       row.customer,
       row.service,
       row.droneUnit,
@@ -395,7 +448,7 @@ export function CompletedDeliveriesView({
           <button
             type="button"
             onClick={handleExportCsv}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted/50 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted/50"
           >
             <Download className="size-4" aria-hidden />
             Export CSV
@@ -453,8 +506,13 @@ export function CompletedDeliveriesView({
                     Completed Mission
                   </p>
                   <h3 className="mt-1 text-base font-semibold text-foreground">
-                    {row.customer || "Mission"}
+                    {row.userName !== "—" ? row.userName : "Mission"}
                   </h3>
+                  {row.userEmail !== "—" ? (
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {row.userEmail}
+                    </p>
+                  ) : null}
                 </div>
                 <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase text-sky-700 dark:border-sky-400/40 dark:bg-sky-950/30 dark:text-sky-300">
                   Completed
@@ -464,9 +522,27 @@ export function CompletedDeliveriesView({
               <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                 <p className="text-[#5a6d71] dark:text-white/75">
                   <span className="font-semibold text-[#1a3e42] dark:text-white">
+                    User Name:
+                  </span>{" "}
+                  {row.userName}
+                </p>
+                <p className="text-[#5a6d71] dark:text-white/75">
+                  <span className="font-semibold text-[#1a3e42] dark:text-white">
+                    User Email Id:
+                  </span>{" "}
+                  {row.userEmail}
+                </p>
+                <p className="text-[#5a6d71] dark:text-white/75">
+                  <span className="font-semibold text-[#1a3e42] dark:text-white">
                     Request ID:
                   </span>{" "}
                   {row.missionId}
+                </p>
+                <p className="text-[#5a6d71] dark:text-white/75 sm:col-span-2">
+                  <span className="font-semibold text-[#1a3e42] dark:text-white">
+                    User Requirement:
+                  </span>{" "}
+                  {row.customer}
                 </p>
                 <p className="text-[#5a6d71] dark:text-white/75">
                   <span className="font-semibold text-[#1a3e42] dark:text-white">

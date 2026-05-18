@@ -1,13 +1,16 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { SiteFooter } from "@/components/nav/site-footer";
+import { isPilotRegistrationFromAdmin } from "@/lib/pilot-registration-from-admin";
 import { cn } from "@/lib/utils";
 
-export function ConditionalSiteFooter() {
+function ConditionalSiteFooterInner() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isAdminDashboard =
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
@@ -23,11 +26,16 @@ export function ConditionalSiteFooter() {
     pathname === "/settings" ||
     pathname === "/settings/" ||
     (pathname?.startsWith("/settings/") ?? false);
+  const isAdminPilotRegistration = isPilotRegistrationFromAdmin(
+    pathname,
+    searchParams.get("from")
+  );
   const isDashboardShellFooter =
     isUserDashboard ||
     isPilotDashboard ||
     isSettings ||
-    isAdminDashboard;
+    isAdminDashboard ||
+    isAdminPilotRegistration;
   const whiteFooterChrome =
     isAdminDashboard ||
     isUserDashboard ||
@@ -60,23 +68,18 @@ export function ConditionalSiteFooter() {
         <div
           className={cn(
             "h-px w-full shrink-0",
-            isUserDashboard ? "bg-slate-200 dark:bg-transparent" : "bg-slate-200 dark:bg-white/15"
+            "bg-slate-200 dark:bg-white/15"
           )}
           aria-hidden
         />
-        <SiteFooter
-          className={
-            isUserDashboard
-              ? "bg-white text-foreground dark:bg-[#111315] dark:text-white"
-              : "bg-white text-foreground dark:bg-[#111315] dark:text-white"
-          }
-        />
+        <SiteFooter className="bg-background text-foreground" />
       </>
     );
   }
 
   if (isLandingChrome) {
-    const sidebarShell = pathname?.startsWith("/dashboard");
+    const sidebarShell =
+      pathname?.startsWith("/dashboard") || isAdminPilotRegistration;
 
     const landingFooterClass = sidebarShell
       ? cn(
@@ -104,5 +107,13 @@ export function ConditionalSiteFooter() {
         className={cn(whiteFooterChrome && "bg-white")}
       />
     </>
+  );
+}
+
+export function ConditionalSiteFooter() {
+  return (
+    <Suspense fallback={null}>
+      <ConditionalSiteFooterInner />
+    </Suspense>
   );
 }

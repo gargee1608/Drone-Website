@@ -19,13 +19,15 @@ import { useEffect, useState, type ReactNode } from "react";
 import { usePilotDashboardNav } from "@/components/pilot-dashboard/pilot-dashboard-nav-context";
 import { getPilotDisplayName, jwtPayloadRole } from "@/lib/pilot-display-name";
 import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
+import { clearAuthSession } from "@/lib/auth-session-browser";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
+
+const PILOT_LOGIN_HREF = "/pilot-login";
 
 const FOOTER_SIDEBAR_INSET_VAR = "--admin-sidebar-footer-inset";
 
 const sidebarNav = [
-  { label: "Home", icon: LayoutDashboard, href: "/" },
   { label: "Dashboard", icon: LayoutDashboard, href: "/pilot-dashboard" },
   {
     label: "Assign Mission",
@@ -104,9 +106,8 @@ function LogoutControl({ onAfterClick }: { onAfterClick?: () => void }) {
       type="button"
       onClick={() => {
         onAfterClick?.();
-        localStorage.removeItem("token");
-        localStorage.removeItem("pilot");
-        router.replace("/pilot-login");
+        clearAuthSession();
+        router.replace(PILOT_LOGIN_HREF);
       }}
       className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-sm font-normal text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
@@ -122,7 +123,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="min-h-0 flex-1 basis-0 overflow-y-auto">
         <SidebarNavLinks onNavigate={onNavigate} />
       </div>
-      <div className="mt-auto shrink-0 border-t border-border pt-4 pb-2">
+      <div className="mt-auto shrink-0 pt-4 pb-2">
         <LogoutControl onAfterClick={onNavigate} />
       </div>
     </div>
@@ -282,7 +283,7 @@ export function PilotDashboardShell({
           </div>
           {sidebarExpanded ? (
             <div className="mt-auto flex w-full shrink-0 flex-col">
-              <div className="shrink-0 border-t border-border px-3.5 pt-4 pb-3">
+              <div className="shrink-0 px-3.5 pt-4 pb-3">
                 <LogoutControl />
               </div>
             </div>

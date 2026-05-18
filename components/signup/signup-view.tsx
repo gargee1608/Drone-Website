@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, Lock, Mail, User } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { apiUrl } from "@/lib/api-url";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
@@ -47,14 +48,18 @@ function validateSignup(
   return errors;
 }
 
+const USER_LOGIN_HREF = "/pilot-login?panel=user";
+const SUCCESS_REDIRECT_MS = 2500;
+
 export function SignUpView() {
+  const router = useRouter();
+  const [successOpen, setSuccessOpen] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [successOpen, setSuccessOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{
     firstName?: string;
@@ -64,6 +69,18 @@ export function SignUpView() {
     confirm?: string;
     form?: string;
   }>({});
+
+  useEffect(() => {
+    if (!successOpen) return;
+    const id = window.setTimeout(() => {
+      router.push(USER_LOGIN_HREF);
+    }, SUCCESS_REDIRECT_MS);
+    return () => window.clearTimeout(id);
+  }, [successOpen, router]);
+
+  function goToUserLogin() {
+    router.push(USER_LOGIN_HREF);
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -428,7 +445,7 @@ export function SignUpView() {
             <p className="text-xs font-medium text-[#414755] sm:text-sm">
               Already have an account?{" "}
               <Link
-                href="/pilot-login?panel=user"
+                href={USER_LOGIN_HREF}
                 className="ml-1 font-bold text-[#008B8B] hover:underline"
               >
                 Sign In
@@ -467,7 +484,7 @@ export function SignUpView() {
             <button
               type="button"
               className="mt-6 flex w-full items-center justify-center rounded-lg bg-[#008B8B] py-3 text-sm font-semibold text-white transition hover:bg-[#006f6f]"
-              onClick={() => setSuccessOpen(false)}
+              onClick={goToUserLogin}
             >
               OK
             </button>
