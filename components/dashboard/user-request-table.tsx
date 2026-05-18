@@ -15,6 +15,7 @@ import {
   loadUserRequests,
   MISSIONS_DB_UPDATED_EVENT,
   type UserRequestAdminRow,
+  resolveRequestOwnerDisplay,
   userRequestQueueDisplayId,
   USER_REQUESTS_UPDATED_EVENT,
 } from "@/lib/user-requests";
@@ -84,6 +85,7 @@ function pilotTableCells(m: UserRequestAdminRow): {
 } {
   const parsed = parsePayloadAndTarget(m.desc);
   const weightFromDesc = extractPayloadWeightDisplay(parsed.payload);
+  const apiUserName = m.userName?.trim();
 
   if (m.key.startsWith("demo-")) {
     return {
@@ -100,9 +102,10 @@ function pilotTableCells(m: UserRequestAdminRow): {
 
   const req = loadUserRequests().find((r) => r.id === m.key);
   if (!req) {
+    const owner = resolveRequestOwnerDisplay(m.key);
     return {
       userId: tableRequestId(m),
-      userName: "—",
+      userName: apiUserName || owner.userName,
       userRequirement: m.title,
       payload: weightFromDesc,
       destinations:
@@ -130,9 +133,10 @@ function pilotTableCells(m: UserRequestAdminRow): {
   const w = req.payloadWeightKg.trim();
   const payload = w ? `${w} kg` : weightFromDesc;
 
+  const owner = resolveRequestOwnerDisplay(req.id);
   return {
     userId: userRequestQueueDisplayId(req.id),
-    userName: "—",
+    userName: apiUserName || owner.userName,
     userRequirement,
     payload,
     destinations,

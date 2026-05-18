@@ -5,7 +5,6 @@ import {
   Activity,
   ClipboardList,
   History,
-  Home as HomeIcon,
   LayoutDashboard,
   LogOut,
   Map,
@@ -20,8 +19,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
+import { clearAuthSession } from "@/lib/auth-session-browser";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
-import { clearStoredUserSession } from "@/lib/user-session-browser";
 import { cn } from "@/lib/utils";
 
 /** Same CSS var as admin `DashboardLayout` so `SiteFooter` aligns with the sidebar. */
@@ -33,7 +32,6 @@ const MY_REQUESTS_HREF = "/user-dashboard/my-requests";
 const USER_LOGIN_HREF = "/pilot-login?panel=user";
 
 const sidebarNav = [
-  { label: "Home", icon: HomeIcon, href: "/" },
   { label: "Dashboard", icon: LayoutDashboard, href: "/user-dashboard" },
   { label: "My Request", icon: ClipboardList, href: MY_REQUESTS_HREF },
   {
@@ -106,13 +104,7 @@ function LogoutControl({ onAfterClick }: { onAfterClick?: () => void }) {
       type="button"
       onClick={() => {
         onAfterClick?.();
-        try {
-          localStorage.removeItem("token");
-          localStorage.removeItem("pilot");
-          clearStoredUserSession();
-        } catch {
-          /* ignore */
-        }
+        clearAuthSession();
         router.replace(USER_LOGIN_HREF);
       }}
       className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-sm font-normal text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"

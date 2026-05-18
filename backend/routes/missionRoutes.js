@@ -56,6 +56,12 @@ async function ensureMissionColumns() {
   await pool.query(
     "ALTER TABLE missions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'completed'"
   );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS user_name TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS user_email TEXT"
+  );
   try {
     await pool.query(
       "ALTER TABLE missions ALTER COLUMN completed_at DROP NOT NULL"
@@ -67,6 +73,120 @@ async function ensureMissionColumns() {
 }
 
 const ACTIVE_ASSIGNMENT_STATUSES = ["assigned", "pending", "in_progress"];
+
+/** Fill requester name/email on mission rows when not stored on insert. */
+async function enrichMissionUserFields(rows) {
+  if (!rows.length) return rows;
+  const needLookup = rows.filter(
+    (r) => !toTrimmed(r.user_name) || !toTrimmed(r.user_email)
+  );
+  if (!needLookup.length) return rows;
+
+  const numericRefs = [
+    ...new Set(
+      needLookup
+        .map((r) => toTrimmed(r.request_ref))
+        .filter((ref) => /^\d+$/.test(ref))
+    ),
+  ];
+  const emails = [
+    ...new Set(
+      needLookup
+        .map((r) => toTrimmed(r.user_email).toLowerCase())
+        .filter(Boolean)
+    ),
+  ];
+
+  const usersById = new Map();
+  const usersByEmail = new Map();
+
+  if (numericRefs.length > 0) {
+    const byId = await pool.query(
+      `SELECT id, name, email FROM users WHERE id = ANY($1::bigint[])`,
+      [numericRefs.map((id) => Number.parseInt(id, 10))]
+    );
+    for (const u of byId.rows) {
+      usersById.set(String(u.id), u);
+      if (u.email) {
+        usersByEmail.set(String(u.email).trim().toLowerCase(), u);
+      }
+    }
+  }
+  if (emails.length > 0) {
+    const byEmail = await pool.query(
+      `SELECT id, name, email FROM users
+       WHERE LOWER(TRIM(email::text)) = ANY($1::text[])`,
+      [emails]
+    );
+    for (const u of byEmail.rows) {
+      usersById.set(String(u.id), u);
+      if (u.email) {
+        usersByEmail.set(String(u.email).trim().toLowerCase(), u);
+      }
+    }
+  }
+
+  const clientRefs = [
+    ...new Set(
+      needLookup
+        .map((r) => toTrimmed(r.request_ref))
+        .filter((ref) => ref && !/^\d+$/.test(ref))
+    ),
+  ];
+  const hireByRef = new Map();
+  if (numericRefs.length > 0 || clientRefs.length > 0) {
+    try {
+      const hire = await pool.query(
+        `SELECT id, client_request_id, user_id, user_name, user_email
+         FROM drone_hire_requests
+         WHERE id::text = ANY($1::text[])
+            OR client_request_id = ANY($2::text[])`,
+        [numericRefs, clientRefs]
+      );
+      for (const h of hire.rows) {
+        hireByRef.set(String(h.id), h);
+        const clientId = toTrimmed(h.client_request_id);
+        if (clientId) hireByRef.set(clientId, h);
+      }
+    } catch (e) {
+      console.warn("[missions] drone_hire_requests owner lookup:", e.message);
+    }
+  }
+
+  return rows.map((row) => {
+    const ref = toTrimmed(row.request_ref);
+    const storedName = toTrimmed(row.user_name);
+    const storedEmail = toTrimmed(row.user_email).toLowerCase();
+    const hire = hireByRef.get(ref);
+    const hireName = toTrimmed(hire?.user_name);
+    const hireEmail = toTrimmed(hire?.user_email).toLowerCase();
+    const hireUserId = toTrimmed(hire?.user_id);
+
+    let user =
+      (storedEmail && usersByEmail.get(storedEmail)) ||
+      (hireEmail && usersByEmail.get(hireEmail)) ||
+      (/^\d+$/.test(ref) ? usersById.get(ref) : null) ||
+      (hireUserId && usersById.get(hireUserId)) ||
+      null;
+    if (!user && /^\d+$/.test(ref)) {
+      user = usersById.get(ref);
+    }
+    if (!user && hireUserId) {
+      user = usersById.get(hireUserId);
+    }
+
+    const name = storedName || hireName || toTrimmed(user?.name);
+    const email =
+      storedEmail ||
+      hireEmail ||
+      (user?.email ? String(user.email).trim().toLowerCase() : "");
+    return {
+      ...row,
+      user_name: name || row.user_name || "",
+      user_email: email || row.user_email || "",
+    };
+  });
+}
 
 /**
  * Count of mission rows treated as completed (same rule and optional pilot filter as GET /).
@@ -178,9 +298,10 @@ router.get("/", async (req, res) => {
            WHERE LOWER(COALESCE(status, 'completed')) = 'completed'
            ORDER BY completed_at DESC`
         );
+    const enriched = await enrichMissionUserFields(result.rows);
     return res
       .status(200)
-      .json({ success: true, data: result.rows.map(jsonSafeMissionRow) });
+      .json({ success: true, data: enriched.map(jsonSafeMissionRow) });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Server error" });
@@ -255,6 +376,8 @@ router.post("/", async (req, res) => {
     const pilotName = toTrimmed(req.body?.pilotName);
     const pilotBadgeId = toTrimmed(req.body?.pilotBadgeId);
     const pilotSub = toTrimmed(req.body?.pilotSub);
+    const userName = toTrimmed(req.body?.userName);
+    const userEmail = toTrimmed(req.body?.userEmail).toLowerCase();
     const droneModel = toTrimmed(req.body?.droneModel);
     const assignedAtRaw = toTrimmed(req.body?.assignedAt);
     const assignedAt = assignedAtRaw ? new Date(assignedAtRaw) : new Date();
@@ -293,11 +416,13 @@ router.post("/", async (req, res) => {
           pilot_badge_id = COALESCE(NULLIF(TRIM($6), ''), pilot_badge_id),
           pilot_sub = COALESCE(NULLIF(TRIM($7), ''), pilot_sub),
           drone_model = COALESCE(NULLIF(TRIM($8), ''), drone_model),
+          user_name = COALESCE(NULLIF(TRIM($9), ''), user_name),
+          user_email = COALESCE(NULLIF(TRIM($10), ''), user_email),
           completed_at = NOW(),
           status = 'completed'
         WHERE request_ref = $1
           AND TRIM(COALESCE(pilot_sub, '')) = $7
-          AND LOWER(TRIM(COALESCE(status, ''))) = ANY($9::text[])
+          AND LOWER(TRIM(COALESCE(status, ''))) = ANY($11::text[])
         RETURNING *`,
         [
           requestRef,
@@ -308,6 +433,8 @@ router.post("/", async (req, res) => {
           pilotBadgeId || null,
           pilotSub || null,
           droneModel || null,
+          userName || null,
+          userEmail || null,
           ACTIVE_ASSIGNMENT_STATUSES,
         ]
       );
@@ -354,10 +481,12 @@ router.post("/", async (req, res) => {
         pilot_badge_id,
         pilot_sub,
         drone_model,
+        user_name,
+        user_email,
         assigned_at,
         completed_at,
         status
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
       RETURNING *`,
       [
         requestRef,
@@ -368,6 +497,8 @@ router.post("/", async (req, res) => {
         pilotBadgeId || null,
         pilotSub || null,
         droneModel || null,
+        userName || null,
+        userEmail || null,
         assignedAt.toISOString(),
         completedAt,
         status,

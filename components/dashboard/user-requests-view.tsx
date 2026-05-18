@@ -104,6 +104,9 @@ type BackendRequestRow = {
   adminStatus?: string;
   mission_status?: string | null;
   missionStatus?: string | null;
+  user_name?: string | null;
+  user_email?: string | null;
+  client_request_id?: string | null;
 };
 
 function pickBackendAdminStatus(r: BackendRequestRow): string | undefined {
@@ -191,6 +194,8 @@ function mapBackendRequestToAdminRow(r: BackendRequestRow): UserRequestAdminRow 
     }`,
     adminStatus: normalizeUserMissionAdminStatus(pickBackendAdminStatus(r)),
     missionStatus: pickBackendMissionStatus(r) ?? null,
+    userName: String(r.user_name ?? "").trim() || undefined,
+    userEmail: String(r.user_email ?? "").trim().toLowerCase() || undefined,
   };
 }
 

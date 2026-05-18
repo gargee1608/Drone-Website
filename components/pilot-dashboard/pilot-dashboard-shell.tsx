@@ -19,13 +19,15 @@ import { useEffect, useState, type ReactNode } from "react";
 import { usePilotDashboardNav } from "@/components/pilot-dashboard/pilot-dashboard-nav-context";
 import { getPilotDisplayName, jwtPayloadRole } from "@/lib/pilot-display-name";
 import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
+import { clearAuthSession } from "@/lib/auth-session-browser";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
+
+const PILOT_LOGIN_HREF = "/pilot-login";
 
 const FOOTER_SIDEBAR_INSET_VAR = "--admin-sidebar-footer-inset";
 
 const sidebarNav = [
-  { label: "Home", icon: LayoutDashboard, href: "/" },
   { label: "Dashboard", icon: LayoutDashboard, href: "/pilot-dashboard" },
   {
     label: "Assign Mission",
@@ -104,9 +106,8 @@ function LogoutControl({ onAfterClick }: { onAfterClick?: () => void }) {
       type="button"
       onClick={() => {
         onAfterClick?.();
-        localStorage.removeItem("token");
-        localStorage.removeItem("pilot");
-        router.replace("/pilot-login");
+        clearAuthSession();
+        router.replace(PILOT_LOGIN_HREF);
       }}
       className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-sm font-normal text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >

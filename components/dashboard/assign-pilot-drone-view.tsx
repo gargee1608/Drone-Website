@@ -49,6 +49,8 @@ import {
 } from "@/lib/assign-pilot-done-refs";
 import {
   findStoredUserRequestByAdminRef,
+  missionOwnerFieldsForRequestRef,
+  missionRequestRefForSave,
   loadUserRequests,
   mapUserRequestToAdminRow,
   normalizeUserMissionAdminStatus,
@@ -1052,11 +1054,13 @@ export function AssignPilotDroneView() {
     }
 
     try {
+      const missionRef = missionRequestRefForSave(ref);
+      const ownerFields = missionOwnerFieldsForRequestRef(ref);
       const missionRes = await fetch(apiUrl("/api/missions"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          requestRef: ref,
+          requestRef: missionRef,
           customer: currentRequest.customer,
           service: currentRequest.service,
           dropoff: currentRequest.dropoff,
@@ -1064,6 +1068,8 @@ export function AssignPilotDroneView() {
           pilotBadgeId: pilot.pilotId,
           pilotSub: pilot.id,
           droneModel: drone.model,
+          userName: ownerFields.userName,
+          userEmail: ownerFields.userEmail,
           assignedAt: new Date().toISOString(),
           status: "in_progress",
         }),
@@ -1219,11 +1225,13 @@ export function AssignPilotDroneView() {
     }
 
     try {
+      const missionRef = missionRequestRefForSave(row.requestRef);
+      const ownerFields = missionOwnerFieldsForRequestRef(row.requestRef);
       const missionRes = await fetch(apiUrl("/api/missions"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          requestRef: row.requestRef,
+          requestRef: missionRef,
           customer: row.customer,
           service: row.service,
           dropoff: row.dropoff,
@@ -1231,6 +1239,8 @@ export function AssignPilotDroneView() {
           pilotBadgeId: row.pilotBadgeId,
           pilotSub: selectedPilot.id,
           droneModel: row.droneModel,
+          userName: ownerFields.userName,
+          userEmail: ownerFields.userEmail,
           assignedAt: new Date().toISOString(),
           status: "completed",
         }),

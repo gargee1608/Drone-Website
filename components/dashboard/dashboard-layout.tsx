@@ -1,18 +1,42 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { LogOut } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import {
-  commandCenterNavFooter as navFooter,
   commandCenterNavItemIsActive as navItemIsActive,
   commandCenterNavMain as navMain,
 } from "@/components/dashboard/command-center-sidebar-nav";
 import { useAdminDashboardNav } from "@/components/dashboard/admin-dashboard-nav-context";
 import { SidebarMenuGlyph } from "@/components/nav/sidebar-menu-glyph";
+import { clearAuthSession } from "@/lib/auth-session-browser";
 import { cn } from "@/lib/utils";
+
 const FOOTER_SIDEBAR_INSET_VAR = "--admin-sidebar-footer-inset";
+const ADMIN_LOGIN_HREF = "/admin";
+
+function AdminLogoutControl({ onAfterClick }: { onAfterClick?: () => void }) {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        onAfterClick?.();
+        clearAuthSession();
+        router.replace(ADMIN_LOGIN_HREF);
+      }}
+      className={cn(
+        "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-foreground transition-colors",
+        "hover:bg-muted/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 active:bg-muted"
+      )}
+    >
+      <LogOut className="size-[1.125rem] shrink-0" aria-hidden strokeWidth={2} />
+      <span>Logout</span>
+    </button>
+  );
+}
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -140,32 +164,18 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           >
             <nav aria-label="Logout">
               <ul className="flex flex-col gap-2" role="list">
-                {navFooter.map(({ href, label, icon: Icon }) => (
-                  <li key={href}>
-                    <Link
-                      href={href}
-                      onClick={() => {
-                        if (
-                          globalThis.matchMedia?.("(max-width: 1023px)")
-                            .matches
-                        ) {
-                          closeSidebar();
-                        }
-                      }}
-                      className={cn(
-                        "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-foreground transition-colors",
-                        "hover:bg-muted/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 active:bg-muted"
-                      )}
-                    >
-                      <Icon
-                        className="size-[1.125rem] shrink-0"
-                        aria-hidden
-                        strokeWidth={2}
-                      />
-                      <span>{label}</span>
-                    </Link>
-                  </li>
-                ))}
+                <li>
+                  <AdminLogoutControl
+                    onAfterClick={() => {
+                      if (
+                        globalThis.matchMedia?.("(max-width: 1023px)")
+                          .matches
+                      ) {
+                        closeSidebar();
+                      }
+                    }}
+                  />
+                </li>
               </ul>
             </nav>
           </div>

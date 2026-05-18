@@ -32,8 +32,8 @@ import {
   buildAdminProfileForDisplay,
   type AdminProfileDraft,
 } from "@/lib/admin-profile-storage";
+import { clearAuthSession } from "@/lib/auth-session-browser";
 import {
-  clearStoredUserSession,
   readStoredUserSession,
   type StoredUserSession,
 } from "@/lib/user-session-browser";
@@ -285,13 +285,7 @@ export function LandingHeader() {
     setOpen(false);
     setMarketingUserMenuOpen(false);
     setAccountMenuOpen(false);
-    try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("pilot");
-      clearStoredUserSession();
-    } catch {
-      /* ignore */
-    }
+    clearAuthSession();
     setAppUserSession(null);
     setPilotMarketingActive(false);
     router.replace("/");
@@ -723,15 +717,10 @@ export function LandingHeader() {
                       className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
                       onClick={() => {
                         setAccountMenuOpen(false);
-                        try {
-                          localStorage.removeItem("token");
-                          localStorage.removeItem("pilot");
-                          if (isUserLogoutContext || isPilotLogoutContext) {
-                            clearStoredUserSession();
-                          }
-                        } catch {
-                          /* ignore */
-                        }
+                        clearAuthSession();
+                        setAppUserSession(null);
+                        setPilotMarketingActive(false);
+                        setAdminMarketingActive(false);
                         router.replace(
                           isPilotDashboard || settingsFrom === "pilot"
                             ? "/pilot-login"
@@ -875,15 +864,10 @@ export function LandingHeader() {
                   className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
                   onClick={() => {
                     setOpen(false);
-                    try {
-                      localStorage.removeItem("token");
-                      localStorage.removeItem("pilot");
-                      if (isUserLogoutContext || isPilotLogoutContext) {
-                        clearStoredUserSession();
-                      }
-                    } catch {
-                      /* ignore */
-                    }
+                    clearAuthSession();
+                    setAppUserSession(null);
+                    setPilotMarketingActive(false);
+                    setAdminMarketingActive(false);
                     if (
                       isPilotDashboard ||
                       settingsFrom === "pilot"
@@ -925,6 +909,10 @@ export function LandingHeader() {
               className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
               onClick={() => {
                 setOpen(false);
+                clearAuthSession();
+                setAppUserSession(null);
+                setPilotMarketingActive(false);
+                setAdminMarketingActive(false);
                 router.replace("/admin");
               }}
             >

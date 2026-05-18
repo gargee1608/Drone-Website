@@ -4,7 +4,10 @@ import { CheckCircle2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
-import { appendUserRequest } from "@/lib/user-requests";
+import {
+  appendUserRequest,
+  resolveRequestOwnerSnapshot,
+} from "@/lib/user-requests";
 import { apiUrl } from "@/lib/api-url";
 import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
@@ -36,6 +39,8 @@ export function CreateMissionRequestForm() {
   async function handleSubmitRequest(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitSuccess(false);
+    const owner = resolveRequestOwnerSnapshot();
+    const localRequestId = `#UR-${Date.now().toString(36).toUpperCase()}`;
     const payload = {
       reason_or_title: reasonOrTitle.trim(),
       pickup_location: pickupLocation.trim(),
@@ -43,6 +48,10 @@ export function CreateMissionRequestForm() {
       payload_weight: payloadWeightKg.trim() || "0",
       cargo_type: requestType.trim(),
       mission_urgency: requestPriority.trim(),
+      client_request_id: localRequestId,
+      user_id: owner.ownerUserId || undefined,
+      user_name: owner.ownerName || undefined,
+      user_email: owner.ownerEmail || undefined,
     };
 
     const response = await fetch(apiUrl("/api/submit-request"), {
@@ -67,15 +76,21 @@ export function CreateMissionRequestForm() {
       }
     }
 
-    appendUserRequest({
-      reasonOrTitle: payload.reason_or_title,
-      pickupLocation: payload.pickup_location,
-      dropLocation: payload.drop_location,
-      payloadWeightKg: payload.payload_weight,
-      requestType: payload.cargo_type,
-      requestPriority: payload.mission_urgency,
-      ...(backendRequestId ? { backendRequestId } : {}),
-    });
+    appendUserRequest(
+      {
+        reasonOrTitle: payload.reason_or_title,
+        pickupLocation: payload.pickup_location,
+        dropLocation: payload.drop_location,
+        payloadWeightKg: payload.payload_weight,
+        requestType: payload.cargo_type,
+        requestPriority: payload.mission_urgency,
+        ownerUserId: owner.ownerUserId || undefined,
+        ownerEmail: owner.ownerEmail || undefined,
+        ownerName: owner.ownerName || undefined,
+        ...(backendRequestId ? { backendRequestId } : {}),
+      },
+      { id: localRequestId }
+    );
     setReasonOrTitle("");
     setPickupLocation("");
     setDropLocation("");
