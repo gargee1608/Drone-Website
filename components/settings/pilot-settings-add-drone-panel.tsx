@@ -25,6 +25,7 @@ import {
   type PilotProfileDrone,
   type PilotProfileSnapshot,
 } from "@/lib/pilot-profile-snapshot";
+import { apiUrl } from "@/lib/api-url";
 import { cn } from "@/lib/utils";
 
 const DRONE_TYPE_OPTIONS = ["FPV", "Autonomous", "Line of Sight"] as const;
@@ -688,6 +689,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
           } catch (createError) {
             console.error("Error creating drone:", createError);
             console.warn("Falling back to local storage only");
+            // Don't set response - let it fall through to local storage save
             response = {
               ok: false,
               status: 500,
@@ -708,6 +710,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
             });
           } catch (networkError) {
             console.error("Network error when updating drone:", networkError);
+            // Set response to indicate network failure
             response = {
               ok: false,
               status: 0,
@@ -814,7 +817,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
         throw new Error(errorMessage);
       }
 
-      const result = await response.json();
+      const result = (await response.json?.()) ?? {};
       console.log("Drone saved successfully:", result);
 
       // Also save to local storage for backward compatibility
