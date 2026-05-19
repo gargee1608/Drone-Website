@@ -25,7 +25,6 @@ import {
   type PilotProfileDrone,
   type PilotProfileSnapshot,
 } from "@/lib/pilot-profile-snapshot";
-import { apiUrl } from "@/lib/api-url";
 import { cn } from "@/lib/utils";
 
 const DRONE_TYPE_OPTIONS = ["FPV", "Autonomous", "Line of Sight"] as const;
