@@ -30,12 +30,18 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-// Marketing pages that should always be light mode
-const MARKETING_PAGES = ["/", "/blogs", "/services", "/contact"];
+// Marketing and registration pages that should always be light mode.
+const LIGHT_MODE_PAGES = [
+  "/",
+  "/blogs",
+  "/services",
+  "/contact",
+  "/pilot-registration",
+];
 
-function isMarketingPage(pathname: string | null): boolean {
+function isLightModePage(pathname: string | null): boolean {
   if (!pathname) return false;
-  return MARKETING_PAGES.some(
+  return LIGHT_MODE_PAGES.some(
     (page) => pathname === page || pathname.startsWith(`${page}/`)
   );
 }
@@ -45,8 +51,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<AppTheme>("light");
 
   useLayoutEffect(() => {
-    // Force light mode for marketing pages
-    if (isMarketingPage(pathname)) {
+    // Force light mode for public chrome and registration flows.
+    if (isLightModePage(pathname)) {
       setThemeState("light");
       applyThemeToDocument("light");
       return;
@@ -59,8 +65,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   const setTheme = useCallback((next: AppTheme) => {
-    // Don't allow theme changes on marketing pages
-    if (isMarketingPage(pathname)) {
+    // Don't allow theme changes on forced-light pages.
+    if (isLightModePage(pathname)) {
       return;
     }
 

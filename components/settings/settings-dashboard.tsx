@@ -42,10 +42,6 @@ import {
   splitDisplayNameToFirstLast,
   writeStoredUserSession,
 } from "@/lib/user-session-browser";
-import {
-  ADMIN_DASH_DIVIDER_BORDER,
-  ADMIN_DASH_PANEL_BORDER,
-} from "@/lib/admin-dashboard-styles";
 import { PROFILE_INFO_POPUP_SHELL_CLASS } from "@/lib/profile-popup-styles";
 
 const profileInputClassName =
@@ -54,9 +50,11 @@ const profileInputClassName =
 function Switch({
   checked,
   onCheckedChange,
+  className,
 }: {
   checked: boolean;
   onCheckedChange: (next: boolean) => void;
+  className?: string;
 }) {
   return (
     <button
@@ -66,7 +64,8 @@ function Switch({
       onClick={() => onCheckedChange(!checked)}
       className={cn(
         "relative inline-flex h-7 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        checked ? "bg-[#008B8B]" : "bg-muted-foreground/35"
+        checked ? "bg-[#008B8B]" : "bg-muted-foreground/35",
+        className
       )}
     >
       <span
@@ -271,12 +270,12 @@ export function SettingsDashboard({
   const settingsSectionClass = cn(
     "flex flex-col rounded-xl bg-card p-5 sm:p-6",
     isAdminSettings
-      ? ADMIN_DASH_PANEL_BORDER
+      ? "border border-[#d5e2e7] shadow-[0_2px_5px_rgba(15,23,42,0.08)]"
       : "border-2 border-border shadow-sm"
   );
   const settingsSectionDividerClass = cn(
     "mt-auto space-y-4 pt-4",
-    isAdminSettings ? ADMIN_DASH_DIVIDER_BORDER : "border-t border-border"
+    "border-t border-border"
   );
 
   return (
@@ -341,7 +340,7 @@ export function SettingsDashboard({
           ) : null}
 
           {settingsContext === "pilot" ? (
-            <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
+            <section className={settingsSectionClass}>
               <div className="mb-4 flex items-start gap-3">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
                   <UserRound className="size-5 text-[#008B8B]" aria-hidden />
@@ -469,6 +468,11 @@ export function SettingsDashboard({
                       </span>
                       <Switch
                         checked={theme === "light"}
+                        className={
+                          isAdminSettings
+                            ? "border border-[#d5e2e7] shadow-none"
+                            : undefined
+                        }
                         onCheckedChange={(on) => {
                           setTheme(on ? "light" : "dark");
                         }}
@@ -485,6 +489,11 @@ export function SettingsDashboard({
                       </span>
                       <Switch
                         checked={theme === "dark"}
+                        className={
+                          isAdminSettings
+                            ? "border border-[#d5e2e7] shadow-none"
+                            : undefined
+                        }
                         onCheckedChange={(on) => {
                           setTheme(on ? "dark" : "light");
                         }}

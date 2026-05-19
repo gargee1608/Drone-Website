@@ -57,6 +57,10 @@ function ConditionalSiteFooterInner() {
     pathname === "/matching-hub" ||
     pathname === "/dashboard" ||
     pathname?.startsWith("/dashboard/");
+  const isSignupPage = pathname === "/signup" || pathname === "/signup/";
+  const isPilotRegistrationPage =
+    pathname === "/pilot-registration" ||
+    (pathname?.startsWith("/pilot-registration/") ?? false);
 
   if (isAdminLoginPage) {
     return null;
@@ -72,7 +76,12 @@ function ConditionalSiteFooterInner() {
           )}
           aria-hidden
         />
-        <SiteFooter className="bg-background text-foreground" />
+        <SiteFooter
+          className={cn(
+            isPilotDashboard ? "bg-transparent" : "bg-background",
+            "text-foreground"
+          )}
+        />
       </>
     );
   }
@@ -81,15 +90,19 @@ function ConditionalSiteFooterInner() {
     const sidebarShell =
       pathname?.startsWith("/dashboard") || isAdminPilotRegistration;
 
-    const landingFooterClass = sidebarShell
-      ? cn(
-          "z-30",
-          "px-4 sm:px-6 lg:px-8",
-          "lg:ml-[var(--admin-sidebar-footer-inset,0px)]",
-          "lg:w-[calc(100%-var(--admin-sidebar-footer-inset,0px))]",
-          "lg:transition-[margin-left,width] lg:duration-200 lg:ease-out"
-        )
-      : "px-4 sm:px-8";
+    const landingFooterClass = cn(
+      sidebarShell
+        ? cn(
+            "z-30",
+            "px-4 sm:px-6 lg:px-8",
+            "lg:ml-[var(--admin-sidebar-footer-inset,0px)]",
+            "lg:w-[calc(100%-var(--admin-sidebar-footer-inset,0px))]",
+            "lg:transition-[margin-left,width] lg:duration-200 lg:ease-out"
+          )
+        : "px-4 sm:px-8",
+      (isSignupPage || isPilotRegistrationPage) &&
+        "light-header bg-white text-slate-600"
+    );
 
     return <LandingFooter className={landingFooterClass} />;
   }

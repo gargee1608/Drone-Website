@@ -102,7 +102,9 @@ export function AdminInboxMenu({
           <div className="max-h-[min(70dvh,22rem)] overflow-y-auto">
             {rows.length === 0 ? (
               <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                No new submissions right now.
+                {audience === "user"
+                  ? "No request updates right now."
+                  : "No new submissions right now."}
               </p>
             ) : (
               <ul className="divide-y divide-border">

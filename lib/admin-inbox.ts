@@ -57,37 +57,42 @@ export function buildAdminInboxRows(
 ): AdminInboxRow[] {
   const rows: AdminInboxRow[] = [];
 
-  const userRequestRows =
-    audience === "user"
-      ? loadUserRequestsForCurrentUser()
-      : loadUserRequests();
-
-  for (const r of userRequestRows) {
-    if (r.adminStatus !== "pending") continue;
-    rows.push({
-      key: `ur:${r.id}`,
-      kind: "user_request",
-      createdAt: r.createdAt,
-      sourceLabel: "User Dashboard",
-      title: r.reasonOrTitle.trim() || "Mission request",
-      subtitle: userRequestSubtitle(r),
-      href:
-        audience === "user"
-          ? `/user-dashboard/my-requests?id=${encodeURIComponent(r.id)}`
-          : `/dashboard/assign?focus=${encodeURIComponent(r.id)}`,
-    });
-  }
-
   if (audience === "admin") {
+    for (const r of loadUserRequests()) {
+      if (r.adminStatus !== "pending") continue;
+      rows.push({
+        key: `admin:ur:${r.id}`,
+        kind: "user_request",
+        createdAt: r.createdAt,
+        sourceLabel: "User Dashboard",
+        title: r.reasonOrTitle.trim() || "Mission request",
+        subtitle: userRequestSubtitle(r),
+        href: `/dashboard/assign?focus=${encodeURIComponent(r.id)}`,
+      });
+    }
+
     for (const c of loadContactInquiries()) {
       rows.push({
-        key: `ci:${c.id}`,
+        key: `admin:ci:${c.id}`,
         kind: "contact",
         createdAt: c.createdAt,
         sourceLabel: "Contact Us",
         title: c.fullName,
         subtitle: previewMessage(c.message, c.email),
         href: `/dashboard/contact-inquiries?id=${encodeURIComponent(c.id)}`,
+      });
+    }
+  } else {
+    for (const r of loadUserRequestsForCurrentUser()) {
+      if (r.adminStatus === "pending") continue;
+      rows.push({
+        key: `user:ur:${r.id}:${r.adminStatus}`,
+        kind: "user_request",
+        createdAt: r.createdAt,
+        sourceLabel: userRequestStatusLabel(r.adminStatus),
+        title: r.reasonOrTitle.trim() || "Mission request",
+        subtitle: userRequestSubtitle(r),
+        href: `/user-dashboard/my-requests?id=${encodeURIComponent(r.id)}`,
       });
     }
   }
@@ -97,6 +102,19 @@ export function buildAdminInboxRows(
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
   return rows;
+}
+
+function userRequestStatusLabel(status: string): string {
+  switch (status) {
+    case "accepted":
+      return "Request accepted";
+    case "rejected":
+      return "Request rejected";
+    case "completed":
+      return "Delivery completed";
+    default:
+      return "Request update";
+  }
 }
 
 function userRequestSubtitle(r: {
