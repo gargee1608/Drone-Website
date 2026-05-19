@@ -8,6 +8,7 @@ import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-s
 import {
   loadUserRequestsForCurrentUser,
   USER_REQUESTS_UPDATED_EVENT,
+  type UserMissionRequest,
   userRequestQueueDisplayIdInList,
 } from "@/lib/user-requests";
 import {
