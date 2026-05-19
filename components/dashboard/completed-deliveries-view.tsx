@@ -12,6 +12,7 @@ import { jwtPayloadPilotFullName, jwtPayloadSub } from "@/lib/pilot-display-name
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
   buildRequestOwnerLookup,
+  findStoredUserRequestByAdminRef,
   type RequestOwnerInfo,
   resolveRequestOwnerDisplay,
 } from "@/lib/user-requests";
@@ -106,6 +107,11 @@ function mapBackendMissionToDeliveryRow(
 function dedupeDeliveryRows(rows: DeliveryRow[]): DeliveryRow[] {
   const bySignature = new Map<string, DeliveryRow>();
   const order: string[] = [];
+  const canonicalRequestRef = (ref: string) => {
+    const trimmed = ref.trim();
+    const stored = trimmed ? findStoredUserRequestByAdminRef(trimmed) : undefined;
+    return (stored?.backendRequestId || stored?.id || trimmed).trim().toLowerCase();
+  };
   const timeValue = (v: string) => {
     const t = new Date(v).getTime();
     return Number.isNaN(t) ? 0 : t;
@@ -124,7 +130,7 @@ function dedupeDeliveryRows(rows: DeliveryRow[]): DeliveryRow[] {
   const out: DeliveryRow[] = [];
   for (const row of rows) {
     const key = [
-      row.missionId.trim().toLowerCase(),
+      canonicalRequestRef(row.missionId),
       row.customer.trim().toLowerCase(),
       row.service.trim().toLowerCase(),
       row.dropoff.trim().toLowerCase(),

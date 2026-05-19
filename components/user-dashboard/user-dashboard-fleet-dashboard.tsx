@@ -503,12 +503,12 @@ export function UserDashboardFleetDashboard({
                       value={pickupHub}
                       onChange={(e) => setPickupHub(e.target.value)}
                       className={cn(
-                        "w-full appearance-none rounded-lg py-2.5 pl-9 pr-8 text-xs text-foreground focus:ring-4 focus:ring-[#0058bc]/10 focus:outline-none",
+                        "w-full appearance-none rounded-lg bg-white py-2.5 pl-9 pr-8 text-xs text-foreground focus:outline-none focus:ring-4 focus:ring-[#0058bc]/10 dark:bg-black",
                         USER_DASH_INPUT_BORDER
                       )}
                     >
                       {PICKUP_HUBS.map((h) => (
-                        <option key={h} value={h}>
+                        <option key={h} value={h} className="bg-white text-slate-950 dark:bg-black dark:text-white">
                           {h}
                         </option>
                       ))}
@@ -526,12 +526,12 @@ export function UserDashboardFleetDashboard({
                       value={destHub}
                       onChange={(e) => setDestHub(e.target.value)}
                       className={cn(
-                        "w-full appearance-none rounded-lg py-2.5 pl-9 pr-8 text-xs text-foreground focus:ring-4 focus:ring-[#0058bc]/10 focus:outline-none",
+                        "w-full appearance-none rounded-lg bg-white py-2.5 pl-9 pr-8 text-xs text-foreground focus:outline-none focus:ring-4 focus:ring-[#0058bc]/10 dark:bg-black",
                         USER_DASH_INPUT_BORDER
                       )}
                     >
                       {DEST_HUBS.map((h) => (
-                        <option key={h} value={h}>
+                        <option key={h} value={h} className="bg-white text-slate-950 dark:bg-black dark:text-white">
                           {h}
                         </option>
                       ))}
@@ -655,12 +655,12 @@ export function UserDashboardFleetDashboard({
                     setCargoKey(e.target.value as (typeof CARGO_OPTIONS)[number]["label"])
                   }
                   className={cn(
-                    "w-full rounded-lg py-2.5 text-sm text-foreground focus:ring-4 focus:ring-[#0058bc]/10 focus:outline-none",
+                    "w-full rounded-lg bg-white py-2.5 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-[#0058bc]/10 dark:bg-black",
                     USER_DASH_INPUT_BORDER
                   )}
                 >
                   {CARGO_OPTIONS.map((c) => (
-                    <option key={c.label} value={c.label}>
+                    <option key={c.label} value={c.label} className="bg-white text-slate-950 dark:bg-black dark:text-white">
                       {c.label}
                     </option>
                   ))}

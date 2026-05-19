@@ -520,10 +520,10 @@ export function SettingsDashboard({
             onClick={closeChangePassword}
           />
           <div
-            className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border-2 border-border bg-card text-card-foreground shadow-xl ring-1 ring-black/5"
+            className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border-2 border-white bg-white text-card-foreground shadow-xl ring-1 ring-black/5 dark:border-border dark:bg-black"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-b border-border bg-muted/50 px-6 py-5 sm:px-8">
+            <div className="border-b border-white bg-white px-6 py-5 dark:border-border dark:bg-black sm:px-8">
               <div className="flex items-center gap-3">
                 <span
                   className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12"
@@ -548,7 +548,7 @@ export function SettingsDashboard({
               </div>
             </div>
             <form
-              className="px-6 py-5 sm:px-8 sm:py-6"
+              className="bg-white px-6 py-5 dark:bg-black sm:px-8 sm:py-6"
               onSubmit={async (e: FormEvent) => {
                 e.preventDefault();
                 const cur = currentPassword.trim();

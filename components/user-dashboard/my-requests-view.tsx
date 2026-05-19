@@ -8,9 +8,7 @@ import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-s
 import {
   loadUserRequestsForCurrentUser,
   USER_REQUESTS_UPDATED_EVENT,
-  userMissionAdminStatusLabel,
   userRequestQueueDisplayIdInList,
-  type UserMissionRequest,
 } from "@/lib/user-requests";
 import {
   USER_DASH_DIVIDER_BORDER,
@@ -31,21 +29,6 @@ const priorityLabels: Record<string, string> = {
 function formatPriority(value: string): string {
   if (!value) return "—";
   return priorityLabels[value] ?? value;
-}
-
-function adminStatusBadgeClass(status: UserMissionRequest["adminStatus"]) {
-  switch (status) {
-    case "pending":
-      return "bg-amber-50 text-amber-800 dark:bg-amber-500/20 dark:text-amber-100";
-    case "accepted":
-      return "bg-emerald-50 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-100";
-    case "completed":
-      return "bg-sky-50 text-sky-900 dark:bg-sky-500/20 dark:text-sky-100";
-    case "rejected":
-      return "bg-red-50 text-red-800 dark:bg-red-500/20 dark:text-red-100";
-    default:
-      return "bg-[#008B8B]/14 text-[#0a3030] dark:text-white";
-  }
 }
 
 export function MyRequestsView() {
@@ -137,13 +120,12 @@ export function MyRequestsView() {
               <table className={USER_DASH_TABLE}>
                 <colgroup>
                   <col className="w-[7rem]" />
-                  <col className="w-[16%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[12%]" />
+                  <col className="w-[20%]" />
+                  <col className="w-[17%]" />
+                  <col className="w-[17%]" />
                   <col className="w-[10%]" />
-                  <col className="w-[11%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[12%]" />
                 </colgroup>
                 <thead className={USER_DASH_TABLE_HEAD}>
                   <tr className={USER_DASH_DIVIDER_BORDER}>
@@ -167,9 +149,6 @@ export function MyRequestsView() {
                     </th>
                     <th scope="col" className={cn(USER_DASH_TABLE_TH, "whitespace-nowrap")}>
                       Priority
-                    </th>
-                    <th scope="col" className={cn(USER_DASH_TABLE_TH, "whitespace-nowrap")}>
-                      Status
                     </th>
                   </tr>
                 </thead>
@@ -208,16 +187,6 @@ export function MyRequestsView() {
                       </td>
                       <td className={cn(USER_DASH_TABLE_TD, "whitespace-nowrap")}>
                         {formatPriority(req.requestPriority)}
-                      </td>
-                      <td className={cn(USER_DASH_TABLE_TD, "whitespace-nowrap")}>
-                        <span
-                          className={cn(
-                            "inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                            adminStatusBadgeClass(req.adminStatus)
-                          )}
-                        >
-                          {userMissionAdminStatusLabel(req.adminStatus)}
-                        </span>
                       </td>
                     </tr>
                   ))}

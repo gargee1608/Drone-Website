@@ -1882,7 +1882,7 @@ export function AssignPilotDroneView() {
             onClick={() => setAssignedDialogOpen(false)}
           />
           <div
-            className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border-2 border-border bg-card shadow-xl ring-1 ring-border/50"
+            className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border-2 border-transparent bg-white shadow-xl ring-1 ring-transparent dark:border-border dark:bg-black dark:ring-border/50"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-6 sm:px-10 sm:py-8">
@@ -1919,7 +1919,7 @@ export function AssignPilotDroneView() {
                 </span>
                 ?
               </p>
-              <div className="mt-5 grid gap-4 rounded-2xl border border-border/90 bg-gradient-to-b from-muted/40 to-muted/20 p-4 sm:grid-cols-2 sm:gap-0 sm:p-0 sm:py-5">
+              <div className="mt-5 grid gap-4 rounded-2xl border border-border/90 bg-white p-4 dark:bg-black sm:grid-cols-2 sm:gap-0 sm:p-0 sm:py-5">
                 <div className="min-w-0 sm:border-r sm:border-border/90 sm:px-6">
                   <p className="text-xs font-medium text-muted-foreground sm:text-sm">
                     Pilot Name
@@ -1940,18 +1940,18 @@ export function AssignPilotDroneView() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-3 border-t border-border/80 bg-muted/40 px-6 py-4 sm:gap-4 sm:px-10 sm:py-5">
+            <div className="flex flex-wrap items-center justify-center gap-3 border-t border-border/80 bg-white px-6 py-4 dark:bg-black sm:gap-4 sm:px-10 sm:py-5">
               <button
                 type="button"
                 disabled={!selectedPilot || !selectedDrone}
-                className="inline-flex min-w-[6rem] items-center justify-center rounded-full border-2 border-[#008B8B] bg-card px-5 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/5 active:scale-[0.98] disabled:opacity-50 sm:min-w-[6.5rem] sm:px-6"
+                className="inline-flex min-w-[6rem] items-center justify-center rounded-full border-2 border-[#008B8B] bg-white px-5 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/5 active:scale-[0.98] disabled:opacity-50 dark:bg-black sm:min-w-[6.5rem] sm:px-6"
                 onClick={confirmAssignment}
               >
                 OK
               </button>
               <button
                 type="button"
-                className="inline-flex min-w-[6rem] items-center justify-center rounded-full border-2 border-border bg-card px-5 py-2 text-sm font-bold text-foreground transition hover:border-muted-foreground/50 hover:bg-muted/50 active:scale-[0.98] sm:min-w-[6.5rem] sm:px-6"
+                className="inline-flex min-w-[6rem] items-center justify-center rounded-full border-2 border-border bg-white px-5 py-2 text-sm font-bold text-foreground transition hover:border-muted-foreground/50 hover:bg-muted/50 active:scale-[0.98] dark:bg-black sm:min-w-[6.5rem] sm:px-6"
                 onClick={() => setAssignedDialogOpen(false)}
               >
                 Cancel
