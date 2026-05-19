@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Edit, Trash2, Drone as DroneIcon, Send, RefreshCw } from "lucide-react";
+import { Plus, Edit, Trash2, Drone as DroneIcon, Send } from "lucide-react";
 import { useCallback, useEffect, useState, useRef } from "react";
 
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
@@ -24,6 +24,58 @@ import {
 } from "@/lib/pilot-profile-snapshot";
 import { cn } from "@/lib/utils";
 import { apiUrl } from "@/lib/api-url";
+
+type BackendDroneDetails = {
+  id?: string | number;
+  modelName?: string;
+  model_name?: string;
+  type?: string;
+  camera?: string;
+  payloadKg?: string | number;
+  payload_kg?: string | number;
+  flightTimeMin?: string | number;
+  flight_time_min?: string | number;
+  rangeKg?: string | number;
+  rangeKm?: string | number;
+  range_km?: string | number;
+  useCases?: string[];
+  use_cases?: string[];
+};
+
+const DELETED_DRONE_IDS_STORAGE_SUFFIX = "::deleted-drone-ids";
+
+function deletedDroneIdsStorageKey() {
+  return `${activePilotProfileSnapshotStorageKey()}${DELETED_DRONE_IDS_STORAGE_SUFFIX}`;
+}
+
+function readDeletedDroneIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const parsed: unknown = JSON.parse(
+      localStorage.getItem(deletedDroneIdsStorageKey()) || "[]"
+    );
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.map((id) => String(id)).filter(Boolean));
+  } catch {
+    return new Set();
+  }
+}
+
+function persistDeletedDroneIds(ids: Set<string>) {
+  if (typeof window === "undefined") return;
+  const next = JSON.stringify([...ids]);
+  const key = deletedDroneIdsStorageKey();
+  try {
+    localStorage.setItem(key, next);
+  } catch {
+    /* quota */
+  }
+  sessionStorage.setItem(key, next);
+}
+
+function droneIsDeleted(drone: Pick<PilotProfileDrone, "id">, ids: Set<string>) {
+  return ids.has(String(drone.id));
+}
 
 function readBaseSnapshot(): PilotProfileSnapshot | null {
   if (typeof window === "undefined") return null;
@@ -80,18 +132,18 @@ function persistSnapshot(next: PilotProfileSnapshot) {
 /** Enhanced pilot dashboard drone view with existing drone display */
 export function PilotDroneView() {
   const dronePanelRef = useRef<PilotSettingsAddDronePanelRef>(null);
+  const backendSyncPausedUntilRef = useRef(0);
+  const showAddFormRef = useRef(false);
   const [drones, setDrones] = useState<PilotProfileDrone[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [justDeleted, setJustDeleted] = useState(false);
-  const [deletedDroneIds, setDeletedDroneIds] = useState<Set<string>>(new Set());
+  const [, setIsRefreshing] = useState(false);
+  const [deletedDroneIds, setDeletedDroneIds] =
+    useState<Set<string>>(readDeletedDroneIds);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingDrone, setEditingDrone] = useState<PilotProfileDrone | null>(null);
-
-  // Add a global deletion flag
-let isCurrentlyDeleting = false;
+  showAddFormRef.current = showAddForm;
 
   const refreshFromStorage = useCallback((forceUpdate = false) => {
     console.log("🔄 refreshFromStorage called, forceUpdate:", forceUpdate);
@@ -124,8 +176,18 @@ let isCurrentlyDeleting = false;
     }
   }, []);
 
+  const pauseBackendSync = useCallback((durationMs = 4000) => {
+    backendSyncPausedUntilRef.current = Date.now() + durationMs;
+  }, []);
+
   const fetchDroneDataFromBackend = useCallback(async (manual = false) => {
     try {
+      if (
+        !manual &&
+        (showAddFormRef.current || Date.now() < backendSyncPausedUntilRef.current)
+      ) {
+        return;
+      }
       if (manual) setIsRefreshing(true);
       const token = localStorage.getItem("token");
       if (!token) return;
@@ -160,16 +222,22 @@ let isCurrentlyDeleting = false;
           if (base) {
             const updatedSnapshot: PilotProfileSnapshot = {
               ...base,
-              drones: pilotData.drone_details.map((drone: any, index: number) => ({
-                id: drone.id ? String(drone.id) : `local-${Date.now()}-${index}`,
-                modelName: drone.modelName || drone.model_name || '',
-                type: drone.type || '',
-                camera: drone.camera || '',
-                payloadKg: drone.payloadKg || drone.payload_kg || '',
-                flightTimeMin: drone.flightTimeMin || drone.flight_time_min || '',
-                rangeKm: drone.rangeKg || drone.range_km || '',
-                useCases: drone.useCases || drone.use_cases || []
-              }))
+              drones: (pilotData.drone_details as BackendDroneDetails[])
+                .map((drone, index) => ({
+                  id: drone.id ? String(drone.id) : `local-${Date.now()}-${index}`,
+                  modelName: String(drone.modelName || drone.model_name || ''),
+                  type: String(drone.type || ''),
+                  camera: String(drone.camera || ''),
+                  payloadKg: String(drone.payloadKg || drone.payload_kg || ''),
+                  flightTimeMin: String(drone.flightTimeMin || drone.flight_time_min || ''),
+                  rangeKm: String(drone.rangeKm || drone.rangeKg || drone.range_km || ''),
+                  useCases: Array.isArray(drone.useCases)
+                    ? drone.useCases
+                    : Array.isArray(drone.use_cases)
+                      ? drone.use_cases
+                      : [],
+                }))
+                .filter((drone) => !droneIsDeleted(drone, readDeletedDroneIds()))
             };
             persistSnapshot(updatedSnapshot);
             setDrones(updatedSnapshot.drones);
@@ -284,8 +352,12 @@ let isCurrentlyDeleting = false;
         console.log("📦 Local storage drone detected, skipping backend delete");
       }
 
-      // Add to deleted IDs set to prevent re-appearing from backend fetch
-      setDeletedDroneIds(prev => new Set(prev).add(drone.id));
+      // Persist deleted IDs so backend refreshes/page reloads do not show the row again.
+      setDeletedDroneIds(prev => {
+        const next = new Set(prev).add(String(drone.id));
+        persistDeletedDroneIds(next);
+        return next;
+      });
 
       // Update local state
       const filteredDrones = drones.filter(d => d.id !== drone.id);
@@ -404,6 +476,15 @@ let isCurrentlyDeleting = false;
     }
   }
 
+  const visibleDrones = drones.filter(drone =>
+    !droneIsDeleted(drone, deletedDroneIds) &&
+    !(drone.modelName?.toLowerCase().includes('dji') &&
+      drone.type === 'FPV' &&
+      drone.camera === '5K' &&
+      drone.payloadKg === '3.5' &&
+      drone.flightTimeMin === '56')
+  );
+
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
       {/* Header with Add Button */}
@@ -425,6 +506,7 @@ let isCurrentlyDeleting = false;
           <Button
             onClick={() => {
               if (isEditMode) {
+                pauseBackendSync();
                 // Trigger save when in edit mode
                 if (dronePanelRef.current) {
                   dronePanelRef.current.triggerSave();
@@ -468,98 +550,105 @@ let isCurrentlyDeleting = false;
       )}
 
       {/* Existing Drones Display */}
-      {drones.length > 0 && (
+      {visibleDrones.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-foreground">Your Fleet</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            {drones.filter(drone => 
-              !deletedDroneIds.has(drone.id) &&
-              !(drone.modelName?.toLowerCase().includes('dji') && 
-                drone.type === 'FPV' && 
-                drone.camera === '5K' && 
-                drone.payloadKg === '3.5' && 
-                drone.flightTimeMin === '56')
-            ).map((drone, index) => (
-              <div
-                key={drone.id || `drone-${index}`}
-                className="rounded-xl border border-border bg-card p-4 shadow-sm"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <DroneIcon className="h-5 w-5 text-[#008B8B]" />
-                    <h4 className="font-semibold text-foreground">
-                      {drone.modelName || "Unnamed Drone"}
-                    </h4>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setIsEditMode(true);
-                        setEditingDrone(drone);
-                        setShowAddForm(true);
-                      }}
-                      className="h-8 px-2"
+          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-left text-sm">
+                <thead className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Drone Model</th>
+                    <th className="px-4 py-3 font-semibold">Type</th>
+                    <th className="px-4 py-3 font-semibold">Camera</th>
+                    <th className="px-4 py-3 font-semibold">Payload</th>
+                    <th className="px-4 py-3 font-semibold">Flight Time</th>
+                    <th className="px-4 py-3 font-semibold">Range</th>
+                    <th className="px-4 py-3 font-semibold">Use Cases</th>
+                    <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {visibleDrones.map((drone, index) => (
+                    <tr
+                      key={drone.id || `drone-${index}`}
+                      className="transition-colors hover:bg-muted/30"
                     >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDeleteDrone(drone)}
-                      className="h-8 px-2 text-red-600 hover:text-red-700 hover:border-red-300"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Type:</span>
-                    <span className="font-medium">{drone.type || "—"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Camera:</span>
-                    <span className="font-medium">{drone.camera || "—"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Payload:</span>
-                    <span className="font-medium">{drone.payloadKg ? `${drone.payloadKg} kg` : "—"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Flight Time:</span>
-                    <span className="font-medium">{drone.flightTimeMin ? `${drone.flightTimeMin} min` : "—"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Range:</span>
-                    <span className="font-medium">{drone.rangeKm ? `${drone.rangeKm} km` : "—"}</span>
-                  </div>
-                  {drone.useCases && drone.useCases.length > 0 && (
-                    <div className="pt-2 border-t border-border">
-                      <span className="text-muted-foreground text-xs">Use Cases:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {drone.useCases.map((useCase, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-block rounded-full bg-[#008B8B]/10 px-2 py-1 text-xs font-medium text-[#008B8B]"
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2 font-semibold text-foreground">
+                          <DroneIcon className="h-4 w-4 shrink-0 text-[#008B8B]" />
+                          <span>{drone.modelName || "Unnamed Drone"}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {drone.type || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {drone.camera || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {drone.payloadKg ? `${drone.payloadKg} kg` : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {drone.flightTimeMin ? `${drone.flightTimeMin} min` : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {drone.rangeKm ? `${drone.rangeKm} km` : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {drone.useCases && drone.useCases.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {drone.useCases.map((useCase, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-block rounded-full bg-[#008B8B]/10 px-2 py-1 text-xs font-medium text-[#008B8B]"
+                              >
+                                {useCase}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              pauseBackendSync();
+                              setIsEditMode(true);
+                              setEditingDrone(drone);
+                              setShowAddForm(true);
+                            }}
+                            className="h-8 px-2"
+                            aria-label={`Edit ${drone.modelName || "drone"}`}
                           >
-                            {useCase}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteDrone(drone)}
+                            className="h-8 px-2 text-red-600 hover:border-red-300 hover:text-red-700"
+                            aria-label={`Delete ${drone.modelName || "drone"}`}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
       {/* No Drones State */}
-      {drones.length === 0 && (
+      {visibleDrones.length === 0 && (
         <div className="text-center py-12">
           <DroneIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold text-foreground mb-2">No Drones Added Yet</h3>
@@ -613,6 +702,7 @@ let isCurrentlyDeleting = false;
             editingDrone={editingDrone}
             onDroneAdded={() => {
               console.log("🎯 onDroneAdded callback triggered");
+              pauseBackendSync();
               refreshFromStorage(true);
               setIsEditMode(false);
               setEditingDrone(null);

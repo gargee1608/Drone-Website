@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  ChevronLeft,
-  ChevronRight,
-  Download,
-} from "lucide-react";
+import { Download } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { apiUrl } from "@/lib/api-url";
@@ -52,12 +48,6 @@ type BackendMissionRow = {
   completed_at?: string;
   status?: string;
 };
-
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "2-digit",
-  year: "numeric",
-});
 
 function formatDateTime(value: string): string {
   if (!value) return "—";
@@ -107,6 +97,11 @@ function mapBackendMissionToDeliveryRow(
 function dedupeDeliveryRows(rows: DeliveryRow[]): DeliveryRow[] {
   const bySignature = new Map<string, DeliveryRow>();
   const order: string[] = [];
+  const normalizeKeyPart = (value: string) => value.trim().toLowerCase();
+  const hasRealValue = (value: string) => {
+    const normalized = normalizeKeyPart(value);
+    return normalized !== "" && normalized !== "—";
+  };
   const canonicalRequestRef = (ref: string) => {
     const trimmed = ref.trim();
     const stored = trimmed ? findStoredUserRequestByAdminRef(trimmed) : undefined;
@@ -125,18 +120,26 @@ function dedupeDeliveryRows(rows: DeliveryRow[]): DeliveryRow[] {
       row.droneUnit,
       row.assignedAt,
       row.completedAt,
+      row.id,
+      row.rowCtid,
+      row.pilotSub,
     ].filter((v) => v && v !== "—").length;
 
   const out: DeliveryRow[] = [];
   for (const row of rows) {
-    const key = [
-      canonicalRequestRef(row.missionId),
-      row.customer.trim().toLowerCase(),
-      row.service.trim().toLowerCase(),
-      row.dropoff.trim().toLowerCase(),
-      row.pilot.trim().toLowerCase(),
-      row.droneUnit.trim().toLowerCase(),
-    ].join("::");
+    const requestRef = canonicalRequestRef(row.missionId);
+    const pilotIdentity = normalizeKeyPart(row.pilotSub) || normalizeKeyPart(row.pilot);
+    const key =
+      hasRealValue(requestRef) && !requestRef.startsWith("ms-")
+        ? `request:${requestRef}::pilot:${pilotIdentity}`
+        : [
+            requestRef,
+            normalizeKeyPart(row.customer),
+            normalizeKeyPart(row.service),
+            normalizeKeyPart(row.dropoff),
+            normalizeKeyPart(row.pilot),
+            normalizeKeyPart(row.droneUnit),
+          ].join("::");
 
     const prev = bySignature.get(key);
     if (!prev) {
@@ -280,7 +283,14 @@ export function CompletedDeliveriesView({
         const apiRows = list.map((row, i) =>
           mapBackendMissionToDeliveryRow(row, i, ownerLookup)
         );
-        setRows((prev) => dedupeDeliveryRows([...(preview ? [preview] : []), ...apiRows, ...prev]));
+        setRows((prev) => {
+          const optimisticRows = prev.filter((row) => !row.id && !row.rowCtid);
+          return dedupeDeliveryRows([
+            ...(preview ? [preview] : []),
+            ...apiRows,
+            ...optimisticRows,
+          ]);
+        });
       } catch {
         if (!cancelled) {
           setRows((prev) => (preview ? dedupeDeliveryRows([preview, ...prev]) : prev));
