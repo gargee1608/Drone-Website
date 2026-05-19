@@ -23,10 +23,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   if (isAdmin) {
     return (
       <DashboardLayout>
-        <div className="mx-auto w-full max-w-[1280px]">
-          <h1 className={`mb-8 sm:mb-10 ${ADMIN_PAGE_TITLE_CLASS}`}>
-            Settings
-          </h1>
+        <div className="mx-auto w-full max-w-[1400px] pb-2 pt-3 sm:pb-3 sm:pt-4 lg:pt-6">
+          <h1 className={`mb-6 ${ADMIN_PAGE_TITLE_CLASS}`}>Settings</h1>
           <SettingsDashboard settingsContext="admin" />
         </div>
       </DashboardLayout>

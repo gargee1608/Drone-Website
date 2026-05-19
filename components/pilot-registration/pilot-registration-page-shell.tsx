@@ -21,13 +21,15 @@ function PilotRegistrationPageShellInner() {
 
   if (fromAdmin) {
     return (
-      <DashboardLayout>
-        <PilotRegistrationView
-          fromAdminDashboard
-          initialStep={initialStep}
-          adminPilotId={searchParams.get("pilotId")}
-        />
-      </DashboardLayout>
+      <div className="light-header">
+        <DashboardLayout>
+          <PilotRegistrationView
+            fromAdminDashboard
+            initialStep={initialStep}
+            adminPilotId={searchParams.get("pilotId")}
+          />
+        </DashboardLayout>
+      </div>
     );
   }
 
