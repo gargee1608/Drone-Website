@@ -341,7 +341,7 @@ export function SettingsDashboard({
           ) : null}
 
           {settingsContext === "pilot" ? (
-            <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
+            <section className={settingsSectionClass}>
               <div className="mb-4 flex items-start gap-3">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
                   <UserRound className="size-5 text-[#008B8B]" aria-hidden />

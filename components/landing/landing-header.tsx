@@ -61,6 +61,7 @@ export function LandingHeader() {
     pathname === "/pilot-login" || pathname === "/pilot-login/";
   const isResetPasswordPage =
     pathname === "/reset-password" || pathname === "/reset-password/";
+  const isSignupPage = pathname === "/signup" || pathname === "/signup/";
   const isUserDashboard = pathname?.startsWith("/user-dashboard") ?? false;
   const isPilotDashboard =
     pathname?.startsWith("/pilot-dashboard") ||
@@ -370,6 +371,8 @@ export function LandingHeader() {
     <header
       className={cn(
         "fixed top-0 z-50 w-full border-b border-border bg-background text-foreground",
+        (isSignupPage || isPilotRegistration) &&
+          "light-header bg-white text-[#191c1d]",
         !appDashboardShell && "dark:text-white"
       )}
     >

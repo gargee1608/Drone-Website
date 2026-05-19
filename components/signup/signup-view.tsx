@@ -149,7 +149,7 @@ export function SignUpView() {
   }
 
   return (
-    <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-background text-foreground">
+    <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-white text-[#191c1d]">
       <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-14">
         <div className="login-glass-card relative w-full max-w-[min(100%,360px)] overflow-hidden rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md sm:max-w-[420px] sm:p-5">
           <div className="mb-2 text-center sm:mb-2.5">
@@ -162,7 +162,7 @@ export function SignUpView() {
                 />
               </div>
             </div>
-            <h1 className={cn("mb-1.5", ADMIN_PAGE_TITLE_CLASS)}>
+            <h1 className={cn("mb-1.5", ADMIN_PAGE_TITLE_CLASS, "text-[#191c1d]")}>
               Create account
             </h1>
             <p className="text-xs font-medium leading-snug text-[#414755] sm:text-sm">
@@ -422,7 +422,7 @@ export function SignUpView() {
             {errors.form ? (
               <p
                 role="alert"
-                className="rounded-md border border-red-200 bg-red-50 px-2 py-2 text-center text-xs font-medium text-red-700 sm:text-sm dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200"
+                className="rounded-md border border-red-200 bg-red-50 px-2 py-2 text-center text-xs font-medium text-red-700 sm:text-sm"
               >
                 {errors.form}
               </p>
@@ -462,11 +462,11 @@ export function SignUpView() {
           aria-modal="true"
           aria-labelledby="signup-success-title"
         >
-          <div className="w-full max-w-[360px] rounded-xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6 dark:border-white/15 dark:bg-[#161a1d]">
+          <div className="w-full max-w-[360px] rounded-xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6">
             <div className="mb-4 flex justify-center">
-              <div className="flex size-14 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/40">
+              <div className="flex size-14 items-center justify-center rounded-full bg-emerald-50">
                 <CheckCircle2
-                  className="size-9 text-emerald-600 dark:text-emerald-400"
+                  className="size-9 text-emerald-600"
                   strokeWidth={2}
                   aria-hidden
                 />
@@ -474,11 +474,11 @@ export function SignUpView() {
             </div>
             <h2
               id="signup-success-title"
-              className="text-center text-lg font-bold tracking-tight text-[#191c1d] sm:text-xl dark:text-white"
+              className="text-center text-lg font-bold tracking-tight text-[#191c1d] sm:text-xl"
             >
               Account Created Successfully
             </h2>
-            <p className="mt-2 text-center text-sm text-slate-600 dark:text-white/75">
+            <p className="mt-2 text-center text-sm text-slate-600">
               You can sign in with your email and password.
             </p>
             <button

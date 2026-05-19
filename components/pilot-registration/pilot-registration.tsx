@@ -127,10 +127,10 @@ function RequiredMark() {
 }
 
 const textareaClass =
-  "min-h-[96px] w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
+  "min-h-[96px] w-full resize-y rounded-lg border border-slate-200 !bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
 
 const selectClass =
-  "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
+  "h-10 w-full rounded-lg border border-slate-200 !bg-white px-3 text-sm text-slate-900 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
 
 function emptyDrone(): PilotProfileDrone {
   return {
@@ -868,7 +868,7 @@ export function PilotRegistrationView({
                         <span
                           className={cn(
                             "h-px flex-1 rounded-full",
-                            done || active ? "bg-[#008B8B]" : "bg-slate-200"
+                            done || active ? "bg-[#008B8B]" : "bg-white"
                           )}
                           aria-hidden
                         />
@@ -880,7 +880,7 @@ export function PilotRegistrationView({
                           "flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold tabular-nums sm:size-9 sm:text-sm",
                           step >= s.n
                             ? "border-[#008B8B] bg-[#008B8B] text-white"
-                            : "border-slate-200 bg-slate-50 text-slate-400"
+                            : "border-slate-200 bg-white text-slate-400"
                         )}
                         aria-current={active ? "step" : undefined}
                       >
@@ -890,7 +890,7 @@ export function PilotRegistrationView({
                         <span
                           className={cn(
                             "h-px flex-1 rounded-full",
-                            step > s.n ? "bg-[#008B8B]" : "bg-slate-200"
+                            step > s.n ? "bg-[#008B8B]" : "bg-white"
                           )}
                           aria-hidden
                         />
@@ -937,7 +937,7 @@ export function PilotRegistrationView({
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Raj Kumar"
-                    className="h-10 rounded-lg border-slate-200 bg-white px-3"
+                    className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                     autoComplete="name"
                   />
                 </div>
@@ -956,7 +956,7 @@ export function PilotRegistrationView({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="raj@email.com"
-                    className="h-10 rounded-lg border-slate-200 bg-white px-3"
+                    className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                     autoComplete="email"
                   />
                 </div>
@@ -975,7 +975,7 @@ export function PilotRegistrationView({
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="At least 6 characters"
-                    className="h-10 rounded-lg border-slate-200 bg-white px-3"
+                    className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                     autoComplete="new-password"
                   />
                 </div>
@@ -994,7 +994,7 @@ export function PilotRegistrationView({
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+91 98765 43210"
-                    className="h-10 rounded-lg border-slate-200 bg-white px-3"
+                    className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                     autoComplete="tel"
                   />
                 </div>
@@ -1013,7 +1013,7 @@ export function PilotRegistrationView({
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="Mumbai"
-                      className="h-10 rounded-lg border-slate-200 bg-white px-3"
+                      className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                       autoComplete="address-level2"
                     />
                   </div>
@@ -1057,7 +1057,7 @@ export function PilotRegistrationView({
                     placeholder="1234 5678 9012"
                     inputMode="numeric"
                     maxLength={12}
-                    className="h-10 rounded-lg border-slate-200 bg-white px-3 tabular-nums tracking-wide"
+                    className="h-10 rounded-lg border-slate-200 !bg-white px-3 tabular-nums tracking-wide"
                     autoComplete="off"
                   />
                   <p className="text-xs text-slate-500">
@@ -1079,7 +1079,7 @@ export function PilotRegistrationView({
                     value={dgca}
                     onChange={(e) => setDgca(e.target.value)}
                     placeholder="UA-XXXXXXXXXX"
-                    className="h-10 rounded-lg border-slate-200 bg-white px-3"
+                    className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                     autoComplete="off"
                   />
                 </div>
@@ -1150,7 +1150,7 @@ export function PilotRegistrationView({
                       Math.max(0, Math.floor(Number(flightHours) || 0))
                     )}
                     onChange={(e) => setFlightHours(Number(e.target.value))}
-                    className="h-2 w-full cursor-pointer rounded-full bg-slate-200 accent-[#008B8B]"
+                    className="h-2 w-full cursor-pointer rounded-full bg-white accent-[#008B8B]"
                   />
                 </div>
 
@@ -1190,7 +1190,7 @@ export function PilotRegistrationView({
                     </span>
                   </div>
                   {certifications.length > 0 ? (
-                    <ul className="space-y-1.5 rounded-lg border border-slate-100 bg-slate-50/80 p-2">
+                    <ul className="space-y-1.5 rounded-lg border border-slate-100 bg-white p-2">
                       {certifications.map((c, i) => (
                         <li
                           key={`${c.name}-${i}`}
@@ -1248,7 +1248,7 @@ export function PilotRegistrationView({
               <div className="space-y-6">
                 {fromAdminDashboard && adminDroneSubmitSuccess ? (
                   <p
-                    className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-center text-sm font-semibold text-green-800 dark:border-green-800 dark:bg-green-950/50 dark:text-green-300"
+                    className="rounded-lg border border-green-200 bg-white px-4 py-3 text-center text-sm font-semibold text-green-800"
                     role="status"
                   >
                     Drone Details Added Successfully
@@ -1266,7 +1266,7 @@ export function PilotRegistrationView({
                     Your Drones
                   </h2>
                   {drones.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-500">
+                    <p className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
                       {fromAdminDashboard ? (
                         <>
                           Add a drone with the form below, then tap{" "}
@@ -1309,7 +1309,7 @@ export function PilotRegistrationView({
                   )}
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4 sm:p-5">
+                <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
                   <h2 className="mb-4 text-sm font-semibold text-slate-900">
                     Add Drone
                   </h2>
@@ -1326,7 +1326,7 @@ export function PilotRegistrationView({
                         value={draftModel}
                         onChange={(e) => setDraftModel(e.target.value)}
                         placeholder="DJI Mavic 3"
-                        className="h-10 rounded-lg border-slate-200 bg-white px-3"
+                        className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                       />
                     </div>
                     <div className="space-y-2">
@@ -1366,7 +1366,7 @@ export function PilotRegistrationView({
                           value={draftCamera}
                           onChange={(e) => setDraftCamera(e.target.value)}
                           placeholder="4K HDR"
-                          className="h-10 rounded-lg border-slate-200 bg-white px-3"
+                          className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                         />
                       </div>
                       <div className="space-y-2">
@@ -1381,7 +1381,7 @@ export function PilotRegistrationView({
                           value={draftPayload}
                           onChange={(e) => setDraftPayload(e.target.value)}
                           placeholder="2.5"
-                          className="h-10 rounded-lg border-slate-200 bg-white px-3"
+                          className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                         />
                       </div>
                       <div className="space-y-2">
@@ -1396,7 +1396,7 @@ export function PilotRegistrationView({
                           value={draftFlightMin}
                           onChange={(e) => setDraftFlightMin(e.target.value)}
                           placeholder="45"
-                          className="h-10 rounded-lg border-slate-200 bg-white px-3"
+                          className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                         />
                       </div>
                       <div className="space-y-2">
@@ -1411,7 +1411,7 @@ export function PilotRegistrationView({
                           value={draftRangeKm}
                           onChange={(e) => setDraftRangeKm(e.target.value)}
                           placeholder="15"
-                          className="h-10 rounded-lg border-slate-200 bg-white px-3"
+                          className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                         />
                       </div>
                     </div>
@@ -1547,7 +1547,7 @@ export function PilotRegistrationView({
                     Drones ({drones.length})
                   </h2>
                   {drones.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-600">
+                    <p className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
                       None listed — you registered without equipment. You can add
                       drones to your profile later.
                     </p>
