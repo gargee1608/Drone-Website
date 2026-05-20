@@ -102,6 +102,11 @@ function displayValue(value: unknown): string {
   return textValue(value) || "—";
 }
 
+function numericId(value: unknown): number | null {
+  const id = Number(value);
+  return Number.isFinite(id) ? id : null;
+}
+
 function useCasesText(value: unknown): string {
   if (Array.isArray(value)) {
     return value.map(textValue).filter(Boolean).join(", ") || "—";
@@ -891,8 +896,13 @@ export function AdminDroneView() {
                           
                           if (foundPilot) {
                             console.log('Found pilot by name:', foundPilot);
+                            const foundPilotId = numericId(foundPilot.id);
+                            if (foundPilotId === null) {
+                              alert(`Found pilot ${request.pilot_name}, but the pilot ID is invalid. Please check the pilot management system.`);
+                              return;
+                            }
                             pilotData = foundPilot;
-                            actualPilotId = foundPilot.id;
+                            actualPilotId = foundPilotId;
                           } else {
                             // Create new pilot if not found
                             console.log('Pilot not found, creating new pilot:', request.pilot_name);

@@ -1,6 +1,6 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { Download, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { apiUrl } from "@/lib/api-url";
@@ -9,6 +9,7 @@ import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import {
   buildRequestOwnerLookup,
   findStoredUserRequestByAdminRef,
+  notifyMissionsDbUpdated,
   type RequestOwnerInfo,
   resolveRequestOwnerDisplay,
 } from "@/lib/user-requests";
@@ -49,6 +50,20 @@ type BackendMissionRow = {
   status?: string;
 };
 
+type DeliveryEditForm = {
+  requestRef: string;
+  userName: string;
+  userEmail: string;
+  customer: string;
+  service: string;
+  droneModel: string;
+  pilotName: string;
+  dropoff: string;
+  assignedAt: string;
+  completedAt: string;
+  status: string;
+};
+
 function formatDateTime(value: string): string {
   if (!value) return "—";
   const d = new Date(value);
@@ -61,6 +76,36 @@ function formatDateTime(value: string): string {
 
 function formatNumber(value: number) {
   return value.toLocaleString("en-US");
+}
+
+function toDateTimeLocalInput(value: string): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const offsetMs = d.getTimezoneOffset() * 60 * 1000;
+  return new Date(d.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function fromDateTimeLocalInput(value: string): string {
+  if (!value) return "";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString();
+}
+
+function deliveryRowToEditForm(row: DeliveryRow): DeliveryEditForm {
+  return {
+    requestRef: row.missionId === "—" ? "" : row.missionId,
+    userName: row.userName === "—" ? "" : row.userName,
+    userEmail: row.userEmail === "—" ? "" : row.userEmail,
+    customer: row.customer === "—" ? "" : row.customer,
+    service: row.service === "—" ? "" : row.service,
+    droneModel: row.droneUnit === "—" ? "" : row.droneUnit,
+    pilotName: row.pilot === "—" ? "" : row.pilot,
+    dropoff: row.dropoff === "—" ? "" : row.dropoff,
+    assignedAt: toDateTimeLocalInput(row.assignedAt),
+    completedAt: toDateTimeLocalInput(row.completedAt),
+    status: row.status || "completed",
+  };
 }
 
 const PAGE_SIZE = 1000;
@@ -220,6 +265,23 @@ export function CompletedDeliveriesView({
   const [activePilotsDbCount, setActivePilotsDbCount] = useState<number | null>(
     null
   );
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [editingDelivery, setEditingDelivery] = useState<DeliveryRow | null>(null);
+  const [deliveryEditForm, setDeliveryEditForm] = useState<DeliveryEditForm>({
+    requestRef: "",
+    userName: "",
+    userEmail: "",
+    customer: "",
+    service: "",
+    droneModel: "",
+    pilotName: "",
+    dropoff: "",
+    assignedAt: "",
+    completedAt: "",
+    status: "completed",
+  });
+  const [deliverySaving, setDeliverySaving] = useState(false);
+  const [deliveryEditError, setDeliveryEditError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -303,7 +365,7 @@ export function CompletedDeliveriesView({
     return () => {
       cancelled = true;
     };
-  }, [pilotScoped]);
+  }, [pilotScoped, refreshTick]);
 
   useEffect(() => {
     let cancelled = false;
@@ -346,7 +408,7 @@ export function CompletedDeliveriesView({
     return () => {
       cancelled = true;
     };
-  }, [pilotScoped]);
+  }, [pilotScoped, refreshTick]);
 
   useEffect(() => {
     let cancelled = false;
@@ -444,6 +506,93 @@ export function CompletedDeliveriesView({
     URL.revokeObjectURL(url);
   }
 
+  function openDeliveryEdit(row: DeliveryRow) {
+    if (!row.id && !row.rowCtid) {
+      alert("This completed delivery cannot be edited because it is not linked to a database row.");
+      return;
+    }
+    setEditingDelivery(row);
+    setDeliveryEditForm(deliveryRowToEditForm(row));
+    setDeliveryEditError(null);
+  }
+
+  async function saveDeliveryEdit() {
+    if (!editingDelivery) return;
+    if (!deliveryEditForm.requestRef.trim()) {
+      setDeliveryEditError("Request ID is required.");
+      return;
+    }
+    if (!deliveryEditForm.customer.trim()) {
+      setDeliveryEditError("User Requirement is required.");
+      return;
+    }
+
+    setDeliverySaving(true);
+    setDeliveryEditError(null);
+    try {
+      const response = await fetch(apiUrl("/api/missions"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingDelivery.id,
+          rowCtid: editingDelivery.rowCtid,
+          requestRef: deliveryEditForm.requestRef.trim(),
+          userName: deliveryEditForm.userName.trim(),
+          userEmail: deliveryEditForm.userEmail.trim(),
+          customer: deliveryEditForm.customer.trim(),
+          service: deliveryEditForm.service.trim(),
+          droneModel: deliveryEditForm.droneModel.trim(),
+          pilotName: deliveryEditForm.pilotName.trim(),
+          dropoff: deliveryEditForm.dropoff.trim(),
+          assignedAt: fromDateTimeLocalInput(deliveryEditForm.assignedAt),
+          completedAt: fromDateTimeLocalInput(deliveryEditForm.completedAt),
+          status: deliveryEditForm.status.trim() || "completed",
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Could not update completed delivery.");
+      }
+      setEditingDelivery(null);
+      setRefreshTick((n) => n + 1);
+      notifyMissionsDbUpdated();
+    } catch (error) {
+      setDeliveryEditError(
+        error instanceof Error ? error.message : "Could not update completed delivery."
+      );
+    } finally {
+      setDeliverySaving(false);
+    }
+  }
+
+  async function deleteDelivery(row: DeliveryRow) {
+    if (!row.id && !row.rowCtid) {
+      alert("This completed delivery cannot be deleted because it is not linked to a database row.");
+      return;
+    }
+    const ok = window.confirm(`Delete completed delivery "${row.missionId}"? This cannot be undone.`);
+    if (!ok) return;
+    try {
+      const response = await fetch(apiUrl("/api/missions"), {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: row.id,
+          rowCtid: row.rowCtid,
+          requestRef: row.missionId,
+          completedAt: row.completedAt,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Could not delete completed delivery.");
+      }
+      setRows((current) => current.filter((item) => item !== row));
+      setRefreshTick((n) => n + 1);
+      notifyMissionsDbUpdated();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Could not delete completed delivery.");
+    }
+  }
+
   return (
     <section
       className="rounded-2xl bg-card px-4 pb-4 pt-0 sm:px-6 sm:pb-6 sm:pt-0"
@@ -530,9 +679,35 @@ export function CompletedDeliveriesView({
                     </p>
                   ) : null}
                 </div>
-                <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase text-sky-700 dark:border-sky-400/40 dark:bg-sky-950/30 dark:text-sky-300">
-                  Completed
-                </span>
+                <div className="flex shrink-0 items-center gap-2">
+                  {!pilotScoped ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openDeliveryEdit(row)}
+                        className="inline-flex size-8 items-center justify-center rounded-lg border border-blue-500/25 bg-blue-500/8 text-blue-700 transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 dark:text-blue-300"
+                        title="Edit"
+                        aria-label={`Edit completed delivery ${row.missionId}`}
+                      >
+                        <Pencil className="size-3.5" aria-hidden />
+                        <span className="sr-only">Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void deleteDelivery(row)}
+                        className="inline-flex size-8 items-center justify-center rounded-lg border border-red-500/25 bg-red-500/8 text-red-700 transition-colors hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 dark:text-red-300"
+                        title="Delete"
+                        aria-label={`Delete completed delivery ${row.missionId}`}
+                      >
+                        <Trash2 className="size-3.5" aria-hidden />
+                        <span className="sr-only">Delete</span>
+                      </button>
+                    </div>
+                  ) : null}
+                  <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase text-sky-700 dark:border-sky-400/40 dark:bg-sky-950/30 dark:text-sky-300">
+                    Completed
+                  </span>
+                </div>
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
@@ -600,7 +775,162 @@ export function CompletedDeliveriesView({
         )}
       </section>
 
+      {!pilotScoped && editingDelivery ? (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-[#191c1d]/50 backdrop-blur-[2px]"
+            aria-label="Close edit completed delivery dialog"
+            onClick={() => setEditingDelivery(null)}
+          />
+          <div className="relative z-10 max-h-[min(92dvh,46rem)] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-border bg-card p-5 shadow-2xl sm:rounded-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-foreground">
+                  Edit Completed Delivery
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Update the mission details shown on the completed deliveries page.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingDelivery(null)}
+                className="rounded-lg border border-border px-2 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-muted"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <DeliveryField
+                label="Request ID"
+                value={deliveryEditForm.requestRef}
+                onChange={(value) =>
+                  setDeliveryEditForm((form) => ({ ...form, requestRef: value }))
+                }
+              />
+              <DeliveryField
+                label="User Name"
+                value={deliveryEditForm.userName}
+                onChange={(value) =>
+                  setDeliveryEditForm((form) => ({ ...form, userName: value }))
+                }
+              />
+              <DeliveryField
+                label="User Email Id"
+                value={deliveryEditForm.userEmail}
+                onChange={(value) =>
+                  setDeliveryEditForm((form) => ({ ...form, userEmail: value }))
+                }
+              />
+              <DeliveryField
+                label="User Requirement"
+                value={deliveryEditForm.customer}
+                onChange={(value) =>
+                  setDeliveryEditForm((form) => ({ ...form, customer: value }))
+                }
+              />
+              <DeliveryField
+                label="Service"
+                value={deliveryEditForm.service}
+                onChange={(value) =>
+                  setDeliveryEditForm((form) => ({ ...form, service: value }))
+                }
+              />
+              <DeliveryField
+                label="Drone"
+                value={deliveryEditForm.droneModel}
+                onChange={(value) =>
+                  setDeliveryEditForm((form) => ({ ...form, droneModel: value }))
+                }
+              />
+              <DeliveryField
+                label="Pilot Name"
+                value={deliveryEditForm.pilotName}
+                onChange={(value) =>
+                  setDeliveryEditForm((form) => ({ ...form, pilotName: value }))
+                }
+              />
+              <DeliveryField
+                label="Destination"
+                value={deliveryEditForm.dropoff}
+                onChange={(value) =>
+                  setDeliveryEditForm((form) => ({ ...form, dropoff: value }))
+                }
+              />
+              <DeliveryField
+                label="Assigned At"
+                type="datetime-local"
+                value={deliveryEditForm.assignedAt}
+                onChange={(value) =>
+                  setDeliveryEditForm((form) => ({ ...form, assignedAt: value }))
+                }
+              />
+              <DeliveryField
+                label="Completed At"
+                type="datetime-local"
+                value={deliveryEditForm.completedAt}
+                onChange={(value) =>
+                  setDeliveryEditForm((form) => ({ ...form, completedAt: value }))
+                }
+              />
+            </div>
+
+            {deliveryEditError ? (
+              <p className="mt-4 text-sm font-medium text-red-600">
+                {deliveryEditError}
+              </p>
+            ) : null}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingDelivery(null)}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deliverySaving}
+                onClick={() => void saveDeliveryEdit()}
+                className="rounded-lg bg-[#008B8B] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#007373] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deliverySaving ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
     </section>
+  );
+}
+
+function DeliveryField({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+      />
+    </label>
   );
 }
 

@@ -583,6 +583,17 @@ export type UserRequestAdminRow = {
   /** From `drone_hire_requests` when loaded via `/api/requests`. */
   userName?: string;
   userEmail?: string;
+  /** Editable backend fields for admin User Request rows. */
+  backendRequest?: {
+    id: string;
+    reasonOrTitle: string;
+    pickupLocation: string;
+    dropLocation: string;
+    payloadWeight: string;
+    cargoType: string;
+    missionUrgency: string;
+    adminStatus: UserMissionAdminStatus;
+  };
 };
 
 export function mapUserRequestToAdminRow(

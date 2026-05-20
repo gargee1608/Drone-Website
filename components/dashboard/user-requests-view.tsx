@@ -109,6 +109,16 @@ type BackendRequestRow = {
   client_request_id?: string | null;
 };
 
+type RequestEditForm = {
+  reasonOrTitle: string;
+  pickupLocation: string;
+  dropLocation: string;
+  payloadWeight: string;
+  cargoType: string;
+  missionUrgency: string;
+  adminStatus: UserMissionAdminStatus;
+};
+
 function pickBackendAdminStatus(r: BackendRequestRow): string | undefined {
   if (typeof r.admin_status === "string") return r.admin_status;
   if (typeof r.adminStatus === "string") return r.adminStatus;
@@ -196,6 +206,16 @@ function mapBackendRequestToAdminRow(r: BackendRequestRow): UserRequestAdminRow 
     missionStatus: pickBackendMissionStatus(r) ?? null,
     userName: String(r.user_name ?? "").trim() || undefined,
     userEmail: String(r.user_email ?? "").trim().toLowerCase() || undefined,
+    backendRequest: {
+      id: String(r.id ?? ""),
+      reasonOrTitle: String(r.reason_or_title ?? "").trim(),
+      pickupLocation,
+      dropLocation,
+      payloadWeight,
+      cargoType,
+      missionUrgency: String(r.mission_urgency ?? "").trim() || "normal",
+      adminStatus: normalizeUserMissionAdminStatus(pickBackendAdminStatus(r)),
+    },
   };
 }
 
@@ -226,6 +246,18 @@ export function UserRequestsView({
   >([]);
   const [backendRequests, setBackendRequests] = useState<UserRequestAdminRow[]>([]);
   const [backendRefresh, setBackendRefresh] = useState(0);
+  const [editingRequest, setEditingRequest] = useState<UserRequestAdminRow | null>(null);
+  const [requestEditForm, setRequestEditForm] = useState<RequestEditForm>({
+    reasonOrTitle: "",
+    pickupLocation: "",
+    dropLocation: "",
+    payloadWeight: "",
+    cargoType: "",
+    missionUrgency: "normal",
+    adminStatus: "pending",
+  });
+  const [requestSaving, setRequestSaving] = useState(false);
+  const [requestEditError, setRequestEditError] = useState<string | null>(null);
   /** From `missions` table (admin only); falls back to derived stat if fetch fails. */
   const [missionsCompletedDeliveriesCount, setMissionsCompletedDeliveriesCount] =
     useState<number | null>(null);
@@ -444,6 +476,74 @@ export function UserRequestsView({
     router.push(`/dashboard/assign?focus=${encodeURIComponent(row.key)}`);
   };
 
+  const openRequestEdit = (row: UserRequestAdminRow) => {
+    if (!row.backendRequest?.id) {
+      alert("This request cannot be edited because it is not linked to a database row.");
+      return;
+    }
+    setEditingRequest(row);
+    setRequestEditForm(row.backendRequest);
+    setRequestEditError(null);
+  };
+
+  const saveRequestEdit = async () => {
+    const id = editingRequest?.backendRequest?.id;
+    if (!id) return;
+    if (!requestEditForm.reasonOrTitle.trim()) {
+      setRequestEditError("Requirement type is required.");
+      return;
+    }
+    setRequestSaving(true);
+    setRequestEditError(null);
+    try {
+      const response = await fetch(apiUrl(`/api/requests/${encodeURIComponent(id)}`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason_or_title: requestEditForm.reasonOrTitle.trim(),
+          pickup_location: requestEditForm.pickupLocation.trim(),
+          drop_location: requestEditForm.dropLocation.trim(),
+          payload_weight: requestEditForm.payloadWeight.trim(),
+          cargo_type: requestEditForm.cargoType.trim(),
+          mission_urgency: requestEditForm.missionUrgency,
+          admin_status: requestEditForm.adminStatus,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Could not update request.");
+      }
+      setEditingRequest(null);
+      setBackendRefresh((n) => n + 1);
+    } catch (error) {
+      setRequestEditError(
+        error instanceof Error ? error.message : "Could not update request."
+      );
+    } finally {
+      setRequestSaving(false);
+    }
+  };
+
+  const deleteRequest = async (row: UserRequestAdminRow) => {
+    const id = row.backendRequest?.id;
+    if (!id) {
+      alert("This request cannot be deleted because it is not linked to a database row.");
+      return;
+    }
+    const ok = window.confirm(`Delete request "${row.title}"? This cannot be undone.`);
+    if (!ok) return;
+    try {
+      const response = await fetch(apiUrl(`/api/requests/${encodeURIComponent(id)}`), {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Could not delete request.");
+      }
+      setBackendRefresh((n) => n + 1);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Could not delete request.");
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-6xl">
       {showPageTitle ? <h1 className={ADMIN_PAGE_TITLE_CLASS}>User Request</h1> : null}
@@ -501,6 +601,8 @@ export function UserRequestsView({
             showTotalSubtitle
             columnPreset={tablePreset}
             onViewDetails={openRequestDetails}
+            onEditRequest={pilotTables ? undefined : openRequestEdit}
+            onDeleteRequest={pilotTables ? undefined : deleteRequest}
           />
         </section>
 
@@ -524,7 +626,157 @@ export function UserRequestsView({
           onClose={() => setDetailModal(null)}
         />
       ) : null}
+
+      {!pilotTables && editingRequest ? (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-[#191c1d]/50 backdrop-blur-[2px]"
+            aria-label="Close edit request dialog"
+            onClick={() => setEditingRequest(null)}
+          />
+          <div className="relative z-10 max-h-[min(92dvh,44rem)] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-border bg-card p-5 shadow-2xl sm:rounded-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-foreground">Edit User Request</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Update the request details shown in the admin dashboard.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingRequest(null)}
+                className="rounded-lg border border-border px-2 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-muted"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <RequestField
+                label="Requirement type"
+                value={requestEditForm.reasonOrTitle}
+                onChange={(value) =>
+                  setRequestEditForm((form) => ({ ...form, reasonOrTitle: value }))
+                }
+              />
+              <RequestField
+                label="Cargo type"
+                value={requestEditForm.cargoType}
+                onChange={(value) =>
+                  setRequestEditForm((form) => ({ ...form, cargoType: value }))
+                }
+              />
+              <RequestField
+                label="Pickup location"
+                value={requestEditForm.pickupLocation}
+                onChange={(value) =>
+                  setRequestEditForm((form) => ({ ...form, pickupLocation: value }))
+                }
+              />
+              <RequestField
+                label="Drop location"
+                value={requestEditForm.dropLocation}
+                onChange={(value) =>
+                  setRequestEditForm((form) => ({ ...form, dropLocation: value }))
+                }
+              />
+              <RequestField
+                label="Payload weight (kg)"
+                value={requestEditForm.payloadWeight}
+                onChange={(value) =>
+                  setRequestEditForm((form) => ({ ...form, payloadWeight: value }))
+                }
+              />
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  Urgency
+                </span>
+                <select
+                  value={requestEditForm.missionUrgency}
+                  onChange={(event) =>
+                    setRequestEditForm((form) => ({
+                      ...form,
+                      missionUrgency: event.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+                >
+                  <option value="critical">Critical</option>
+                  <option value="normal">Normal</option>
+                  <option value="routine">Routine</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  Admin status
+                </span>
+                <select
+                  value={requestEditForm.adminStatus}
+                  onChange={(event) =>
+                    setRequestEditForm((form) => ({
+                      ...form,
+                      adminStatus: event.target.value as UserMissionAdminStatus,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </label>
+            </div>
+
+            {requestEditError ? (
+              <p className="mt-4 text-sm font-medium text-red-600">{requestEditError}</p>
+            ) : null}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingRequest(null)}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={requestSaving}
+                onClick={() => void saveRequestEdit()}
+                className="rounded-lg bg-[#008B8B] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#007373] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {requestSaving ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+function RequestField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+      />
+    </label>
   );
 }
 

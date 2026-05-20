@@ -365,6 +365,85 @@ router.delete("/", async (req, res) => {
   }
 });
 
+router.put("/", async (req, res) => {
+  try {
+    await ensureMissionColumns();
+
+    const rawId = req.body?.id;
+    const parsedId =
+      rawId == null || rawId === "" ? NaN : Number.parseInt(String(rawId), 10);
+    const rowCtid = toTrimmed(req.body?.rowCtid);
+    const requestRef = toTrimmed(req.body?.requestRef);
+    const assignedAtRaw = toTrimmed(req.body?.assignedAt);
+    const completedAtRaw = toTrimmed(req.body?.completedAt);
+    const assignedAt = assignedAtRaw ? new Date(assignedAtRaw) : null;
+    const completedAt = completedAtRaw ? new Date(completedAtRaw) : null;
+    const status = toTrimmed(req.body?.status).toLowerCase().replace(/\s+/g, "_");
+
+    if (!Number.isFinite(parsedId) && !rowCtid) {
+      return res.status(400).json({ error: "id or rowCtid is required" });
+    }
+    if (!requestRef) {
+      return res.status(400).json({ error: "requestRef is required" });
+    }
+    if (assignedAtRaw && Number.isNaN(assignedAt.getTime())) {
+      return res.status(400).json({ error: "assignedAt is invalid" });
+    }
+    if (completedAtRaw && Number.isNaN(completedAt.getTime())) {
+      return res.status(400).json({ error: "completedAt is invalid" });
+    }
+
+    const values = [
+      requestRef,
+      toTrimmed(req.body?.customer),
+      toTrimmed(req.body?.service),
+      toTrimmed(req.body?.dropoff),
+      toTrimmed(req.body?.pilotName),
+      toTrimmed(req.body?.droneModel),
+      toTrimmed(req.body?.userName),
+      toTrimmed(req.body?.userEmail).toLowerCase(),
+      assignedAt ? assignedAt.toISOString() : null,
+      completedAt ? completedAt.toISOString() : null,
+      status || "completed",
+    ];
+
+    const setClause = `SET
+      request_ref = $1,
+      customer = $2,
+      service = NULLIF($3, ''),
+      dropoff = NULLIF($4, ''),
+      pilot_name = NULLIF($5, ''),
+      drone_model = NULLIF($6, ''),
+      user_name = NULLIF($7, ''),
+      user_email = NULLIF($8, ''),
+      assigned_at = $9::timestamptz,
+      completed_at = $10::timestamptz,
+      status = $11`;
+
+    const result = Number.isFinite(parsedId)
+      ? await pool.query(
+          `UPDATE missions ${setClause} WHERE id = $12 RETURNING *`,
+          [...values, parsedId]
+        )
+      : await pool.query(
+          `UPDATE missions ${setClause} WHERE ctid = $12::tid RETURNING *`,
+          [...values, rowCtid]
+        );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Mission not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: jsonSafeMissionRow(result.rows[0]),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.post("/", async (req, res) => {
   try {
     await ensureMissionColumns();
