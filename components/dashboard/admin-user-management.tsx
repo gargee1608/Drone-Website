@@ -64,9 +64,9 @@ export function AdminUserManagement() {
   });
 
   // Fetch users from backend
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const token = localStorage.getItem("token");
       const response = await fetch(apiUrl("/api/users"), {
         headers: {
@@ -85,7 +85,7 @@ export function AdminUserManagement() {
       console.error("Error fetching users:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch users");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, []);
 
@@ -123,6 +123,7 @@ export function AdminUserManagement() {
       const token = localStorage.getItem("token");
       let response;
 
+      const isEditing = Boolean(editingUser);
       if (editingUser) {
         // Update existing user
         response = await fetch(apiUrl(`/api/users/${editingUser.id}`), {
@@ -150,12 +151,25 @@ export function AdminUserManagement() {
         throw new Error(errorData.error || "Failed to save user");
       }
 
+      const savedUser = (await response.json()) as User;
+      setUsers((prev) => {
+        if (isEditing) {
+          return prev.map((user) =>
+            user.id === savedUser.id ? savedUser : user
+          );
+        }
+        return [
+          savedUser,
+          ...prev.filter((user) => user.id !== savedUser.id),
+        ];
+      });
+
       // Reset form and refresh users
       setFormData({ email: "", password: "", name: "", role: "user" });
       setIsAddDialogOpen(false);
       setIsEditDialogOpen(false);
       setEditingUser(null);
-      fetchUsers();
+      void fetchUsers(false);
     } catch (err) {
       console.error("Error saving user:", err);
       setError(err instanceof Error ? err.message : "Failed to save user");
