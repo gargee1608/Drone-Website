@@ -703,9 +703,7 @@ export function MatchingHubView() {
                 defaultValue="India"
                 className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
               >
-                <option value="India" hidden>
-                  India
-                </option>
+                <option value="India">India</option>
                 {MATCHING_HUB_REGION_CITIES.map((city) => (
                   <option key={city} value={city}>
                     {city}

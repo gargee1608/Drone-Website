@@ -6,65 +6,13 @@ export const ADMIN_PILOT_REG_STATE_STORAGE_KEY =
 export type PilotRegCardRow = { k: string; v: string; vClass?: string };
 
 export type PilotRegCard = {
-  /** Stable key for list + accept/reject (seed rows use `seed-*`). */
+  /** Stable key for list actions. */
   id: string;
   name: string;
   badge: string;
   submitted: string;
   rows: PilotRegCardRow[];
 };
-
-const PENDING_SEED = [
-  {
-    name: "Jonathan Reiss",
-    badge: "Pilot Candidate",
-    submitted: "2h ago",
-    rows: [
-      {
-        k: "License Type",
-        v: "Commercial Class B",
-        vClass: "text-[#008B8B]",
-      },
-      { k: "Flight Experience", v: "524 Hours" },
-      { k: "Region", v: "Sector 7G North" },
-    ],
-  },
-  {
-    name: "Sasha Greywell",
-    badge: "Pilot Candidate",
-    submitted: "5h ago",
-    rows: [
-      {
-        k: "License Type",
-        v: "Cargo Heavy Duty",
-        vClass: "text-[#008B8B]",
-      },
-      { k: "Flight Experience", v: "1,210 Hours" },
-      { k: "Region", v: "Global Logistics Hub" },
-    ],
-  },
-  {
-    name: "Priya Shah",
-    badge: "Pilot Candidate",
-    submitted: "1d ago",
-    rows: [
-      {
-        k: "License Type",
-        v: "Commercial Class A",
-        vClass: "text-[#008B8B]",
-      },
-      { k: "Flight Experience", v: "890 Hours" },
-      { k: "Region", v: "Eastern Corridor" },
-    ],
-  },
-] as const;
-
-const APPROVED_SEED: readonly {
-  name: string;
-  badge: string;
-  submitted: string;
-  rows: readonly { k: string; v: string; vClass?: string }[];
-}[] = [];
 
 function newSubmissionId() {
   return `sub-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -74,22 +22,7 @@ export function getDefaultPilotRegState(): {
   pending: PilotRegCard[];
   approved: PilotRegCard[];
 } {
-  return {
-    pending: PENDING_SEED.map((p, i) => ({
-      id: `seed-pending-${i}`,
-      name: p.name,
-      badge: p.badge,
-      submitted: p.submitted,
-      rows: p.rows.map((r) => ({ ...r })),
-    })),
-    approved: APPROVED_SEED.map((p, i) => ({
-      id: `seed-approved-${i}`,
-      name: p.name,
-      badge: p.badge,
-      submitted: p.submitted,
-      rows: p.rows.map((r) => ({ ...r })),
-    })),
-  };
+  return { pending: [], approved: [] };
 }
 
 export function safeParsePilotCards(data: unknown): PilotRegCard[] | null {

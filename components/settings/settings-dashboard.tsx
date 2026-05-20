@@ -403,7 +403,9 @@ export function SettingsDashboard({
                 </section>
 
                 {/* Reset Profile */}
-                <section className={settingsSectionClass}>
+                <section
+                  className={cn(settingsSectionClass, "bg-white dark:bg-card")}
+                >
                   <div className="mb-4 flex items-start gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-100">
                       <RefreshCw
@@ -523,7 +525,18 @@ export function SettingsDashboard({
             className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border-2 border-white bg-white text-card-foreground shadow-xl ring-1 ring-black/5 dark:border-border dark:bg-black"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-b border-white bg-white px-6 py-5 dark:border-border dark:bg-black sm:px-8">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-3 top-3 z-20 text-muted-foreground hover:text-foreground"
+              aria-label="Close change password"
+              onClick={closeChangePassword}
+              disabled={passwordSubmitting}
+            >
+              <X className="size-4" aria-hidden />
+            </Button>
+            <div className="border-b border-white bg-white px-6 py-5 pr-14 dark:border-border dark:bg-black sm:px-8">
               <div className="flex items-center gap-3">
                 <span
                   className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12"
@@ -738,15 +751,6 @@ export function SettingsDashboard({
               </div>
               <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5">
                 <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-lg border-2 border-border bg-background text-foreground hover:bg-muted/50"
-                  onClick={closeChangePassword}
-                  disabled={passwordDialogSuccess || passwordSubmitting}
-                >
-                  Cancel
-                </Button>
-                <Button
                   type="submit"
                   variant="outline"
                   className="rounded-lg border-2 border-[#008B8B] bg-background text-[#008B8B] shadow-none hover:bg-[#008B8B]/8 hover:text-[#008B8B]"
@@ -775,10 +779,20 @@ export function SettingsDashboard({
             onClick={closeProfileDialog}
           />
           <div
-            className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border-2 border-border bg-card text-card-foreground shadow-xl ring-1 ring-black/5"
+            className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border-2 border-border bg-white text-card-foreground shadow-xl ring-1 ring-black/5 dark:bg-black"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="shrink-0 border-b border-border bg-muted/50 px-6 py-5 sm:px-8">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-3 top-3 z-20 text-muted-foreground hover:text-foreground"
+              aria-label="Close profile details"
+              onClick={closeProfileDialog}
+            >
+              <X className="size-4" aria-hidden />
+            </Button>
+            <div className="shrink-0 border-b border-border bg-white px-6 py-5 pr-14 dark:bg-black sm:px-8">
               <div className="flex items-center gap-3">
                 <span
                   className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-100"
@@ -822,7 +836,7 @@ export function SettingsDashboard({
               </div>
             </div>
             <form
-              className="flex min-h-0 flex-1 flex-col"
+              className="flex min-h-0 flex-1 flex-col bg-white dark:bg-black"
               onSubmit={(e) => {
                 e.preventDefault();
                 const name = profileFullName.trim();
@@ -1130,17 +1144,8 @@ export function SettingsDashboard({
                   </div>
                 </div>
               </div>
-              <div className="shrink-0 border-t border-border bg-card px-6 py-4 sm:px-8">
+              <div className="shrink-0 border-t border-border bg-white px-6 py-4 dark:bg-black sm:px-8">
                 <div className="flex flex-wrap items-center justify-end gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-lg border-2 border-border bg-background text-foreground hover:bg-muted/50"
-                    onClick={closeProfileDialog}
-                    disabled={profileDialogSuccess}
-                  >
-                    Cancel
-                  </Button>
                   <Button
                     type="submit"
                     variant="outline"

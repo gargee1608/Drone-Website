@@ -2,17 +2,12 @@
 
 import { ClipboardList, Plane, User, UserCheck, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { DetailField } from "@/components/dashboard/user-request-detail-modal";
 import { apiUrl } from "@/lib/api-url";
-import {
-  ADMIN_PILOT_REG_STATE_STORAGE_KEY,
-  getDefaultPilotRegState,
-  loadPilotRegStateFromStorage,
-  type PilotRegCard,
-} from "@/lib/admin-pilot-registration-storage";
+import { type PilotRegCard } from "@/lib/admin-pilot-registration-storage";
 import {
   ADMIN_DASH_AVATAR_RING,
   ADMIN_DASH_DIVIDER_BORDER,
@@ -120,111 +115,12 @@ function mapDbPilotToApprovedCard(row: DashboardPilotDbRow): PilotRegCard {
   };
 }
 
-function makePilotLicenseId(): string {
-  const mid = Math.random().toString(36).slice(2, 8).toUpperCase();
-  const tail = String(Math.floor(100 + Math.random() * 900));
-  return `AL-${mid}-${tail}`;
-}
-
-function formatApprovedRegisteredDate(): string {
-  try {
-    return new Date().toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  } catch {
-    return new Date().toISOString().slice(0, 10);
-  }
-}
-
-function mapPendingToApproved(pilot: PilotRegCard): PilotRegCard {
-  const region = pilot.rows.find((r) => r.k === "Region")?.v ?? "—";
-  return {
-    id: `approved-${pilot.id}`,
-    name: pilot.name,
-    badge: "Registered Pilot",
-    submitted: formatApprovedRegisteredDate(),
-    rows: [
-      {
-        k: "License ID",
-        v: makePilotLicenseId(),
-        vClass: "font-mono text-xs",
-      },
-      {
-        k: "Status",
-        v: "Active",
-        vClass: "font-semibold text-green-700 dark:text-green-400",
-      },
-      { k: "Region", v: region },
-    ],
-  };
-}
-
-type PilotRegState = { pending: PilotRegCard[]; approved: PilotRegCard[] };
-
-const initialPilotRegState: PilotRegState = getDefaultPilotRegState();
-
-type PilotRegAction =
-  | { type: "accept"; id: string }
-  | { type: "reject"; id: string }
-  | { type: "replace"; state: PilotRegState };
-
-function pilotRegReducer(state: PilotRegState, action: PilotRegAction): PilotRegState {
-  switch (action.type) {
-    case "accept": {
-      const pilot = state.pending.find((p) => p.id === action.id);
-      if (!pilot) return state;
-      return {
-        pending: state.pending.filter((p) => p.id !== action.id),
-        approved: [mapPendingToApproved(pilot), ...state.approved],
-      };
-    }
-    case "reject":
-      return {
-        ...state,
-        pending: state.pending.filter((p) => p.id !== action.id),
-      };
-    case "replace":
-      return action.state;
-    default:
-      return state;
-  }
-}
-
 export function DashboardHomeContent() {
   const router = useRouter();
-  const [pilotRegState, dispatchPilotReg] = useReducer(
-    pilotRegReducer,
-    initialPilotRegState
-  );
-  const [pilotRegStorageReady, setPilotRegStorageReady] = useState(false);
   const [dbPendingPilots, setDbPendingPilots] = useState<PilotRegCard[]>([]);
   const [dbApprovedPilots, setDbApprovedPilots] = useState<PilotRegCard[]>([]);
   const [dbTotalPilots, setDbTotalPilots] = useState(0);
   const [dbTotalDrones, setDbTotalDrones] = useState(0);
-
-  useEffect(() => {
-    const stored = loadPilotRegStateFromStorage();
-    if (stored) {
-      dispatchPilotReg({ type: "replace", state: stored });
-    }
-    setPilotRegStorageReady(true);
-  }, []);
-
-
-  useEffect(() => {
-    const onPendingUpdated = () => {
-      const next = loadPilotRegStateFromStorage();
-      if (next) dispatchPilotReg({ type: "replace", state: next });
-    };
-    window.addEventListener("aerolaminar-pending-pilots-updated", onPendingUpdated);
-    return () =>
-      window.removeEventListener(
-        "aerolaminar-pending-pilots-updated",
-        onPendingUpdated
-      );
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -298,18 +194,6 @@ export function DashboardHomeContent() {
   }, []);
 
   useEffect(() => {
-    if (!pilotRegStorageReady || typeof window === "undefined") return;
-    try {
-      localStorage.setItem(
-        ADMIN_PILOT_REG_STATE_STORAGE_KEY,
-        JSON.stringify(pilotRegState)
-      );
-    } catch {
-      /* ignore quota */
-    }
-  }, [pilotRegState, pilotRegStorageReady]);
-
-  useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.location.hash !== "#pilot-registrations") return;
     const t = window.setTimeout(() => {
@@ -320,10 +204,8 @@ export function DashboardHomeContent() {
     return () => window.clearTimeout(t);
   }, []);
 
-  const pendingPilots =
-    dbPendingPilots.length > 0 ? dbPendingPilots : pilotRegState.pending;
-  const approvedPilots =
-    dbApprovedPilots.length > 0 ? dbApprovedPilots : pilotRegState.approved;
+  const pendingPilots = dbPendingPilots;
+  const approvedPilots = dbApprovedPilots;
 
   const registeredTotalDisplay = (
     REGISTERED_PILOTS_COUNT_BASE + approvedPilots.length

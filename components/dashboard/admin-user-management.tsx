@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Search, Plus, Edit, Trash2, Users, Mail, Shield, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { apiUrl } from "@/lib/api-url";
 import { cn } from "@/lib/utils";
 
 interface User {
@@ -63,11 +64,11 @@ export function AdminUserManagement() {
   });
 
   // Fetch users from backend
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:4000/api/users", {
+      const response = await fetch(apiUrl("/api/users"), {
         headers: {
           "Authorization": token ? `Bearer ${token}` : "",
         },
@@ -86,18 +87,18 @@ export function AdminUserManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Search users
-  const searchUsers = async (query: string) => {
+  const searchUsers = useCallback(async (query: string) => {
     if (!query.trim()) {
-      fetchUsers();
+      await fetchUsers();
       return;
     }
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:4000/api/users/search/${encodeURIComponent(query)}`, {
+      const response = await fetch(apiUrl(`/api/users/search/${encodeURIComponent(query)}`), {
         headers: {
           "Authorization": token ? `Bearer ${token}` : "",
         },
@@ -114,7 +115,7 @@ export function AdminUserManagement() {
       console.error("Error searching users:", err);
       setError(err instanceof Error ? err.message : "Failed to search users");
     }
-  };
+  }, [fetchUsers]);
 
   // Create or update user
   const saveUser = async () => {
@@ -124,7 +125,7 @@ export function AdminUserManagement() {
 
       if (editingUser) {
         // Update existing user
-        response = await fetch(`http://localhost:4000/api/users/${editingUser.id}`, {
+        response = await fetch(apiUrl(`/api/users/${editingUser.id}`), {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -134,7 +135,7 @@ export function AdminUserManagement() {
         });
       } else {
         // Create new user
-        response = await fetch("http://localhost:4000/api/users", {
+        response = await fetch(apiUrl("/api/users"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -169,7 +170,7 @@ export function AdminUserManagement() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:4000/api/users/${userId}`, {
+      const response = await fetch(apiUrl(`/api/users/${userId}`), {
         method: "DELETE",
         headers: {
           "Authorization": token ? `Bearer ${token}` : "",
@@ -206,12 +207,12 @@ export function AdminUserManagement() {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, searchUsers]);
 
   // Initial load
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   return (
     <div className="space-y-6">

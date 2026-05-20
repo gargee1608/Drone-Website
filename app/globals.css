@@ -407,6 +407,80 @@
     opacity: 0.2;
   }
 
+  .workflow-slide-from-left {
+    animation: workflow-slide-from-left 1s cubic-bezier(0.16, 1, 0.3, 1)
+      both;
+  }
+
+  .workflow-slide-from-right {
+    animation: workflow-slide-from-right 1s cubic-bezier(0.16, 1, 0.3, 1)
+      0.16s both;
+  }
+
+  @keyframes workflow-slide-from-left {
+    0% {
+      opacity: 0;
+      transform: translateX(-220px) scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+
+  @keyframes workflow-slide-from-right {
+    0% {
+      opacity: 0;
+      transform: translateX(220px) scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+
+  .industry-card-zoom-in {
+    animation: industry-card-zoom-in 3.6s ease-in-out infinite;
+    transform-origin: center;
+  }
+
+  .industry-card-zoom-out {
+    animation: industry-card-zoom-out 3.6s ease-in-out infinite;
+    transform-origin: center;
+  }
+
+  @keyframes industry-card-zoom-in {
+    0%,
+    100% {
+      scale: 0.98;
+    }
+    50% {
+      scale: 1.08;
+    }
+  }
+
+  @keyframes industry-card-zoom-out {
+    0%,
+    100% {
+      scale: 1.06;
+    }
+    50% {
+      scale: 0.96;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .workflow-slide-from-left,
+    .workflow-slide-from-right,
+    .industry-card-zoom-in,
+    .industry-card-zoom-out {
+      animation: none;
+      opacity: 1;
+      transform: none;
+      scale: 1;
+    }
+  }
+
   /* Between landing sections — soft horizontal rule */
   .landing-section-rule {
     background: linear-gradient(

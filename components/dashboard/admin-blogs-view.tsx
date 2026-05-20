@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import {
   fetchBlogsFromApi,
   mapApiRowToBlogPost,
+  parseBlogDbSlug,
 } from "@/lib/blog-api";
 import { apiUrl } from "@/lib/api-url";
 import {
@@ -80,6 +81,11 @@ function textToBody(text: string): string[] {
   return parts.length > 0 ? parts : [text.trim() || " "];
 }
 
+function normalizeBlogDbId(id: unknown): number | undefined {
+  const n = typeof id === "string" ? Number.parseInt(id, 10) : id;
+  return typeof n === "number" && Number.isFinite(n) ? n : undefined;
+}
+
 type EditorMode = "closed" | "add" | "edit";
 
 export function AdminBlogsView() {
@@ -104,9 +110,9 @@ export function AdminBlogsView() {
   const openedEditSlugRef = useRef<string | null>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
-  const clearCoverFileInput = () => {
+  const clearCoverFileInput = useCallback(() => {
     if (coverFileInputRef.current) coverFileInputRef.current.value = "";
-  };
+  }, []);
 
   async function onCoverFileSelected(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -127,7 +133,7 @@ export function AdminBlogsView() {
       const apiRows = await fetchBlogsFromApi();
       dbPosts = apiRows.map((r) => ({
         ...mapApiRowToBlogPost(r),
-        dbId: r.id,
+        dbId: normalizeBlogDbId(r.id),
       }));
     } catch {
       dbPosts = [];
@@ -138,7 +144,10 @@ export function AdminBlogsView() {
   }, []);
 
   useEffect(() => {
-    void refresh().finally(() => setHydrated(true));
+    const timer = window.setTimeout(() => {
+      void refresh().finally(() => setHydrated(true));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [refresh]);
 
   useEffect(() => {
@@ -171,12 +180,14 @@ export function AdminBlogsView() {
     clearCoverFileInput();
   };
 
-  const openEdit = (post: AdminBlogRow) => {
+  const openEdit = useCallback((post: AdminBlogRow) => {
     const extra = loadBlogExtras().find((e) => e.slug === post.slug);
     setEditorMode("edit");
     setEditSlug(post.slug);
     setEditInternalId(extra?.internalId ?? null);
-    setEditDbId(typeof post.dbId === "number" ? post.dbId : null);
+    setEditDbId(
+      typeof post.dbId === "number" ? post.dbId : parseBlogDbSlug(post.slug)
+    );
     setTitle(post.title);
     setExcerpt(post.excerpt);
     setDate(post.date);
@@ -188,7 +199,7 @@ export function AdminBlogsView() {
     setBodyText(bodyToText(post.body));
     setFormError(null);
     clearCoverFileInput();
-  };
+  }, [clearCoverFileInput]);
 
   useEffect(() => {
     if (!hydrated || rows.length === 0 || typeof window === "undefined") return;
@@ -201,16 +212,19 @@ export function AdminBlogsView() {
     if (openedEditSlugRef.current === target) return;
     const post = rows.find((r) => r.slug === target);
     if (!post) return;
-    openedEditSlugRef.current = target;
-    openEdit(post);
-    params.delete("editSlug");
-    const q = params.toString();
-    window.history.replaceState(
-      {},
-      "",
-      `${window.location.pathname}${q ? `?${q}` : ""}`
-    );
-  }, [hydrated, rows]);
+    const timer = window.setTimeout(() => {
+      openedEditSlugRef.current = target;
+      openEdit(post);
+      params.delete("editSlug");
+      const q = params.toString();
+      window.history.replaceState(
+        {},
+        "",
+        `${window.location.pathname}${q ? `?${q}` : ""}`
+      );
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [hydrated, openEdit, rows]);
 
   const closeEditor = () => {
     setEditorMode("closed");
@@ -368,6 +382,26 @@ export function AdminBlogsView() {
     } catch {
       /* ignore */
     }
+  };
+
+  const deleteBlog = async (
+    post: AdminBlogRow,
+    extra: AdminBlogExtra | undefined
+  ) => {
+    const dbId =
+      typeof post.dbId === "number" ? post.dbId : parseBlogDbSlug(post.slug);
+
+    if (dbId != null) {
+      await deleteDbBlog(dbId);
+      return;
+    }
+
+    if (extra) {
+      deleteExtra(extra.internalId);
+      return;
+    }
+
+    deleteBuiltin(post.slug);
   };
 
   return (
@@ -700,36 +734,15 @@ export function AdminBlogsView() {
                           <Pencil className="size-3.5" aria-hidden />
                           Edit
                         </button>
-                        {isDb ? (
-                          <button
-                            type="button"
-                            onClick={() => void deleteDbBlog(post.dbId!)}
-                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 min-[360px]:flex-none"
-                            aria-label={`Delete ${post.title}`}
-                          >
-                            <Trash2 className="size-3.5" aria-hidden />
-                            Delete
-                          </button>
-                        ) : extra ? (
-                          <button
-                            type="button"
-                            onClick={() => deleteExtra(extra.internalId)}
-                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 min-[360px]:flex-none"
-                          >
-                            <Trash2 className="size-3.5" aria-hidden />
-                            Delete
-                          </button>
-                        ) : isBuiltIn ? (
-                          <button
-                            type="button"
-                            onClick={() => deleteBuiltin(post.slug)}
-                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 min-[360px]:flex-none"
-                            aria-label={`Delete ${post.title}`}
-                          >
-                            <Trash2 className="size-3.5" aria-hidden />
-                            Delete
-                          </button>
-                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => void deleteBlog(post, extra)}
+                          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 min-[360px]:flex-none"
+                          aria-label={`Delete ${post.title}`}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                          Delete
+                        </button>
                       </div>
                     </div>
                   </article>
