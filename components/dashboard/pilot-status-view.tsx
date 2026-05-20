@@ -1,8 +1,13 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { getPilotById, getPilots } from "@/app/services/pilotServices";
+import {
+  deletePilotById,
+  getPilotById,
+  getPilots,
+  patchPilotProfile,
+} from "@/app/services/pilotServices";
 import { DetailField } from "@/components/dashboard/user-request-detail-modal";
 import { apiUrl } from "@/lib/api-url";
 import {
@@ -24,6 +29,19 @@ type PilotRow = {
   certLevel: number;
   flightHours: number;
   flightCount: number;
+  dutyStatus: DutyStatus;
+};
+
+type PilotEditForm = {
+  name: string;
+  email: string;
+  phone: string;
+  licenseNumber: string;
+  city: string;
+  state: string;
+  certLevel: string;
+  experienceRank: string;
+  flightHours: string;
   dutyStatus: DutyStatus;
 };
 
@@ -393,6 +411,51 @@ export function PilotStatusView({
     string,
     unknown
   > | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editPilotId, setEditPilotId] = useState<string | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<PilotEditForm>({
+    name: "",
+    email: "",
+    phone: "",
+    licenseNumber: "",
+    city: "",
+    state: "",
+    certLevel: "3",
+    experienceRank: "",
+    flightHours: "0",
+    dutyStatus: "ACTIVE",
+  });
+
+  const loadPilots = useCallback(async () => {
+    const data = await getPilots();
+    const rows: Record<string, unknown>[] = data != null && Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
+
+    // map backend data -> UI format and derive status counts from available fields
+    const formatted = rows.map((pilot) => {
+      const rawStatus = String(
+        pilot.duty_status ?? pilot.dutyStatus ?? pilot.status ?? "ACTIVE"
+      ).toUpperCase();
+      const dutyStatus: DutyStatus =
+        rawStatus === "INACTIVE" ||
+        rawStatus === "OFFLINE" ||
+        rawStatus === "ON_LEAVE"
+          ? "INACTIVE"
+          : "ACTIVE";
+      return {
+        id: pilot.id?.toString() || "",
+        name: String(pilot.name ?? "Unknown pilot"),
+        certLevel: Number(pilot.cert_level ?? 3),
+        flightHours: flightHoursFromPilotRow(pilot),
+        flightCount: missionsCompletedFromPilotRow(pilot),
+        dutyStatus,
+      };
+    });
+
+    setApiPilots(formatted);
+  }, []);
 
   const closePilotDetail = useCallback(() => {
     setDetailOpen(false);
@@ -425,6 +488,97 @@ export function PilotStatusView({
     }
   }, []);
 
+  const openPilotEdit = useCallback(async (pilotId: string) => {
+    if (!pilotId.trim()) return;
+    setEditOpen(true);
+    setEditPilotId(pilotId);
+    setEditLoading(true);
+    setEditSaving(false);
+    setEditError(null);
+    try {
+      const data = await getPilotById(pilotId);
+      if (data == null || typeof data !== "object" || Array.isArray(data)) {
+        setEditError("Could not load pilot details.");
+        return;
+      }
+      const record = data as Record<string, unknown>;
+      const rawStatus = pickStr(record, ["duty_status", "dutyStatus", "status"])
+        .toUpperCase()
+        .trim();
+      setEditForm({
+        name: pickStr(record, ["name", "full_name", "fullName"]),
+        email: pickStr(record, ["email"]),
+        phone: pickStr(record, ["phone"]),
+        licenseNumber: pickStr(record, ["license_number", "licenseNumber"]),
+        city: pickStr(record, ["city"]),
+        state: pickStr(record, ["state"]),
+        certLevel: pickStr(record, ["cert_level", "certLevel"]) || "3",
+        experienceRank: pickStr(record, ["experience_rank", "experienceRank"]),
+        flightHours: pickStr(record, ["flight_hours", "flightHours", "experience"]) || "0",
+        dutyStatus: rawStatus === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+      });
+    } catch {
+      setEditError("Could not load pilot details.");
+    } finally {
+      setEditLoading(false);
+    }
+  }, []);
+
+  const closePilotEdit = useCallback(() => {
+    setEditOpen(false);
+    setEditPilotId(null);
+    setEditLoading(false);
+    setEditSaving(false);
+    setEditError(null);
+  }, []);
+
+  const savePilotEdit = useCallback(async () => {
+    if (!editPilotId) return;
+    if (!editForm.name.trim()) {
+      setEditError("Pilot name is required.");
+      return;
+    }
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      const result = await patchPilotProfile(editPilotId, {
+        name: editForm.name.trim(),
+        email: editForm.email.trim(),
+        phone: editForm.phone.trim(),
+        licenseNumber: editForm.licenseNumber.trim(),
+        city: editForm.city.trim(),
+        state: editForm.state.trim(),
+        certLevel: editForm.certLevel,
+        experienceRank: editForm.experienceRank.trim(),
+        flightHours: editForm.flightHours,
+        dutyStatus: editForm.dutyStatus,
+      });
+      if (!result) {
+        throw new Error("Could not update pilot.");
+      }
+      await loadPilots();
+      closePilotEdit();
+    } catch (error) {
+      setEditError(error instanceof Error ? error.message : "Could not update pilot.");
+    } finally {
+      setEditSaving(false);
+    }
+  }, [closePilotEdit, editForm, editPilotId, loadPilots]);
+
+  const deletePilot = useCallback(async (row: PilotRow) => {
+    const ok = window.confirm(`Delete pilot "${row.name}"? This cannot be undone.`);
+    if (!ok) return;
+    const result = await deletePilotById(row.id);
+    if (!result) {
+      alert("Could not delete pilot.");
+      return;
+    }
+    setApiPilots((current) => current.filter((pilot) => pilot.id !== row.id));
+    setTotalPilotsFromDb((count) =>
+      typeof count === "number" ? Math.max(0, count - 1) : count
+    );
+  }, []);
+
   const filteredRows = useMemo(() => {
     return apiPilots.filter((row) => {
       if (filter === "active" && row.dutyStatus !== "ACTIVE") return false;
@@ -443,7 +597,7 @@ export function PilotStatusView({
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
     let start = Math.max(1, page - Math.floor(maxShow / 2));
-    let end = Math.min(totalPages, start + maxShow - 1);
+    const end = Math.min(totalPages, start + maxShow - 1);
     start = Math.max(1, end - maxShow + 1);
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }, [page, totalPages]);
@@ -467,36 +621,8 @@ export function PilotStatusView({
   }, [apiPilots, totalPilotsFromDb]);
 
   useEffect(() => {
-    const fetchPilots = async () => {
-      const data = await getPilots();
-      const rows: Record<string, unknown>[] = data != null && Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
-
-      // map backend data -> UI format and derive status counts from available fields
-      const formatted = rows.map((pilot) => {
-        const rawStatus = String(
-          pilot.duty_status ?? pilot.dutyStatus ?? pilot.status ?? "ACTIVE"
-        ).toUpperCase();
-        const dutyStatus: DutyStatus =
-          rawStatus === "INACTIVE" ||
-          rawStatus === "OFFLINE" ||
-          rawStatus === "ON_LEAVE"
-            ? "INACTIVE"
-            : "ACTIVE";
-        return {
-          id: pilot.id?.toString() || "",
-          name: String(pilot.name ?? "Unknown pilot"),
-          certLevel: Number(pilot.cert_level ?? 3),
-          flightHours: flightHoursFromPilotRow(pilot),
-          flightCount: missionsCompletedFromPilotRow(pilot),
-          dutyStatus,
-        };
-      });
-
-      setApiPilots(formatted);
-    };
-  
-    fetchPilots();
-  }, []);
+    void loadPilots();
+  }, [loadPilots]);
 
   useEffect(() => {
     let cancelled = false;
@@ -606,6 +732,7 @@ export function PilotStatusView({
                     "Flight hours",
                     "Missions",
                     "Duty status",
+                    "Actions",
                   ].map((h) => (
                     <th
                       key={h}
@@ -620,7 +747,7 @@ export function PilotStatusView({
                 {paginatedRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={6}
                       className="px-6 py-12 text-center text-sm text-muted-foreground dark:text-white"
                     >
                       No pilots match your filters.
@@ -657,6 +784,28 @@ export function PilotStatusView({
                       </td>
                       <td className="px-6 py-5">
                         <DutyBadge status={row.dutyStatus} />
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void openPilotEdit(row.id)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-blue-500/25 bg-blue-500/8 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-blue-700 transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 dark:text-blue-300"
+                            aria-label={`Edit pilot ${row.name}`}
+                          >
+                            <Pencil className="size-3.5" aria-hidden />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void deletePilot(row)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-500/25 bg-red-500/8 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-red-700 transition-colors hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 dark:text-red-300"
+                            aria-label={`Delete pilot ${row.name}`}
+                          >
+                            <Trash2 className="size-3.5" aria-hidden />
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -715,6 +864,169 @@ export function PilotStatusView({
         record={detailRecord}
         onClose={closePilotDetail}
       />
+
+      {editOpen ? (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-[#191c1d]/50 backdrop-blur-[2px]"
+            aria-label="Close edit pilot dialog"
+            onClick={closePilotEdit}
+          />
+          <div className="relative z-10 max-h-[min(92dvh,46rem)] w-full max-w-2xl overflow-y-auto rounded-t-2xl border-2 border-border bg-card p-5 shadow-2xl sm:rounded-2xl sm:p-6 dark:border-white/20">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-foreground">Edit Pilot</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Update the pilot profile fields used by the dashboard.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePilotEdit}
+                className="rounded-lg border border-border px-2 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-muted"
+              >
+                Close
+              </button>
+            </div>
+
+            {editLoading ? (
+              <p className="mt-6 text-sm text-muted-foreground">Loading pilot...</p>
+            ) : (
+              <>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <PilotField
+                    label="Name"
+                    value={editForm.name}
+                    onChange={(value) =>
+                      setEditForm((form) => ({ ...form, name: value }))
+                    }
+                  />
+                  <PilotField
+                    label="Email"
+                    value={editForm.email}
+                    onChange={(value) =>
+                      setEditForm((form) => ({ ...form, email: value }))
+                    }
+                  />
+                  <PilotField
+                    label="Phone"
+                    value={editForm.phone}
+                    onChange={(value) =>
+                      setEditForm((form) => ({ ...form, phone: value }))
+                    }
+                  />
+                  <PilotField
+                    label="License number"
+                    value={editForm.licenseNumber}
+                    onChange={(value) =>
+                      setEditForm((form) => ({ ...form, licenseNumber: value }))
+                    }
+                  />
+                  <PilotField
+                    label="City"
+                    value={editForm.city}
+                    onChange={(value) =>
+                      setEditForm((form) => ({ ...form, city: value }))
+                    }
+                  />
+                  <PilotField
+                    label="State"
+                    value={editForm.state}
+                    onChange={(value) =>
+                      setEditForm((form) => ({ ...form, state: value }))
+                    }
+                  />
+                  <PilotField
+                    label="Certification level"
+                    value={editForm.certLevel}
+                    onChange={(value) =>
+                      setEditForm((form) => ({ ...form, certLevel: value }))
+                    }
+                  />
+                  <PilotField
+                    label="Flight hours"
+                    value={editForm.flightHours}
+                    onChange={(value) =>
+                      setEditForm((form) => ({ ...form, flightHours: value }))
+                    }
+                  />
+                  <PilotField
+                    label="Experience rank"
+                    value={editForm.experienceRank}
+                    onChange={(value) =>
+                      setEditForm((form) => ({ ...form, experienceRank: value }))
+                    }
+                  />
+                  <label className="block">
+                    <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Duty status
+                    </span>
+                    <select
+                      value={editForm.dutyStatus}
+                      onChange={(event) =>
+                        setEditForm((form) => ({
+                          ...form,
+                          dutyStatus: event.target.value as DutyStatus,
+                        }))
+                      }
+                      className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+                    >
+                      <option value="ACTIVE">Active</option>
+                      <option value="INACTIVE">Inactive</option>
+                    </select>
+                  </label>
+                </div>
+
+                {editError ? (
+                  <p className="mt-4 text-sm font-medium text-red-600">{editError}</p>
+                ) : null}
+
+                <div className="mt-6 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closePilotEdit}
+                    className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={editSaving}
+                    onClick={() => void savePilotEdit()}
+                    className="rounded-lg bg-[#008B8B] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#007373] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {editSaving ? "Saving..." : "Save changes"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+function PilotField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+      />
+    </label>
   );
 }

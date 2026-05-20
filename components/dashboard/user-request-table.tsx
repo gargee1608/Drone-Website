@@ -5,8 +5,10 @@ import {
   Eye,
   Map,
   Package,
+  Pencil,
   ShoppingBag,
   Stethoscope,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -217,6 +219,10 @@ export type UserRequestTableProps = {
   rows: UserRequestAdminRow[];
   /** Opens detail view (e.g. modal). If omitted, the View button is inert. */
   onViewDetails?: (row: UserRequestAdminRow) => void;
+  /** Opens the admin edit form for editable backend rows. */
+  onEditRequest?: (row: UserRequestAdminRow) => void;
+  /** Deletes editable backend rows. */
+  onDeleteRequest?: (row: UserRequestAdminRow) => void;
   /** Optional title override (default: "User Request"). */
   title?: string;
   /** Show the title heading inside the card (default true). */
@@ -230,6 +236,8 @@ export type UserRequestTableProps = {
 export function UserRequestTable({
   rows,
   onViewDetails,
+  onEditRequest,
+  onDeleteRequest,
   title = "User Request",
   showTitle = true,
   showTotalSubtitle = false,
@@ -303,12 +311,12 @@ export function UserRequestTable({
           ) : (
             <colgroup>
               <col className="w-[11%]" />
-              <col className="w-[23%]" />
-              <col className="w-[10%]" />
               <col className="w-[20%]" />
               <col className="w-[10%]" />
-              <col className="w-[16%]" />
+              <col className="w-[18%]" />
               <col className="w-[10%]" />
+              <col className="w-[15%]" />
+              <col className="w-[16%]" />
             </colgroup>
           )}
           <thead>
@@ -515,16 +523,45 @@ export function UserRequestTable({
                     ) : null}
                   </td>
                   <td className={cn(tdBase, "text-center")}>
-                    {onViewDetails ? (
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#008B8B]/35 bg-[#008B8B]/8 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-wide text-[#006767] transition-colors hover:bg-[#008B8B]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 sm:text-[10px] dark:text-primary"
-                        aria-label={`View request details: ${m.title}`}
-                        onClick={() => onViewDetails(m)}
-                      >
-                        <Eye className="size-3.5 shrink-0" aria-hidden />
-                        View
-                      </button>
+                    {onViewDetails || onEditRequest || onDeleteRequest ? (
+                      <div className="flex items-center justify-center gap-1">
+                        {onViewDetails ? (
+                          <button
+                            type="button"
+                            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#008B8B]/35 bg-[#008B8B]/8 text-[#006767] transition-colors hover:bg-[#008B8B]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 dark:text-primary"
+                            title="View"
+                            aria-label={`View request details: ${m.title}`}
+                            onClick={() => onViewDetails(m)}
+                          >
+                            <Eye className="size-3.5 shrink-0" aria-hidden />
+                            <span className="sr-only">View</span>
+                          </button>
+                        ) : null}
+                        {onEditRequest ? (
+                          <button
+                            type="button"
+                            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-blue-500/25 bg-blue-500/8 text-blue-700 transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 dark:text-blue-300"
+                            title="Edit"
+                            aria-label={`Edit request: ${m.title}`}
+                            onClick={() => onEditRequest(m)}
+                          >
+                            <Pencil className="size-3.5 shrink-0" aria-hidden />
+                            <span className="sr-only">Edit</span>
+                          </button>
+                        ) : null}
+                        {onDeleteRequest ? (
+                          <button
+                            type="button"
+                            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-red-500/25 bg-red-500/8 text-red-700 transition-colors hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 dark:text-red-300"
+                            title="Delete"
+                            aria-label={`Delete request: ${m.title}`}
+                            onClick={() => onDeleteRequest(m)}
+                          >
+                            <Trash2 className="size-3.5 shrink-0" aria-hidden />
+                            <span className="sr-only">Delete</span>
+                          </button>
+                        ) : null}
+                      </div>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
