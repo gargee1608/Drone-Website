@@ -388,7 +388,7 @@ export function LandingHeader() {
         aria-label="Primary"
       >
         <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-8 lg:gap-12">
-          <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             {isAdminCommandCenterShell ? (
               <button
                 type="button"
@@ -445,17 +445,17 @@ export function LandingHeader() {
             ) : null}
             <Link
               href={logoHref}
-              className="inline-flex min-w-0 items-center gap-2 font-[family-name:var(--font-landing-headline)] text-lg font-bold tracking-tighter text-[#008B8B] uppercase sm:gap-2.5 sm:text-xl"
+              className="inline-flex min-w-0 max-w-[10rem] items-center gap-2 overflow-hidden font-[family-name:var(--font-landing-headline)] text-base font-bold tracking-tighter text-[#008B8B] uppercase sm:max-w-[14rem] sm:gap-2.5 sm:text-xl xl:max-w-none"
             >
               <Image
                 src="/drone-logo.png"
                 alt="Hire A Drone Logo"
                 width={48}
                 height={48}
-                className="size-12 shrink-0 sm:size-14"
+                className="size-10 shrink-0 sm:size-12 xl:size-14"
                 style={{ filter: 'brightness(0) saturate(100%) invert(36%) sepia(93%) saturate(1594%) hue-rotate(151deg) brightness(92%) contrast(89%)' }}
               />
-              <span className="truncate">Hire A Drone</span>
+              <span className="min-w-0 truncate">Hire A Drone</span>
             </Link>
           </div>
           {showMarketingHeaderNav ? (
