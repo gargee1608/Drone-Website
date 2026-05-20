@@ -459,7 +459,7 @@ export function LandingHeader() {
             </Link>
           </div>
           {showMarketingHeaderNav ? (
-            <div className="hidden items-center gap-8 lg:flex">
+            <div className="hidden items-center gap-8 xl:flex">
               <Link href="/" className={linkClass("/")}>
                 Home
               </Link>
@@ -505,7 +505,7 @@ export function LandingHeader() {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "text-slate-700 lg:hidden",
+                  "text-slate-700 xl:hidden",
                   appDashboardShell
                     ? "dark:text-white dark:hover:bg-white/10"
                     : "dark:text-white"
@@ -521,10 +521,10 @@ export function LandingHeader() {
             <Link
               href="/pilot-registration"
               className={cn(
-                "hidden lg:inline-flex",
+                "hidden xl:inline-flex",
                 landingOutlineButtonClassName,
                 (hideRegisterPilotCta || hideMarketingRegisterAndLogin) &&
-                  "lg:hidden"
+                  "xl:hidden"
               )}
             >
               New Registration
@@ -548,7 +548,7 @@ export function LandingHeader() {
             ) : showHeaderLoginButton && !hideMarketingRegisterAndLogin ? (
               <Link
                 href="/pilot-login"
-                className={cn("hidden lg:inline-flex", landingOutlineButtonClassName)}
+                className={cn("hidden xl:inline-flex", landingOutlineButtonClassName)}
               >
                 Login
               </Link>
@@ -786,7 +786,7 @@ export function LandingHeader() {
       <div
         id="landing-mobile-nav"
         className={cn(
-          "border-t border-border bg-background px-4 py-4 lg:hidden",
+          "border-t border-border bg-background px-4 py-4 xl:hidden",
           open ? "block" : "hidden"
         )}
       >
