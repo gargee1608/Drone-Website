@@ -1010,7 +1010,8 @@ export function AdminDroneView() {
                           // Notify Assign To view to refresh fleet data
                           notifyAdminFleetUpdated();
                         } else {
-                          throw new Error('Failed to update request status');
+                          const errorData = await statusResponse.json().catch(() => ({}));
+                          throw new Error(errorData.error || 'Failed to update request status');
                         }
                       } else {
                         const errorData = await droneResponse.json().catch(() => ({}));
