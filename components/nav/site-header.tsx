@@ -107,8 +107,6 @@ export function SiteHeader({
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
     (pathname?.startsWith("/dashboard/") ?? false);
-  const isSettingsPage = pathname?.startsWith("/settings") ?? false;
-
   const showUserDashboardSidebarToggle = isUserDashboard;
   const showPilotDashboardSidebarToggle = isPilotDashboard;
   const showAdminDashboardSidebarToggle = isAdminDashboard;
@@ -134,7 +132,10 @@ export function SiteHeader({
     !isAdminDashboard && !isUserDashboard && !isPilotDashboard;
 
   useEffect(() => {
-    setAccountMenuOpen(false);
+    const id = window.setTimeout(() => {
+      setAccountMenuOpen(false);
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [pathname]);
 
   useEffect(() => {
@@ -244,7 +245,7 @@ export function SiteHeader({
               priority
               aria-hidden
             />
-            <span className="leading-tight">Drone Hire</span>
+            <span className="leading-tight">Hire A Drone</span>
           </Link>
         </div>
 

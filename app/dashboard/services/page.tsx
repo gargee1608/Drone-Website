@@ -1,7 +1,7 @@
 import { AdminServicesView } from "@/components/dashboard/admin-services-view";
 
 export const metadata = {
-  title: "Drone Hire | Manage Services",
+  title: "Hire A Drone | Manage Services",
   description:
     "Add and manage drone services from the admin command center.",
 };

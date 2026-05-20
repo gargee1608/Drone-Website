@@ -1,9 +1,9 @@
 import { ContactView } from "@/components/contact/contact-view";
 
 export const metadata = {
-  title: "Contact Us | Drone Hire",
+  title: "Contact Us | Hire A Drone",
   description:
-    "Contact Drone Hire for sales, support, and partnership inquiries.",
+    "Contact Hire A Drone for sales, support, and partnership inquiries.",
 };
 
 export default function ContactPage() {

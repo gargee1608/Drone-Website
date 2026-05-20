@@ -1,28 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+import { expressBackendOrigin } from "@/lib/express-backend-origin";
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const token = request.headers.get('authorization');
-
-    const response = await fetch(`${BACKEND_URL}/api/user-requests`, {
-      method: 'POST',
+async function proxyUserRequests(request: NextRequest) {
+  const token = request.headers.get('authorization');
+  const response = await fetch(
+    `${expressBackendOrigin()}/api/user-requests${request.nextUrl.search}`,
+    {
+      method: request.method,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token || '',
       },
-      body: JSON.stringify(body),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return NextResponse.json(data, { status: response.status });
+      body: request.method === 'GET' ? undefined : await request.text(),
+      cache: 'no-store',
     }
+  );
 
-    return NextResponse.json(data);
+  const contentType = response.headers.get('content-type');
+  const body = await response.text();
+
+  if (contentType?.includes('application/json')) {
+    return NextResponse.json(body ? JSON.parse(body) : {}, { status: response.status });
+  }
+
+  return new NextResponse(body, { status: response.status });
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    return await proxyUserRequests(request);
   } catch (error) {
     console.error('Error in user-requests POST route:', error);
     return NextResponse.json(
@@ -34,23 +41,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const token = request.headers.get('authorization');
-
-    const response = await fetch(`${BACKEND_URL}/api/user-requests${searchParams.toString() ? '?' + searchParams.toString() : ''}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': token || '',
-      },
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return NextResponse.json(data, { status: response.status });
-    }
-
-    return NextResponse.json(data);
+    return await proxyUserRequests(request);
   } catch (error) {
     console.error('Error in user-requests GET route:', error);
     return NextResponse.json(

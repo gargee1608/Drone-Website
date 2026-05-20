@@ -2,7 +2,7 @@ import { CompletedDeliveriesView } from "@/components/dashboard/completed-delive
 import { PilotDashboardShell } from "@/components/pilot-dashboard/pilot-dashboard-shell";
 
 export const metadata = {
-  title: "Drone Hire | Pilot Completed Deliveries",
+  title: "Hire A Drone | Pilot Completed Deliveries",
   description: "Track completed deliveries from pilot command view.",
 };
 

@@ -21,24 +21,24 @@ export async function generateMetadata({ params }: Props) {
     if (row) {
       const post = mapApiRowToBlogPost(row);
       return {
-        title: `${post.title} | Blogs | Drone Hire`,
+        title: `${post.title} | Blogs | Hire A Drone`,
         description: post.excerpt,
       };
     }
     return {
-      title: "Flight Log | Drone Hire",
-      description: "Drone Hire news and field notes.",
+      title: "Flight Log | Hire A Drone",
+      description: "Hire A Drone news and field notes.",
     };
   }
   const post = postsBySlug[slug];
   if (!post) {
     return {
-      title: "Flight Log | Drone Hire",
-      description: "Drone Hire news and field notes.",
+      title: "Flight Log | Hire A Drone",
+      description: "Hire A Drone news and field notes.",
     };
   }
   return {
-    title: `${post.title} | Blogs | Drone Hire`,
+    title: `${post.title} | Blogs | Hire A Drone`,
     description: post.excerpt,
   };
 }

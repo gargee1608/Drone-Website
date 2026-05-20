@@ -92,7 +92,7 @@ export function BlogPostPageClient({
 
   useEffect(() => {
     if (!post?.title) return;
-    document.title = `${post.title} | Blogs | Drone Hire`;
+    document.title = `${post.title} | Blogs | Hire A Drone`;
   }, [post]);
 
   if (!ready) {

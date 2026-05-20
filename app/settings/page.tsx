@@ -5,8 +5,8 @@ import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-s
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 
 export const metadata = {
-  title: "Account Settings — Drone Hire",
-  description: "Manage your Drone Hire account and preferences.",
+  title: "Account Settings — Hire A Drone",
+  description: "Manage your Hire A Drone account and preferences.",
 };
 
 type SettingsPageProps = {

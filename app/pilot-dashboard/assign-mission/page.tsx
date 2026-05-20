@@ -2,7 +2,7 @@ import { PilotDashboardShell } from "@/components/pilot-dashboard/pilot-dashboar
 import { AssignMissionView } from "@/components/pilot-dashboard/assign-mission-view";
 
 export const metadata = {
-  title: "Drone Hire | Pilot Assign Mission",
+  title: "Hire A Drone | Pilot Assign Mission",
   description: "Open the assign mission workspace from pilot dashboard.",
 };
 

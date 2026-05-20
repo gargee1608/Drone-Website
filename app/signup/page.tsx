@@ -1,7 +1,7 @@
 import { SignUpView } from "@/components/signup/signup-view";
 
 export const metadata = {
-  title: "Drone Hire — Create account",
+  title: "Hire A Drone — Create account",
   description: "Create your AEROLAMINAR account to access mission control and telemetry.",
 };
 

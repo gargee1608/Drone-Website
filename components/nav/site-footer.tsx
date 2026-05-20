@@ -46,14 +46,14 @@ export function SiteFooter({
             >
               <Image
                 src="/drone-logo.png"
-                alt="Drone Hire Logo"
+                alt="Hire A Drone Logo"
                 width={52}
                 height={52}
                 className="size-13 shrink-0 sm:size-16"
                 style={{ filter: 'brightness(0) saturate(100%) invert(36%) sepia(93%) saturate(1594%) hue-rotate(151deg) brightness(92%) contrast(89%)' }}
               />
               <span className="font-heading text-lg font-bold tracking-tight text-foreground">
-                Drone Hire
+                Hire A Drone
               </span>
             </Link>
             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
@@ -100,7 +100,7 @@ export function SiteFooter({
         </div>
         <div className="mx-auto mt-10 flex max-w-6xl flex-col items-center justify-between gap-4 border-t border-border/50 px-4 pt-8 sm:flex-row sm:px-6 lg:px-8">
           <p className="text-center text-[11px] text-muted-foreground sm:text-left sm:text-xs">
-            © {new Date().getFullYear()} Drone Hire. All rights reserved.
+            © {new Date().getFullYear()} Hire A Drone. All rights reserved.
           </p>
           <div className="flex shrink-0 gap-2">
             <a
@@ -141,13 +141,13 @@ export function SiteFooter({
         >
           <Image
             src="/drone-logo.png"
-            alt="Drone Hire Logo"
+            alt="Hire A Drone Logo"
             width={44}
             height={44}
             className="size-11 shrink-0"
             style={{ filter: 'brightness(0) saturate(100%) invert(36%) sepia(93%) saturate(1594%) hue-rotate(151deg) brightness(92%) contrast(89%)' }}
           />
-          <span>Drone Hire</span>
+          <span>Hire A Drone</span>
         </Link>
 
         <div className="flex w-full min-w-0 shrink-0 flex-col items-center gap-1.5 sm:w-auto sm:items-end">
@@ -168,7 +168,7 @@ export function SiteFooter({
             </a>
           </div>
           <p className="w-full min-w-0 max-w-[18rem] text-balance text-center text-[11px] leading-snug text-muted-foreground sm:max-w-[min(100%,20rem)] sm:text-right sm:text-xs">
-            © {new Date().getFullYear()} Drone Hire. All rights reserved.
+            © {new Date().getFullYear()} Hire A Drone. All rights reserved.
           </p>
         </div>
       </div>

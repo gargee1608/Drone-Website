@@ -4,7 +4,7 @@ import { PilotDashboardShell } from "@/components/pilot-dashboard/pilot-dashboar
 import { PilotProfileView } from "@/components/pilot-registration/pilot-profile-view";
 
 export const metadata: Metadata = {
-  title: "Profile — Drone Hire",
+  title: "Profile — Hire A Drone",
   description: "Your pilot profile on AEROLAMINAR.",
 };
 

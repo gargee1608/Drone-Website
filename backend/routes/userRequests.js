@@ -123,12 +123,12 @@ router.get("/user-requests/pilot/:pilotId", async (req, res) => {
 });
 
 // Update user request status
-router.put("/user-requests/:id", async (req, res) => {
+async function updateUserRequest(req, res) {
   try {
     await ensureUserRequestsSchema();
     
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, description } = req.body;
     
     if (!status) {
       return res.status(400).json({ 
@@ -138,10 +138,12 @@ router.put("/user-requests/:id", async (req, res) => {
     
     const result = await pool.query(
       `UPDATE user_requests 
-       SET status = $1, updated_at = NOW()
-       WHERE id = $2
+       SET status = $1,
+           description = COALESCE($2, description),
+           updated_at = NOW()
+       WHERE id = $3
        RETURNING *`,
-      [status, id]
+      [status, description, id]
     );
     
     if (result.rows.length === 0) {
@@ -156,7 +158,10 @@ router.put("/user-requests/:id", async (req, res) => {
     console.error("Error updating user request:", error);
     res.status(500).json({ error: "Failed to update user request" });
   }
-});
+}
+
+router.put("/user-requests/:id", updateUserRequest);
+router.patch("/user-requests/:id", updateUserRequest);
 
 // Delete user request
 router.delete("/user-requests/:id", async (req, res) => {

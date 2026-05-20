@@ -49,10 +49,10 @@ export function LandingFooter({ className }: LandingFooterProps) {
               />
               <span className="font-[family-name:var(--font-landing-headline)] text-lg leading-tight sm:text-xl">
                 <span className="font-bold tracking-tight text-foreground">
-                  DRONE{" "}
+                  HIRE{" "}
                 </span>
                 <span className="font-semibold tracking-tight text-[#008B8B]">
-                  HIRE
+                  A DRONE
                 </span>
               </span>
             </Link>
@@ -114,7 +114,7 @@ export function LandingFooter({ className }: LandingFooterProps) {
 
         <div className="mt-12 border-t border-border pt-6">
           <p className="text-center text-xs leading-relaxed text-muted-foreground">
-            © {year} Drone Hire. All rights reserved.
+            © {year} Hire A Drone. All rights reserved.
           </p>
         </div>
       </div>

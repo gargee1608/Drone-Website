@@ -4,7 +4,7 @@ import { AdminDroneView } from "@/components/dashboard/admin-drone-view";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 
 export const metadata = {
-  title: "Drone Hire | Add New Drone Details",
+  title: "Hire A Drone | Add New Drone Details",
   description:
     "Add and manage drone details from the admin command center (same flow as the pilot dashboard).",
 };

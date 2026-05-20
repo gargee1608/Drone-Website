@@ -7,9 +7,9 @@ import { queryAllBlogs } from "@/lib/blogs-db";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Blogs | Drone Hire",
+  title: "Blogs | Hire A Drone",
   description:
-    "News, product updates, and field notes from Drone Hire logistics and aerial operations.",
+    "News, product updates, and field notes from Hire A Drone logistics and aerial operations.",
 };
 
 export default async function BlogsPage() {

@@ -1,7 +1,7 @@
 import { MatchingHubView } from "@/components/matching-hub/matching-hub-view";
 
 export const metadata = {
-  title: "Matching Hub — Drone Hire",
+  title: "Matching Hub — Hire A Drone",
   description:
     "Connect assets with high-precision flight opportunities in the AeroLaminar Matching Hub.",
 };
