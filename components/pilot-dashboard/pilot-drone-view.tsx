@@ -42,6 +42,22 @@ type BackendDroneDetails = {
   use_cases?: string[];
 };
 
+type PilotDetailsResponse = {
+  drone_details?: unknown;
+  data?: {
+    drone_details?: unknown;
+  };
+};
+
+function pilotDroneDetailsFromResponse(value: unknown): BackendDroneDetails[] {
+  const details =
+    value && typeof value === "object"
+      ? ((value as PilotDetailsResponse).drone_details ??
+        (value as PilotDetailsResponse).data?.drone_details)
+      : undefined;
+  return Array.isArray(details) ? (details as BackendDroneDetails[]) : [];
+}
+
 const DELETED_DRONE_IDS_STORAGE_SUFFIX = "::deleted-drone-ids";
 
 function deletedDroneIdsStorageKey() {
@@ -208,21 +224,23 @@ export function PilotDroneView() {
       if (!pilotId) return;
 
       // Fetch pilot data with drone details from backend
-      const response = await fetch(`http://localhost:4000/api/pilots/${pilotId}`, {
+      const response = await fetch(apiUrl(`/api/pilots/${pilotId}`), {
         headers: {
           "Authorization": token ? `Bearer ${token}` : "",
         },
+        cache: "no-store",
       });
 
       if (response.ok) {
-        const pilotData = await response.json();
-        if (pilotData.drone_details && Array.isArray(pilotData.drone_details)) {
+        const pilotData = (await response.json()) as unknown;
+        const backendDrones = pilotDroneDetailsFromResponse(pilotData);
+        if (backendDrones.length > 0) {
           // Update local storage with backend data
           const base = readBaseSnapshot();
           if (base) {
             const updatedSnapshot: PilotProfileSnapshot = {
               ...base,
-              drones: (pilotData.drone_details as BackendDroneDetails[])
+              drones: backendDrones
                 .map((drone, index) => ({
                   id: drone.id ? String(drone.id) : `local-${Date.now()}-${index}`,
                   modelName: String(drone.modelName || drone.model_name || ''),
@@ -330,7 +348,7 @@ export function PilotDroneView() {
       if (!isLocalStorageDrone) {
         // Try to delete from backend first
         try {
-          const response = await fetch(`http://localhost:4000/api/drones/${drone.id}`, {
+          const response = await fetch(apiUrl(`/api/drones/${drone.id}`), {
             method: "DELETE",
             headers: {
               "Authorization": `Bearer ${token}`,

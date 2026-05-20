@@ -160,7 +160,7 @@ export function Features() {
             Core Values
           </p>
           <h3 className="mt-3 font-[family-name:var(--font-landing-headline)] text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Why Drone Hire
+            Why Hire A Drone
           </h3>
           <p className="mt-4 font-[family-name:var(--font-landing-body)] text-base leading-relaxed text-muted-foreground sm:text-lg">
             Our mission is to seamlessly connect skilled drone pilots with real-world missions, enabling efficient, reliable 

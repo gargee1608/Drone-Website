@@ -58,12 +58,17 @@ type DroneBackendRow = {
 type PilotProfileDroneRow = {
   id?: unknown;
   modelName?: unknown;
+  model_name?: unknown;
   type?: unknown;
   camera?: unknown;
   payloadKg?: unknown;
+  payload_kg?: unknown;
   flightTimeMin?: unknown;
+  flight_time_min?: unknown;
   rangeKm?: unknown;
+  range_km?: unknown;
   useCases?: unknown;
+  use_cases?: unknown;
 };
 
 type AdminPilotDroneTableRow = {
@@ -102,6 +107,17 @@ function displayValue(value: unknown): string {
   return textValue(value) || "—";
 }
 
+function arrayPayload<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === "object") {
+    const data = (value as { data?: unknown }).data;
+    if (Array.isArray(data)) return data as T[];
+    const rows = (value as { rows?: unknown }).rows;
+    if (Array.isArray(rows)) return rows as T[];
+  }
+  return [];
+}
+
 function numericId(value: unknown): number | null {
   const id = Number(value);
   return Number.isFinite(id) ? id : null;
@@ -115,8 +131,16 @@ function useCasesText(value: unknown): string {
 }
 
 function parsePilotDroneDetails(value: unknown): PilotProfileDroneRow[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter(
+  let rows = value;
+  if (typeof rows === "string") {
+    try {
+      rows = JSON.parse(rows);
+    } catch {
+      rows = [];
+    }
+  }
+  if (!Array.isArray(rows)) return [];
+  return rows.filter(
     (row): row is PilotProfileDroneRow =>
       typeof row === "object" && row !== null && !Array.isArray(row)
   );
@@ -205,13 +229,13 @@ function buildPilotDroneRows(
         pilotName,
         pilotEmail,
         droneId: displayValue(droneId),
-        modelName: displayValue(drone.modelName),
+        modelName: displayValue(drone.modelName ?? drone.model_name),
         type: displayValue(drone.type),
         camera: displayValue(drone.camera),
-        payloadKg: displayValue(drone.payloadKg),
-        flightTimeMin: displayValue(drone.flightTimeMin),
-        rangeKm: displayValue(drone.rangeKm),
-        useCases: useCasesText(drone.useCases),
+        payloadKg: displayValue(drone.payloadKg ?? drone.payload_kg),
+        flightTimeMin: displayValue(drone.flightTimeMin ?? drone.flight_time_min),
+        rangeKm: displayValue(drone.rangeKm ?? drone.range_km),
+        useCases: useCasesText(drone.useCases ?? drone.use_cases),
       });
     });
 
@@ -291,11 +315,12 @@ export function AdminDroneView() {
     try {
       const token = localStorage.getItem("token");
       const headers = {
+        "Accept": "application/json",
         "Authorization": token ? `Bearer ${token}` : "",
       };
       const [pilotsResponse, dronesResponse] = await Promise.all([
-        fetch(apiUrl("/api/pilots"), { headers }),
-        fetch(apiUrl("/api/drones"), { headers }),
+        fetch(apiUrl("/api/pilots"), { headers, cache: "no-store" }),
+        fetch(apiUrl("/api/drones"), { headers, cache: "no-store" }),
       ]);
 
       if (!pilotsResponse.ok) {
@@ -307,8 +332,8 @@ export function AdminDroneView() {
 
       const pilotsData = (await pilotsResponse.json()) as unknown;
       const dronesData = (await dronesResponse.json()) as unknown;
-      const pilots = Array.isArray(pilotsData) ? (pilotsData as PilotBackendRow[]) : [];
-      const drones = Array.isArray(dronesData) ? (dronesData as DroneBackendRow[]) : [];
+      const pilots = arrayPayload<PilotBackendRow>(pilotsData);
+      const drones = arrayPayload<DroneBackendRow>(dronesData);
       setPilotDroneRows(buildPilotDroneRows(pilots, drones));
     } catch (error) {
       console.error("Error fetching pilot drone rows:", error);

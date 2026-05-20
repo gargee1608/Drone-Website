@@ -30,7 +30,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { getPilotDisplayName, jwtPayloadRole } from "@/lib/pilot-display-name";
 import {
   buildAdminProfileForDisplay,
-  type AdminProfileDraft,
 } from "@/lib/admin-profile-storage";
 import { clearAuthSession } from "@/lib/auth-session-browser";
 import {
@@ -308,8 +307,11 @@ export function LandingHeader() {
   }, [pathname]);
 
   useEffect(() => {
-    setAccountMenuOpen(false);
-    setMarketingUserMenuOpen(false);
+    const id = window.setTimeout(() => {
+      setAccountMenuOpen(false);
+      setMarketingUserMenuOpen(false);
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [pathname]);
 
   function logoutMarketingAccountAndGoHome() {
@@ -378,14 +380,14 @@ export function LandingHeader() {
     >
       <nav
         className={cn(
-          "mx-auto flex max-w-[1600px] flex-wrap items-center justify-between px-4 sm:px-6 lg:px-8",
+          "mx-auto flex max-w-[1600px] flex-nowrap items-center justify-between px-4 sm:px-6 lg:px-8",
           compactAppHeader
             ? "gap-3 py-2.5 sm:py-3"
             : "gap-4 py-4"
         )}
         aria-label="Primary"
       >
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4 sm:gap-8 lg:gap-12">
+        <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-8 lg:gap-12">
           <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
             {isAdminCommandCenterShell ? (
               <button
@@ -447,17 +449,17 @@ export function LandingHeader() {
             >
               <Image
                 src="/drone-logo.png"
-                alt="Drone Hire Logo"
+                alt="Hire A Drone Logo"
                 width={48}
                 height={48}
                 className="size-12 shrink-0 sm:size-14"
                 style={{ filter: 'brightness(0) saturate(100%) invert(36%) sepia(93%) saturate(1594%) hue-rotate(151deg) brightness(92%) contrast(89%)' }}
               />
-              <span>Drone Hire</span>
+              <span className="truncate">Hire A Drone</span>
             </Link>
           </div>
           {showMarketingHeaderNav ? (
-            <div className="hidden items-center gap-8 md:flex">
+            <div className="hidden items-center gap-8 lg:flex">
               <Link href="/" className={linkClass("/")}>
                 Home
               </Link>
@@ -480,9 +482,9 @@ export function LandingHeader() {
           ) : null}
         </div>
 
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-4 lg:gap-6">
+        <div className="flex min-w-0 shrink-0 items-center justify-end gap-4 lg:gap-6">
           {showHeaderSearchBar ? (
-            <div className="hidden min-w-0 items-center rounded-full border border-border bg-card py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 lg:flex">
+            <div className="hidden min-w-0 items-center rounded-full border border-border bg-card py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 xl:flex">
               <Search
                 className="mr-2 size-4 shrink-0 text-slate-500 dark:text-white"
                 aria-hidden
@@ -503,7 +505,7 @@ export function LandingHeader() {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "text-slate-700 md:hidden",
+                  "text-slate-700 lg:hidden",
                   appDashboardShell
                     ? "dark:text-white dark:hover:bg-white/10"
                     : "dark:text-white"
@@ -519,10 +521,10 @@ export function LandingHeader() {
             <Link
               href="/pilot-registration"
               className={cn(
-                "hidden sm:inline-flex",
+                "hidden lg:inline-flex",
                 landingOutlineButtonClassName,
                 (hideRegisterPilotCta || hideMarketingRegisterAndLogin) &&
-                  "sm:hidden"
+                  "lg:hidden"
               )}
             >
               New Registration
@@ -546,7 +548,7 @@ export function LandingHeader() {
             ) : showHeaderLoginButton && !hideMarketingRegisterAndLogin ? (
               <Link
                 href="/pilot-login"
-                className={cn("hidden sm:inline-flex", landingOutlineButtonClassName)}
+                className={cn("hidden lg:inline-flex", landingOutlineButtonClassName)}
               >
                 Login
               </Link>
@@ -784,7 +786,7 @@ export function LandingHeader() {
       <div
         id="landing-mobile-nav"
         className={cn(
-          "border-t border-border bg-background px-4 py-4 md:hidden",
+          "border-t border-border bg-background px-4 py-4 lg:hidden",
           open ? "block" : "hidden"
         )}
       >

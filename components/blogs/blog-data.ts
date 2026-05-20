@@ -85,7 +85,7 @@ export const blogPosts: BlogPost[] = [
       "The Future of Autonomous Urban Delivery",
     excerpt: featuredHero.subhead,
     date: "Oct 30, 2023",
-    author: "Drone Hire Editorial",
+    author: "Hire A Drone Editorial",
     image: featuredHero.image,
     imageAlt: featuredHero.imageAlt,
     tagTone: "primary",

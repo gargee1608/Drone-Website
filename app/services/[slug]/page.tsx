@@ -18,9 +18,9 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
   const item = await getServiceBySlugExtended(slug);
-  if (!item) return { title: "Service | Drone Hire" };
+  if (!item) return { title: "Service | Hire A Drone" };
   return {
-    title: `${item.title} | Services | Drone Hire`,
+    title: `${item.title} | Services | Hire A Drone`,
     description: item.description,
   };
 }

@@ -2,7 +2,7 @@ import { AdminUserManagement } from "@/components/dashboard/admin-user-managemen
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 
 export const metadata = {
-  title: "Drone Hire | User Management",
+  title: "Hire A Drone | User Management",
   description: "Manage user accounts and permissions from the admin command center.",
 };
 

@@ -7,7 +7,8 @@ import { ConditionalSiteFooter } from "@/components/nav/conditional-site-footer"
 import { ConditionalSiteHeader } from "@/components/nav/conditional-site-header";
 
 export const metadata: Metadata = {
-  title: "Drone Hire — Book Verified Drone Pilot Near You",
+  applicationName: "Hire A Drone",
+  title: "Hire A Drone — Book Verified Drone Pilot Near You",
   description:
     "Find and hire DGCA-approved drone pilots for defence, agriculture, filming, lifting & everyday drone service.",
 };

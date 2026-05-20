@@ -67,7 +67,7 @@ export function mapApiRowToBlogPost(row: BlogApiRow): BlogPost {
     excerpt: excerptFromContent(r.content),
     date,
     category: "Company News",
-    author: "Drone Hire",
+    author: "Hire A Drone",
     image: r.image?.trim() || "https://via.placeholder.com/400",
     imageAlt: r.title,
     tagTone: TAG_TONES[Math.abs(r.id) % TAG_TONES.length],

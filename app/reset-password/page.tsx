@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { ResetPasswordView } from "@/components/login/reset-password-view";
 
 export const metadata = {
-  title: "Reset password — Drone Hire",
+  title: "Reset password — Hire A Drone",
   description: "Set a new password using the link from your email.",
 };
 

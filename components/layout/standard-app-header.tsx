@@ -81,7 +81,7 @@ export function StandardAppHeader({ activeHref }: StandardAppHeaderProps) {
               />
             </span>
             <span className="truncate text-lg font-bold uppercase leading-none tracking-tight text-black sm:text-xl">
-              Drone Hire
+              Hire A Drone
             </span>
           </Link>
           <nav

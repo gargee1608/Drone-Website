@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { ContactInquiriesView } from "@/components/dashboard/contact-inquiries-view";
 
 export const metadata = {
-  title: "Drone Hire | Contact inquiries",
+  title: "Hire A Drone | Contact inquiries",
   description: "Contact form submissions for the admin command center.",
 };
 

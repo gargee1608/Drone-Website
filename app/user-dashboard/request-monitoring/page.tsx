@@ -1,7 +1,7 @@
 import { RequestMonitoringView } from "@/components/user-dashboard/request-monitoring-view";
 
 export const metadata = {
-  title: "Drone Hire | Request Monitoring",
+  title: "Hire A Drone | Request Monitoring",
   description: "Monitor your mission requests and activity.",
 };
 

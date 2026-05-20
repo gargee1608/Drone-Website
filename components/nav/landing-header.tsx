@@ -49,13 +49,13 @@ export function LandingHeader() {
           >
             <Image
               src="/drone-logo.png"
-              alt="Drone Hire Logo"
+              alt="Hire A Drone Logo"
               width={44}
               height={44}
               className="size-11"
               style={{ filter: 'brightness(0) saturate(100%) invert(36%) sepia(93%) saturate(1594%) hue-rotate(151deg) brightness(92%) contrast(89%)' }}
             />
-            Drone Hire
+            Hire A Drone
           </Link>
           <nav
             className="hidden items-center gap-6 text-sm font-medium tracking-tight text-slate-600 md:flex md:gap-8"

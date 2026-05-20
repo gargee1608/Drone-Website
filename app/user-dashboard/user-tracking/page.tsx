@@ -1,7 +1,7 @@
 import { UserTrackingView } from "@/components/user-dashboard/user-tracking-view";
 
 export const metadata = {
-  title: "Drone Hire | User Tracking",
+  title: "Hire A Drone | User Tracking",
   description: "Track mission progress and updates.",
 };
 
