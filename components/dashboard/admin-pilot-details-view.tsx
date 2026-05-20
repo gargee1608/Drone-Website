@@ -347,7 +347,7 @@ export function AdminPilotDetailsView() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-pilot-title"
-            className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-xl"
+            className="relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-white text-card-foreground shadow-xl dark:bg-black"
           >
             <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3 sm:px-5">
               <h2 id="edit-pilot-title" className="text-base text-foreground sm:text-lg">

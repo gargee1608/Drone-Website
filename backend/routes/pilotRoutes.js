@@ -479,6 +479,87 @@ router.patch("/:id/drones", async (req, res) => {
   }
 });
 
+/** Update one drone inside a pilot profile's `drone_details` array by index. */
+router.put("/:id/drones/:droneIndex", async (req, res) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    const droneIndex = Number.parseInt(req.params.droneIndex, 10);
+    if (!Number.isFinite(id) || !Number.isFinite(droneIndex) || droneIndex < 0) {
+      return res.status(400).json({ error: "Invalid pilot or drone index" });
+    }
+
+    await ensurePilotDroneDetailsColumn();
+    const existing = await pool.query(
+      `SELECT drone_details FROM pilots WHERE id = $1`,
+      [id]
+    );
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: "Pilot not found" });
+    }
+
+    const drones = normalizePilotDroneDetails(existing.rows[0]?.drone_details);
+    if (droneIndex >= drones.length) {
+      return res.status(404).json({ error: "Drone not found" });
+    }
+
+    const next = normalizePilotDroneDetails([req.body?.drone ?? req.body])[0];
+    if (!next || !next.modelName || !next.type) {
+      return res.status(400).json({ error: "Model name and type are required" });
+    }
+
+    drones[droneIndex] = next;
+    const result = await pool.query(
+      `UPDATE pilots
+       SET drone_details = $1::jsonb
+       WHERE id = $2
+       RETURNING *`,
+      [JSON.stringify(drones), id]
+    );
+    return res.json({ success: true, data: pilotRowForJson(result.rows[0]) });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+/** Delete one drone from a pilot profile's `drone_details` array by index. */
+router.delete("/:id/drones/:droneIndex", async (req, res) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    const droneIndex = Number.parseInt(req.params.droneIndex, 10);
+    if (!Number.isFinite(id) || !Number.isFinite(droneIndex) || droneIndex < 0) {
+      return res.status(400).json({ error: "Invalid pilot or drone index" });
+    }
+
+    await ensurePilotDroneDetailsColumn();
+    const existing = await pool.query(
+      `SELECT drone_details FROM pilots WHERE id = $1`,
+      [id]
+    );
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: "Pilot not found" });
+    }
+
+    const drones = normalizePilotDroneDetails(existing.rows[0]?.drone_details);
+    if (droneIndex >= drones.length) {
+      return res.status(404).json({ error: "Drone not found" });
+    }
+
+    drones.splice(droneIndex, 1);
+    const result = await pool.query(
+      `UPDATE pilots
+       SET drone_details = $1::jsonb
+       WHERE id = $2
+       RETURNING *`,
+      [JSON.stringify(drones), id]
+    );
+    return res.json({ success: true, data: pilotRowForJson(result.rows[0]) });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 /** Save selected drone columns onto the assigned pilot row when admin clicks Assign Mission. */
 router.patch("/:id/assign-drone", async (req, res) => {
   try {

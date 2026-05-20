@@ -142,6 +142,10 @@ export type PilotSettingsAddDronePanelProps = {
    */
   openFormByDefault?: boolean;
   /**
+   * Hide the built-in add button when a parent page renders the trigger elsewhere.
+   */
+  hideAddButton?: boolean;
+  /**
    * Callback called when a drone is successfully added
    */
   onDroneAdded?: () => void;
@@ -166,6 +170,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
   withDroneList = true,
   showAdminRequest = false,
   openFormByDefault = false,
+  hideAddButton = false,
   onDroneAdded,
   editingDrone,
   onSaveTrigger,
@@ -460,7 +465,10 @@ export const PilotSettingsAddDronePanel = forwardRef<
     }
   }
 
-  function updateEditingDroneField(field: keyof PilotProfileDrone, value: any) {
+  function updateEditingDroneField<K extends keyof PilotProfileDrone>(
+    field: K,
+    value: PilotProfileDrone[K]
+  ) {
     if (!editingDroneData) return;
     setEditingDroneData({
       ...editingDroneData,
@@ -1151,14 +1159,16 @@ export const PilotSettingsAddDronePanel = forwardRef<
   return (
     <div className="space-y-6">
       <div className="flex justify-end gap-2">
-        <Button
-          onClick={() => setShowForm(!showForm)}
-          variant="outline"
-          className="border-[#008B8B] text-[#008B8B] hover:bg-[#008B8B]/10 px-6 py-2"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Drone Details
-        </Button>
+        {!hideAddButton ? (
+          <Button
+            onClick={() => setShowForm(!showForm)}
+            variant="outline"
+            className="border-[#008B8B] text-[#008B8B] hover:bg-[#008B8B]/10 px-6 py-2"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Drone Details
+          </Button>
+        ) : null}
         {showAdminRequest && (
           <Button
             onClick={handleSendAdminRequest}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Search, Plus, Edit, Trash2, Users, Mail, Shield, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { apiUrl } from "@/lib/api-url";
 import { cn } from "@/lib/utils";
 
 interface User {
@@ -63,11 +64,11 @@ export function AdminUserManagement() {
   });
 
   // Fetch users from backend
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:4000/api/users", {
+      const response = await fetch(apiUrl("/api/users"), {
         headers: {
           "Authorization": token ? `Bearer ${token}` : "",
         },
@@ -84,20 +85,20 @@ export function AdminUserManagement() {
       console.error("Error fetching users:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch users");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
-  };
+  }, []);
 
   // Search users
-  const searchUsers = async (query: string) => {
+  const searchUsers = useCallback(async (query: string) => {
     if (!query.trim()) {
-      fetchUsers();
+      await fetchUsers();
       return;
     }
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:4000/api/users/search/${encodeURIComponent(query)}`, {
+      const response = await fetch(apiUrl(`/api/users/search/${encodeURIComponent(query)}`), {
         headers: {
           "Authorization": token ? `Bearer ${token}` : "",
         },
@@ -114,7 +115,7 @@ export function AdminUserManagement() {
       console.error("Error searching users:", err);
       setError(err instanceof Error ? err.message : "Failed to search users");
     }
-  };
+  }, [fetchUsers]);
 
   // Create or update user
   const saveUser = async () => {
@@ -122,9 +123,10 @@ export function AdminUserManagement() {
       const token = localStorage.getItem("token");
       let response;
 
+      const isEditing = Boolean(editingUser);
       if (editingUser) {
         // Update existing user
-        response = await fetch(`http://localhost:4000/api/users/${editingUser.id}`, {
+        response = await fetch(apiUrl(`/api/users/${editingUser.id}`), {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -134,7 +136,7 @@ export function AdminUserManagement() {
         });
       } else {
         // Create new user
-        response = await fetch("http://localhost:4000/api/users", {
+        response = await fetch(apiUrl("/api/users"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -149,12 +151,25 @@ export function AdminUserManagement() {
         throw new Error(errorData.error || "Failed to save user");
       }
 
+      const savedUser = (await response.json()) as User;
+      setUsers((prev) => {
+        if (isEditing) {
+          return prev.map((user) =>
+            user.id === savedUser.id ? savedUser : user
+          );
+        }
+        return [
+          savedUser,
+          ...prev.filter((user) => user.id !== savedUser.id),
+        ];
+      });
+
       // Reset form and refresh users
       setFormData({ email: "", password: "", name: "", role: "user" });
       setIsAddDialogOpen(false);
       setIsEditDialogOpen(false);
       setEditingUser(null);
-      fetchUsers();
+      void fetchUsers(false);
     } catch (err) {
       console.error("Error saving user:", err);
       setError(err instanceof Error ? err.message : "Failed to save user");
@@ -169,7 +184,7 @@ export function AdminUserManagement() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:4000/api/users/${userId}`, {
+      const response = await fetch(apiUrl(`/api/users/${userId}`), {
         method: "DELETE",
         headers: {
           "Authorization": token ? `Bearer ${token}` : "",
@@ -206,12 +221,12 @@ export function AdminUserManagement() {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, searchUsers]);
 
   // Initial load
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   return (
     <div className="space-y-6">
