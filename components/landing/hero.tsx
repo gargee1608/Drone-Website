@@ -1,8 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Battery, Gauge, ShieldCheck } from "lucide-react";
+import { ArrowRight, Battery, Gauge, Lock, Rocket, ShieldCheck } from "lucide-react";
 
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+
+const heroHighlights = [
+  { label: "DGCA-ready", Icon: ShieldCheck },
+  { label: "Fast matching", Icon: Rocket },
+  { label: "Secure bookings", Icon: Lock },
+];
 
 export function Hero() {
   return (
@@ -31,12 +37,15 @@ export function Hero() {
             filming, lifting &amp; everyday drone service.
           </p>
           <div className="mt-8 grid max-w-xl grid-cols-3 gap-3 text-center sm:text-left">
-            {["DGCA-ready", "Fast matching", "Secure bookings"].map((label) => (
+            {heroHighlights.map(({ label, Icon }) => (
               <div
                 key={label}
-                className="rounded-2xl border border-[#008B8B]/10 bg-white/75 px-3 py-3 text-xs font-bold text-slate-700 shadow-sm"
+                className="flex flex-col items-center gap-2 rounded-2xl border border-[#008B8B]/10 bg-white/75 px-3 py-3 text-xs font-bold text-slate-700 shadow-sm sm:items-start"
               >
-                {label}
+                <span className="flex size-8 items-center justify-center rounded-xl bg-[#008B8B]/10 text-[#008B8B]">
+                  <Icon className="size-4" strokeWidth={2.2} aria-hidden />
+                </span>
+                <span>{label}</span>
               </div>
             ))}
           </div>
