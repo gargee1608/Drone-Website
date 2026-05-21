@@ -11,6 +11,7 @@ import {
   LogOut,
   Mail,
   Plane,
+  Radar,
   Settings,
   UserRound,
   Users,
@@ -26,6 +27,11 @@ export type CommandCenterNavItem = {
 export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/assign", label: "Assign To", icon: Plane },
+  {
+    href: "/dashboard/available-missions",
+    label: "Available Mission",
+    icon: Radar,
+  },
   { href: "/dashboard/user-requests", label: "User Request", icon: ClipboardList },
     {
     href: "/dashboard/completed-deliveries",
