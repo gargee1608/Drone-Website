@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const router = express.Router();
 const pool = require("../db");
+const { enrichPilotRowWithFleetDrones } = require("../lib/pilotDroneDetailsSync");
 
 const BCRYPT_ROUNDS = 10;
 
@@ -328,7 +329,8 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ error: "Pilot not found" });
     }
 
-    res.json(pilotRowForJson(result.rows[0]));
+    const enriched = await enrichPilotRowWithFleetDrones(result.rows[0]);
+    res.json(pilotRowForJson(enriched));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
+const { syncPilotDroneDetailsFromFleet } = require("../lib/pilotDroneDetailsSync");
 
 function droneJsonValue(v) {
   if (typeof v === "bigint") {
@@ -87,7 +88,16 @@ router.post("/", async (req, res) => {
       use_cases || []
     ]);
 
-    res.status(201).json(droneRowForJson(result.rows[0]));
+    const row = result.rows[0];
+    if (row?.pilot_id != null) {
+      try {
+        await syncPilotDroneDetailsFromFleet(row.pilot_id);
+      } catch (syncErr) {
+        console.warn("[drones] pilot drone_details sync after POST:", syncErr);
+      }
+    }
+
+    res.status(201).json(droneRowForJson(row));
   } catch (err) {
     console.error("Error creating drone:", err);
     res.status(500).json({ error: "Server error" });
@@ -112,7 +122,16 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({ error: "Drone not found" });
     }
 
-    res.json(droneRowForJson(result.rows[0]));
+    const deleted = result.rows[0];
+    if (deleted?.pilot_id != null) {
+      try {
+        await syncPilotDroneDetailsFromFleet(deleted.pilot_id);
+      } catch (syncErr) {
+        console.warn("[drones] pilot drone_details sync after DELETE:", syncErr);
+      }
+    }
+
+    res.json(droneRowForJson(deleted));
   } catch (err) {
     console.error("Error deleting drone:", err);
     res.status(500).json({ error: "Server error" });
@@ -174,7 +193,16 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ error: "Drone not found" });
     }
 
-    res.json(droneRowForJson(result.rows[0]));
+    const updated = result.rows[0];
+    if (updated?.pilot_id != null) {
+      try {
+        await syncPilotDroneDetailsFromFleet(updated.pilot_id);
+      } catch (syncErr) {
+        console.warn("[drones] pilot drone_details sync after PUT:", syncErr);
+      }
+    }
+
+    res.json(droneRowForJson(updated));
   } catch (err) {
     console.error("Error updating drone:", err);
     res.status(500).json({ error: "Server error" });

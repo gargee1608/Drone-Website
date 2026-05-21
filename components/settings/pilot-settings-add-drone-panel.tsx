@@ -150,6 +150,10 @@ export type PilotSettingsAddDronePanelProps = {
    */
   onDroneAdded?: () => void;
   /**
+   * When set (admin dashboard), drones are saved for this pilot instead of the JWT subject.
+   */
+  targetPilotId?: number | null;
+  /**
    * Drone data to edit (if provided, form will be in edit mode)
    */
   editingDrone?: PilotProfileDrone | null;
@@ -172,6 +176,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
   openFormByDefault = false,
   hideAddButton = false,
   onDroneAdded,
+  targetPilotId = null,
   editingDrone,
   onSaveTrigger,
 }, ref) {
@@ -611,24 +616,35 @@ export const PilotSettingsAddDronePanel = forwardRef<
     }
 
     try {
-      // Get pilot ID from token
       const token = localStorage.getItem("token");
-      let pilotId = null;
-      if (token) {
+      const role = token ? jwtPayloadRole(token) : null;
+      let pilotId: number | null = null;
+
+      if (
+        targetPilotId != null &&
+        Number.isFinite(Number(targetPilotId)) &&
+        Number(targetPilotId) > 0
+      ) {
+        pilotId = Number(targetPilotId);
+      } else if (token) {
         try {
-          const parts = token.split('.');
+          const parts = token.split(".");
           if (parts.length === 3) {
             const payload = JSON.parse(atob(parts[1]));
-            pilotId = payload.sub ? parseInt(payload.sub, 10) : null;
+            const sub = payload.sub ? parseInt(payload.sub, 10) : null;
+            pilotId = Number.isFinite(sub) ? sub : null;
           }
         } catch (tokenError) {
           console.warn("Invalid token format, proceeding without pilot_id:", tokenError);
-          // Continue without pilot_id if token is invalid
         }
       }
 
-      // Ensure we have a pilot ID for drone creation
-      if (!pilotId && !editingDroneId) {
+      if (role === "admin" || targetPilotId != null) {
+        if (!pilotId) {
+          setError("Please select a pilot before adding drone details.");
+          return;
+        }
+      } else if (!pilotId && !editingDroneId) {
         setError("Unable to determine pilot ID. Please log in again to add drones.");
         return;
       }
@@ -1146,14 +1162,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
   );
 
   if (!withDroneList) {
-    return (
-      <div className="rounded-xl border border-border bg-muted/25 p-4 sm:p-5">
-        <h3 className="mb-4 text-center text-sm font-semibold text-foreground">
-          Add New Drone Details
-        </h3>
-        <div className="text-left">{formFields}</div>
-      </div>
-    );
+    return formFields;
   }
 
   return (

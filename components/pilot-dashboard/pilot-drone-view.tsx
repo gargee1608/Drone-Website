@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, Drone as DroneIcon, Send } from "lucide-react";
 import { useCallback, useEffect, useState, useRef } from "react";
 
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
+import { subscribeAdminFleetUpdated } from "@/lib/admin-fleet-updated";
 import { PilotSettingsAddDronePanel, PilotSettingsAddDronePanelRef } from "@/components/settings/pilot-settings-add-drone-panel";
 import { Button } from "@/components/ui/button";
 import {
@@ -234,40 +235,42 @@ export function PilotDroneView() {
       if (response.ok) {
         const pilotData = (await response.json()) as unknown;
         const backendDrones = pilotDroneDetailsFromResponse(pilotData);
-        if (backendDrones.length > 0) {
-          // Update local storage with backend data
-          const base = readBaseSnapshot();
-          if (base) {
-            const updatedSnapshot: PilotProfileSnapshot = {
-              ...base,
-              drones: backendDrones
-                .map((drone, index) => ({
-                  id: drone.id ? String(drone.id) : `local-${Date.now()}-${index}`,
-                  modelName: String(drone.modelName || drone.model_name || ''),
-                  type: String(drone.type || ''),
-                  camera: String(drone.camera || ''),
-                  payloadKg: String(drone.payloadKg || drone.payload_kg || ''),
-                  flightTimeMin: String(drone.flightTimeMin || drone.flight_time_min || ''),
-                  rangeKm: String(drone.rangeKm || drone.rangeKg || drone.range_km || ''),
-                  useCases: Array.isArray(drone.useCases)
-                    ? drone.useCases
-                    : Array.isArray(drone.use_cases)
-                      ? drone.use_cases
-                      : [],
-                }))
-                .filter((drone) => !droneIsDeleted(drone, readDeletedDroneIds()))
-            };
-            persistSnapshot(updatedSnapshot);
-            setDrones(updatedSnapshot.drones);
-            
-            if (manual) {
-              setError("Drone data synced successfully!");
-              setJustAdded(true);
-              setTimeout(() => {
-                setJustAdded(false);
-                setError(null);
-              }, 2000);
-            }
+        const base = readBaseSnapshot();
+        if (base) {
+          const mapped = backendDrones
+            .map((drone, index) => ({
+              id: drone.id ? String(drone.id) : `local-${Date.now()}-${index}`,
+              modelName: String(drone.modelName || drone.model_name || ""),
+              type: String(drone.type || ""),
+              camera: String(drone.camera || ""),
+              payloadKg: String(drone.payloadKg || drone.payload_kg || ""),
+              flightTimeMin: String(
+                drone.flightTimeMin || drone.flight_time_min || ""
+              ),
+              rangeKm: String(
+                drone.rangeKm || drone.rangeKg || drone.range_km || ""
+              ),
+              useCases: Array.isArray(drone.useCases)
+                ? drone.useCases
+                : Array.isArray(drone.use_cases)
+                  ? drone.use_cases
+                  : [],
+            }))
+            .filter((drone) => !droneIsDeleted(drone, readDeletedDroneIds()));
+          const updatedSnapshot: PilotProfileSnapshot = {
+            ...base,
+            drones: mapped,
+          };
+          persistSnapshot(updatedSnapshot);
+          setDrones(mapped);
+
+          if (manual) {
+            setError("Drone data synced successfully!");
+            setJustAdded(true);
+            setTimeout(() => {
+              setJustAdded(false);
+              setError(null);
+            }, 2000);
           }
         }
       }
@@ -294,7 +297,13 @@ export function PilotDroneView() {
       fetchDroneDataFromBackend();
     };
     window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, onUpdated);
-    return () => window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, onUpdated);
+    const unsubFleet = subscribeAdminFleetUpdated(() => {
+      void fetchDroneDataFromBackend(true);
+    });
+    return () => {
+      window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, onUpdated);
+      unsubFleet();
+    };
   }, [refreshFromStorage, fetchDroneDataFromBackend]);
 
   useEffect(() => {
@@ -324,16 +333,8 @@ export function PilotDroneView() {
   }, [fetchDroneDataFromBackend]);
 
   async function handleDeleteDrone(drone: PilotProfileDrone) {
-    console.log("🗑️ Delete button clicked for drone:", drone);
-    
     const confirmDelete = confirm("Are you sure you want to delete this drone?");
-    
-    if (!confirmDelete) {
-      console.log("❌ User cancelled deletion");
-      return;
-    }
-
-    console.log("✅ User confirmed deletion");
+    if (!confirmDelete) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -342,71 +343,90 @@ export function PilotDroneView() {
         return;
       }
 
-      // Check if drone ID is a local storage ID (doesn't exist in backend yet)
-      const isLocalStorageDrone = typeof drone.id === 'string' && drone.id.startsWith('drone-');
-      
-      if (!isLocalStorageDrone) {
-        // Try to delete from backend first
-        try {
-          const response = await fetch(apiUrl(`/api/drones/${drone.id}`), {
-            method: "DELETE",
-            headers: {
-              "Authorization": `Bearer ${token}`,
-            },
-          });
+      const droneIdStr = String(drone.id ?? "");
+      const isLocalOnly =
+        droneIdStr.startsWith("drone-") || droneIdStr.startsWith("local-");
+      const fleetId = !isLocalOnly ? Number.parseInt(droneIdStr, 10) : NaN;
 
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.warn("Backend delete failed:", errorData.error);
-            // Continue with local storage deletion even if backend fails
-          } else {
-            console.log("✅ Drone deleted from backend successfully");
-          }
-        } catch (backendError) {
-          console.warn("Error deleting from backend, removing from local storage only:", backendError);
-          // Continue with local storage deletion
+      pauseBackendSync();
+
+      if (Number.isFinite(fleetId)) {
+        const response = await fetch(apiUrl(`/api/drones/${fleetId}`), {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok && response.status !== 404) {
+          const errorData = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          throw new Error(errorData.error || "Failed to delete drone from server");
         }
-      } else {
-        console.log("📦 Local storage drone detected, skipping backend delete");
+      } else if (!isLocalOnly) {
+        let pilotId: number | null = null;
+        try {
+          const parts = token.split(".");
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            const sub = payload.sub ? Number.parseInt(payload.sub, 10) : NaN;
+            pilotId = Number.isFinite(sub) ? sub : null;
+          }
+        } catch {
+          /* ignore */
+        }
+
+        const base = readBaseSnapshot();
+        const profileIndex =
+          base?.drones.findIndex((d) => String(d.id) === droneIdStr) ?? -1;
+
+        if (pilotId != null && profileIndex >= 0) {
+          const response = await fetch(
+            apiUrl(`/api/pilots/${pilotId}/drones/${profileIndex}`),
+            {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          if (!response.ok && response.status !== 404) {
+            const errorData = (await response.json().catch(() => ({}))) as {
+              error?: string;
+            };
+            throw new Error(errorData.error || "Failed to delete drone profile entry");
+          }
+        }
       }
 
-      // Persist deleted IDs so backend refreshes/page reloads do not show the row again.
-      setDeletedDroneIds(prev => {
-        const next = new Set(prev).add(String(drone.id));
+      const base = readBaseSnapshot();
+      const filteredDrones = (base?.drones ?? drones).filter(
+        (d) => String(d.id) !== droneIdStr
+      );
+
+      if (base) {
+        persistSnapshot({ ...base, drones: filteredDrones });
+      }
+
+      setDeletedDroneIds((prev) => {
+        const next = new Set(prev).add(droneIdStr);
         persistDeletedDroneIds(next);
         return next;
       });
-
-      // Update local state
-      const filteredDrones = drones.filter(d => d.id !== drone.id);
       setDrones(filteredDrones);
 
-      // Update localStorage
-      const storeKey = activePilotProfileSnapshotStorageKey();
-      const raw = localStorage.getItem(storeKey);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const updatedData = {
-          ...parsed,
-          drones: filteredDrones
-        };
-        localStorage.setItem(storeKey, JSON.stringify(updatedData));
-        sessionStorage.setItem(storeKey, JSON.stringify(updatedData));
-      }
-
-      // Show success message
       setError("Drone details deleted successfully!");
       setJustAdded(true);
-
-      // Clear success message after 3 seconds
       setTimeout(() => {
         setJustAdded(false);
         setError(null);
       }, 3000);
-
     } catch (error) {
       console.error("Error deleting drone:", error);
-      setError(error instanceof Error ? error.message : "Failed to delete drone. Please try again.");
+      setError(
+        error instanceof Error ? error.message : "Failed to delete drone. Please try again."
+      );
     }
   }
 
@@ -714,9 +734,8 @@ export function PilotDroneView() {
           </div>
           <PilotSettingsAddDronePanel
             ref={dronePanelRef}
-            showAdminRequest={true}
+            showAdminRequest={false}
             withDroneList={false}
-            openFormByDefault={true}
             editingDrone={editingDrone}
             onDroneAdded={() => {
               console.log("🎯 onDroneAdded callback triggered");

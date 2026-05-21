@@ -1,10 +1,117 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { X } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { DetailField } from "@/components/dashboard/user-request-detail-modal";
 import { PilotSettingsAddDronePanel } from "@/components/settings/pilot-settings-add-drone-panel";
 import { notifyAdminFleetUpdated } from "@/lib/admin-fleet-updated";
 import { apiUrl } from "@/lib/api-url";
+import { cn } from "@/lib/utils";
+
+const OPEN_REQUEST_TH_CLASS =
+  "px-2.5 py-2 align-middle text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:py-2 sm:text-[10px] sm:tracking-wider";
+const OPEN_REQUEST_TD_CLASS =
+  "min-w-0 px-2.5 py-2 align-middle text-[10px] leading-snug text-foreground sm:px-3 sm:py-2 sm:text-[11px]";
+const OPEN_REQUEST_DRONE_FORM_LABEL_CLASS =
+  "mb-1 block text-xs font-medium text-foreground";
+const OPEN_REQUEST_DRONE_FORM_FIELD_CLASS =
+  "h-8 w-full rounded-lg border border-border bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-[#008B8B]";
+const OPEN_REQUEST_DRONE_FORM_BTN_CANCEL_CLASS =
+  "h-8 rounded-lg border border-border px-3 text-xs font-medium hover:bg-muted";
+const OPEN_REQUEST_DRONE_FORM_BTN_SAVE_CLASS =
+  "h-8 rounded-lg border border-[#008B8B] bg-transparent px-3 text-xs font-medium text-[#008B8B] transition-colors hover:bg-[#008B8B]/10";
+
+type OpenRequestTableColumn = {
+  header: string;
+  align?: "left" | "center";
+  cell: ReactNode;
+};
+
+function OpenRequestDetailTable({
+  title,
+  subtitle,
+  columns,
+  minWidth = "min-w-[720px]",
+}: {
+  title: string;
+  subtitle: string;
+  columns: OpenRequestTableColumn[];
+  minWidth?: string;
+}) {
+  return (
+    <div className="rounded-2xl bg-card p-3 sm:p-4">
+      <h2 className="mb-1 text-base font-bold text-foreground sm:text-lg">{title}</h2>
+      <p className="mb-2 text-xs font-semibold text-foreground sm:mb-3 sm:text-[13px]">
+        {subtitle}
+      </p>
+      <div className="overflow-x-auto rounded-xl border border-border/90">
+        <table
+          className={cn(
+            "w-full table-fixed border-collapse text-left leading-snug",
+            minWidth
+          )}
+        >
+          <thead>
+            <tr className="border-b border-border bg-muted/60">
+              {columns.map((col) => (
+                <th
+                  key={col.header}
+                  scope="col"
+                  className={cn(
+                    OPEN_REQUEST_TH_CLASS,
+                    col.align === "center" ? "text-center" : "text-left"
+                  )}
+                >
+                  {col.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">
+              {columns.map((col) => (
+                <td
+                  key={col.header}
+                  className={cn(
+                    OPEN_REQUEST_TD_CLASS,
+                    col.align === "center" ? "text-center" : "text-left"
+                  )}
+                >
+                  {col.cell}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function openRequestDisplayId(id: number): string {
+  return `#RQ-${id}`;
+}
+
+function openRequestStatusBadge(status: string) {
+  const normalized = status.trim().toLowerCase();
+  const className =
+    normalized === "pending"
+      ? "bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200"
+      : normalized === "completed"
+        ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200"
+        : "bg-muted text-muted-foreground";
+  return (
+    <span
+      className={cn(
+        "inline-flex max-w-full items-center justify-center rounded px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide sm:text-[9px]",
+        className
+      )}
+    >
+      {status}
+    </span>
+  );
+}
 
 interface UserRequest {
   id: number;
@@ -107,6 +214,91 @@ function displayValue(value: unknown): string {
   return textValue(value) || "—";
 }
 
+function formatDroneMetric(
+  value: string,
+  unit: "kg" | "min" | "km"
+): string {
+  if (value === "—") return value;
+  const suffix =
+    unit === "kg" ? " kg" : unit === "min" ? " min" : " km";
+  if (value.toLowerCase().includes(unit)) return value;
+  return `${value}${suffix}`;
+}
+
+function AdminDroneDetailCard({
+  row,
+  deleting,
+  onEdit,
+  onDelete,
+}: {
+  row: AdminPilotDroneTableRow;
+  deleting: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-muted/30 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Drone details
+          </p>
+          <h2 className="mt-1 truncate text-sm font-semibold text-foreground">
+            {row.modelName}
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">{row.pilotName}</span>
+            {row.pilotEmail !== "—" ? (
+              <>
+                <span className="mx-1.5 text-border">·</span>
+                <span className="break-all">{row.pilotEmail}</span>
+              </>
+            ) : null}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="h-8 rounded-lg border border-[#008080] px-3 text-xs font-medium text-foreground transition hover:bg-[#008080]/10"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={deleting}
+            className="h-8 rounded-lg border border-red-300 bg-transparent px-3 text-xs font-medium text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-60"
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
+        </div>
+      </div>
+
+      <div className="px-4 py-3 sm:px-5 sm:py-4">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+          <DetailField label="Pilot ID">{row.pilotId}</DetailField>
+          <DetailField label="Drone ID">{row.droneId}</DetailField>
+          <DetailField label="Type">{row.type}</DetailField>
+          <DetailField label="Camera">{row.camera}</DetailField>
+          <DetailField label="Payload">
+            {formatDroneMetric(row.payloadKg, "kg")}
+          </DetailField>
+          <DetailField label="Flight time">
+            {formatDroneMetric(row.flightTimeMin, "min")}
+          </DetailField>
+          <DetailField label="Range">
+            {formatDroneMetric(row.rangeKm, "km")}
+          </DetailField>
+          <div className="sm:col-span-2 lg:col-span-3">
+            <DetailField label="Use cases">{row.useCases}</DetailField>
+          </div>
+        </dl>
+      </div>
+    </section>
+  );
+}
+
 function arrayPayload<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[];
   if (value && typeof value === "object") {
@@ -180,6 +372,26 @@ function dedupePendingPilotRequests(requests: UserRequest[]): UserRequest[] {
   });
 }
 
+function profileDroneFleetKey(drone: PilotProfileDroneRow): string {
+  const id = textValue(drone.id);
+  if (id) return `id:${id}`;
+  const useCases = Array.isArray(drone.useCases)
+    ? drone.useCases.map((v) => textValue(v).toLowerCase()).join("|")
+    : Array.isArray(drone.use_cases)
+      ? drone.use_cases.map((v) => textValue(v).toLowerCase()).join("|")
+      : "";
+  return [
+    "f",
+    textValue(drone.modelName ?? drone.model_name).toLowerCase(),
+    textValue(drone.type).toLowerCase(),
+    textValue(drone.camera).toLowerCase(),
+    textValue(drone.payloadKg ?? drone.payload_kg).toLowerCase(),
+    textValue(drone.flightTimeMin ?? drone.flight_time_min).toLowerCase(),
+    textValue(drone.rangeKm ?? drone.range_km).toLowerCase(),
+    useCases,
+  ].join("::");
+}
+
 function buildPilotDroneRows(
   pilots: PilotBackendRow[],
   fleetDrones: DroneBackendRow[]
@@ -188,6 +400,20 @@ function buildPilotDroneRows(
   for (const pilot of pilots) {
     const id = textValue(pilot.id);
     if (id) pilotById.set(id, pilot);
+  }
+
+  const fleetKeysByPilot = new Map<string, Set<string>>();
+  for (const drone of fleetDrones) {
+    const pilotId = textValue(drone.pilot_id);
+    if (!pilotId) continue;
+    const id = textValue(drone.id);
+    if (!id) continue;
+    let keys = fleetKeysByPilot.get(pilotId);
+    if (!keys) {
+      keys = new Set();
+      fleetKeysByPilot.set(pilotId, keys);
+    }
+    keys.add(`id:${id}`);
   }
 
   const rows: AdminPilotDroneTableRow[] = [];
@@ -221,6 +447,13 @@ function buildPilotDroneRows(
 
     profileDrones.forEach((drone, droneIndex) => {
       const droneId = textValue(drone.id);
+      const fleetKeys = fleetKeysByPilot.get(pilotId);
+      if (droneId && fleetKeys?.has(`id:${droneId}`)) {
+        return;
+      }
+      if (!droneId && fleetKeys?.has(profileDroneFleetKey(drone))) {
+        return;
+      }
       rows.push({
         key: `profile-${pilotId || pilotIndex}-${droneId || droneIndex}`,
         sourceKind: "profile",
@@ -265,8 +498,11 @@ function buildPilotDroneRows(
   });
 }
 
+const ADD_DRONE_DETAILS_PATH = "/dashboard/drone";
+
 /** Admin dashboard version of drone management - without admin request option */
 export function AdminDroneView() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const requestId = searchParams.get("request");
   const [request, setRequest] = useState<UserRequest | null>(null);
@@ -290,6 +526,10 @@ export function AdminDroneView() {
   const addDronePanelRef = useRef<HTMLDivElement>(null);
   const [dronePanelKey, setDronePanelKey] = useState(0);
   const [openAddDronePanel, setOpenAddDronePanel] = useState(false);
+  const [addDronePilotId, setAddDronePilotId] = useState("");
+  const [pilotPickerOptions, setPilotPickerOptions] = useState<
+    { id: number; name: string }[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [showDroneForm, setShowDroneForm] = useState(false);
   const [droneFormData, setDroneFormData] = useState({
@@ -301,9 +541,19 @@ export function AdminDroneView() {
     rangeKm: ''
   });
 
+  const backToAddDroneDetailsPage = () => {
+    setRequest(null);
+    setShowDroneForm(false);
+    setLoading(false);
+    router.push(ADD_DRONE_DETAILS_PATH);
+  };
+
   useEffect(() => {
     if (requestId) {
       fetchRequestDetails(requestId);
+    } else {
+      setRequest(null);
+      setShowDroneForm(false);
     }
     fetchPendingRequests();
     fetchPilotDroneRows();
@@ -335,6 +585,17 @@ export function AdminDroneView() {
       const pilots = arrayPayload<PilotBackendRow>(pilotsData);
       const drones = arrayPayload<DroneBackendRow>(dronesData);
       setPilotDroneRows(buildPilotDroneRows(pilots, drones));
+      setPilotPickerOptions(
+        pilots
+          .map((p) => {
+            const id = Number(p.id);
+            if (!Number.isFinite(id)) return null;
+            const name = String(p.name ?? "").trim() || `Pilot #${id}`;
+            return { id, name };
+          })
+          .filter((row): row is { id: number; name: string } => row != null)
+          .sort((a, b) => a.name.localeCompare(b.name))
+      );
     } catch (error) {
       console.error("Error fetching pilot drone rows:", error);
       setPilotDroneRows([]);
@@ -389,7 +650,15 @@ export function AdminDroneView() {
       return;
     }
     setRequest(req);
-    setShowDroneForm(true);
+    setShowDroneForm(false);
+    setDroneFormData({
+      modelName: "",
+      type: "",
+      camera: "",
+      payloadKg: "",
+      flightTimeMin: "",
+      rangeKm: "",
+    });
   };
 
   const saveDroneEdit = async () => {
@@ -497,22 +766,34 @@ export function AdminDroneView() {
         "Authorization": token ? `Bearer ${token}` : "",
       };
 
-      let response: Response;
-      if (row.sourceKind === "fleet") {
-        response = await fetch(apiUrl(`/api/drones/${row.droneId}`), {
+      const pilotIdNum = numericId(emptyIfDash(row.pilotId));
+      const fleetIdNum = numericId(emptyIfDash(row.droneId));
+
+      let response: Response | null = null;
+
+      if (fleetIdNum != null) {
+        response = await fetch(apiUrl(`/api/drones/${fleetIdNum}`), {
           method: "DELETE",
           headers,
         });
-      } else if (row.sourceKind === "profile") {
+        if (
+          !response.ok &&
+          response.status === 404 &&
+          row.sourceKind === "profile" &&
+          pilotIdNum != null
+        ) {
+          response = await fetch(
+            apiUrl(`/api/pilots/${pilotIdNum}/drones/${row.profileIndex ?? 0}`),
+            { method: "DELETE", headers }
+          );
+        }
+      } else if (row.sourceKind === "profile" && pilotIdNum != null) {
         response = await fetch(
-          apiUrl(`/api/pilots/${row.pilotId}/drones/${row.profileIndex ?? 0}`),
-          {
-            method: "DELETE",
-            headers,
-          }
+          apiUrl(`/api/pilots/${pilotIdNum}/drones/${row.profileIndex ?? 0}`),
+          { method: "DELETE", headers }
         );
-      } else {
-        response = await fetch(apiUrl(`/api/pilots/${row.pilotId}/assign-drone`), {
+      } else if (row.sourceKind === "assigned" && pilotIdNum != null) {
+        response = await fetch(apiUrl(`/api/pilots/${pilotIdNum}/assign-drone`), {
           method: "PATCH",
           headers,
           body: JSON.stringify({
@@ -525,12 +806,31 @@ export function AdminDroneView() {
             range_km: "",
           }),
         });
+      } else {
+        throw new Error(
+          "Cannot delete this drone: missing a valid pilot or drone identifier."
+        );
       }
 
-      if (!response.ok) {
+      if (!response?.ok) {
         const data = (await response.json().catch(() => ({}))) as { error?: string };
         throw new Error(data.error || "Failed to delete drone details");
       }
+
+      const deletedPilotId = emptyIfDash(row.pilotId);
+      setPilotDroneRows((prev) =>
+        prev.filter((r) => {
+          if (r.key === row.key) return false;
+          if (
+            fleetIdNum != null &&
+            numericId(emptyIfDash(r.droneId)) === fleetIdNum &&
+            emptyIfDash(r.pilotId) === deletedPilotId
+          ) {
+            return false;
+          }
+          return true;
+        })
+      );
 
       await fetchPilotDroneRows();
       notifyAdminFleetUpdated();
@@ -553,6 +853,10 @@ export function AdminDroneView() {
     }, 0);
   };
 
+  const closeAddDronePanel = () => {
+    setOpenAddDronePanel(false);
+  };
+
   const fetchRequestDetails = async (id: string) => {
     setLoading(true);
     try {
@@ -568,6 +872,7 @@ export function AdminDroneView() {
         const foundRequest = data.data.find((req: UserRequest) => req.id === parseInt(id));
         if (foundRequest) {
           setRequest(foundRequest);
+          setShowDroneForm(false);
         }
       }
     } catch (error) {
@@ -601,37 +906,9 @@ export function AdminDroneView() {
     }
   };
 
-  const handleDeleteRequest = async (requestId: number) => {
-    if (!confirm("Are you sure you want to delete this request?")) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(apiUrl(`/api/user-requests/${requestId}`), {
-        method: "DELETE",
-        headers: {
-          "Authorization": token ? `Bearer ${token}` : "",
-        },
-      });
-
-      if (response.ok) {
-        // Refresh the pending requests list
-        await fetchPendingRequests();
-        alert("Request deleted successfully!");
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to delete request");
-      }
-    } catch (error) {
-      console.error("Error deleting request:", error);
-      alert(error instanceof Error ? error.message : "Failed to delete request. Please try again.");
-    }
-  };
-
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-3xl">
+      <div className="mx-auto w-full max-w-7xl">
         <div className="text-center py-8">
           <p className="text-muted-foreground">Loading request details...</p>
         </div>
@@ -641,159 +918,180 @@ export function AdminDroneView() {
 
   if (request) {
     return (
-      <div className="mx-auto w-full max-w-3xl space-y-6">
-        {/* Request Header */}
-        <div className="rounded-xl border border-border bg-muted/25 p-4 sm:p-5">
-          <h2 className="text-lg font-semibold text-foreground mb-4">
-            Pilot Request for Admin Review
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="font-medium text-foreground">Pilot Name:</span>
-              <p className="text-muted-foreground">{request.pilot_name}</p>
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Request Type:</span>
-              <p className="text-muted-foreground">{request.request_type}</p>
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Status:</span>
-              <p className="text-muted-foreground">{request.status}</p>
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Created:</span>
-              <p className="text-muted-foreground">
-                {new Date(request.created_at).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <span className="font-medium text-foreground">Description:</span>
-            <p className="text-muted-foreground mt-1">{request.description}</p>
-          </div>
-        </div>
+      <div className="mx-auto w-full max-w-7xl space-y-3">
+        <OpenRequestDetailTable
+          title="Pilot Request for Admin Review"
+          subtitle="Total 1 request"
+          columns={[
+            {
+              header: "Request ID",
+              cell: (
+                <span
+                  className="inline-block max-w-full font-mono text-[10px] font-medium tracking-tight text-muted-foreground [overflow-wrap:anywhere] sm:text-[11px]"
+                  title={openRequestDisplayId(request.id)}
+                >
+                  {openRequestDisplayId(request.id)}
+                </span>
+              ),
+            },
+            {
+              header: "Pilot Name",
+              cell: (
+                <span className="break-words font-semibold text-[#006767] dark:text-primary">
+                  {request.pilot_name}
+                </span>
+              ),
+            },
+            {
+              header: "Request Type",
+              cell: (
+                <span className="break-words font-medium">{request.request_type}</span>
+              ),
+            },
+            {
+              header: "Description",
+              cell: (
+                <span className="line-clamp-3 break-words text-muted-foreground">
+                  {request.description || "—"}
+                </span>
+              ),
+            },
+            {
+              header: "Created",
+              cell: (
+                <span className="tabular-nums">
+                  {new Date(request.created_at).toLocaleDateString()}
+                </span>
+              ),
+            },
+            {
+              header: "Status",
+              align: "center",
+              cell: openRequestStatusBadge(request.status),
+            },
+          ]}
+        />
 
-        {/* Pilot Details */}
-        {request.pilot_details && (
-          <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              Pilot Details Submitted
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium text-foreground">Full Name:</span>
-                <p className="text-muted-foreground">{request.pilot_details.fullName || "—"}</p>
-              </div>
-              <div>
-                <span className="font-medium text-foreground">Email:</span>
-                <p className="text-muted-foreground">{request.pilot_details.email || "—"}</p>
-              </div>
-              <div>
-                <span className="font-medium text-foreground">City:</span>
-                <p className="text-muted-foreground">{request.pilot_details.city || "—"}</p>
-              </div>
-              <div>
-                <span className="font-medium text-foreground">State:</span>
-                <p className="text-muted-foreground">{request.pilot_details.state || "—"}</p>
-              </div>
-              <div>
-                <span className="font-medium text-foreground">Flight Hours:</span>
-                <p className="text-muted-foreground">{request.pilot_details.flightHours || "—"}</p>
-              </div>
-              <div>
-                <span className="font-medium text-foreground">DGCA License:</span>
-                <p className="text-muted-foreground">{request.pilot_details.dgca || "—"}</p>
-              </div>
-            </div>
-            {request.pilot_details.bio && (
-              <div className="mt-4">
-                <span className="font-medium text-foreground">Bio:</span>
-                <p className="text-muted-foreground mt-1">{request.pilot_details.bio}</p>
-              </div>
-            )}
-            {request.pilot_details.skills && request.pilot_details.skills.length > 0 && (
-              <div className="mt-4">
-                <span className="font-medium text-foreground">Skills:</span>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {request.pilot_details.skills.map((skill: string, index: number) => (
-                    <span
-                      key={index}
-                      className="rounded-full border px-3 py-1 text-xs bg-muted"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {request.pilot_details ? (
+          <OpenRequestDetailTable
+            title="Pilot Details Submitted"
+            subtitle="Total 1 pilot profile"
+            minWidth="min-w-[960px]"
+            columns={[
+              {
+                header: "Full Name",
+                cell: (
+                  <span className="break-words font-semibold">
+                    {request.pilot_details.fullName || "—"}
+                  </span>
+                ),
+              },
+              {
+                header: "Email",
+                cell: (
+                  <span className="break-all text-muted-foreground">
+                    {request.pilot_details.email || "—"}
+                  </span>
+                ),
+              },
+              {
+                header: "City",
+                cell: <span className="break-words">{request.pilot_details.city || "—"}</span>,
+              },
+              {
+                header: "State",
+                cell: <span className="break-words">{request.pilot_details.state || "—"}</span>,
+              },
+              {
+                header: "Flight Hours",
+                align: "center",
+                cell: (
+                  <span className="tabular-nums">
+                    {request.pilot_details.flightHours || "—"}
+                  </span>
+                ),
+              },
+              {
+                header: "DGCA License",
+                cell: (
+                  <span className="break-words">{request.pilot_details.dgca || "—"}</span>
+                ),
+              },
+              {
+                header: "Skills",
+                cell:
+                  request.pilot_details.skills &&
+                  request.pilot_details.skills.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {request.pilot_details.skills.map((skill: string, index: number) => (
+                        <span
+                          key={index}
+                          className="rounded-full bg-muted px-2 py-0.5 text-[9px] font-medium sm:text-[10px]"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    "—"
+                  ),
+              },
+            ]}
+          />
+        ) : null}
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-2">
-          {!showDroneForm && (
-            <>
-              <button
-                onClick={() => setShowDroneForm(true)}
-                className="px-4 py-2 bg-[#008B8B] text-white rounded-lg hover:bg-[#008B8B]/90 transition-colors"
-              >
-                Add New Drone Details
-              </button>
-              <button
-                onClick={() => {
-                  // Here you could add edit functionality for the request itself
-                  alert("Edit request functionality would go here");
-                }}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Edit Request
-              </button>
-              <button
-                onClick={() => request && handleDeleteRequest(request.id)}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Delete Request
-              </button>
-            </>
-          )}
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <button
-            onClick={() => window.history.back()}
-            className="px-4 py-2 border border-border rounded-lg hover:bg-muted"
+            type="button"
+            onClick={() => setShowDroneForm(true)}
+            className="h-8 rounded-lg border border-[#008B8B] bg-transparent px-3 text-xs font-medium text-[#008B8B] transition-colors hover:bg-[#008B8B]/10"
           >
-            Back to Requests
+            Add New Drone Details
+          </button>
+          <button
+            type="button"
+            onClick={backToAddDroneDetailsPage}
+            className="h-8 rounded-lg border border-border px-3 text-xs font-medium hover:bg-muted"
+          >
+            Back to Request
           </button>
         </div>
 
         {/* Drone Form */}
         {showDroneForm && (
-          <div className="rounded-xl border border-border bg-muted/25 p-4 sm:p-5">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
+          <div className="rounded-xl border border-border bg-muted/25 p-3 sm:p-4">
+            <h3 className="mb-2 text-sm font-semibold text-foreground">
               Add New Drone Details for {request?.pilot_name}
             </h3>
-            <div className="text-sm text-muted-foreground mb-4">
+            <div className="mb-3 text-xs text-muted-foreground">
               This form will add drone details to the pilot&apos;s profile based on their request.
             </div>
             
             {/* Simple drone form - you can expand this as needed */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
+                  <label className={OPEN_REQUEST_DRONE_FORM_LABEL_CLASS}>
                     Model Name
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]"
+                    className={OPEN_REQUEST_DRONE_FORM_FIELD_CLASS}
                     placeholder="e.g., DJI Mavic 3"
                     value={droneFormData.modelName}
                     onChange={(e) => setDroneFormData({...droneFormData, modelName: e.target.value})}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
+                  <label className={OPEN_REQUEST_DRONE_FORM_LABEL_CLASS}>
                     Type
                   </label>
-                  <select className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]" value={droneFormData.type} onChange={(e) => setDroneFormData({...droneFormData, type: e.target.value})}>
+                  <select
+                    className={OPEN_REQUEST_DRONE_FORM_FIELD_CLASS}
+                    value={droneFormData.type}
+                    onChange={(e) => setDroneFormData({...droneFormData, type: e.target.value})}
+                  >
                     <option value="">Select type</option>
                     <option value="FPV">FPV</option>
                     <option value="Autonomous">Autonomous</option>
@@ -802,26 +1100,26 @@ export function AdminDroneView() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
+                  <label className={OPEN_REQUEST_DRONE_FORM_LABEL_CLASS}>
                     Camera
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]"
+                    className={OPEN_REQUEST_DRONE_FORM_FIELD_CLASS}
                     placeholder="e.g., 4K HDR"
                     value={droneFormData.camera}
                     onChange={(e) => setDroneFormData({...droneFormData, camera: e.target.value})}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
+                  <label className={OPEN_REQUEST_DRONE_FORM_LABEL_CLASS}>
                     Payload (kg)
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]"
+                    className={OPEN_REQUEST_DRONE_FORM_FIELD_CLASS}
                     placeholder="e.g., 2.5"
                     value={droneFormData.payloadKg}
                     onChange={(e) => setDroneFormData({...droneFormData, payloadKg: e.target.value})}
@@ -829,26 +1127,26 @@ export function AdminDroneView() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
+                  <label className={OPEN_REQUEST_DRONE_FORM_LABEL_CLASS}>
                     Flight Time (min)
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]"
+                    className={OPEN_REQUEST_DRONE_FORM_FIELD_CLASS}
                     placeholder="e.g., 45"
                     value={droneFormData.flightTimeMin}
                     onChange={(e) => setDroneFormData({...droneFormData, flightTimeMin: e.target.value})}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
+                  <label className={OPEN_REQUEST_DRONE_FORM_LABEL_CLASS}>
                     Range (km)
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008B8B]"
+                    className={OPEN_REQUEST_DRONE_FORM_FIELD_CLASS}
                     placeholder="e.g., 15"
                     value={droneFormData.rangeKm}
                     onChange={(e) => setDroneFormData({...droneFormData, rangeKm: e.target.value})}
@@ -856,14 +1154,16 @@ export function AdminDroneView() {
                 </div>
               </div>
               
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
+                  type="button"
                   onClick={() => setShowDroneForm(false)}
-                  className="px-4 py-2 border border-border rounded-lg hover:bg-muted"
+                  className={OPEN_REQUEST_DRONE_FORM_BTN_CANCEL_CLASS}
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={async () => {
                     // Validate form data
                     if (!droneFormData.modelName || !droneFormData.type) {
@@ -1023,7 +1323,7 @@ export function AdminDroneView() {
                       alert(`Failed to add drone details: ${error instanceof Error ? error.message : 'Unknown error'}`);
                     }
                   }}
-                  className="px-4 py-2 bg-[#008B8B] text-white rounded-lg hover:bg-[#008B8B]/90 transition-colors"
+                  className={OPEN_REQUEST_DRONE_FORM_BTN_SAVE_CLASS}
                 >
                   Save Drone Details
                 </button>
@@ -1120,13 +1420,60 @@ export function AdminDroneView() {
 
       <div ref={addDronePanelRef}>
         {openAddDronePanel ? (
-          <PilotSettingsAddDronePanel
-            key={dronePanelKey}
-            showAdminRequest={false}
-            openFormByDefault
-            hideAddButton
-            onDroneAdded={() => void fetchPilotDroneRows()}
-          />
+          <div className="space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-foreground">
+                Add New Drone Details
+              </h3>
+              <button
+                type="button"
+                onClick={closeAddDronePanel}
+                aria-label="Close add drone form"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+            <div className="max-w-md">
+              <label
+                htmlFor="admin-add-drone-pilot"
+                className="mb-1.5 block text-xs font-semibold text-foreground"
+              >
+                Pilot <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="admin-add-drone-pilot"
+                value={addDronePilotId}
+                onChange={(e) => setAddDronePilotId(e.target.value)}
+                className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                required
+              >
+                <option value="">Choose a pilot…</option>
+                {pilotPickerOptions.map((pilot) => (
+                  <option key={pilot.id} value={String(pilot.id)}>
+                    {pilot.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Drone details are saved to this pilot&apos;s profile and appear on
+                their My Drones page.
+              </p>
+            </div>
+            <PilotSettingsAddDronePanel
+              key={`${dronePanelKey}-${addDronePilotId}`}
+              withDroneList={false}
+              showAdminRequest={false}
+              targetPilotId={
+                addDronePilotId ? Number.parseInt(addDronePilotId, 10) : null
+              }
+              onDroneAdded={() => {
+                void fetchPilotDroneRows();
+                notifyAdminFleetUpdated();
+                closeAddDronePanel();
+              }}
+            />
+          </div>
         ) : null}
       </div>
 
@@ -1145,108 +1492,13 @@ export function AdminDroneView() {
       ) : (
         <div className="space-y-4">
           {pilotDroneRows.map((row) => (
-            <section
+            <AdminDroneDetailCard
               key={row.key}
-              className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-                <h2 className="text-sm font-semibold text-foreground">
-                  Drone details
-                </h2>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openDroneEdit(row)}
-                    className="h-8 w-20 rounded-lg border border-[#008080] text-xs text-foreground transition hover:bg-[#008080]/10"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void deleteDroneRow(row)}
-                    disabled={deletingDroneKey === row.key}
-                    className="h-8 w-20 rounded-lg border border-red-300 bg-transparent text-xs text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-60"
-                  >
-                    {deletingDroneKey === row.key ? "Deleting" : "Delete"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="px-4 py-4">
-                <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="sm:col-span-2 lg:col-span-3">
-                    <dt className="text-xs font-semibold tracking-wide text-muted-foreground">
-                      Pilot
-                    </dt>
-                    <dd className="mt-1 font-medium text-sm">
-                      {row.pilotName}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold tracking-wide text-muted-foreground">
-                      Pilot ID
-                    </dt>
-                    <dd className="mt-1">{row.pilotId}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold tracking-wide text-muted-foreground">
-                      Pilot email
-                    </dt>
-                    <dd className="mt-1 break-all">{row.pilotEmail}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold tracking-wide text-muted-foreground">
-                      Drone ID
-                    </dt>
-                    <dd className="mt-1">{row.droneId}</dd>
-                  </div>
-                  <div className="sm:col-span-2 lg:col-span-3">
-                    <dt className="text-xs font-semibold tracking-wide text-muted-foreground">
-                      Model name
-                    </dt>
-                    <dd className="mt-1 font-medium text-sm">
-                      {row.modelName}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold tracking-wide text-muted-foreground">
-                      Type
-                    </dt>
-                    <dd className="mt-1">{row.type}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold tracking-wide text-muted-foreground">
-                      Camera
-                    </dt>
-                    <dd className="mt-1">{row.camera}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold tracking-wide text-muted-foreground">
-                      Payload
-                    </dt>
-                    <dd className="mt-1 tabular-nums">{row.payloadKg}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold tracking-wide text-muted-foreground">
-                      Flight time
-                    </dt>
-                    <dd className="mt-1 tabular-nums">{row.flightTimeMin}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold tracking-wide text-muted-foreground">
-                      Range
-                    </dt>
-                    <dd className="mt-1 tabular-nums">{row.rangeKm}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold tracking-wide text-muted-foreground">
-                      Use cases
-                    </dt>
-                    <dd className="mt-1">{row.useCases}</dd>
-                  </div>
-                </dl>
-              </div>
-            </section>
+              row={row}
+              deleting={deletingDroneKey === row.key}
+              onEdit={() => openDroneEdit(row)}
+              onDelete={() => void deleteDroneRow(row)}
+            />
           ))}
         </div>
       )}
