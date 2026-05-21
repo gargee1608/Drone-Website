@@ -1279,14 +1279,57 @@ export function AdminDroneView() {
                         console.log('Pilot found by ID:', pilotData);
                       }
 
-                      // Add drone details to pilot profile
+                      const profileDrone = {
+                        id: `drone-${Date.now()}`,
+                        modelName: droneFormData.modelName.trim(),
+                        type: droneFormData.type.trim(),
+                        camera: droneFormData.camera.trim(),
+                        payloadKg: droneFormData.payloadKg.trim(),
+                        flightTimeMin: droneFormData.flightTimeMin.trim(),
+                        rangeKm: droneFormData.rangeKm.trim(),
+                        useCases: [] as string[],
+                      };
+
+                      const fleetResponse = await fetch(apiUrl("/api/drones"), {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: token ? `Bearer ${token}` : "",
+                        },
+                        body: JSON.stringify({
+                          pilot_id: actualPilotId,
+                          model_name: profileDrone.modelName,
+                          type: profileDrone.type,
+                          camera: profileDrone.camera || null,
+                          payload_kg: profileDrone.payloadKg || null,
+                          flight_time_min: profileDrone.flightTimeMin || null,
+                          range_km: profileDrone.rangeKm || null,
+                          use_cases: profileDrone.useCases,
+                        }),
+                      });
+
+                      if (!fleetResponse.ok) {
+                        const fleetErr = await fleetResponse.json().catch(() => ({}));
+                        throw new Error(
+                          (fleetErr as { error?: string }).error ||
+                            "Failed to register drone on server"
+                        );
+                      }
+
+                      const fleetCreated = (await fleetResponse.json()) as {
+                        id?: number | string;
+                      };
+                      if (fleetCreated?.id != null) {
+                        profileDrone.id = String(fleetCreated.id);
+                      }
+
                       const droneResponse = await fetch(apiUrl(`/api/pilots/${actualPilotId}/drones`), {
                         method: "PATCH",
                         headers: {
                           "Content-Type": "application/json",
                           "Authorization": token ? `Bearer ${token}` : "",
                         },
-                        body: JSON.stringify({ drones: [droneFormData] }),
+                        body: JSON.stringify({ drones: [profileDrone] }),
                       });
 
                       if (droneResponse.ok) {

@@ -1421,7 +1421,10 @@ export function PilotProfileView({
               )}
               {embedded && embeddedAddDroneOpen ? (
                 <div className="mt-6 border-t border-border/80 pt-6">
-                  <PilotSettingsAddDronePanel withDroneList={false} />
+                  <PilotSettingsAddDronePanel
+                    withDroneList={false}
+                    onDroneAdded={() => setEmbeddedAddDroneOpen(false)}
+                  />
                 </div>
               ) : null}
             </div>

@@ -23,41 +23,12 @@ import {
   type PilotProfileDrone,
   type PilotProfileSnapshot,
 } from "@/lib/pilot-profile-snapshot";
+import {
+  fetchPilotDronesFromApi,
+  mergePilotDroneLists,
+} from "@/lib/load-pilot-drones";
 import { cn } from "@/lib/utils";
 import { apiUrl } from "@/lib/api-url";
-
-type BackendDroneDetails = {
-  id?: string | number;
-  modelName?: string;
-  model_name?: string;
-  type?: string;
-  camera?: string;
-  payloadKg?: string | number;
-  payload_kg?: string | number;
-  flightTimeMin?: string | number;
-  flight_time_min?: string | number;
-  rangeKg?: string | number;
-  rangeKm?: string | number;
-  range_km?: string | number;
-  useCases?: string[];
-  use_cases?: string[];
-};
-
-type PilotDetailsResponse = {
-  drone_details?: unknown;
-  data?: {
-    drone_details?: unknown;
-  };
-};
-
-function pilotDroneDetailsFromResponse(value: unknown): BackendDroneDetails[] {
-  const details =
-    value && typeof value === "object"
-      ? ((value as PilotDetailsResponse).drone_details ??
-        (value as PilotDetailsResponse).data?.drone_details)
-      : undefined;
-  return Array.isArray(details) ? (details as BackendDroneDetails[]) : [];
-}
 
 const DELETED_DRONE_IDS_STORAGE_SUFFIX = "::deleted-drone-ids";
 
@@ -92,6 +63,23 @@ function persistDeletedDroneIds(ids: Set<string>) {
 
 function droneIsDeleted(drone: Pick<PilotProfileDrone, "id">, ids: Set<string>) {
   return ids.has(String(drone.id));
+}
+
+function filterVisibleDrones(
+  list: PilotProfileDrone[],
+  deletedIds: Set<string>
+): PilotProfileDrone[] {
+  return list.filter(
+    (drone) =>
+      !droneIsDeleted(drone, deletedIds) &&
+      !(
+        drone.modelName?.toLowerCase().includes("dji") &&
+        drone.type === "FPV" &&
+        drone.camera === "5K" &&
+        drone.payloadKg === "3.5" &&
+        drone.flightTimeMin === "56"
+      )
+  );
 }
 
 function readBaseSnapshot(): PilotProfileSnapshot | null {
@@ -162,36 +150,16 @@ export function PilotDroneView() {
   const [editingDrone, setEditingDrone] = useState<PilotProfileDrone | null>(null);
   showAddFormRef.current = showAddForm;
 
-  const refreshFromStorage = useCallback((forceUpdate = false) => {
-    console.log("🔄 refreshFromStorage called, forceUpdate:", forceUpdate);
-
-    const base = readBaseSnapshot();
-    console.log("📦 Reading from storage, base:", base);
-
-    if (base && base.drones) {
-      console.log("📦 Storage has", base.drones.length, "drones");
-
-      // Always update if forceUpdate is true
-      if (forceUpdate) {
-        console.log("✅ Force updating UI from storage");
-        setDrones([...base.drones]);
-      } else {
-        // Otherwise check if counts differ
-        setDrones(prevDrones => {
-          console.log("📦 UI has", prevDrones.length, "drones");
-          if (base.drones.length !== prevDrones.length) {
-            console.log("✅ Updating UI from storage (count changed)");
-            return [...base.drones];
-          } else {
-            console.log("🔄 Skipping update (counts match)");
-            return prevDrones;
-          }
-        });
-      }
-    } else {
-      console.log("📭 No base data, keeping current state");
-    }
+  const applyDronesToView = useCallback((nextDrones: PilotProfileDrone[]) => {
+    setDrones([...nextDrones]);
   }, []);
+
+  const refreshFromStorage = useCallback(() => {
+    const base = readBaseSnapshot();
+    if (base?.drones) {
+      applyDronesToView(base.drones);
+    }
+  }, [applyDronesToView]);
 
   const pauseBackendSync = useCallback((durationMs = 4000) => {
     backendSyncPausedUntilRef.current = Date.now() + durationMs;
@@ -224,55 +192,35 @@ export function PilotDroneView() {
 
       if (!pilotId) return;
 
-      // Fetch pilot data with drone details from backend
-      const response = await fetch(apiUrl(`/api/pilots/${pilotId}`), {
-        headers: {
-          "Authorization": token ? `Bearer ${token}` : "",
-        },
-        cache: "no-store",
-      });
+      const apiDrones = await fetchPilotDronesFromApi(pilotId, token);
+      const base = readBaseSnapshot();
+      const merged = mergePilotDroneLists(
+        apiDrones,
+        base?.drones ?? []
+      ).filter((drone) => !droneIsDeleted(drone, readDeletedDroneIds()));
 
-      if (response.ok) {
-        const pilotData = (await response.json()) as unknown;
-        const backendDrones = pilotDroneDetailsFromResponse(pilotData);
-        const base = readBaseSnapshot();
-        if (base) {
-          const mapped = backendDrones
-            .map((drone, index) => ({
-              id: drone.id ? String(drone.id) : `local-${Date.now()}-${index}`,
-              modelName: String(drone.modelName || drone.model_name || ""),
-              type: String(drone.type || ""),
-              camera: String(drone.camera || ""),
-              payloadKg: String(drone.payloadKg || drone.payload_kg || ""),
-              flightTimeMin: String(
-                drone.flightTimeMin || drone.flight_time_min || ""
-              ),
-              rangeKm: String(
-                drone.rangeKm || drone.rangeKg || drone.range_km || ""
-              ),
-              useCases: Array.isArray(drone.useCases)
-                ? drone.useCases
-                : Array.isArray(drone.use_cases)
-                  ? drone.use_cases
-                  : [],
-            }))
-            .filter((drone) => !droneIsDeleted(drone, readDeletedDroneIds()));
-          const updatedSnapshot: PilotProfileSnapshot = {
-            ...base,
-            drones: mapped,
-          };
-          persistSnapshot(updatedSnapshot);
-          setDrones(mapped);
+      const snapshotBase: PilotProfileSnapshot =
+        base ?? {
+          fullName: getPilotDisplayName(token),
+          city: "",
+          state: "",
+          flightHours: 0,
+          bio: "",
+          skills: [],
+          drones: [],
+          dgca: "",
+        };
 
-          if (manual) {
-            setError("Drone data synced successfully!");
-            setJustAdded(true);
-            setTimeout(() => {
-              setJustAdded(false);
-              setError(null);
-            }, 2000);
-          }
-        }
+      persistSnapshot({ ...snapshotBase, drones: merged });
+      applyDronesToView(merged);
+
+      if (manual) {
+        setError("Drone data synced successfully!");
+        setJustAdded(true);
+        setTimeout(() => {
+          setJustAdded(false);
+          setError(null);
+        }, 2000);
       }
     } catch (error) {
       console.error("Error fetching drone data from backend:", error);
@@ -283,7 +231,7 @@ export function PilotDroneView() {
     } finally {
       if (manual) setIsRefreshing(false);
     }
-  }, []);
+  }, [applyDronesToView]);
 
   useEffect(() => {
     refreshFromStorage();
@@ -292,8 +240,7 @@ export function PilotDroneView() {
 
   useEffect(() => {
     const onUpdated = () => {
-      console.log("📢 PILOT_PROFILE_UPDATED_EVENT received");
-      refreshFromStorage(true);
+      refreshFromStorage();
       fetchDroneDataFromBackend();
     };
     window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, onUpdated);
@@ -315,13 +262,12 @@ export function PilotDroneView() {
     return () => window.removeEventListener("focus", onFocus);
   }, [refreshFromStorage, fetchDroneDataFromBackend]);
 
-  // Refresh drone data when add form is closed (to show newly added drones)
   useEffect(() => {
     if (!showAddForm) {
-      console.log("🔄 Add form closed, refreshing drone data");
+      refreshFromStorage();
       fetchDroneDataFromBackend();
     }
-  }, [showAddForm, fetchDroneDataFromBackend]);
+  }, [showAddForm, refreshFromStorage, fetchDroneDataFromBackend]);
 
   // Periodic sync every 30 seconds
   useEffect(() => {
@@ -514,14 +460,7 @@ export function PilotDroneView() {
     }
   }
 
-  const visibleDrones = drones.filter(drone =>
-    !droneIsDeleted(drone, deletedDroneIds) &&
-    !(drone.modelName?.toLowerCase().includes('dji') &&
-      drone.type === 'FPV' &&
-      drone.camera === '5K' &&
-      drone.payloadKg === '3.5' &&
-      drone.flightTimeMin === '56')
-  );
+  const visibleDrones = filterVisibleDrones(drones, deletedDroneIds);
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
@@ -737,10 +676,15 @@ export function PilotDroneView() {
             showAdminRequest={false}
             withDroneList={false}
             editingDrone={editingDrone}
-            onDroneAdded={() => {
-              console.log("🎯 onDroneAdded callback triggered");
-              pauseBackendSync();
-              refreshFromStorage(true);
+            onDroneAdded={(savedDrones) => {
+              pauseBackendSync(8000);
+              applyDronesToView(savedDrones);
+              setError("Drone saved successfully!");
+              setJustAdded(true);
+              window.setTimeout(() => {
+                setJustAdded(false);
+                setError(null);
+              }, 3000);
               setIsEditMode(false);
               setEditingDrone(null);
               setShowAddForm(false);

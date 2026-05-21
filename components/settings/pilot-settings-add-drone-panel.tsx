@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useState, forwardRef, useImperativeHandle } from "react";
 
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
+import { notifyAdminFleetUpdated } from "@/lib/admin-fleet-updated";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiUrl } from "@/lib/api-url";
@@ -108,7 +109,10 @@ function readBaseSnapshot(): PilotProfileSnapshot | null {
   return null;
 }
 
-function persistSnapshot(next: PilotProfileSnapshot) {
+function persistSnapshot(
+  next: PilotProfileSnapshot,
+  syncPilotId?: number | null
+) {
   const json = JSON.stringify(snapshotForSharedStorage(next));
   const storeKey = activePilotProfileSnapshotStorageKey();
   try {
@@ -118,12 +122,25 @@ function persistSnapshot(next: PilotProfileSnapshot) {
   }
   sessionStorage.setItem(storeKey, json);
   window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
+
   const token = localStorage.getItem("token");
   const rawSub = token ? jwtPayloadSub(token) : null;
-  const pid = rawSub ? Number.parseInt(rawSub, 10) : NaN;
-  if (token && jwtPayloadRole(token) === "pilot" && Number.isFinite(pid)) {
-    void patchPilotDroneDetails(pid, next.drones ?? []);
+  const jwtPilotId = rawSub ? Number.parseInt(rawSub, 10) : NaN;
+  const explicitPilotId =
+    syncPilotId != null && Number.isFinite(syncPilotId) ? syncPilotId : null;
+  const profilePilotId =
+    explicitPilotId ??
+    (token && jwtPayloadRole(token) === "pilot" && Number.isFinite(jwtPilotId)
+      ? jwtPilotId
+      : null);
+
+  if (profilePilotId != null) {
+    void patchPilotDroneDetails(profilePilotId, next.drones ?? []);
   }
+}
+
+function notifyDroneFleetChanged() {
+  notifyAdminFleetUpdated();
 }
 
 export type PilotSettingsAddDronePanelProps = {
@@ -146,9 +163,9 @@ export type PilotSettingsAddDronePanelProps = {
    */
   hideAddButton?: boolean;
   /**
-   * Callback called when a drone is successfully added
+   * Called after a drone is saved; receives the updated fleet from profile storage.
    */
-  onDroneAdded?: () => void;
+  onDroneAdded?: (drones: PilotProfileDrone[]) => void;
   /**
    * When set (admin dashboard), drones are saved for this pilot instead of the JWT subject.
    */
@@ -196,6 +213,22 @@ export const PilotSettingsAddDronePanel = forwardRef<
   const [draftUseCases, setDraftUseCases] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState(false);
+
+  const syncPilotIdForSave =
+    targetPilotId != null &&
+    Number.isFinite(Number(targetPilotId)) &&
+    Number(targetPilotId) > 0
+      ? Number(targetPilotId)
+      : null;
+
+  function afterDroneSaved(next: PilotProfileSnapshot) {
+    persistSnapshot(next, syncPilotIdForSave);
+    notifyDroneFleetChanged();
+    if (withDroneList) {
+      setDrones([...next.drones]);
+    }
+    onDroneAdded?.([...next.drones]);
+  }
 
   // Expose the save function to parent component
   useImperativeHandle(ref, () => ({
@@ -410,10 +443,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
             ...base,
             drones: base.drones.map(d => d.id === editingDroneData.id ? editingDroneData : d),
           };
-          persistSnapshot(next);
-          if (withDroneList) {
-            setDrones(next.drones);
-          }
+          afterDroneSaved(next);
         }
         
         // Exit edit mode even if backend failed
@@ -449,20 +479,12 @@ export const PilotSettingsAddDronePanel = forwardRef<
           };
         }
         
-        persistSnapshot(next);
-        if (withDroneList) {
-          setDrones(next.drones);
-        }
+        afterDroneSaved(next);
       }
 
       // Exit edit mode
       setEditingDroneId(null);
       setEditingDroneData(null);
-
-      // Notify parent component that drone was updated
-      if (onDroneAdded) {
-        onDroneAdded();
-      }
 
     } catch (error) {
       console.error("Error updating drone:", error);
@@ -547,10 +569,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
           ...base,
           drones: base.drones.map(d => d.id === updatedDrone.id ? updatedDrone : d),
         };
-        persistSnapshot(next);
-        if (withDroneList) {
-          setDrones(next.drones);
-        }
+        afterDroneSaved(next);
       }
 
     } catch (error) {
@@ -591,10 +610,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
         ...base,
         drones: base.drones.filter(d => d.id !== drone.id),
       };
-      persistSnapshot(next);
-      if (withDroneList) {
-        setDrones(next.drones);
-      }
+      afterDroneSaved(next);
     }
   }
 
@@ -811,15 +827,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
             };
           }
 
-          persistSnapshot(next);
-          if (withDroneList) {
-            setDrones(next.drones);
-          }
-
-          // Call the callback to notify parent
-          if (onDroneAdded) {
-            onDroneAdded();
-          }
+          afterDroneSaved(next);
 
           // Reset form
           setDraftModel("");
@@ -885,21 +893,7 @@ export const PilotSettingsAddDronePanel = forwardRef<
         };
       }
 
-      persistSnapshot(next);
-      if (withDroneList) {
-        setDrones(next.drones);
-      }
-
-      // Call the callback to notify parent after a small delay to ensure storage is updated
-      console.log("🔔 Calling onDroneAdded callback after successful save");
-      setTimeout(() => {
-        if (onDroneAdded) {
-          onDroneAdded();
-          console.log("✅ onDroneAdded callback executed");
-        } else {
-          console.log("⚠️ onDroneAdded callback is not defined");
-        }
-      }, 100);
+      afterDroneSaved(next);
 
       // Reset form
       setDraftModel("");

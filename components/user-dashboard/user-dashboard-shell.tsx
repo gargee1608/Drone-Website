@@ -244,7 +244,7 @@ export function UserDashboardShell({
           />
           <aside
             className={cn(
-              "relative absolute left-0 top-0 flex h-full w-[min(18rem,85vw)] flex-col gap-2 bg-card p-4 text-card-foreground shadow-xl",
+              "relative absolute left-0 top-0 flex h-full w-[min(18rem,85vw)] flex-col gap-2 bg-white p-4 text-card-foreground shadow-xl",
               USER_DASH_SIDEBAR_VERTICAL_BORDER
             )}
           >
@@ -271,7 +271,7 @@ export function UserDashboardShell({
         <aside
           id="user-dashboard-sidebar"
           className={cn(
-            "relative hidden flex-col overflow-hidden border-r bg-card text-card-foreground transition-[width] duration-300 ease-out lg:border-r-0 lg:shadow-none lg:fixed lg:bottom-0 lg:left-0 lg:top-20 lg:z-40 lg:flex",
+            "relative hidden flex-col overflow-hidden border-r bg-white text-card-foreground transition-[width] duration-300 ease-out lg:border-r-0 lg:shadow-none lg:fixed lg:bottom-0 lg:left-0 lg:top-20 lg:z-40 lg:flex",
             USER_DASH_BORDER_COLOR,
             sidebarExpanded ? "lg:w-60" : "lg:w-0 lg:border-0 lg:p-0"
           )}
