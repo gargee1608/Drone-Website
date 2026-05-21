@@ -3,7 +3,6 @@
 import { X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { DetailField } from "@/components/dashboard/user-request-detail-modal";
 import { PilotSettingsAddDronePanel } from "@/components/settings/pilot-settings-add-drone-panel";
 import { notifyAdminFleetUpdated } from "@/lib/admin-fleet-updated";
 import { apiUrl } from "@/lib/api-url";
@@ -225,6 +224,16 @@ function formatDroneMetric(
   return `${value}${suffix}`;
 }
 
+function InlineDroneField({ label, value }: { label: string; value: string }) {
+  return (
+    <p className="min-w-0 text-xs leading-snug text-muted-foreground">
+      <span className="font-semibold text-foreground">{label}</span>
+      {" : "}
+      <span className="text-foreground">{value}</span>
+    </p>
+  );
+}
+
 function AdminDroneDetailCard({
   row,
   deleting,
@@ -275,25 +284,28 @@ function AdminDroneDetailCard({
         </div>
       </div>
 
-      <div className="px-4 py-3 sm:px-5 sm:py-4">
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
-          <DetailField label="Pilot ID">{row.pilotId}</DetailField>
-          <DetailField label="Drone ID">{row.droneId}</DetailField>
-          <DetailField label="Type">{row.type}</DetailField>
-          <DetailField label="Camera">{row.camera}</DetailField>
-          <DetailField label="Payload">
-            {formatDroneMetric(row.payloadKg, "kg")}
-          </DetailField>
-          <DetailField label="Flight time">
-            {formatDroneMetric(row.flightTimeMin, "min")}
-          </DetailField>
-          <DetailField label="Range">
-            {formatDroneMetric(row.rangeKm, "km")}
-          </DetailField>
-          <div className="sm:col-span-2 lg:col-span-3">
-            <DetailField label="Use cases">{row.useCases}</DetailField>
-          </div>
-        </dl>
+      <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+          <InlineDroneField label="Pilot ID" value={row.pilotId} />
+          <InlineDroneField label="Drone ID" value={row.droneId} />
+          <InlineDroneField label="Type" value={row.type} />
+          <InlineDroneField label="Camera" value={row.camera} />
+        </div>
+        <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+          <InlineDroneField
+            label="Payload"
+            value={formatDroneMetric(row.payloadKg, "kg")}
+          />
+          <InlineDroneField
+            label="Flight time"
+            value={formatDroneMetric(row.flightTimeMin, "min")}
+          />
+          <InlineDroneField
+            label="Range"
+            value={formatDroneMetric(row.rangeKm, "km")}
+          />
+          <InlineDroneField label="Use cases" value={row.useCases} />
+        </div>
       </div>
     </section>
   );
