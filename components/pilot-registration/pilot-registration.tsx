@@ -217,9 +217,12 @@ export function PilotRegistrationView({
   adminPilotId?: string | null;
 } = {}) {
   const router = useRouter();
+  const adminDroneOnlyMode =
+    fromAdminDashboard &&
+    (Boolean(adminPilotId?.trim()) || initialStep === 3);
   const certInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(() =>
-    fromAdminDashboard ? 3 : initialStep
+    adminDroneOnlyMode ? 3 : initialStep
   );
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -315,6 +318,12 @@ export function PilotRegistrationView({
         params.get("from") === PILOT_REGISTRATION_FROM_ADMIN;
       if (fromAdmin && stepQ === "3") {
         setStep(3);
+        setStepError(null);
+        setSubmitError(null);
+        return;
+      }
+      if (fromAdmin && stepQ === "1") {
+        setStep(1);
         setStepError(null);
         setSubmitError(null);
         return;
@@ -519,7 +528,7 @@ export function PilotRegistrationView({
       return;
     }
     if (step === 3) {
-      if (fromAdminDashboard) return;
+      if (adminDroneOnlyMode) return;
       setStep(4);
     }
   }
@@ -527,7 +536,7 @@ export function PilotRegistrationView({
   function goPrev() {
     setStepError(null);
     setSubmitError(null);
-    if (fromAdminDashboard && step <= 3) return;
+    if (adminDroneOnlyMode && step <= 3) return;
     if (step <= 1) return;
     setStep(step - 1);
   }
@@ -682,7 +691,9 @@ export function PilotRegistrationView({
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
     }
-    router.push("/pilot-login");
+    router.push(
+      fromAdminDashboard ? "/dashboard/pilot-details" : "/pilot-login"
+    );
   }
 
   function saveDronesToPilotProfile() {
@@ -840,17 +851,21 @@ export function PilotRegistrationView({
               )}
             >
               {fromAdminDashboard
-                ? "Add drone details"
+                ? adminDroneOnlyMode
+                  ? "Add drone details"
+                  : "Add pilot details"
                 : "Pilot & Drone Registration"}
             </h1>
             <p className="mt-1 text-sm text-slate-500">
               {fromAdminDashboard
-                ? "Register drones for this pilot"
+                ? adminDroneOnlyMode
+                  ? "Register drones for this pilot"
+                  : "Register a new pilot in the command center"
                 : "Join India's drone pilot network"}
             </p>
 
             {/* Stepper */}
-            {!fromAdminDashboard ? (
+            {!fromAdminDashboard || !adminDroneOnlyMode ? (
             <nav
               className="mt-6 flex items-start justify-between gap-1"
               aria-label="Registration progress"
@@ -1246,7 +1261,7 @@ export function PilotRegistrationView({
 
             {step === 3 ? (
               <div className="space-y-6">
-                {fromAdminDashboard && adminDroneSubmitSuccess ? (
+                {adminDroneOnlyMode && adminDroneSubmitSuccess ? (
                   <p
                     className="rounded-lg border border-green-200 bg-white px-4 py-3 text-center text-sm font-semibold text-green-800"
                     role="status"
@@ -1267,7 +1282,7 @@ export function PilotRegistrationView({
                   </h2>
                   {drones.length === 0 ? (
                     <p className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                      {fromAdminDashboard ? (
+                      {adminDroneOnlyMode ? (
                         <>
                           Add a drone with the form below, then tap{" "}
                           <span className="font-medium text-slate-700">
@@ -1640,7 +1655,7 @@ export function PilotRegistrationView({
                     step >= 2 ? "justify-between" : "justify-end"
                   )}
                 >
-                  {step >= 2 && !fromAdminDashboard ? (
+                  {step >= 2 && (!fromAdminDashboard || !adminDroneOnlyMode) ? (
                     <Button
                       type="button"
                       variant="outline"
@@ -1659,7 +1674,7 @@ export function PilotRegistrationView({
                   >
                     {step < 4 ? (
                       <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
-                        {fromAdminDashboard && step === 3 ? (
+                        {adminDroneOnlyMode && step === 3 ? (
                           <Button
                             type="button"
                             disabled={adminDroneSubmitting || adminDroneSubmitSuccess}

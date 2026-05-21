@@ -36,14 +36,14 @@ export function Hero() {
             Find and hire DGCA-approved drone pilots for defence, agriculture,
             filming, lifting &amp; everyday drone service.
           </p>
-          <div className="mt-6 grid max-w-xl grid-cols-1 gap-3 text-left min-[420px]:grid-cols-3 sm:mt-8">
+          <div className="mt-6 grid max-w-xl grid-cols-1 gap-3 min-[420px]:grid-cols-3 sm:mt-8">
             {heroHighlights.map(({ label, Icon }) => (
               <div
                 key={label}
-                className="flex items-center gap-3 rounded-2xl border border-[#008B8B]/10 bg-white/75 px-3 py-3 text-xs font-bold text-slate-700 shadow-sm min-[420px]:flex-col min-[420px]:items-center min-[420px]:gap-2 min-[420px]:text-center sm:items-start sm:text-left"
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-[#008B8B]/10 bg-white/75 px-3 py-4 text-center text-xs font-bold text-slate-700 shadow-sm"
               >
-                <span className="flex size-8 items-center justify-center rounded-xl bg-[#008B8B]/10 text-[#008B8B]">
-                  <Icon className="size-4" strokeWidth={2.2} aria-hidden />
+                <span className="mx-auto flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#008B8B]/10 text-[#008B8B]">
+                  <Icon className="size-5" strokeWidth={2.2} aria-hidden />
                 </span>
                 <span>{label}</span>
               </div>
