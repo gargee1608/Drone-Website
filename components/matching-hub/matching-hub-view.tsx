@@ -4,15 +4,19 @@ import Image from "next/image";
 import {
   ArrowRight,
   Briefcase,
+  Eye,
   MapPin,
   SlidersHorizontal,
   Star,
-  UserPlus,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
-import { assignHubMissionToPilot, getPilots } from "@/app/services/pilotServices";
+import {
+  assignHubMissionToPilot,
+  getPilotById,
+  getPilots,
+} from "@/app/services/pilotServices";
 import { apiUrl } from "@/lib/api-url";
 import {
   experienceSubtitleFromPilotRow,
@@ -69,7 +73,55 @@ type HubPilotCard = {
   imageSrc: string;
   safetyScore: number;
   missionCount: number;
+  email: string;
+  phone: string;
+  location: string;
+  licenseNumber: string;
+  experience: string;
+  certLevel: string;
+  dutyStatus: string;
+  droneSummary: string;
+  useCases: string;
+  flightHours: number;
 };
+
+function stringField(
+  row: Record<string, unknown>,
+  ...keys: string[]
+): string {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+  return "";
+}
+
+function pilotDroneSummaryFromRow(row: Record<string, unknown>): string {
+  const assignedDrone = [
+    stringField(row, "drone_name", "droneName"),
+    stringField(row, "payload"),
+    stringField(row, "range_km", "rangeKm"),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  if (assignedDrone) return assignedDrone;
+
+  const details = row.drone_details ?? row.droneDetails;
+  if (Array.isArray(details) && details.length > 0) {
+    const names = details
+      .map((item) => {
+        if (!item || typeof item !== "object") return "";
+        const drone = item as Record<string, unknown>;
+        return stringField(drone, "modelName", "name", "type");
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+    if (names.length > 0) return names.join(", ");
+  }
+
+  return "Drone details not added";
+}
 
 function initialsFromName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -116,6 +168,11 @@ function mapApiRowToHubPilotCard(
   const role = hubPilotRoleFromRow(pilot);
   const initials = initialsFromName(name);
   const imageSrc = `https://placehold.co/96x96/e2e8f0/475569/png?text=${encodeURIComponent(initials)}`;
+  const city = stringField(pilot, "city");
+  const state = stringField(pilot, "state");
+  const location = [city, state].filter(Boolean).join(", ");
+  const certLevel = stringField(pilot, "cert_level", "certLevel");
+  const flightHoursRaw = Number(pilot.flight_hours ?? pilot.flightHours ?? 0);
 
   return {
     id: id || `pilot-${name}`,
@@ -125,6 +182,16 @@ function mapApiRowToHubPilotCard(
     imageSrc,
     safetyScore: safety,
     missionCount,
+    email: stringField(pilot, "email"),
+    phone: stringField(pilot, "phone"),
+    location: location || "Location not added",
+    licenseNumber: stringField(pilot, "license_number", "licenseNumber") || "Not added",
+    experience: experienceSubtitleFromPilotRow(pilot),
+    certLevel: certLevel ? `Level ${certLevel}` : "Not added",
+    dutyStatus: stringField(pilot, "duty_status", "dutyStatus") || "ACTIVE",
+    droneSummary: pilotDroneSummaryFromRow(pilot),
+    useCases: stringField(pilot, "use_cases", "useCases") || role,
+    flightHours: Number.isFinite(flightHoursRaw) ? Math.max(0, flightHoursRaw) : 0,
   };
 }
 
@@ -474,14 +541,195 @@ function MissionDetailDialog({
   );
 }
 
+function PilotDetailDialog({
+  pilot,
+  loading,
+  errorMessage,
+  onClose,
+}: {
+  pilot: HubPilotCard;
+  loading?: boolean;
+  errorMessage?: string | null;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pilot-detail-title"
+    >
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default"
+        aria-label="Close pilot details"
+        onClick={onClose}
+      />
+      <div className="relative z-[1] max-h-[min(90dvh,640px)] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Image
+              src={pilot.imageSrc}
+              alt={pilot.name}
+              width={64}
+              height={64}
+              className="size-16 shrink-0 rounded-xl object-cover"
+            />
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#0058bc]">
+                {pilot.role}
+              </p>
+              <h2
+                id="pilot-detail-title"
+                className="mt-1 text-xl font-semibold leading-snug tracking-tight text-[#191c1d] sm:text-2xl"
+              >
+                {pilot.name}
+              </h2>
+              <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-yellow-50 px-2.5 py-1 text-xs font-semibold text-slate-800">
+                <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
+                {pilot.ratingLabel}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-[#191c1d]"
+            aria-label="Close"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        {loading ? (
+          <p className="mt-5 border-t border-slate-100 pt-4 text-sm text-slate-500" role="status">
+            Loading pilot details…
+          </p>
+        ) : null}
+        {errorMessage ? (
+          <p className="mt-5 border-t border-slate-100 pt-4 text-sm text-amber-700" role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
+        <dl className="mt-5 grid gap-3 border-t border-slate-100 pt-4 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
+              Location
+            </dt>
+            <dd className="mt-0.5 font-medium text-[#191c1d]">{pilot.location}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
+              Status
+            </dt>
+            <dd className="mt-0.5 font-medium text-[#191c1d]">
+              {pilot.dutyStatus}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
+              Email
+            </dt>
+            <dd className="mt-0.5 break-all font-medium text-[#191c1d]">
+              {pilot.email || "Not added"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
+              Phone
+            </dt>
+            <dd className="mt-0.5 font-medium text-[#191c1d]">
+              {pilot.phone || "Not added"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
+              License
+            </dt>
+            <dd className="mt-0.5 font-medium text-[#191c1d]">
+              {pilot.licenseNumber}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
+              Certification
+            </dt>
+            <dd className="mt-0.5 font-medium text-[#191c1d]">
+              {pilot.certLevel}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
+              Experience
+            </dt>
+            <dd className="mt-0.5 font-medium text-[#191c1d]">
+              {pilot.experience}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
+              Flight hours
+            </dt>
+            <dd className="mt-0.5 font-medium text-[#191c1d]">
+              {pilot.flightHours.toLocaleString("en-US")}
+            </dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
+              Drone
+            </dt>
+            <dd className="mt-0.5 font-medium text-[#191c1d]">
+              {pilot.droneSummary}
+            </dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
+              Use cases
+            </dt>
+            <dd className="mt-0.5 font-medium text-[#191c1d]">
+              {pilot.useCases}
+            </dd>
+          </div>
+        </dl>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-5 w-full rounded-lg border border-[#0D9488] bg-transparent py-2.5 text-sm font-semibold text-[#0D9488] transition hover:border-[#0f7669] hover:text-[#0f7669]"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PilotCards({
   pilots,
   loading,
   errorMessage,
+  onPilotClick,
 }: {
   pilots: HubPilotCard[];
   loading: boolean;
   errorMessage: string | null;
+  onPilotClick?: (pilot: HubPilotCard) => void;
 }) {
   if (loading) {
     return (
@@ -508,9 +756,12 @@ function PilotCards({
   return (
     <div className="space-y-2">
       {pilots.map((pilot) => (
-        <article
+        <button
           key={pilot.id}
-          className="flex items-center gap-2.5 rounded-lg border border-transparent bg-white/80 p-2 shadow-sm backdrop-blur-sm transition-all hover:border-[#0058bc]"
+          type="button"
+          onClick={() => onPilotClick?.(pilot)}
+          aria-label={`View details for ${pilot.name}`}
+          className="group flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-transparent bg-white/80 p-2 text-left shadow-sm backdrop-blur-sm transition-all hover:border-[#0058bc] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0D9488]/40"
         >
           <Image
             src={pilot.imageSrc}
@@ -529,14 +780,13 @@ function PilotCards({
               {pilot.ratingLabel}
             </p>
           </div>
-          <button
-            type="button"
-            className="rounded-md bg-slate-100 p-1.5 transition-colors hover:bg-[#0058bc] hover:text-white"
-            aria-label={`Connect with ${pilot.name}`}
+          <span
+            className="flex size-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-[#0058bc] transition-colors group-hover:bg-[#0058bc]/10 group-hover:text-[#0D9488]"
+            aria-hidden
           >
-            <UserPlus className="size-3.5" />
-          </button>
-        </article>
+            <Eye className="size-4" strokeWidth={2} />
+          </span>
+        </button>
       ))}
     </div>
   );
@@ -551,8 +801,43 @@ export function MatchingHubView() {
     FALLBACK_MATCHING_HUB_MISSIONS
   );
   const [detailMission, setDetailMission] = useState<HubMission | null>(null);
+  const [detailPilot, setDetailPilot] = useState<HubPilotCard | null>(null);
+  const [detailPilotLoading, setDetailPilotLoading] = useState(false);
+  const [detailPilotError, setDetailPilotError] = useState<string | null>(null);
 
   const closeMissionDetail = useCallback(() => setDetailMission(null), []);
+  const closePilotDetail = useCallback(() => {
+    setDetailPilot(null);
+    setDetailPilotLoading(false);
+    setDetailPilotError(null);
+  }, []);
+
+  const openPilotDetail = useCallback(async (pilot: HubPilotCard) => {
+    setDetailPilot(pilot);
+    setDetailPilotLoading(true);
+    setDetailPilotError(null);
+
+    if (!/^\d+$/.test(String(pilot.id))) {
+      setDetailPilotLoading(false);
+      return;
+    }
+
+    try {
+      const data = await getPilotById(pilot.id);
+      if (data == null || (typeof data === "object" && "error" in data)) {
+        setDetailPilotError("Could not refresh pilot details from the server.");
+        return;
+      }
+      if (typeof data === "object" && !Array.isArray(data)) {
+        const enriched = mapApiRowToHubPilotCard(data as Record<string, unknown>);
+        if (enriched) setDetailPilot(enriched);
+      }
+    } catch {
+      setDetailPilotError("Could not refresh pilot details from the server.");
+    } finally {
+      setDetailPilotLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -623,8 +908,6 @@ export function MatchingHubView() {
     });
   }, [hubPilots]);
 
-  const sidebarPilots = useMemo(() => topRatedPilots.slice(0, 6), [topRatedPilots]);
-
   return (
     <div className="min-h-dvh bg-white text-[#191c1d]">
       <main className="mx-auto max-w-[1440px] px-4 pb-10 pt-28 sm:px-6 lg:px-8">
@@ -635,32 +918,32 @@ export function MatchingHubView() {
               Connect assets with high-precision flight opportunities.
             </p>
           </div>
-          <div className="inline-flex rounded-lg bg-slate-200/70 p-0.5">
+          <div className="grid w-full grid-cols-2 gap-1 rounded-lg bg-slate-200/70 p-1 sm:inline-grid sm:w-auto">
             <button
               type="button"
               onClick={() => setActiveTab("missions")}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors sm:px-4 sm:text-sm",
+                "inline-flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[11px] font-semibold transition-colors sm:px-4 sm:text-sm",
                 activeTab === "missions"
                   ? "bg-white text-[#0D9488] shadow-sm"
                   : "text-[#0D9488]"
               )}
             >
-              <MapPin className="size-3.5 sm:size-4" />
-              Find Missions
+              <MapPin className="size-3.5 shrink-0 sm:size-4" />
+              <span className="truncate">Find Missions</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("pilots")}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors sm:px-4 sm:text-sm",
+                "inline-flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[11px] font-semibold transition-colors sm:px-4 sm:text-sm",
                 activeTab === "pilots"
                   ? "bg-white text-[#0D9488] shadow-sm"
                   : "text-[#0D9488]"
               )}
             >
-              <Briefcase className="size-3.5 sm:size-4" />
-              Find Pilots
+              <Briefcase className="size-3.5 shrink-0 sm:size-4" />
+              <span className="truncate">Available Pilot</span>
             </button>
           </div>
         </header>
@@ -723,17 +1006,13 @@ export function MatchingHubView() {
           >
             <section className="w-1/2 pr-0 lg:pr-2">
               {/*
-                lg: row 1 = both section titles (8+4 cols), row 2 = mission grid + pilot list.
-                Mobile: order puts missions title → cards → pilots title → cards.
+                Missions are shown full width; pilots live in their own Top Rated Pilots tab.
               */}
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start lg:gap-x-4 lg:gap-y-3">
-                <h2 className="order-1 min-w-0 text-base font-semibold tracking-tight sm:text-lg lg:col-span-8">
+                <h2 className="order-1 min-w-0 text-base font-semibold tracking-tight sm:text-lg lg:col-span-12">
                   Available Missions
                 </h2>
-                <h2 className="order-3 min-w-0 text-base font-semibold tracking-tight sm:text-lg lg:order-2 lg:col-span-4 lg:pl-5 xl:pl-6">
-                  Top Rated Pilots
-                </h2>
-                <div className="order-2 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5 lg:order-3 lg:col-span-8">
+                <div className="order-2 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5 lg:order-3 lg:col-span-12 xl:grid-cols-3">
                   {missionRows.map((mission) => (
                     <button
                       key={mission.id}
@@ -780,49 +1059,22 @@ export function MatchingHubView() {
                     </button>
                   ))}
                 </div>
-                <aside className="order-4 min-w-0 lg:col-span-4">
-                  <PilotCards
-                    pilots={sidebarPilots}
-                    loading={pilotsLoading}
-                    errorMessage={pilotsError}
-                  />
-                </aside>
               </div>
             </section>
 
             <section className="w-1/2 pl-0 lg:pl-2">
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start lg:gap-x-4 lg:gap-y-3">
-                <h2 className="order-1 min-w-0 text-xl font-semibold tracking-tight sm:text-2xl lg:col-span-8">
+                <h2 className="order-1 min-w-0 text-xl font-semibold tracking-tight sm:text-2xl lg:col-span-12">
                   Available Pilots
                 </h2>
-                <h2 className="order-3 min-w-0 text-xl font-semibold tracking-tight sm:text-2xl lg:order-2 lg:col-span-4">
-                  Priority Missions
-                </h2>
-                <div className="order-2 min-w-0 lg:order-3 lg:col-span-8">
+                <div className="order-2 min-w-0 lg:order-3 lg:col-span-12">
                   <PilotCards
                     pilots={topRatedPilots}
                     loading={pilotsLoading}
                     errorMessage={pilotsError}
+                    onPilotClick={openPilotDetail}
                   />
                 </div>
-                <aside className="order-4 min-w-0 space-y-2 lg:col-span-4">
-                  {missionRows.slice(0, 3).map((mission) => (
-                    <button
-                      key={`${mission.id}-priority`}
-                      type="button"
-                      onClick={() => setDetailMission(mission)}
-                      className="w-full rounded-lg border border-slate-200 bg-white/80 p-2 text-left shadow-sm backdrop-blur-sm transition-all hover:border-[#0D9488] hover:shadow-md"
-                    >
-                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0058bc]">
-                        {mission.id}
-                      </p>
-                      <h3 className="mt-0.5 text-sm font-semibold leading-snug sm:text-base">
-                        {mission.title}
-                      </h3>
-                      <p className="mt-0.5 text-[11px] text-slate-600">{mission.distance}</p>
-                    </button>
-                  ))}
-                </aside>
               </div>
             </section>
           </div>
@@ -835,6 +1087,14 @@ export function MatchingHubView() {
             pilotsLoading={pilotsLoading}
             pilotsError={pilotsError}
             onClose={closeMissionDetail}
+          />
+        ) : null}
+        {detailPilot ? (
+          <PilotDetailDialog
+            pilot={detailPilot}
+            loading={detailPilotLoading}
+            errorMessage={detailPilotError}
+            onClose={closePilotDetail}
           />
         ) : null}
       </main>

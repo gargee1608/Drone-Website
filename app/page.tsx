@@ -9,7 +9,7 @@ export default function Home() {
     <div
       className={`${landingFontClassName} min-h-dvh bg-background font-[family-name:var(--font-landing-body)] text-foreground antialiased`}
     >
-      <main className="overflow-x-hidden bg-background pt-24">
+      <main className="overflow-x-hidden bg-background pt-20 sm:pt-24">
         <Hero />
         <LandingSectionDivider />
         <Workflow />

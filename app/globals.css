@@ -481,6 +481,18 @@
     }
   }
 
+  @media (max-width: 767px) {
+    .workflow-slide-from-left,
+    .workflow-slide-from-right,
+    .industry-card-zoom-in,
+    .industry-card-zoom-out {
+      animation: none;
+      opacity: 1;
+      transform: none;
+      scale: 1;
+    }
+  }
+
   /* Between landing sections — soft horizontal rule */
   .landing-section-rule {
     background: linear-gradient(
