@@ -10,6 +10,7 @@ import {
   Star,
   X,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
 import {
@@ -24,6 +25,11 @@ import {
   safetyRatingFromPilotRow,
 } from "@/lib/pilot-db-metrics";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  fetchMissionRequestsList,
+  type MissionRequestRow,
+} from "@/lib/mission-requests-api";
+import { subscribeMissionRequestsUpdated } from "@/lib/mission-requests-updated";
 import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 import { notifyMissionsDbUpdated } from "@/lib/user-requests";
@@ -51,19 +57,7 @@ const MATCHING_HUB_REGION_CITIES = [
   "Visakhapatnam",
 ] as const;
 
-type HubMission = {
-  id: string;
-  title: string;
-  payout: string;
-  description: string;
-  payload: string;
-  distance: string;
-  posted: string;
-  duration: string;
-  aircraftClass: string;
-  clearance: string;
-  requirements: string;
-};
+type HubMission = MissionRequestRow;
 
 type HubPilotCard = {
   id: string;
@@ -194,70 +188,6 @@ function mapApiRowToHubPilotCard(
     flightHours: Number.isFinite(flightHoursRaw) ? Math.max(0, flightHoursRaw) : 0,
   };
 }
-
-/** Default rows (also used if `/api/missions-requests` is unavailable). Same payload seeded into `mission_requests`. */
-const FALLBACK_MATCHING_HUB_MISSIONS: HubMission[] = [
-  {
-    id: "ML-9021",
-    title: "Arctic Supply Drop",
-    payout: "$4,200",
-    description:
-      "Urgent medical supply delivery to Northern Research Outpost. Requires high-altitude stability.",
-    payload: "18.5 KG",
-    distance: "340 KM",
-    posted: "Posted 3 days ago · Priority tier",
-    duration: "Est. flight legs 2h 15m · On-site 5–7 hours",
-    aircraftClass: "L-3 heavy multi-rotor, cold-weather rated",
-    clearance: "Controlled airspace coordination + arctic NOTAM",
-    requirements:
-      "Medical payload chain-of-custody logging, redundant GNSS, and documented high-altitude hover stability. Client requires pre-flight brief 24h before departure window.",
-  },
-  {
-    id: "TX-4402",
-    title: "Urban LiDAR Scan",
-    payout: "$1,850",
-    description:
-      "High-resolution 3D mapping of downtown infrastructure for city planning. Requires Grade-A stealth props.",
-    payload: "2.2 KG",
-    distance: "12 KM",
-    posted: "Posted 1 week ago · Standard",
-    duration: "Est. grid coverage 3–4 hours (multiple batteries)",
-    aircraftClass: "L-1 compact quad, low-noise props",
-    clearance: "Municipal low-altitude corridor permit (provided)",
-    requirements:
-      "Stealth-rated propellers, 5cm vertical accuracy spec, and delivery of raw point cloud + classified tiles within 48h of capture.",
-  },
-  {
-    id: "FF-1190",
-    title: "Forest Fire Monitor",
-    payout: "$2,900",
-    description:
-      "Night-ops thermal monitoring for active containment zones. Multi-spectrum gimbal required.",
-    payload: "4.5 KG",
-    distance: "88 KM",
-    posted: "Posted 12 hours ago · Urgent",
-    duration: "Night window only · 6h continuous monitoring blocks",
-    aircraftClass: "L-3 with dual-sensor gimbal (thermal + RGB)",
-    clearance: "Wildfire TFR coordination with incident command",
-    requirements:
-      "Night waiver on file, radiometric thermal calibration card, and ability to stream low-latency feed to ops channel during sorties.",
-  },
-  {
-    id: "OC-8821",
-    title: "Offshore Rig Cargo",
-    payout: "$6,100",
-    description:
-      "Heavy lift logistics for oil platform repair parts. Salt-spray protection and L-5 heavy lift cert essential.",
-    payload: "42.0 KG",
-    distance: "115 KM",
-    posted: "Posted 5 days ago · Contract",
-    duration: "Deck cycle 45m · Total op window 2 days",
-    aircraftClass: "L-5 heavy lift, corrosion-resistant airframe",
-    clearance: "Offshore helideck + maritime radio net",
-    requirements:
-      "L-5 certification proof, salt-spray IP rating documentation, and marine insurance rider naming the operator. Deck supervisor sign-off required before release.",
-  },
-];
 
 function MissionDetailDialog({
   mission,
@@ -793,13 +723,14 @@ function PilotCards({
 }
 
 export function MatchingHubView() {
+  const pathname = usePathname();
   const [activeTab, setActiveTab] = useState<HubTab>("missions");
   const [hubPilots, setHubPilots] = useState<HubPilotCard[]>([]);
   const [pilotsLoading, setPilotsLoading] = useState(true);
   const [pilotsError, setPilotsError] = useState<string | null>(null);
-  const [missionRows, setMissionRows] = useState<HubMission[]>(
-    FALLBACK_MATCHING_HUB_MISSIONS
-  );
+  const [missionRows, setMissionRows] = useState<HubMission[]>([]);
+  const [missionsLoading, setMissionsLoading] = useState(true);
+  const [missionsError, setMissionsError] = useState<string | null>(null);
   const [detailMission, setDetailMission] = useState<HubMission | null>(null);
   const [detailPilot, setDetailPilot] = useState<HubPilotCard | null>(null);
   const [detailPilotLoading, setDetailPilotLoading] = useState(false);
@@ -839,33 +770,46 @@ export function MatchingHubView() {
     }
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(apiUrl("/api/missions-requests"));
-        const body = await readResponseJson(res);
-        if (cancelled) return;
-        if (!body.okParse || body.data == null || typeof body.data !== "object") {
-          return;
-        }
-        const envelope = body.data as {
-          success?: boolean;
-          data?: unknown;
-        };
-        if (!res.ok || envelope.success === false) return;
-        const list = Array.isArray(envelope.data) ? envelope.data : [];
-        if (list.length > 0) {
-          setMissionRows(list as HubMission[]);
-        }
-      } catch {
-        /* keep FALLBACK_MATCHING_HUB_MISSIONS */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const loadMissionRows = useCallback(async () => {
+    setMissionsLoading(true);
+    setMissionsError(null);
+    const result = await fetchMissionRequestsList();
+    if (result.ok) {
+      setMissionRows(result.data);
+    } else {
+      setMissionsError(result.error ?? "Could not load missions.");
+      setMissionRows([]);
+    }
+    setMissionsLoading(false);
   }, []);
+
+  useEffect(() => {
+    void loadMissionRows();
+    return subscribeMissionRequestsUpdated(() => {
+      void loadMissionRows();
+    });
+  }, [loadMissionRows]);
+
+  useEffect(() => {
+    if (pathname !== "/matching-hub") return;
+    void loadMissionRows();
+  }, [pathname, loadMissionRows]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void loadMissionRows();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [loadMissionRows]);
+
+  useEffect(() => {
+    if (!detailMission) return;
+    if (missionRows.some((m) => m.id === detailMission.id)) return;
+    setDetailMission(null);
+  }, [detailMission, missionRows]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1013,6 +957,19 @@ export function MatchingHubView() {
                   Available Missions
                 </h2>
                 <div className="order-2 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5 lg:order-3 lg:col-span-12 xl:grid-cols-3">
+                  {missionsLoading ? (
+                    <p className="col-span-full text-sm text-slate-600">
+                      Loading missions…
+                    </p>
+                  ) : missionsError ? (
+                    <p className="col-span-full text-sm text-red-600">
+                      {missionsError}
+                    </p>
+                  ) : missionRows.length === 0 ? (
+                    <p className="col-span-full text-sm text-slate-600">
+                      No available missions right now.
+                    </p>
+                  ) : null}
                   {missionRows.map((mission) => (
                     <button
                       key={mission.id}

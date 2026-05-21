@@ -232,6 +232,25 @@ function rowToHubMission(row) {
   };
 }
 
+function hubMissionFromBody(body) {
+  const src = body && typeof body === "object" ? body : {};
+  return {
+    mission_code: String(src.id ?? src.mission_code ?? "").trim(),
+    title: String(src.title ?? "").trim(),
+    payout: String(src.payout ?? "").trim(),
+    description: String(src.description ?? "").trim(),
+    payload: String(src.payload ?? "").trim(),
+    distance: String(src.distance ?? "").trim(),
+    posted: String(src.posted ?? "").trim(),
+    duration: String(src.duration ?? "").trim(),
+    aircraft_class: String(
+      src.aircraftClass ?? src.aircraft_class ?? ""
+    ).trim(),
+    clearance: String(src.clearance ?? "").trim(),
+    requirements: String(src.requirements ?? "").trim(),
+  };
+}
+
 /** GET /api/missions-requests — rows in mission_requests (seeded from hub defaults when empty). */
 router.get("/", async (req, res) => {
   try {
@@ -244,6 +263,157 @@ router.get("/", async (req, res) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[mission-requests]", msg);
+    const detail =
+      process.env.NODE_ENV !== "production" ? msg : undefined;
+    return res.status(500).json({
+      error: "Server error",
+      ...(detail ? { detail } : {}),
+    });
+  }
+});
+
+/** POST /api/missions-requests — create a new mission_requests row. */
+router.post("/", async (req, res) => {
+  try {
+    await bootstrapMissionRequests();
+    const fields = hubMissionFromBody(req.body);
+    if (!fields.mission_code) {
+      return res.status(400).json({ error: "Mission code is required" });
+    }
+    if (!fields.title || !fields.payout) {
+      return res.status(400).json({ error: "Title and payout are required" });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO mission_requests (
+        mission_code, title, payout, description, payload, distance,
+        posted, duration, aircraft_class, clearance, requirements
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      RETURNING *`,
+      [
+        fields.mission_code,
+        fields.title,
+        fields.payout,
+        fields.description,
+        fields.payload,
+        fields.distance,
+        fields.posted,
+        fields.duration,
+        fields.aircraft_class,
+        fields.clearance,
+        fields.requirements,
+      ]
+    );
+
+    return res.status(201).json({
+      success: true,
+      data: rowToHubMission(result.rows[0]),
+    });
+  } catch (err) {
+    if (err && typeof err === "object" && err.code === "23505") {
+      return res.status(409).json({ error: "Mission code already exists" });
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[mission-requests] POST", msg);
+    const detail =
+      process.env.NODE_ENV !== "production" ? msg : undefined;
+    return res.status(500).json({
+      error: "Server error",
+      ...(detail ? { detail } : {}),
+    });
+  }
+});
+
+/** PUT /api/missions-requests/:code — update by mission_code (body.id may rename code). */
+router.put("/:code", async (req, res) => {
+  const originalCode = decodeURIComponent(String(req.params.code ?? "")).trim();
+  if (!originalCode) {
+    return res.status(400).json({ error: "Mission code is required" });
+  }
+
+  try {
+    await bootstrapMissionRequests();
+    const fields = hubMissionFromBody(req.body);
+    if (!fields.mission_code) {
+      return res.status(400).json({ error: "Mission code is required" });
+    }
+    if (!fields.title || !fields.payout) {
+      return res.status(400).json({ error: "Title and payout are required" });
+    }
+
+    const result = await pool.query(
+      `UPDATE mission_requests SET
+        mission_code = $1,
+        title = $2,
+        payout = $3,
+        description = $4,
+        payload = $5,
+        distance = $6,
+        posted = $7,
+        duration = $8,
+        aircraft_class = $9,
+        clearance = $10,
+        requirements = $11
+      WHERE mission_code = $12
+      RETURNING *`,
+      [
+        fields.mission_code,
+        fields.title,
+        fields.payout,
+        fields.description,
+        fields.payload,
+        fields.distance,
+        fields.posted,
+        fields.duration,
+        fields.aircraft_class,
+        fields.clearance,
+        fields.requirements,
+        originalCode,
+      ]
+    );
+
+    if ((result.rowCount ?? 0) === 0) {
+      return res.status(404).json({ error: "Mission not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: rowToHubMission(result.rows[0]),
+    });
+  } catch (err) {
+    if (err && typeof err === "object" && err.code === "23505") {
+      return res.status(409).json({ error: "Mission code already exists" });
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[mission-requests] PUT", msg);
+    const detail =
+      process.env.NODE_ENV !== "production" ? msg : undefined;
+    return res.status(500).json({
+      error: "Server error",
+      ...(detail ? { detail } : {}),
+    });
+  }
+});
+
+/** DELETE /api/missions-requests/:code */
+router.delete("/:code", async (req, res) => {
+  const code = decodeURIComponent(String(req.params.code ?? "")).trim();
+  if (!code) {
+    return res.status(400).json({ error: "Mission code is required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `DELETE FROM mission_requests WHERE mission_code = $1 RETURNING mission_code`,
+      [code]
+    );
+    if ((result.rowCount ?? 0) === 0) {
+      return res.status(404).json({ error: "Mission not found" });
+    }
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[mission-requests] DELETE", msg);
     const detail =
       process.env.NODE_ENV !== "production" ? msg : undefined;
     return res.status(500).json({
