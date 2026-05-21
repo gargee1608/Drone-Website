@@ -96,6 +96,22 @@ export const updatePilotStatus = async (id, dutyStatus) => {
   }
 };
 
+/** Admin dashboard: create a new pilot (registration with password). */
+export const registerPilot = async (payload) => {
+  try {
+    const response = await fetch(apiUrl("/api/pilots/register"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch (error) {
+    console.error("Register pilot failed:", error);
+    return null;
+  }
+};
+
 /** Admin dashboard: update editable pilot profile fields from card modal. */
 export const patchPilotProfile = async (id, payload) => {
   try {
