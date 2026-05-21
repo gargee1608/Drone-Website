@@ -40,7 +40,7 @@ import { isPilotRegistrationFromAdmin } from "@/lib/pilot-registration-from-admi
 import { cn } from "@/lib/utils";
 
 const landingOutlineButtonClassName =
-  "inline-flex h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-4 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase transition hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent dark:border-white dark:text-white dark:hover:border-white/85 dark:hover:text-white";
+  "inline-flex h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-4 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase transition hover:border-[#006b6b] hover:bg-transparent hover:text-[#006b6b] dark:border-white dark:text-white dark:hover:border-white/85 dark:hover:text-white";
 
 export function LandingHeader() {
   const serviceMegaMenuItems = useServiceMegaMenuItems();
@@ -131,6 +131,7 @@ export function LandingHeader() {
     pathname === "/pilot-registration" ||
     pathname === "/settings" ||
     pathname?.startsWith("/settings/") ||
+    isMatchingHub ||
     isAdminDashboard ||
     isUserDashboard ||
     isPilotDashboard;
@@ -380,15 +381,15 @@ export function LandingHeader() {
     >
       <nav
         className={cn(
-          "mx-auto flex max-w-[1600px] flex-nowrap items-center justify-between px-4 sm:px-6 lg:px-8",
+          "mx-auto flex max-w-[1600px] flex-nowrap items-center justify-between px-2 min-[380px]:px-3 sm:px-6 lg:px-8",
           compactAppHeader
             ? "gap-3 py-2.5 sm:py-3"
-            : "gap-4 py-4"
+            : "gap-1 py-3 min-[380px]:gap-2 sm:gap-4 sm:py-4"
         )}
         aria-label="Primary"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-8 lg:gap-12">
-          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-8 lg:gap-12">
+          <div className="flex min-w-0 items-center gap-1 sm:gap-2">
             {isAdminCommandCenterShell ? (
               <button
                 type="button"
@@ -445,17 +446,17 @@ export function LandingHeader() {
             ) : null}
             <Link
               href={logoHref}
-              className="inline-flex min-w-0 max-w-[10rem] items-center gap-2 overflow-hidden font-[family-name:var(--font-landing-headline)] text-base font-bold tracking-tighter text-[#008B8B] uppercase sm:max-w-[14rem] sm:gap-2.5 sm:text-xl xl:max-w-none"
+              className="inline-flex shrink-0 items-center gap-1 overflow-visible font-[family-name:var(--font-landing-headline)] text-[11px] font-bold tracking-[-0.04em] text-[#008B8B] uppercase min-[380px]:gap-1.5 min-[380px]:text-sm sm:gap-2.5 sm:text-xl xl:max-w-none"
             >
               <Image
                 src="/drone-logo.png"
                 alt="Hire A Drone Logo"
                 width={48}
                 height={48}
-                className="size-10 shrink-0 sm:size-12 xl:size-14"
+                className="size-8 shrink-0 min-[380px]:size-9 sm:size-12 xl:size-14"
                 style={{ filter: 'brightness(0) saturate(100%) invert(36%) sepia(93%) saturate(1594%) hue-rotate(151deg) brightness(92%) contrast(89%)' }}
               />
-              <span className="min-w-0 truncate">Hire A Drone</span>
+              <span className="whitespace-nowrap">Hire A Drone</span>
             </Link>
           </div>
           {showMarketingHeaderNav ? (
@@ -482,7 +483,7 @@ export function LandingHeader() {
           ) : null}
         </div>
 
-        <div className="flex min-w-0 shrink-0 items-center justify-end gap-4 lg:gap-6">
+        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 sm:gap-3 lg:gap-6">
           {showHeaderSearchBar ? (
             <div className="hidden min-w-0 items-center rounded-full border border-border bg-card py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 xl:flex">
               <Search
@@ -498,14 +499,14 @@ export function LandingHeader() {
               />
             </div>
           ) : null}
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-4">
             {!isSettingsPage ? (
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "text-slate-700 xl:hidden",
+                  "size-8 shrink-0 text-slate-700 min-[380px]:size-9 xl:hidden",
                   appDashboardShell
                     ? "dark:text-white dark:hover:bg-white/10"
                     : "dark:text-white"
@@ -521,13 +522,14 @@ export function LandingHeader() {
             <Link
               href="/pilot-registration"
               className={cn(
-                "hidden xl:inline-flex",
                 landingOutlineButtonClassName,
+                "inline-flex h-9 whitespace-nowrap rounded-lg px-2 text-[9px] tracking-normal min-[360px]:px-2.5 min-[380px]:px-3 min-[380px]:text-[10px] sm:px-4 sm:text-xs sm:tracking-wider",
                 (hideRegisterPilotCta || hideMarketingRegisterAndLogin) &&
-                  "xl:hidden"
+                  "hidden"
               )}
             >
-              New Registration
+              <span className="hidden min-[360px]:inline">New Registration</span>
+              <span className="min-[360px]:hidden">Register</span>
             </Link>
             {hasLoggedInAdmin && onMarketingAuthSurface ? (
               <Link
@@ -548,9 +550,14 @@ export function LandingHeader() {
             ) : showHeaderLoginButton && !hideMarketingRegisterAndLogin ? (
               <Link
                 href="/pilot-login"
-                className={cn("hidden xl:inline-flex", landingOutlineButtonClassName)}
+                aria-label="Login"
+                title="Login"
+                className={cn(
+                  landingOutlineButtonClassName,
+                  "inline-flex size-8 min-w-8 translate-x-0.5 border-0 px-0 text-[#008B8B] hover:border-0 min-[380px]:size-9 min-[380px]:min-w-9 dark:text-white dark:hover:border-0 sm:translate-x-0"
+                )}
               >
-                Login
+                <User className="size-4 shrink-0" aria-hidden />
               </Link>
             ) : null}
             {appUserMarketingHomeDirect ? (
@@ -786,7 +793,7 @@ export function LandingHeader() {
       <div
         id="landing-mobile-nav"
         className={cn(
-          "border-t border-border bg-background px-4 py-4 xl:hidden",
+          "max-h-[calc(100svh-4.5rem)] overflow-y-auto border-t border-border bg-background px-4 py-4 shadow-lg xl:hidden",
           open ? "block" : "hidden"
         )}
       >
@@ -951,10 +958,12 @@ export function LandingHeader() {
         {isHomePage && !hideMarketingRegisterAndLogin ? (
           <Link
             href="/pilot-login"
-            className="mt-4 flex h-11 w-full items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase hover:border-[#006b6b] hover:text-[#006b6b] hover:bg-transparent"
+            aria-label="Login"
+            title="Login"
+            className="mt-4 flex h-11 w-full items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent text-[#008B8B] hover:border-[#006b6b] hover:bg-transparent hover:text-[#006b6b]"
             onClick={() => setOpen(false)}
           >
-            Login
+            <User className="size-5" aria-hidden />
           </Link>
         ) : null}
         {!hideRegisterPilotCta && !hideMarketingRegisterAndLogin ? (

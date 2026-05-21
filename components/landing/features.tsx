@@ -86,7 +86,7 @@ export function Features() {
   return (
     <section
       id="industry-use-cases"
-      className="relative overflow-hidden bg-gradient-to-b from-white via-[#f5fbfb] to-white px-4 pt-16 pb-24 sm:px-8 sm:pt-20 sm:pb-32"
+      className="relative overflow-hidden bg-gradient-to-b from-white via-[#f5fbfb] to-white px-3 pt-12 pb-16 sm:px-8 sm:pt-20 sm:pb-32"
     >
       <div
         className="pointer-events-none absolute -left-24 top-20 size-72 rounded-full bg-[#008B8B]/10 blur-3xl"
@@ -98,12 +98,12 @@ export function Features() {
       />
 
       <div className="relative mx-auto max-w-7xl">
-        <div className="mx-auto mb-16 max-w-3xl text-center sm:mb-20">
-          <h2 className="font-[family-name:var(--font-landing-headline)] text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
+        <div className="mx-auto mb-10 max-w-3xl text-center sm:mb-20">
+          <h2 className="font-[family-name:var(--font-landing-headline)] text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
             Industry Use Cases
           </h2>
         </div>
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 lg:gap-7">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:gap-6 lg:gap-7">
           {industryUseCaseRows.map((row, rowIndex) => {
             const rowZoomClass =
               rowIndex % 2 === 0
@@ -118,7 +118,7 @@ export function Features() {
                 {row.map(({ icon: Icon, title, description }) => (
                   <div
                     key={title}
-                    className="group relative flex h-full min-h-[210px] flex-col overflow-hidden rounded-3xl border border-[#008B8B]/15 bg-white/90 p-6 text-left shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-[#008B8B]/35 hover:shadow-[0_24px_60px_rgba(0,139,139,0.16)] sm:p-7"
+                    className="group relative flex h-full min-h-[180px] flex-col overflow-hidden rounded-3xl border border-[#008B8B]/15 bg-white/90 p-5 text-left shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-[#008B8B]/35 hover:shadow-[0_24px_60px_rgba(0,139,139,0.16)] sm:min-h-[210px] sm:p-7"
                   >
                     <div
                       className="absolute inset-x-6 top-0 h-1 rounded-b-full bg-gradient-to-r from-transparent via-[#008B8B] to-transparent opacity-60"
@@ -128,14 +128,14 @@ export function Features() {
                       className="pointer-events-none absolute -right-12 -top-12 size-32 rounded-full bg-[#008B8B]/10 transition-transform duration-300 group-hover:scale-125"
                       aria-hidden
                     />
-                    <div className="relative mb-6 flex size-16 shrink-0 items-center justify-center rounded-2xl border border-[#008B8B]/20 bg-[#f4fbfb] shadow-sm transition-transform duration-300 group-hover:scale-105">
+                    <div className="relative mb-5 flex size-14 shrink-0 items-center justify-center rounded-2xl border border-[#008B8B]/20 bg-[#f4fbfb] shadow-sm transition-transform duration-300 group-hover:scale-105 sm:mb-6 sm:size-16">
                       <Icon
-                        className="size-9 text-[#008B8B]"
+                        className="size-8 text-[#008B8B] sm:size-9"
                         strokeWidth={1.5}
                         aria-hidden
                       />
                     </div>
-                    <h3 className="relative mb-3 font-[family-name:var(--font-landing-headline)] text-xl font-bold leading-snug tracking-tight text-slate-900">
+                    <h3 className="relative mb-3 font-[family-name:var(--font-landing-headline)] text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl">
                       {title}
                     </h3>
                     <p className="relative mb-6 flex-1 text-sm leading-relaxed text-slate-600 sm:text-[0.9375rem]">
@@ -155,18 +155,18 @@ export function Features() {
           className="mx-auto mt-12 h-px max-w-6xl bg-slate-200 sm:mt-16"
           aria-hidden
         />
-        <div className="mx-auto mt-10 max-w-3xl text-center sm:mt-12">
+        <div className="mx-auto mt-8 max-w-3xl text-center sm:mt-12">
           <p className="font-[family-name:var(--font-landing-headline)] text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
             Core Values
           </p>
-          <h3 className="mt-3 font-[family-name:var(--font-landing-headline)] text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h3 className="mt-3 font-[family-name:var(--font-landing-headline)] text-xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             Why Hire A Drone
           </h3>
           <p className="mt-4 font-[family-name:var(--font-landing-body)] text-base leading-relaxed text-muted-foreground sm:text-lg">
             Our mission is to seamlessly connect skilled drone pilots with real-world missions, enabling efficient, reliable 
             and scaleable aerial operations across industries.
           </p>
-          <ul className="mx-auto mt-10 grid max-w-4xl list-none grid-cols-1 gap-0 divide-y divide-border p-0 sm:mt-12 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:divide-border">
+          <ul className="mx-auto mt-8 grid max-w-4xl list-none grid-cols-1 gap-0 divide-y divide-border p-0 sm:mt-12 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:divide-border">
             {coreValueHighlights.map(({ icon: Icon, title }) => (
               <li
                 key={title}
