@@ -54,8 +54,8 @@ export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
     icon: Users,
   },
     { href: "/dashboard/pilot-status", label: "Pilot Status", icon: BadgeCheck },
-  { href: "/dashboard/blogs", label: "Blogs", icon: BookOpen },
-  { href: "/dashboard/services", label: "Services", icon: Briefcase },
+  { href: "/dashboard/blogs", label: "Add Blogs", icon: BookOpen },
+  { href: "/dashboard/services", label: "Add Services", icon: Briefcase },
   {
     href: "/dashboard/contact-inquiries",
     label: "Contact inquiries",
