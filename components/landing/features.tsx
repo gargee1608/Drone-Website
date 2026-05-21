@@ -65,14 +65,20 @@ const coreValueHighlights = [
   {
     icon: BadgeCheck,
     title: "Verified Profiles",
+    description:
+      "Pilots and operators with credentials, experience, and fleet details you can trust before you book.",
   },
   {
     icon: MapPinned,
-    title: "Locations-Based Search",
+    title: "Location-Based Search",
+    description:
+      "Filter by city, region, and mission type to find the right pilot close to your job site.",
   },
   {
     icon: CalendarClock,
     title: "Instant Booking or Quotes",
+    description:
+      "Confirm availability fast or request tailored quotes for complex, multi-day aerial work.",
   },
 ] as const;
 
@@ -152,39 +158,67 @@ export function Features() {
           })}
         </div>
         <div
-          className="mx-auto mt-12 h-px max-w-6xl bg-slate-200 sm:mt-16"
-          aria-hidden
-        />
-        <div className="mx-auto mt-8 max-w-3xl text-center sm:mt-12">
-          <p className="font-[family-name:var(--font-landing-headline)] text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-            Core Values
-          </p>
-          <h3 className="mt-3 font-[family-name:var(--font-landing-headline)] text-xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Why Hire A Drone
-          </h3>
-          <p className="mt-4 font-[family-name:var(--font-landing-body)] text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Our mission is to seamlessly connect skilled drone pilots with real-world missions, enabling efficient, reliable 
-            and scaleable aerial operations across industries.
-          </p>
-          <ul className="mx-auto mt-8 grid max-w-4xl list-none grid-cols-1 gap-0 divide-y divide-border p-0 sm:mt-12 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:divide-border">
-            {coreValueHighlights.map(({ icon: Icon, title }) => (
-              <li
-                key={title}
-                className="flex flex-col items-center gap-3 px-4 py-8 text-center sm:px-6 sm:py-6"
-              >
-                <div className="flex size-14 shrink-0 items-center justify-center rounded-lg border border-border bg-muted">
-                  <Icon
-                    className="size-8 text-[#008B8B]"
-                    strokeWidth={1.5}
-                    aria-hidden
-                  />
-                </div>
-                <span className="font-[family-name:var(--font-landing-headline)] text-sm font-bold leading-snug tracking-tight text-foreground sm:text-[0.9375rem]">
-                  {title}
-                </span>
-              </li>
-            ))}
-          </ul>
+          id="why-hire-a-drone"
+          className="relative mx-auto mt-14 max-w-6xl sm:mt-20"
+        >
+          <div
+            className="pointer-events-none absolute inset-x-8 -top-6 h-24 rounded-full bg-[#008B8B]/8 blur-3xl"
+            aria-hidden
+          />
+          <div className="relative overflow-hidden rounded-[2rem] border border-[#008B8B]/15 bg-gradient-to-br from-white via-[#f6fcfc] to-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.07)] sm:p-10 lg:p-12">
+            <div
+              className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-[#0D9488]/10 blur-2xl"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -bottom-20 -left-16 size-56 rounded-full bg-[#008B8B]/8 blur-3xl"
+              aria-hidden
+            />
+
+            <div className="relative mx-auto max-w-3xl text-center">
+              <span className="inline-flex items-center rounded-full border border-[#008B8B]/20 bg-white px-4 py-1.5 font-[family-name:var(--font-landing-headline)] text-[10px] font-bold uppercase tracking-[0.22em] text-[#008B8B] shadow-sm">
+                Core Values
+              </span>
+              <h3 className="mt-5 font-[family-name:var(--font-landing-headline)] text-2xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                Why Hire A Drone
+              </h3>
+              <p className="mt-4 font-[family-name:var(--font-landing-body)] text-base leading-relaxed text-slate-600 sm:text-lg">
+                Our mission is to seamlessly connect skilled drone pilots with
+                real-world missions, enabling efficient, reliable, and scalable
+                aerial operations across industries.
+              </p>
+            </div>
+
+            <ul className="relative mx-auto mt-10 grid max-w-5xl list-none grid-cols-1 gap-5 p-0 sm:mt-12 sm:grid-cols-3 sm:gap-6">
+              {coreValueHighlights.map(({ icon: Icon, title, description }) => (
+                <li
+                  key={title}
+                  className="group flex h-full flex-col rounded-2xl border border-[#008B8B]/12 bg-white/90 p-6 text-center shadow-[0_12px_32px_rgba(15,23,42,0.06)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-[#008B8B]/30 hover:shadow-[0_20px_48px_rgba(0,139,139,0.14)] sm:p-7"
+                >
+                  <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl border border-[#008B8B]/20 bg-gradient-to-br from-[#f0fafa] to-white shadow-inner transition-transform duration-300 group-hover:scale-105 sm:size-[4.5rem]">
+                    <Icon
+                      className="size-8 text-[#008B8B] sm:size-9"
+                      strokeWidth={1.6}
+                      aria-hidden
+                    />
+                  </div>
+                  <h4 className="font-[family-name:var(--font-landing-headline)] text-base font-bold leading-snug tracking-tight text-slate-900 sm:text-lg">
+                    {title}
+                  </h4>
+                  <p className="mt-3 flex-1 font-[family-name:var(--font-landing-body)] text-sm leading-relaxed text-slate-600">
+                    {description}
+                  </p>
+                  <div className="mx-auto mt-5 flex w-full max-w-[8rem] items-center gap-2">
+                    <div className="landing-telemetry-line flex-1 opacity-80" />
+                    <span
+                      className="size-1.5 shrink-0 rounded-full bg-[#008B8B]"
+                      aria-hidden
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </section>
