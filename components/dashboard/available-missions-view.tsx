@@ -525,7 +525,7 @@ export function AvailableMissionsView() {
             aria-hidden
           />
           <p className="mb-4 text-sm font-semibold text-foreground">
-            No available missions yet
+            No Available Mission
           </p>
           <Button
             type="button"

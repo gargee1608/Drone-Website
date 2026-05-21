@@ -966,11 +966,14 @@ export function MatchingHubView() {
                       {missionsError}
                     </p>
                   ) : missionRows.length === 0 ? (
-                    <p className="col-span-full text-sm text-slate-600">
-                      No available missions right now.
-                    </p>
+                    <div className="col-span-full rounded-lg border border-dashed border-slate-200 bg-white/60 px-6 py-10 text-center">
+                      <p className="text-sm font-semibold text-slate-700">
+                        No Available Mission
+                      </p>
+                    </div>
                   ) : null}
-                  {missionRows.map((mission) => (
+                  {!missionsLoading && !missionsError
+                    ? missionRows.map((mission) => (
                     <button
                       key={mission.id}
                       type="button"
@@ -1014,7 +1017,8 @@ export function MatchingHubView() {
                         <ArrowRight className="size-3 sm:size-3.5" />
                       </span>
                     </button>
-                  ))}
+                  ))
+                    : null}
                 </div>
               </div>
             </section>

@@ -186,15 +186,20 @@ async function tryCopyFromLegacyMissionsRequestsTable() {
   }
 }
 
+/** Ensure table/columns exist — used on API requests (does not re-seed after admin deletes). */
+async function ensureMissionRequestsReady() {
+  await ensureMissionRequestsSchema();
+  await ensureMissionRequestColumns();
+}
+
 /**
- * Run on server startup and on GET /api/missions-requests.
- * Ensures `mission_requests` exists and contains the hub seed rows when empty.
+ * Run on server startup only. Seeds default hub missions when the table is empty
+ * on first deploy; later empty state (all deleted) stays empty.
  */
 async function bootstrapMissionRequests() {
   const db = await pool.query("SELECT current_database() AS name");
   const dbName = db.rows[0]?.name ?? "?";
-  await ensureMissionRequestsSchema();
-  await ensureMissionRequestColumns();
+  await ensureMissionRequestsReady();
   const copied = await tryCopyFromLegacyMissionsRequestsTable();
   if (copied > 0) {
     console.log(
@@ -251,10 +256,10 @@ function hubMissionFromBody(body) {
   };
 }
 
-/** GET /api/missions-requests — rows in mission_requests (seeded from hub defaults when empty). */
+/** GET /api/missions-requests — all rows in mission_requests (may be empty). */
 router.get("/", async (req, res) => {
   try {
-    await bootstrapMissionRequests();
+    await ensureMissionRequestsReady();
     const result = await pool.query(
       `SELECT * FROM mission_requests ORDER BY id ASC`
     );
@@ -275,7 +280,7 @@ router.get("/", async (req, res) => {
 /** POST /api/missions-requests — create a new mission_requests row. */
 router.post("/", async (req, res) => {
   try {
-    await bootstrapMissionRequests();
+    await ensureMissionRequestsReady();
     const fields = hubMissionFromBody(req.body);
     if (!fields.mission_code) {
       return res.status(400).json({ error: "Mission code is required" });
@@ -332,7 +337,7 @@ router.put("/:code", async (req, res) => {
   }
 
   try {
-    await bootstrapMissionRequests();
+    await ensureMissionRequestsReady();
     const fields = hubMissionFromBody(req.body);
     if (!fields.mission_code) {
       return res.status(400).json({ error: "Mission code is required" });
