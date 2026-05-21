@@ -11,6 +11,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
+import { notifyAdminFleetUpdated } from "@/lib/admin-fleet-updated";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { jwtPayloadRole, jwtPayloadSub } from "@/lib/pilot-display-name";
@@ -780,12 +781,20 @@ export function PilotRegistrationView({
     }
     const tok =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (tok && jwtPayloadRole(tok) === "pilot") {
+    let syncPilotId: number | null = null;
+    if (fromAdminDashboard && adminPilotId?.trim()) {
+      const adminPid = Number.parseInt(adminPilotId.trim(), 10);
+      if (Number.isFinite(adminPid)) syncPilotId = adminPid;
+    } else if (tok && jwtPayloadRole(tok) === "pilot") {
       const rawSub = jwtPayloadSub(tok);
       const pid = rawSub ? Number.parseInt(rawSub, 10) : NaN;
-      if (Number.isFinite(pid)) {
-        void patchPilotDroneDetails(pid, snapshot.drones ?? []);
-      }
+      if (Number.isFinite(pid)) syncPilotId = pid;
+    }
+    if (syncPilotId != null) {
+      void patchPilotDroneDetails(syncPilotId, snapshot.drones ?? []);
+    }
+    if (fromAdminDashboard) {
+      notifyAdminFleetUpdated();
     }
     router.push(profileReturnTo);
   }
@@ -821,6 +830,7 @@ export function PilotRegistrationView({
         setSubmitError("Could not save drone details. Please try again.");
         return;
       }
+      notifyAdminFleetUpdated();
       setAdminDroneSubmitSuccess(true);
     } finally {
       setAdminDroneSubmitting(false);
