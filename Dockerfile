@@ -56,6 +56,7 @@ COPY backend/server.js ./backend/server.js
 COPY backend/db.js ./backend/db.js
 COPY backend/email.js ./backend/email.js
 COPY backend/routes ./backend/routes
+COPY backend/lib ./backend/lib
 COPY backend/scripts ./backend/scripts
 
 # Startup script (runs backend + frontend)
