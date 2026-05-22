@@ -16,7 +16,10 @@ import { RequestServiceModalTrigger } from "@/components/services/request-servic
 import { apiUrl } from "@/lib/api-url";
 import type { AdminService } from "@/lib/admin-services";
 import { useAdminServicesCatalog } from "@/hooks/use-admin-services-catalog";
-import { serviceCatalogItems } from "@/lib/service-catalog";
+import {
+  serviceCatalogItems,
+  serviceSlugFromTitle,
+} from "@/lib/service-catalog";
 import {
   mergeFeaturedWithLive,
   useFeaturedServiceSelection,
@@ -44,22 +47,39 @@ function stopSelectNav(e: MouseEvent | KeyboardEvent) {
   e.stopPropagation();
 }
 
+function dbRowSlug(row: Record<string, unknown>): string | null {
+  if (typeof row.slug === "string" && row.slug.trim()) {
+    return row.slug.trim();
+  }
+  const title = typeof row.title === "string" ? row.title : "";
+  const fromTitle = title.trim();
+  if (!fromTitle) return null;
+  return serviceSlugFromTitle(fromTitle);
+}
+
 function buildListedServices(
   adminExtras: AdminService[],
   dbRows: Record<string, unknown>[]
 ): ListedService[] {
   const out: ListedService[] = [];
-  for (const item of serviceCatalogItems) {
-    out.push({ kind: "static", key: `static:${item.slug}`, item });
-  }
-  for (const item of adminExtras) {
-    out.push({ kind: "admin", key: `admin:${item.id}`, item });
-  }
+
   for (const row of dbRows) {
     const id = row.id;
     if (id == null) continue;
     out.push({ kind: "db", key: `db:${String(id)}`, item: row });
   }
+
+  /** Offline fallback: show built-in catalog only when the API returned nothing. */
+  if (dbRows.length === 0) {
+    for (const item of serviceCatalogItems) {
+      out.push({ kind: "static", key: `static:${item.slug}`, item });
+    }
+  }
+
+  for (const item of adminExtras) {
+    out.push({ kind: "admin", key: `admin:${item.id}`, item });
+  }
+
   return out;
 }
 
@@ -210,6 +230,11 @@ function ServiceGridCard({
   const description = catalogExcerpt(String(service.description ?? ""));
   const price = service.price != null ? String(service.price) : "";
   const image = typeof service.image === "string" ? service.image : "";
+  const slug =
+    typeof service.slug === "string" && service.slug.trim()
+      ? service.slug.trim()
+      : serviceSlugFromTitle(title);
+  const detailHref = `/services/${slug}`;
 
   return (
     <article
@@ -226,10 +251,7 @@ function ServiceGridCard({
     >
       <div onClick={blockNav} className={serviceCardImageWrap}>
         {image ? (
-          <Link
-            href={`/user-dashboard/create-request?reason=${encodeURIComponent(title)}`}
-            className="block h-full w-full"
-          >
+          <Link href={detailHref} className="block h-full w-full">
             <img
               src={image}
               alt={title}
@@ -256,10 +278,7 @@ function ServiceGridCard({
             "mb-2 text-lg font-bold leading-tight text-[#1a1c1e] dark:text-white transition-colors group-hover:text-[#006a6e] dark:group-hover:text-[#4ddbd9] sm:text-xl"
           )}
         >
-          <Link
-            href={`/user-dashboard/create-request?reason=${encodeURIComponent(title)}`}
-            onClick={blockNav}
-          >
+          <Link href={detailHref} onClick={blockNav}>
             {title}
           </Link>
         </h3>
@@ -270,6 +289,9 @@ function ServiceGridCard({
           className="mt-auto space-y-2 border-t border-[#c1c7cf]/10 pt-3"
           onClick={blockNav}
         >
+          <Link href={detailHref} className={serviceGridBtnClass}>
+            View details
+          </Link>
           <RequestServiceModalTrigger
             reasonTitle={title}
             className={serviceGridBtnClass}
@@ -444,7 +466,11 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
   } else {
     const title = String(entry.item.title ?? "Service");
     const desc = catalogExcerpt(String(entry.item.description ?? ""));
-    const href = `/user-dashboard/create-request?reason=${encodeURIComponent(title)}`;
+    const slug =
+      typeof entry.item.slug === "string" && String(entry.item.slug).trim()
+        ? String(entry.item.slug).trim()
+        : serviceSlugFromTitle(title);
+    const href = `/services/${slug}`;
     const img =
       typeof entry.item.image === "string" ? entry.item.image.trim() : "";
     left = (

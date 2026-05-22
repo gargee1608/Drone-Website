@@ -45,12 +45,43 @@ function readServiceCoverImageFile(file: File): Promise<string> {
 
 type AdminService = {
   id: number;
+  slug?: string;
   title: string;
   description: string;
   price: number;
   image: string;
   createdAt?: string;
 };
+
+function normalizeServiceRow(raw: unknown): AdminService | null {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return null;
+  }
+  const row = raw as Record<string, unknown>;
+  const idRaw = row.id;
+  const id =
+    typeof idRaw === "string"
+      ? Number.parseInt(idRaw, 10)
+      : typeof idRaw === "number"
+        ? idRaw
+        : Number(idRaw);
+  if (!Number.isFinite(id)) return null;
+  const price = Number(row.price);
+  return {
+    id,
+    slug: typeof row.slug === "string" ? row.slug : undefined,
+    title: String(row.title ?? ""),
+    description: String(row.description ?? ""),
+    price: Number.isFinite(price) ? price : 0,
+    image: String(row.image ?? ""),
+    createdAt:
+      typeof row.created_at === "string"
+        ? row.created_at
+        : typeof row.createdAt === "string"
+          ? row.createdAt
+          : undefined,
+  };
+}
 
 export function AdminServicesView() {
   const [items, setItems] = useState<AdminService[]>([]);
@@ -64,7 +95,30 @@ export function AdminServicesView() {
   const [image, setImage] = useState("");
 
   const [formError, setFormError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
+
+  function apiErrorMessage(
+    body: Awaited<ReturnType<typeof readResponseJson>>,
+    fallback: string
+  ): string {
+    if (
+      body.okParse &&
+      body.data &&
+      typeof body.data === "object" &&
+      body.data !== null &&
+      "error" in body.data &&
+      typeof (body.data as { error?: unknown }).error === "string"
+    ) {
+      return (body.data as { error: string }).error;
+    }
+    if (!body.okParse && body.bodyPreview) {
+      return body.bodyPreview;
+    }
+    return fallback;
+  }
 
   const clearCoverFileInput = () => {
     if (coverFileInputRef.current) coverFileInputRef.current.value = "";
@@ -92,7 +146,11 @@ export function AdminServicesView() {
         setItems([]);
         return;
       }
-      setItems(body.data as AdminService[]);
+      setItems(
+        (body.data as unknown[])
+          .map(normalizeServiceRow)
+          .filter((row): row is AdminService => row !== null)
+      );
     } catch (err) {
       console.log(err);
       setItems([]);
@@ -120,39 +178,40 @@ export function AdminServicesView() {
       setFormError("Title and Price are required");
       return;
     }
+    const priceNum = Number(price);
+    if (!Number.isFinite(priceNum)) {
+      setFormError("Enter a valid price");
+      return;
+    }
 
     setFormError(null);
+    setActionError(null);
+    setSaving(true);
     try {
       const res = await fetch(apiUrl("/api/services"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title,
+          title: title.trim(),
           description,
-          price: Number(price),
+          price: priceNum,
           image,
         }),
       });
       const body = await readResponseJson(res);
       if (!res.ok) {
-        const msg =
-          body.okParse &&
-          body.data &&
-          typeof body.data === "object" &&
-          "error" in body.data &&
-          typeof (body.data as { error?: unknown }).error === "string"
-            ? (body.data as { error: string }).error
-            : "Could not save service";
-        setFormError(msg);
+        setFormError(apiErrorMessage(body, "Could not save service"));
         return;
       }
     } catch {
       setFormError("Network error while saving service");
       return;
+    } finally {
+      setSaving(false);
     }
 
     resetForm();
-    void fetchServices();
+    await fetchServices();
     notifyServicesDbUpdated();
   };
 
@@ -170,30 +229,36 @@ export function AdminServicesView() {
   // ================= UPDATE =================
   const updateService = async () => {
     if (!editId) return;
+    if (!title.trim() || !price.trim()) {
+      setFormError("Title and Price are required");
+      return;
+    }
+    const priceNum = Number(price);
+    if (!Number.isFinite(priceNum)) {
+      setFormError("Enter a valid price");
+      return;
+    }
+
+    const existing = items.find((r) => r.id === editId);
 
     setFormError(null);
+    setActionError(null);
+    setSaving(true);
     try {
       const res = await fetch(apiUrl(`/api/services/${editId}`), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title,
+          title: title.trim(),
           description,
-          price: Number(price),
+          price: priceNum,
           image,
+          ...(existing?.slug ? { slug: existing.slug } : {}),
         }),
       });
       const body = await readResponseJson(res);
       if (!res.ok) {
-        const msg =
-          body.okParse &&
-          body.data &&
-          typeof body.data === "object" &&
-          "error" in body.data &&
-          typeof (body.data as { error?: unknown }).error === "string"
-            ? (body.data as { error: string }).error
-            : "Could not update service";
-        setFormError(msg);
+        setFormError(apiErrorMessage(body, "Could not update service"));
         return;
       }
 
@@ -202,20 +267,42 @@ export function AdminServicesView() {
       notifyServicesDbUpdated();
     } catch {
       setFormError("Network error while updating service");
+    } finally {
+      setSaving(false);
     }
   };
 
   // ================= DELETE =================
-  const deleteService = async (id: number) => {
+  const deleteService = async (row: AdminService) => {
+    const label = row.title.trim() || "this service";
+    if (
+      !window.confirm(
+        `Delete "${label}"? It will be removed from the website catalog.`
+      )
+    ) {
+      return;
+    }
+
+    setActionError(null);
+    setDeletingId(row.id);
     try {
-      const res = await fetch(apiUrl(`/api/services/${id}`), {
+      const res = await fetch(apiUrl(`/api/services/${row.id}`), {
         method: "DELETE",
       });
-      if (!res.ok) return;
+      const body = await readResponseJson(res);
+      if (!res.ok) {
+        setActionError(apiErrorMessage(body, "Could not delete service"));
+        return;
+      }
+      if (editId === row.id) {
+        resetForm();
+      }
       await fetchServices();
       notifyServicesDbUpdated();
     } catch {
-      // ignore — list will refresh on next visit
+      setActionError("Network error while deleting service");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -282,13 +369,21 @@ export function AdminServicesView() {
                   </p>
                 </div>
               ) : (
-                <div className="sm:col-span-2">
+                <div className="sm:col-span-2 space-y-1">
                   <p className="text-xs text-muted-foreground">
                     Service ID:{" "}
                     <span className="font-mono font-medium text-foreground">
                       {editId}
                     </span>
                   </p>
+                  {sortedItems.find((r) => r.id === editId)?.slug ? (
+                    <p className="text-xs text-muted-foreground">
+                      URL slug:{" "}
+                      <span className="font-mono font-medium text-foreground">
+                        {sortedItems.find((r) => r.id === editId)?.slug}
+                      </span>
+                    </p>
+                  ) : null}
                 </div>
               )}
               <div>
@@ -404,9 +499,10 @@ export function AdminServicesView() {
               <Button
                 type="submit"
                 variant="outline"
+                disabled={saving}
                 className="rounded-full border-[#008B8B] bg-transparent font-bold text-[#008B8B] hover:bg-[#008B8B]/10 hover:text-[#007a7a]"
               >
-                Save
+                {saving ? "Saving…" : "Save"}
               </Button>
               <Button
                 type="button"
@@ -426,7 +522,18 @@ export function AdminServicesView() {
           <h2 className="text-base font-bold text-foreground">
             All services ({sortedItems.length})
           </h2>
+          {actionError ? (
+            <p className="mt-2 text-sm font-medium text-red-600" role="alert">
+              {actionError}
+            </p>
+          ) : null}
         </div>
+        {sortedItems.length === 0 ? (
+          <p className="px-5 py-10 text-center text-sm text-muted-foreground sm:px-6">
+            No services yet. Open the page again after the API is running, or
+            use Add New Service.
+          </p>
+        ) : null}
         <ul className="grid list-none grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3 lg:gap-5">
           {sortedItems.map((row) => (
             <li key={row.id}>
@@ -469,10 +576,12 @@ export function AdminServicesView() {
 
                     <button
                       type="button"
-                      onClick={() => deleteService(row.id)}
-                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 min-[360px]:flex-none"
+                      disabled={deletingId === row.id}
+                      onClick={() => void deleteService(row)}
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 disabled:opacity-50 min-[360px]:flex-none"
                     >
-                      <Trash2 className="size-3.5" aria-hidden /> Delete
+                      <Trash2 className="size-3.5" aria-hidden />
+                      {deletingId === row.id ? "Deleting…" : "Delete"}
                     </button>
                   </div>
                 </div>

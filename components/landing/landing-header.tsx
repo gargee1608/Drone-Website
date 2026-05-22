@@ -252,9 +252,13 @@ export function LandingHeader() {
   const hasLoggedInAppUser = appUserSession != null;
   const hasLoggedInAdmin = adminMarketingActive;
   const onMarketingAuthSurface = isHomePage || isMarketingAuthPage;
-  /** Public pages always show Login + New Registration — never persisted session chips. */
-  const showAnonymousMarketingHeader = onMarketingAuthSurface;
-  const hideMarketingRegisterAndLogin = false;
+  const hasMarketingSession =
+    hasLoggedInAppUser || pilotMarketingActive || hasLoggedInAdmin;
+  /** Logged-out marketing pages show Login + New Registration; signed-in users see their name chip instead. */
+  const showAnonymousMarketingHeader =
+    onMarketingAuthSurface && !hasMarketingSession;
+  const hideMarketingRegisterAndLogin =
+    onMarketingAuthSurface && hasMarketingSession;
 
   const appUserDisplayName =
     appUserSession?.fullName?.trim() ||

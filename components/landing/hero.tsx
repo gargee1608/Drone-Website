@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Battery, Gauge, Lock, Rocket, ShieldCheck } from "lucide-react";
+import { ArrowRight, Lock, Rocket, ShieldCheck } from "lucide-react";
 
+import { HeroVisual } from "@/components/landing/hero-visual";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 
 const heroHighlights = [
@@ -23,7 +23,7 @@ export function Hero() {
       />
 
       <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-8 sm:gap-12 lg:grid-cols-2 lg:gap-16">
-        <div className="rounded-3xl border border-[#008B8B]/10 bg-white/80 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none">
+        <div className="hero-content-enter rounded-3xl border border-[#008B8B]/10 bg-white/80 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none">
           <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[#008B8B]/20 bg-white px-3 py-2 font-[family-name:var(--font-landing-headline)] text-[9px] font-bold uppercase tracking-[0.16em] text-[#008B8B] shadow-sm sm:px-4 sm:text-[10px] sm:tracking-[0.22em]">
             <ShieldCheck className="size-4" aria-hidden />
             <span className="truncate">Verified drone network</span>
@@ -66,53 +66,7 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="group relative mx-auto w-full max-w-xl lg:max-w-none">
-          <div className="absolute -inset-3 rounded-[2rem] bg-[#008B8B]/15 opacity-60 blur-3xl transition-opacity group-hover:opacity-90 sm:-inset-5 sm:rounded-[2.5rem]" />
-          <div className="relative">
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.5rem] border border-white/80 bg-white p-1.5 shadow-[0_28px_80px_rgba(15,23,42,0.18)] sm:rounded-[2rem] sm:p-2">
-              <Image
-                src="/drone-hero1.png"
-                alt="Heavy-lift industrial drone carrying cargo"
-                fill
-                className="rounded-[1.125rem] object-cover object-center sm:rounded-[1.5rem]"
-                priority
-                sizes="(max-width: 1024px) 100vw, 50vw"
-              />
-              <div
-                className="absolute inset-1.5 rounded-[1.125rem] bg-gradient-to-t from-slate-950/20 via-transparent to-transparent sm:inset-2 sm:rounded-[1.5rem]"
-                aria-hidden
-              />
-            </div>
-            <div className="-mt-6 grid grid-cols-2 gap-3 px-3 sm:-mt-8 sm:flex sm:flex-wrap sm:justify-center sm:gap-4 sm:px-4">
-              <div className="landing-glass-card relative flex min-w-0 items-center gap-3 rounded-2xl border border-white/70 bg-white/85 p-3 shadow-[0_16px_40px_rgba(15,23,42,0.12)] backdrop-blur sm:gap-4">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#008B8B]/10 text-[#008B8B] sm:size-11">
-                  <Gauge className="size-5" strokeWidth={2} aria-hidden />
-                </div>
-                <div>
-                  <div className="font-[family-name:var(--font-landing-headline)] text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                    Altitude
-                  </div>
-                  <div className="font-[family-name:var(--font-landing-headline)] text-sm text-foreground">
-                    124m
-                  </div>
-                </div>
-              </div>
-              <div className="landing-glass-card relative flex min-w-0 items-center gap-3 rounded-2xl border border-white/70 bg-white/85 p-3 shadow-[0_16px_40px_rgba(15,23,42,0.12)] backdrop-blur sm:gap-4">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#008B8B]/10 text-[#008B8B] sm:size-11">
-                  <Battery className="size-5" strokeWidth={2} aria-hidden />
-                </div>
-                <div>
-                  <div className="font-[family-name:var(--font-landing-headline)] text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                    Charge
-                  </div>
-                  <div className="font-[family-name:var(--font-landing-headline)] text-sm text-foreground">
-                    88%
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <HeroVisual />
       </div>
     </section>
   );

@@ -46,6 +46,7 @@ const staticServiceMegaMenuItems: ServiceMegaMenuItem[] = [
 
 type DbServiceRow = {
   id: number;
+  slug?: string;
   title?: string;
   description?: string;
 };
@@ -92,7 +93,25 @@ export function useServiceMegaMenuItems(): ServiceMegaMenuItem[] {
       out.push(item);
     };
 
-    staticServiceMegaMenuItems.forEach(pushUnique);
+    dbServices.forEach((item) => {
+      const title = String(item.title ?? "").trim();
+      if (!title) return;
+      const slug =
+        typeof item.slug === "string" && item.slug.trim()
+          ? item.slug.trim()
+          : serviceSlugFromTitle(title);
+      pushUnique({
+        href: `/services/${slug}`,
+        title,
+        description:
+          String(item.description ?? "").trim() ||
+          "Custom service added from admin.",
+      });
+    });
+
+    if (dbServices.length === 0) {
+      staticServiceMegaMenuItems.forEach(pushUnique);
+    }
 
     adminExtras.forEach((item) => {
       const title = item.title.trim();
@@ -101,18 +120,6 @@ export function useServiceMegaMenuItems(): ServiceMegaMenuItem[] {
         href: `/services/${serviceSlugFromTitle(title)}`,
         title,
         description: item.description.trim() || "Custom service added from admin.",
-      });
-    });
-
-    dbServices.forEach((item) => {
-      const title = String(item.title ?? "").trim();
-      if (!title) return;
-      pushUnique({
-        href: `/services/${serviceSlugFromTitle(title)}`,
-        title,
-        description:
-          String(item.description ?? "").trim() ||
-          "Custom service added from admin.",
       });
     });
 

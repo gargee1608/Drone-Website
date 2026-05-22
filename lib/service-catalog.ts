@@ -108,6 +108,7 @@ export function serviceSlugFromTitle(title: string): string {
 
 type BackendServiceRow = {
   id?: number | string;
+  slug?: string;
   title?: string;
   description?: string;
   price?: number | string;
@@ -166,17 +167,30 @@ function mapBackendServiceToCatalogItem(row: BackendServiceRow): ServiceCatalogI
   };
 }
 
+function enrichCatalogFromStatic(
+  mapped: ServiceCatalogItem,
+  slug: string
+): ServiceCatalogItem {
+  const staticItem = getServiceBySlug(slug);
+  if (!staticItem) return mapped;
+  return {
+    ...mapped,
+    detailSections: staticItem.detailSections,
+    highlights: staticItem.highlights,
+    imageAlt: staticItem.imageAlt,
+  };
+}
+
 export async function getServiceBySlugExtended(
   slug: string
 ): Promise<ServiceCatalogItem | undefined> {
-  const staticItem = getServiceBySlug(slug);
-  if (staticItem) return staticItem;
-
   const backendRows = await fetchBackendServices();
   for (const row of backendRows) {
     const mapped = mapBackendServiceToCatalogItem(row);
     if (!mapped) continue;
-    if (mapped.slug === slug) return mapped;
+    if (mapped.slug === slug) {
+      return enrichCatalogFromStatic(mapped, slug);
+    }
   }
   return undefined;
 }
