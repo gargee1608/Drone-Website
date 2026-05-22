@@ -238,11 +238,12 @@ export function AdminServicesView() {
         </div>
         <Button
           type="button"
+          variant="outline"
           onClick={() => {
             clearCoverFileInput();
             setFormMode("add");
           }}
-          className="shrink-0 rounded-full bg-[#008B8B] font-bold text-white hover:bg-[#007a7a]"
+          className="shrink-0 rounded-full border-[#008B8B] bg-transparent font-bold text-[#008B8B] hover:bg-[#008B8B]/10 hover:text-[#007a7a]"
         >
           <Plus className="mr-2 size-4" aria-hidden />
           Add New Service

@@ -93,7 +93,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       <aside
         id="command-center-nav"
         className={cn(
-          "fixed bottom-0 left-0 top-24 z-50 flex h-[calc(100dvh-6rem)] max-h-[calc(100dvh-6rem)] min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-border bg-white lg:border-r-0",
+          "fixed bottom-0 left-0 top-24 z-50 flex h-[calc(100dvh-6rem)] max-h-[calc(100dvh-6rem)] min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-border bg-sidebar text-sidebar-foreground lg:border-r-0",
           "transform transition-[transform,width] duration-200 ease-out will-change-transform",
           sidebarExpanded ? "lg:w-64" : "lg:w-0 lg:max-w-0 lg:overflow-hidden lg:border-0 lg:p-0",
           "-translate-x-full lg:translate-x-0",
@@ -158,7 +158,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
           <div
             className={cn(
-              "relative z-10 w-full shrink-0 bg-white px-2 pt-4",
+              "relative z-10 w-full shrink-0 bg-sidebar px-2 pt-4",
               "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
             )}
           >

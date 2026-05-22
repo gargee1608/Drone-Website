@@ -194,9 +194,10 @@ export function PilotDroneView() {
 
       const apiDrones = await fetchPilotDronesFromApi(pilotId, token);
       const base = readBaseSnapshot();
+      // Prefer server data over stale browser snapshot when admin updates drones.
       const merged = mergePilotDroneLists(
-        apiDrones,
-        base?.drones ?? []
+        base?.drones ?? [],
+        apiDrones
       ).filter((drone) => !droneIsDeleted(drone, readDeletedDroneIds()));
 
       const snapshotBase: PilotProfileSnapshot =

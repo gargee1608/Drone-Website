@@ -26,6 +26,7 @@ import {
   loadBlogExtras,
   loadBlogOverrides,
   notifyBlogCatalogUpdated,
+  purgeBlogFromLocalCatalog,
   saveBlogExtras,
   saveBlogOverrides,
   type AdminBlogExtra,
@@ -138,7 +139,8 @@ export function AdminBlogsView() {
     } catch {
       dbPosts = [];
     }
-    const merged = getMergedBlogPostsList();
+    const dbSlugs = new Set(dbPosts.map((p) => p.slug));
+    const merged = getMergedBlogPostsList().filter((p) => !dbSlugs.has(p.slug));
     setRows([...dbPosts, ...merged]);
     setExtras(loadBlogExtras());
   }, []);
@@ -368,19 +370,28 @@ export function AdminBlogsView() {
     void refresh();
   };
 
-  const deleteDbBlog = async (id: number) => {
+  const deleteDbBlog = async (id: number, slug: string): Promise<boolean> => {
     try {
       const res = await fetch(apiUrl(`/api/blogs/${id}`), {
         method: "DELETE",
       });
       if (!res.ok) {
-        return;
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        window.alert(
+          typeof data.error === "string"
+            ? data.error
+            : `Could not delete blog (${res.status}).`
+        );
+        return false;
       }
+      purgeBlogFromLocalCatalog(slug);
       await refresh();
       notifyBlogCatalogUpdated();
       if (editDbId === id) closeEditor();
+      return true;
     } catch {
-      /* ignore */
+      window.alert("Network error — could not delete blog.");
+      return false;
     }
   };
 
@@ -388,20 +399,28 @@ export function AdminBlogsView() {
     post: AdminBlogRow,
     extra: AdminBlogExtra | undefined
   ) => {
+    const confirmed = window.confirm(
+      `Permanently delete "${post.title}"? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
     const dbId =
       typeof post.dbId === "number" ? post.dbId : parseBlogDbSlug(post.slug);
 
     if (dbId != null) {
-      await deleteDbBlog(dbId);
+      await deleteDbBlog(dbId, post.slug);
       return;
     }
 
     if (extra) {
+      purgeBlogFromLocalCatalog(post.slug);
       deleteExtra(extra.internalId);
+      notifyBlogCatalogUpdated();
       return;
     }
 
     deleteBuiltin(post.slug);
+    notifyBlogCatalogUpdated();
   };
 
   return (
@@ -412,11 +431,12 @@ export function AdminBlogsView() {
         </div>
         <Button
           type="button"
+          variant="outline"
           onClick={openAdd}
-          className="shrink-0 rounded-full bg-[#008B8B] font-bold text-white hover:bg-[#007a7a]"
+          className="shrink-0 rounded-full border-[#008B8B] bg-transparent font-bold text-[#008B8B] hover:bg-[#008B8B]/10 hover:text-[#007a7a]"
         >
           <Plus className="mr-2 size-4" aria-hidden />
-          New blog
+          Add New Blogs
         </Button>
       </div>
 
@@ -657,7 +677,7 @@ export function AdminBlogsView() {
           </p>
         ) : rows.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-muted-foreground sm:px-6">
-            No posts yet. Use &quot;New blog&quot; to add one.
+            No posts yet. Use &quot;Add New Blogs&quot; to add one.
           </p>
         ) : (
           <ul className="grid list-none grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3 lg:gap-5">

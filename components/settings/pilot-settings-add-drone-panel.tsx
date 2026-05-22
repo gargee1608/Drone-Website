@@ -6,6 +6,7 @@ import { useCallback, useEffect, useId, useState, forwardRef, useImperativeHandl
 
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
 import { notifyAdminFleetUpdated } from "@/lib/admin-fleet-updated";
+import { syncPilotDronesToProfile } from "@/lib/load-pilot-drones";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiUrl } from "@/lib/api-url";
@@ -135,7 +136,11 @@ function persistSnapshot(
       : null);
 
   if (profilePilotId != null) {
-    void patchPilotDroneDetails(profilePilotId, next.drones ?? []);
+    if (explicitPilotId != null) {
+      void syncPilotDronesToProfile(profilePilotId, token);
+    } else {
+      void patchPilotDroneDetails(profilePilotId, next.drones ?? []);
+    }
   }
 }
 

@@ -142,7 +142,8 @@ function staticRequestToAdminRow(
       key: `demo-${r.title}`,
       title: r.title,
       badge: "CRITICAL",
-      badgeClass: "bg-[#ffdad6] text-[#93000a]",
+      badgeClass:
+        "bg-[#ffdad6] text-[#93000a] dark:bg-red-950/50 dark:text-red-200",
       barColor: "#ba1a1a",
       desc,
       adminStatus,
@@ -153,7 +154,8 @@ function staticRequestToAdminRow(
       key: `demo-${r.title}`,
       title: r.title,
       badge: "NORMAL",
-      badgeClass: "bg-[#cde5ff] text-[#001d32]",
+      badgeClass:
+        "bg-[#cde5ff] text-[#001d32] dark:bg-blue-950/50 dark:text-blue-200",
       barColor: "#006195",
       desc,
       adminStatus,
@@ -163,7 +165,8 @@ function staticRequestToAdminRow(
     key: `demo-${r.title}`,
     title: r.title,
     badge: "ROUTINE",
-    badgeClass: "bg-[#008B8B]/14 text-[#0a3030]",
+    badgeClass:
+      "bg-[#008B8B]/14 text-[#0a3030] dark:bg-[#008B8B]/25 dark:text-teal-100",
     barColor: "#008B8B",
     desc,
     adminStatus,
@@ -175,12 +178,14 @@ function mapBackendRequestToAdminRow(r: BackendRequestRow): UserRequestAdminRow 
     .trim()
     .toLowerCase();
   let badge: UserRequestAdminRow["badge"] = "NORMAL";
-  let badgeClass = "bg-[#cde5ff] text-[#001d32]";
+  let badgeClass =
+    "bg-[#cde5ff] text-[#001d32] dark:bg-blue-950/50 dark:text-blue-200";
   let barColor = "#006195";
 
   if (urgency === "critical" || urgency === "urgent") {
     badge = "CRITICAL";
-    badgeClass = "bg-[#ffdad6] text-[#93000a]";
+    badgeClass =
+      "bg-[#ffdad6] text-[#93000a] dark:bg-red-950/50 dark:text-red-200";
     barColor = "#ba1a1a";
   } else if (urgency === "standard" || urgency === "routine") {
     badge = "ROUTINE";

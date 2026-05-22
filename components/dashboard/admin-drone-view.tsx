@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PilotSettingsAddDronePanel } from "@/components/settings/pilot-settings-add-drone-panel";
 import { notifyAdminFleetUpdated } from "@/lib/admin-fleet-updated";
 import { apiUrl } from "@/lib/api-url";
+import { syncPilotDronesToProfile } from "@/lib/load-pilot-drones";
 import { cn } from "@/lib/utils";
 
 const OPEN_REQUEST_TH_CLASS =
@@ -209,6 +210,10 @@ function textValue(value: unknown): string {
   return String(value).trim();
 }
 
+function emptyIfDash(value: string): string {
+  return value === "—" ? "" : value;
+}
+
 function displayValue(value: unknown): string {
   return textValue(value) || "—";
 }
@@ -384,6 +389,37 @@ function dedupePendingPilotRequests(requests: UserRequest[]): UserRequest[] {
   });
 }
 
+function isPendingPilotDetailsRequest(req: UserRequest): boolean {
+  return (
+    req.request_type === "add_pilot_details" &&
+    (req.status || "").trim().toLowerCase() === "pending"
+  );
+}
+
+function pendingRequestMatchesDroneRow(
+  req: UserRequest,
+  row: AdminPilotDroneTableRow
+): boolean {
+  if (!isPendingPilotDetailsRequest(req)) return false;
+  const rowPilotId = emptyIfDash(row.pilotId);
+  const reqPilotId = textValue(req.pilot_id);
+  if (rowPilotId && reqPilotId && rowPilotId === reqPilotId) return true;
+  const rowEmail = emptyIfDash(row.pilotEmail).toLowerCase();
+  const reqEmail = textValue(req.pilot_details?.email).toLowerCase();
+  if (rowEmail && reqEmail && rowEmail === reqEmail) return true;
+  const rowName = row.pilotName.trim().toLowerCase();
+  const reqName = textValue(req.pilot_name).trim().toLowerCase();
+  return rowName !== "" && rowName !== "—" && rowName === reqName;
+}
+
+function findPendingRequestForDroneRow(
+  row: AdminPilotDroneTableRow,
+  pending: UserRequest[]
+): UserRequest | null {
+  const match = pending.find((req) => pendingRequestMatchesDroneRow(req, row));
+  return match ?? null;
+}
+
 function profileDroneFleetKey(drone: PilotProfileDroneRow): string {
   const id = textValue(drone.id);
   if (id) return `id:${id}`;
@@ -519,6 +555,9 @@ export function AdminDroneView() {
   const requestId = searchParams.get("request");
   const [request, setRequest] = useState<UserRequest | null>(null);
   const [pendingRequests, setPendingRequests] = useState<UserRequest[]>([]);
+  /** Pending pilot request being resolved via edit or add-drone flow. */
+  const [resolvingPendingRequest, setResolvingPendingRequest] =
+    useState<UserRequest | null>(null);
   const [showPendingRequests, setShowPendingRequests] = useState(false);
   const [pilotDroneRows, setPilotDroneRows] = useState<AdminPilotDroneTableRow[]>([]);
   const [pilotDroneRowsLoading, setPilotDroneRowsLoading] = useState(true);
@@ -536,6 +575,7 @@ export function AdminDroneView() {
   const [savingDroneEdit, setSavingDroneEdit] = useState(false);
   const [deletingDroneKey, setDeletingDroneKey] = useState<string | null>(null);
   const addDronePanelRef = useRef<HTMLDivElement>(null);
+  const resolvingPendingRequestRef = useRef<UserRequest | null>(null);
   const [dronePanelKey, setDronePanelKey] = useState(0);
   const [openAddDronePanel, setOpenAddDronePanel] = useState(false);
   const [addDronePilotId, setAddDronePilotId] = useState("");
@@ -555,9 +595,98 @@ export function AdminDroneView() {
 
   const backToAddDroneDetailsPage = () => {
     setRequest(null);
+    setResolvingPendingRequest(null);
+    resolvingPendingRequestRef.current = null;
     setShowDroneForm(false);
     setLoading(false);
     router.push(ADD_DRONE_DETAILS_PATH);
+  };
+
+  const closeDroneEdit = () => {
+    setEditingDroneRow(null);
+    setResolvingPendingRequest(null);
+    resolvingPendingRequestRef.current = null;
+  };
+
+  /** Mark pending pilot request(s) completed and remove from the pending list. */
+  const resolvePendingPilotRequest = async (
+    req: UserRequest,
+    options?: { descriptionSuffix?: string }
+  ): Promise<boolean> => {
+    const dedupeKey = pendingRequestDedupeKey(req);
+    const suffix = options?.descriptionSuffix?.trim() ?? "";
+    const baseDesc = (req.description || "").trim();
+    const description = suffix
+      ? baseDesc
+        ? `${baseDesc}${suffix}`
+        : suffix.replace(/^\s*-\s*/, "")
+      : baseDesc || undefined;
+
+    setPendingRequests((prev) =>
+      prev.filter((r) => pendingRequestDedupeKey(r) !== dedupeKey)
+    );
+    setResolvingPendingRequest(null);
+    resolvingPendingRequestRef.current = null;
+
+    try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+      };
+
+      const listResponse = await fetch(apiUrl("/api/user-requests"), {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+        cache: "no-store",
+      });
+
+      let idsToComplete = [req.id];
+      if (listResponse.ok) {
+        const data = (await listResponse.json()) as { data?: UserRequest[] };
+        const rows = Array.isArray(data?.data) ? data.data : [];
+        const relatedIds = rows
+          .filter(
+            (r) =>
+              isPendingPilotDetailsRequest(r) &&
+              pendingRequestDedupeKey(r) === dedupeKey
+          )
+          .map((r) => r.id);
+        if (relatedIds.length > 0) idsToComplete = relatedIds;
+      }
+
+      let allOk = true;
+      for (const id of idsToComplete) {
+        const response = await fetch(apiUrl(`/api/user-requests/${id}`), {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({
+            status: "completed",
+            ...(description ? { description } : {}),
+          }),
+        });
+        if (!response.ok) allOk = false;
+      }
+
+      if (!allOk) {
+        await fetchPendingRequests();
+        return false;
+      }
+
+      setRequest((prev) =>
+        prev && idsToComplete.includes(prev.id)
+          ? {
+              ...prev,
+              status: "completed",
+              description: description ?? prev.description,
+            }
+          : prev
+      );
+      return true;
+    } catch (error) {
+      console.error("Error resolving pending pilot request:", error);
+      await fetchPendingRequests();
+      return false;
+    }
   };
 
   useEffect(() => {
@@ -619,8 +748,6 @@ export function AdminDroneView() {
     }
   };
 
-  const emptyIfDash = (value: string) => (value === "—" ? "" : value);
-
   const openDroneEdit = (row: AdminPilotDroneTableRow) => {
     setEditingDroneRow(row);
     setEditingDroneForm({
@@ -655,6 +782,8 @@ export function AdminDroneView() {
   };
 
   const openPendingRequest = (req: UserRequest) => {
+    setResolvingPendingRequest(req);
+    resolvingPendingRequestRef.current = req;
     const existingDrone = droneRowForRequest(req);
     setShowPendingRequests(false);
     if (existingDrone) {
@@ -674,13 +803,14 @@ export function AdminDroneView() {
   };
 
   const saveDroneEdit = async () => {
-    if (!editingDroneRow) return;
+    const rowBeingEdited = editingDroneRow;
+    if (!rowBeingEdited) return;
     if (!editingDroneForm.modelName.trim()) {
       alert("Please fill in Model Name.");
       return;
     }
     if (
-      editingDroneRow.sourceKind !== "assigned" &&
+      rowBeingEdited.sourceKind !== "assigned" &&
       !editingDroneForm.type.trim()
     ) {
       alert("Please fill in Type.");
@@ -700,8 +830,8 @@ export function AdminDroneView() {
         .filter(Boolean);
 
       let response: Response;
-      if (editingDroneRow.sourceKind === "fleet") {
-        response = await fetch(apiUrl(`/api/drones/${editingDroneRow.droneId}`), {
+      if (rowBeingEdited.sourceKind === "fleet") {
+        response = await fetch(apiUrl(`/api/drones/${rowBeingEdited.droneId}`), {
           method: "PUT",
           headers,
           body: JSON.stringify({
@@ -714,15 +844,15 @@ export function AdminDroneView() {
             use_cases: useCases,
           }),
         });
-      } else if (editingDroneRow.sourceKind === "profile") {
+      } else if (rowBeingEdited.sourceKind === "profile") {
         response = await fetch(
-          apiUrl(`/api/pilots/${editingDroneRow.pilotId}/drones/${editingDroneRow.profileIndex ?? 0}`),
+          apiUrl(`/api/pilots/${rowBeingEdited.pilotId}/drones/${rowBeingEdited.profileIndex ?? 0}`),
           {
             method: "PUT",
             headers,
             body: JSON.stringify({
               drone: {
-                id: emptyIfDash(editingDroneRow.droneId),
+                id: emptyIfDash(rowBeingEdited.droneId),
                 modelName: editingDroneForm.modelName,
                 type: editingDroneForm.type,
                 camera: editingDroneForm.camera,
@@ -735,11 +865,11 @@ export function AdminDroneView() {
           }
         );
       } else {
-        response = await fetch(apiUrl(`/api/pilots/${editingDroneRow.pilotId}/assign-drone`), {
+        response = await fetch(apiUrl(`/api/pilots/${rowBeingEdited.pilotId}/assign-drone`), {
           method: "PATCH",
           headers,
           body: JSON.stringify({
-            drone_id: emptyIfDash(editingDroneRow.droneId),
+            drone_id: emptyIfDash(rowBeingEdited.droneId),
             drone_name: editingDroneForm.modelName,
             camera: editingDroneForm.camera,
             use_cases: editingDroneForm.useCases,
@@ -755,9 +885,32 @@ export function AdminDroneView() {
         throw new Error(data.error || "Failed to update drone details");
       }
 
+      const pilotIdNum = numericId(emptyIfDash(rowBeingEdited.pilotId));
       setEditingDroneRow(null);
+
+      const pendingToResolve =
+        resolvingPendingRequestRef.current ??
+        (await findPendingRequestForRow(rowBeingEdited));
+
+      if (pendingToResolve) {
+        const resolved = await resolvePendingPilotRequest(pendingToResolve, {
+          descriptionSuffix: " - drone details updated",
+        });
+        if (!resolved) {
+          alert(
+            "Drone details saved, but the pending pilot request could not be marked completed. Refresh and try again."
+          );
+          return;
+        }
+      }
+
+      if (pilotIdNum != null) {
+        await syncPilotDronesToProfile(pilotIdNum);
+      } else {
+        notifyAdminFleetUpdated();
+      }
       await fetchPilotDroneRows();
-      notifyAdminFleetUpdated();
+
       alert("Drone details updated successfully.");
     } catch (error) {
       console.error("Error updating drone details:", error);
@@ -844,8 +997,12 @@ export function AdminDroneView() {
         })
       );
 
+      if (pilotIdNum != null) {
+        await syncPilotDronesToProfile(pilotIdNum);
+      } else {
+        notifyAdminFleetUpdated();
+      }
       await fetchPilotDroneRows();
-      notifyAdminFleetUpdated();
     } catch (error) {
       console.error("Error deleting drone details:", error);
       alert(error instanceof Error ? error.message : "Failed to delete drone details.");
@@ -885,6 +1042,13 @@ export function AdminDroneView() {
         if (foundRequest) {
           setRequest(foundRequest);
           setShowDroneForm(false);
+          if (
+            foundRequest.status === "pending" &&
+            foundRequest.request_type === "add_pilot_details"
+          ) {
+            setResolvingPendingRequest(foundRequest);
+            resolvingPendingRequestRef.current = foundRequest;
+          }
         }
       }
     } catch (error) {
@@ -894,28 +1058,39 @@ export function AdminDroneView() {
     }
   };
 
-  const fetchPendingRequests = async () => {
+  const fetchPendingRequests = async (): Promise<UserRequest[]> => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(apiUrl("/api/user-requests"), {
         headers: {
-          "Authorization": token ? `Bearer ${token}` : "",
+          Authorization: token ? `Bearer ${token}` : "",
         },
+        cache: "no-store",
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         const requestRows = Array.isArray(data?.data)
           ? (data.data as UserRequest[])
           : [];
-        const pending = requestRows.filter((req) =>
-          req.status === 'pending' && req.request_type === 'add_pilot_details'
-        );
-        setPendingRequests(dedupePendingPilotRequests(pending));
+        const pending = requestRows.filter((req) => isPendingPilotDetailsRequest(req));
+        const deduped = dedupePendingPilotRequests(pending);
+        setPendingRequests(deduped);
+        return deduped;
       }
     } catch (error) {
       console.error("Error fetching pending requests:", error);
     }
+    return [];
+  };
+
+  const findPendingRequestForRow = async (
+    row: AdminPilotDroneTableRow
+  ): Promise<UserRequest | null> => {
+    const fromState = findPendingRequestForDroneRow(row, pendingRequests);
+    if (fromState) return fromState;
+    const fresh = await fetchPendingRequests();
+    return findPendingRequestForDroneRow(row, fresh);
   };
 
   if (loading) {
@@ -1333,40 +1508,36 @@ export function AdminDroneView() {
                       });
 
                       if (droneResponse.ok) {
-                        // Update request status to show drone details were added
-                        const statusResponse = await fetch(apiUrl(`/api/user-requests/${request.id}`), {
-                          method: "PATCH",
-                          headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": token ? `Bearer ${token}` : "",
-                          },
-                          body: JSON.stringify({ 
-                            status: 'completed',
-                            description: request.description + ' - added the drone details'
-                          }),
+                        const resolved = await resolvePendingPilotRequest(request, {
+                          descriptionSuffix: " - added the drone details",
                         });
 
-                        if (statusResponse.ok) {
-                          alert('Drone details successfully added to pilot profile!');
+                        if (resolved) {
+                          alert("Drone details successfully added to pilot profile!");
                           setShowDroneForm(false);
-                          // Reset form
                           setDroneFormData({
-                            modelName: '',
-                            type: '',
-                            camera: '',
-                            payloadKg: '',
-                            flightTimeMin: '',
-                            rangeKm: ''
+                            modelName: "",
+                            type: "",
+                            camera: "",
+                            payloadKg: "",
+                            flightTimeMin: "",
+                            rangeKm: "",
                           });
-                          // Refresh the request to show updated status
-                          if (requestId) fetchRequestDetails(requestId);
+                          const pilotIdNum = numericId(actualPilotId);
+                          if (pilotIdNum != null) {
+                            await syncPilotDronesToProfile(pilotIdNum);
+                          } else {
+                            notifyAdminFleetUpdated();
+                          }
+                          if (requestId) {
+                            fetchRequestDetails(requestId);
+                          } else {
+                            setRequest(null);
+                          }
                           await fetchPendingRequests();
                           await fetchPilotDroneRows();
-                          // Notify Assign To view to refresh fleet data
-                          notifyAdminFleetUpdated();
                         } else {
-                          const errorData = await statusResponse.json().catch(() => ({}));
-                          throw new Error(errorData.error || 'Failed to update request status');
+                          throw new Error("Failed to update request status");
                         }
                       } else {
                         const errorData = await droneResponse.json().catch(() => ({}));
@@ -1523,9 +1694,18 @@ export function AdminDroneView() {
                 addDronePilotId ? Number.parseInt(addDronePilotId, 10) : null
               }
               onDroneAdded={() => {
-                void fetchPilotDroneRows();
-                notifyAdminFleetUpdated();
-                closeAddDronePanel();
+                const pilotId = addDronePilotId
+                  ? Number.parseInt(addDronePilotId, 10)
+                  : NaN;
+                void (async () => {
+                  if (Number.isFinite(pilotId)) {
+                    await syncPilotDronesToProfile(pilotId);
+                  } else {
+                    notifyAdminFleetUpdated();
+                  }
+                  await fetchPilotDroneRows();
+                  closeAddDronePanel();
+                })();
               }}
             />
           </div>
@@ -1564,7 +1744,7 @@ export function AdminDroneView() {
             type="button"
             className="absolute inset-0 bg-slate-900/50"
             aria-label="Close edit drone dialog"
-            onClick={() => setEditingDroneRow(null)}
+            onClick={closeDroneEdit}
           />
           <div
             role="dialog"
@@ -1575,7 +1755,7 @@ export function AdminDroneView() {
               <h2 className="text-base font-semibold">Edit drone details</h2>
               <button
                 type="button"
-                onClick={() => setEditingDroneRow(null)}
+                onClick={closeDroneEdit}
                 className="rounded-lg px-2 py-1 text-sm hover:bg-muted"
               >
                 Close
@@ -1631,7 +1811,7 @@ export function AdminDroneView() {
             <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
               <button
                 type="button"
-                onClick={() => setEditingDroneRow(null)}
+                onClick={closeDroneEdit}
                 className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-muted"
                 disabled={savingDroneEdit}
               >

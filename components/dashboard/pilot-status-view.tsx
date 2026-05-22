@@ -14,7 +14,11 @@ import {
   flightHoursFromPilotRow,
   missionsCompletedFromPilotRow,
 } from "@/lib/pilot-db-metrics";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  ADMIN_PAGE_SECTION_LABEL_CLASS,
+  ADMIN_PAGE_TITLE_CLASS,
+  ADMIN_PAGE_TYPE_CLASS,
+} from "@/lib/page-heading";
 import {
   PROFILE_INFO_POPUP_INNER_PANEL_CLASS,
   PROFILE_INFO_POPUP_SHELL_CLASS,
@@ -47,6 +51,29 @@ type PilotEditForm = {
 
 const PAGE_SIZE = 4;
 
+const pilotStatusLabelClass = cn(
+  ADMIN_PAGE_SECTION_LABEL_CLASS,
+  "font-normal dark:text-white/90"
+);
+
+const pilotStatusKpiCardClass =
+  "flex flex-col items-center text-center rounded-xl border border-border bg-card px-4 py-4 sm:px-5 sm:py-5";
+
+const pilotStatusKpiLabelClass = cn(
+  "font-sans text-xs font-normal tracking-tight text-muted-foreground sm:text-sm",
+  "dark:text-white/90"
+);
+
+const pilotStatusTableHeaderClass = cn(
+  "font-sans text-xs font-normal tracking-tight text-muted-foreground sm:text-sm",
+  "dark:text-white/90"
+);
+
+const pilotRowActionBtnClass =
+  "inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-transparent text-black transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 dark:border-white/40 dark:text-white dark:hover:border-white/60 dark:hover:bg-white/15 dark:focus-visible:ring-white/30";
+
+const pilotRowActionIconClass = "size-4 text-black dark:text-white";
+
 type FilterTab = "all" | "active" | "inactive";
 
 function CertificationBadge({ level }: { level: number }) {
@@ -54,7 +81,7 @@ function CertificationBadge({ level }: { level: number }) {
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded border px-2 py-0.5 font-mono text-[10px] font-bold uppercase",
+        "inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase",
         high
           ? "border-[#006a6e]/20 bg-[#006a6e]/10 text-[#006a6e] dark:border-white/25 dark:bg-white/10 dark:text-white"
           : level === 4
@@ -656,7 +683,12 @@ export function PilotStatusView({
   }, [filter]);
 
   return (
-    <div className="relative text-foreground dark:text-white">
+    <div
+      className={cn(
+        "relative text-foreground dark:text-white",
+        ADMIN_PAGE_TYPE_CLASS
+      )}
+    >
       <div className="relative z-10 mx-auto max-w-7xl px-0 pb-2 pt-0 lg:px-2">
         {showPageTitle ? (
           <div className="mb-8 md:mb-10">
@@ -666,36 +698,30 @@ export function PilotStatusView({
           <div className="mb-5 md:mb-6" />
         )}
 
-        <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:mb-10 lg:grid-cols-3">
-          <div className="flex flex-col rounded-2xl border border-border bg-card p-6">
-            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:mb-8 lg:grid-cols-3">
+          <div className={pilotStatusKpiCardClass}>
+            <span className={cn("mb-2", pilotStatusKpiLabelClass)}>
               Total registered
             </span>
-            <div className="flex items-end">
-              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-                {kpi.totalRegistered}
-              </span>
-            </div>
+            <span className="text-2xl font-bold tracking-tight text-foreground dark:text-white sm:text-3xl">
+              {kpi.totalRegistered}
+            </span>
           </div>
-          <div className="flex flex-col rounded-2xl border border-border bg-card p-6">
-            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
+          <div className={pilotStatusKpiCardClass}>
+            <span className={cn("mb-2", pilotStatusKpiLabelClass)}>
               Currently active
             </span>
-            <div className="flex items-end">
-              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-                {kpi.currentlyActive}
-              </span>
-            </div>
+            <span className="text-2xl font-bold tracking-tight text-foreground dark:text-white sm:text-3xl">
+              {kpi.currentlyActive}
+            </span>
           </div>
-          <div className="flex flex-col rounded-2xl border border-border bg-card p-6">
-            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
+          <div className={pilotStatusKpiCardClass}>
+            <span className={cn("mb-2", pilotStatusKpiLabelClass)}>
               Inactive / On-leave
             </span>
-            <div className="flex items-end">
-              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-                {kpi.inactiveOnLeave}
-              </span>
-            </div>
+            <span className="text-2xl font-bold tracking-tight text-foreground dark:text-white sm:text-3xl">
+              {kpi.inactiveOnLeave}
+            </span>
           </div>
         </div>
 
@@ -708,7 +734,7 @@ export function PilotStatusView({
               id="pilot-status-filter"
               value={filter}
               onChange={(e) => setFilter(e.target.value as FilterTab)}
-              className="w-full cursor-pointer appearance-none rounded-md border border-border bg-transparent py-1.5 pl-2 pr-7 text-xs font-medium text-foreground outline-none transition hover:border-muted-foreground/40 focus-visible:border-[#006a6e] focus-visible:ring-1 focus-visible:ring-[#006a6e]/25 dark:text-white"
+              className="w-full cursor-pointer appearance-none rounded-md border border-border bg-card py-1.5 pl-2 pr-7 text-xs font-normal text-foreground outline-none transition hover:border-muted-foreground/40 focus-visible:border-[#006a6e] focus-visible:ring-1 focus-visible:ring-[#006a6e]/25 dark:bg-card dark:text-white"
             >
               <option value="all">All</option>
               <option value="active">Active</option>
@@ -736,7 +762,7 @@ export function PilotStatusView({
                   ].map((h) => (
                     <th
                       key={h}
-                      className="px-6 py-4 font-[family-name:var(--font-landing-headline)] text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground dark:text-white"
+                      className={cn("px-4 py-3 sm:px-5", pilotStatusTableHeaderClass)}
                     >
                       {h}
                     </th>
@@ -776,10 +802,10 @@ export function PilotStatusView({
                       <td className="px-6 py-5">
                         <CertificationBadge level={row.certLevel} />
                       </td>
-                      <td className="px-6 py-5 font-mono text-sm tabular-nums text-[#1a1c1e] dark:text-white">
+                      <td className="px-6 py-5 text-sm tabular-nums text-[#1a1c1e] dark:text-white">
                         {row.flightHours.toLocaleString("en-US")} hrs
                       </td>
-                      <td className="px-6 py-5 font-mono text-sm text-[#1a1c1e] dark:text-white">
+                      <td className="px-6 py-5 text-sm text-[#1a1c1e] dark:text-white">
                         {row.flightCount.toLocaleString("en-US")} completed
                       </td>
                       <td className="px-6 py-5">
@@ -790,20 +816,18 @@ export function PilotStatusView({
                           <button
                             type="button"
                             onClick={() => void openPilotEdit(row.id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-blue-500/25 bg-blue-500/8 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-blue-700 transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 dark:text-blue-300"
+                            className={pilotRowActionBtnClass}
                             aria-label={`Edit pilot ${row.name}`}
                           >
-                            <Pencil className="size-3.5" aria-hidden />
-                            Edit
+                            <Pencil className={pilotRowActionIconClass} aria-hidden />
                           </button>
                           <button
                             type="button"
                             onClick={() => void deletePilot(row)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-red-500/25 bg-red-500/8 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-red-700 transition-colors hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 dark:text-red-300"
+                            className={pilotRowActionBtnClass}
                             aria-label={`Delete pilot ${row.name}`}
                           >
-                            <Trash2 className="size-3.5" aria-hidden />
-                            Delete
+                            <Trash2 className={pilotRowActionIconClass} aria-hidden />
                           </button>
                         </div>
                       </td>
@@ -873,25 +897,30 @@ export function PilotStatusView({
             aria-label="Close edit pilot dialog"
             onClick={closePilotEdit}
           />
-          <div className="relative z-10 max-h-[min(92dvh,46rem)] w-full max-w-2xl overflow-y-auto rounded-t-2xl border-2 border-border bg-card p-5 shadow-2xl sm:rounded-2xl sm:p-6 dark:border-white/20">
+          <div className="relative z-10 max-h-[min(92dvh,46rem)] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-border bg-white p-5 text-foreground shadow-2xl sm:rounded-2xl sm:p-6 dark:border-white/20 dark:bg-black dark:text-white">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-foreground">Edit Pilot</h2>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <h2 className="text-lg font-bold text-foreground dark:text-white">
+                  Edit Pilot
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground dark:text-white/70">
                   Update the pilot profile fields used by the dashboard.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closePilotEdit}
-                className="rounded-lg border border-border px-2 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-muted"
+                className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted dark:text-white/80 dark:hover:bg-white/10"
+                aria-label="Close edit pilot dialog"
               >
-                Close
+                <X className="size-4" aria-hidden />
               </button>
             </div>
 
             {editLoading ? (
-              <p className="mt-6 text-sm text-muted-foreground">Loading pilot...</p>
+              <p className="mt-6 text-sm text-muted-foreground dark:text-white/70">
+                Loading pilot...
+              </p>
             ) : (
               <>
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -959,7 +988,7 @@ export function PilotStatusView({
                     }
                   />
                   <label className="block">
-                    <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground dark:text-white/70">
                       Duty status
                     </span>
                     <select
@@ -970,7 +999,7 @@ export function PilotStatusView({
                           dutyStatus: event.target.value as DutyStatus,
                         }))
                       }
-                      className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+                      className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:border-white/20 dark:bg-black dark:text-white"
                     >
                       <option value="ACTIVE">Active</option>
                       <option value="INACTIVE">Inactive</option>
@@ -982,19 +1011,12 @@ export function PilotStatusView({
                   <p className="mt-4 text-sm font-medium text-red-600">{editError}</p>
                 ) : null}
 
-                <div className="mt-6 flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={closePilotEdit}
-                    className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted"
-                  >
-                    Cancel
-                  </button>
+                <div className="mt-6 flex justify-end">
                   <button
                     type="button"
                     disabled={editSaving}
                     onClick={() => void savePilotEdit()}
-                    className="rounded-lg bg-[#008B8B] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#007373] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-lg border-2 border-[#008B8B] bg-transparent px-4 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/10 hover:text-[#007a7a] disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/40 dark:text-white dark:hover:border-white/60 dark:hover:bg-white/10 dark:hover:text-white"
                   >
                     {editSaving ? "Saving..." : "Save changes"}
                   </button>
@@ -1019,13 +1041,13 @@ function PilotField({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+      <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground dark:text-white/70">
         {label}
       </span>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+        className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:border-white/20 dark:bg-black dark:text-white"
       />
     </label>
   );

@@ -68,9 +68,14 @@ export const patchPilotFlightHours = async (id, flightHours) => {
 /** Sync drone details from Pilot Profile into `pilots.drone_details` JSON column. */
 export const patchPilotDroneDetails = async (id, drones) => {
   try {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
     const response = await fetch(apiUrl(`/api/pilots/${id}/drones`), {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify({ drones }),
     });
     if (!response.ok) return null;

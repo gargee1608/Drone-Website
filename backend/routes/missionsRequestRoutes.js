@@ -2,6 +2,116 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 
+const MISSION_REQUESTS_BOOTSTRAP_META_KEY = "mission_requests_bootstrap_v1";
+const MISSION_REQUESTS_LEGACY_COPY_META_KEY =
+  "mission_requests_legacy_copy_v1";
+
+async function ensureAppMetaSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_meta (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+}
+
+async function isMissionRequestsBootstrapDone() {
+  await ensureAppMetaSchema();
+  const { rows } = await pool.query(
+    `SELECT value FROM app_meta WHERE key = $1`,
+    [MISSION_REQUESTS_BOOTSTRAP_META_KEY]
+  );
+  return rows[0]?.value === "done";
+}
+
+async function markMissionRequestsBootstrapDone() {
+  await ensureAppMetaSchema();
+  await pool.query(
+    `INSERT INTO app_meta (key, value)
+     VALUES ($1, 'done')
+     ON CONFLICT (key) DO UPDATE
+       SET value = EXCLUDED.value, updated_at = NOW()`,
+    [MISSION_REQUESTS_BOOTSTRAP_META_KEY]
+  );
+}
+
+async function isMissionRequestsLegacyCopyDone() {
+  await ensureAppMetaSchema();
+  const { rows } = await pool.query(
+    `SELECT value FROM app_meta WHERE key = $1`,
+    [MISSION_REQUESTS_LEGACY_COPY_META_KEY]
+  );
+  return rows[0]?.value === "done";
+}
+
+async function markMissionRequestsLegacyCopyDone() {
+  await ensureAppMetaSchema();
+  await pool.query(
+    `INSERT INTO app_meta (key, value)
+     VALUES ($1, 'done')
+     ON CONFLICT (key) DO UPDATE
+       SET value = EXCLUDED.value, updated_at = NOW()`,
+    [MISSION_REQUESTS_LEGACY_COPY_META_KEY]
+  );
+}
+
+/** True when rows existed before (admin cleared catalog); false on a never-filled table. */
+async function missionRequestsWasPreviouslyPopulated() {
+  const { rows } = await pool.query(
+    `SELECT COUNT(*)::int AS c FROM mission_requests`
+  );
+  if (Number(rows[0]?.c ?? 0) > 0) return true;
+  try {
+    const seq = await pool.query(`
+      SELECT last_value, is_called
+      FROM pg_sequences
+      WHERE schemaname = 'public' AND sequencename = 'mission_requests_id_seq'
+    `);
+    if (seq.rows.length === 0) return false;
+    const last = Number(seq.rows[0]?.last_value ?? 0);
+    const called = Boolean(seq.rows[0]?.is_called);
+    return called && last > 1;
+  } catch {
+    return false;
+  }
+}
+
+async function clearLegacyMissionsRequestsMirror() {
+  try {
+    if (!(await legacyMissionsRequestsTableExists())) return 0;
+    const r = await pool.query(`DELETE FROM missions_requests`);
+    return r.rowCount ?? 0;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn("[mission-requests] legacy mirror clear skipped:", msg);
+    return 0;
+  }
+}
+
+async function legacyMissionsRequestsTableExists() {
+  const t = await pool.query(`
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = 'missions_requests'
+    ) AS e
+  `);
+  return Boolean(t.rows[0]?.e);
+}
+
+/** Keep legacy mirror in sync so an empty catalog is not repopulated on restart. */
+async function deleteLegacyMissionRequest(code) {
+  try {
+    if (!(await legacyMissionsRequestsTableExists())) return;
+    await pool.query(`DELETE FROM missions_requests WHERE mission_code = $1`, [
+      code,
+    ]);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn("[mission-requests] legacy delete skipped:", msg);
+  }
+}
+
 async function ensureMissionRequestsSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS mission_requests (
@@ -155,16 +265,10 @@ async function seedMissionRequestsIfEmpty() {
   return inserted;
 }
 
-/** If an older `missions_requests` table exists and `mission_requests` is empty, copy rows over. */
+/** One-time migration from older `missions_requests` when the new table is still empty. */
 async function tryCopyFromLegacyMissionsRequestsTable() {
   try {
-    const t = await pool.query(`
-      SELECT EXISTS (
-        SELECT 1 FROM information_schema.tables
-        WHERE table_schema = 'public' AND table_name = 'missions_requests'
-      ) AS e
-    `);
-    if (!t.rows[0]?.e) return 0;
+    if (!(await legacyMissionsRequestsTableExists())) return 0;
     const cnt = await pool.query(
       "SELECT COUNT(*)::int AS c FROM mission_requests"
     );
@@ -193,29 +297,74 @@ async function ensureMissionRequestsReady() {
 }
 
 /**
- * Run on server startup only. Seeds default hub missions when the table is empty
- * on first deploy; later empty state (all deleted) stays empty.
+ * Run on server startup only. First deploy: migrate legacy rows or seed defaults.
+ * After bootstrap completes, an admin-cleared catalog stays empty across restarts.
  */
 async function bootstrapMissionRequests() {
   const db = await pool.query("SELECT current_database() AS name");
   const dbName = db.rows[0]?.name ?? "?";
   await ensureMissionRequestsReady();
-  const copied = await tryCopyFromLegacyMissionsRequestsTable();
-  if (copied > 0) {
-    console.log(
-      `[mission-requests] copied ${copied} row(s) from missions_requests → mission_requests (db=${dbName})`
-    );
-  }
-  const seeded = await seedMissionRequestsIfEmpty();
-  if (seeded > 0) {
-    console.log(
-      `[mission-requests] seeded ${seeded} row(s) into public.mission_requests (db=${dbName})`
-    );
-  }
-  const { rows } = await pool.query(
+
+  const { rows: countRows } = await pool.query(
     "SELECT COUNT(*)::int AS c FROM mission_requests"
   );
-  const total = Number(rows[0]?.c ?? 0);
+  let total = Number(countRows[0]?.c ?? 0);
+
+  if (total > 0) {
+    await markMissionRequestsBootstrapDone();
+    await markMissionRequestsLegacyCopyDone();
+    console.log(
+      `[mission-requests] table public.mission_requests row count = ${total} (db=${dbName})`
+    );
+    return;
+  }
+
+  if (await isMissionRequestsBootstrapDone()) {
+    console.log(
+      `[mission-requests] catalog empty; bootstrap skipped (deleted missions stay removed, db=${dbName})`
+    );
+    return;
+  }
+
+  if (await missionRequestsWasPreviouslyPopulated()) {
+    const cleared = await clearLegacyMissionsRequestsMirror();
+    await markMissionRequestsLegacyCopyDone();
+    await markMissionRequestsBootstrapDone();
+    console.log(
+      `[mission-requests] catalog cleared by admin; removed ${cleared} stale legacy row(s); bootstrap will not re-import (db=${dbName})`
+    );
+    return;
+  }
+
+  if (!(await isMissionRequestsLegacyCopyDone())) {
+    const copied = await tryCopyFromLegacyMissionsRequestsTable();
+    if (copied > 0) {
+      await markMissionRequestsLegacyCopyDone();
+      console.log(
+        `[mission-requests] copied ${copied} row(s) from missions_requests → mission_requests (db=${dbName})`
+      );
+    }
+    const { rows: afterCopy } = await pool.query(
+      "SELECT COUNT(*)::int AS c FROM mission_requests"
+    );
+    total = Number(afterCopy[0]?.c ?? 0);
+  }
+
+  if (total === 0) {
+    const seeded = await seedMissionRequestsIfEmpty();
+    if (seeded > 0) {
+      console.log(
+        `[mission-requests] seeded ${seeded} row(s) into public.mission_requests (db=${dbName})`
+      );
+    }
+    const { rows } = await pool.query(
+      "SELECT COUNT(*)::int AS c FROM mission_requests"
+    );
+    total = Number(rows[0]?.c ?? 0);
+  }
+
+  await markMissionRequestsBootstrapDone();
+  if (total > 0) await markMissionRequestsLegacyCopyDone();
   console.log(
     `[mission-requests] table public.mission_requests row count = ${total} (db=${dbName})`
   );
@@ -408,6 +557,7 @@ router.delete("/:code", async (req, res) => {
   }
 
   try {
+    await ensureMissionRequestsReady();
     const result = await pool.query(
       `DELETE FROM mission_requests WHERE mission_code = $1 RETURNING mission_code`,
       [code]
@@ -415,6 +565,7 @@ router.delete("/:code", async (req, res) => {
     if ((result.rowCount ?? 0) === 0) {
       return res.status(404).json({ error: "Mission not found" });
     }
+    await deleteLegacyMissionRequest(code);
     return res.status(200).json({ success: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
