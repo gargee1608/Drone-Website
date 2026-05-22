@@ -154,6 +154,28 @@ export function deleteBuiltinFromCatalog(slug: string): void {
   }
 }
 
+/** Remove admin extras, overrides, and built-in visibility for a slug (e.g. after DB delete). */
+export function purgeBlogFromLocalCatalog(slug: string): void {
+  if (typeof window === "undefined") return;
+  const extras = loadBlogExtras();
+  const nextExtras = extras.filter((e) => e.slug !== slug);
+  if (nextExtras.length !== extras.length) {
+    saveBlogExtras(nextExtras);
+  }
+  const ov = loadBlogOverrides();
+  if (ov[slug]) {
+    delete ov[slug];
+    saveBlogOverrides(ov);
+  }
+  const dels = new Set(loadBlogDeletedBuiltins());
+  if (!dels.has(slug)) {
+    dels.add(slug);
+    saveBlogDeletedBuiltins([...dels]);
+    return;
+  }
+  notifyBlogCatalogUpdated();
+}
+
 export function createInternalId(): string {
   return `blog-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }

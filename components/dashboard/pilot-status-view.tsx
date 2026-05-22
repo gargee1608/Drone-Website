@@ -14,7 +14,11 @@ import {
   flightHoursFromPilotRow,
   missionsCompletedFromPilotRow,
 } from "@/lib/pilot-db-metrics";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  ADMIN_PAGE_SECTION_LABEL_CLASS,
+  ADMIN_PAGE_TITLE_CLASS,
+  ADMIN_PAGE_TYPE_CLASS,
+} from "@/lib/page-heading";
 import {
   PROFILE_INFO_POPUP_INNER_PANEL_CLASS,
   PROFILE_INFO_POPUP_SHELL_CLASS,
@@ -47,6 +51,24 @@ type PilotEditForm = {
 
 const PAGE_SIZE = 4;
 
+const pilotStatusLabelClass = cn(
+  ADMIN_PAGE_SECTION_LABEL_CLASS,
+  "font-normal dark:text-white/90"
+);
+
+const pilotStatusKpiCardClass =
+  "flex flex-col items-center text-center rounded-xl border border-border bg-card px-4 py-4 sm:px-5 sm:py-5";
+
+const pilotStatusKpiLabelClass = cn(
+  "font-sans text-xs font-normal tracking-tight text-muted-foreground sm:text-sm",
+  "dark:text-white/90"
+);
+
+const pilotStatusTableHeaderClass = cn(
+  "font-sans text-xs font-normal tracking-tight text-muted-foreground sm:text-sm",
+  "dark:text-white/90"
+);
+
 const pilotRowActionBtnClass =
   "inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-transparent text-black transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 dark:border-white/40 dark:text-white dark:hover:border-white/60 dark:hover:bg-white/15 dark:focus-visible:ring-white/30";
 
@@ -59,7 +81,7 @@ function CertificationBadge({ level }: { level: number }) {
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded border px-2 py-0.5 font-mono text-[10px] font-bold uppercase",
+        "inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase",
         high
           ? "border-[#006a6e]/20 bg-[#006a6e]/10 text-[#006a6e] dark:border-white/25 dark:bg-white/10 dark:text-white"
           : level === 4
@@ -661,7 +683,12 @@ export function PilotStatusView({
   }, [filter]);
 
   return (
-    <div className="relative text-foreground dark:text-white">
+    <div
+      className={cn(
+        "relative text-foreground dark:text-white",
+        ADMIN_PAGE_TYPE_CLASS
+      )}
+    >
       <div className="relative z-10 mx-auto max-w-7xl px-0 pb-2 pt-0 lg:px-2">
         {showPageTitle ? (
           <div className="mb-8 md:mb-10">
@@ -671,36 +698,30 @@ export function PilotStatusView({
           <div className="mb-5 md:mb-6" />
         )}
 
-        <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:mb-10 lg:grid-cols-3">
-          <div className="flex flex-col rounded-2xl border border-border bg-card p-6">
-            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:mb-8 lg:grid-cols-3">
+          <div className={pilotStatusKpiCardClass}>
+            <span className={cn("mb-2", pilotStatusKpiLabelClass)}>
               Total registered
             </span>
-            <div className="flex items-end">
-              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-                {kpi.totalRegistered}
-              </span>
-            </div>
+            <span className="text-2xl font-bold tracking-tight text-foreground dark:text-white sm:text-3xl">
+              {kpi.totalRegistered}
+            </span>
           </div>
-          <div className="flex flex-col rounded-2xl border border-border bg-card p-6">
-            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
+          <div className={pilotStatusKpiCardClass}>
+            <span className={cn("mb-2", pilotStatusKpiLabelClass)}>
               Currently active
             </span>
-            <div className="flex items-end">
-              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-                {kpi.currentlyActive}
-              </span>
-            </div>
+            <span className="text-2xl font-bold tracking-tight text-foreground dark:text-white sm:text-3xl">
+              {kpi.currentlyActive}
+            </span>
           </div>
-          <div className="flex flex-col rounded-2xl border border-border bg-card p-6">
-            <span className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
+          <div className={pilotStatusKpiCardClass}>
+            <span className={cn("mb-2", pilotStatusKpiLabelClass)}>
               Inactive / On-leave
             </span>
-            <div className="flex items-end">
-              <span className="font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-                {kpi.inactiveOnLeave}
-              </span>
-            </div>
+            <span className="text-2xl font-bold tracking-tight text-foreground dark:text-white sm:text-3xl">
+              {kpi.inactiveOnLeave}
+            </span>
           </div>
         </div>
 
@@ -713,7 +734,7 @@ export function PilotStatusView({
               id="pilot-status-filter"
               value={filter}
               onChange={(e) => setFilter(e.target.value as FilterTab)}
-              className="w-full cursor-pointer appearance-none rounded-md border border-border bg-card py-1.5 pl-2 pr-7 text-xs font-medium text-foreground outline-none transition hover:border-muted-foreground/40 focus-visible:border-[#006a6e] focus-visible:ring-1 focus-visible:ring-[#006a6e]/25 dark:bg-card dark:text-white"
+              className="w-full cursor-pointer appearance-none rounded-md border border-border bg-card py-1.5 pl-2 pr-7 text-xs font-normal text-foreground outline-none transition hover:border-muted-foreground/40 focus-visible:border-[#006a6e] focus-visible:ring-1 focus-visible:ring-[#006a6e]/25 dark:bg-card dark:text-white"
             >
               <option value="all">All</option>
               <option value="active">Active</option>
@@ -741,7 +762,7 @@ export function PilotStatusView({
                   ].map((h) => (
                     <th
                       key={h}
-                      className="px-6 py-4 font-[family-name:var(--font-landing-headline)] text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground dark:text-white"
+                      className={cn("px-4 py-3 sm:px-5", pilotStatusTableHeaderClass)}
                     >
                       {h}
                     </th>
@@ -781,10 +802,10 @@ export function PilotStatusView({
                       <td className="px-6 py-5">
                         <CertificationBadge level={row.certLevel} />
                       </td>
-                      <td className="px-6 py-5 font-mono text-sm tabular-nums text-[#1a1c1e] dark:text-white">
+                      <td className="px-6 py-5 text-sm tabular-nums text-[#1a1c1e] dark:text-white">
                         {row.flightHours.toLocaleString("en-US")} hrs
                       </td>
-                      <td className="px-6 py-5 font-mono text-sm text-[#1a1c1e] dark:text-white">
+                      <td className="px-6 py-5 text-sm text-[#1a1c1e] dark:text-white">
                         {row.flightCount.toLocaleString("en-US")} completed
                       </td>
                       <td className="px-6 py-5">

@@ -135,14 +135,14 @@ export function AdminUserManagement() {
           body: JSON.stringify(formData),
         });
       } else {
-        // Create new user
+        // Create new user (always User role)
         response = await fetch(apiUrl("/api/users"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Authorization": token ? `Bearer ${token}` : "",
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({ ...formData, role: "user" }),
         });
       }
 
@@ -237,7 +237,16 @@ export function AdminUserManagement() {
             Manage user accounts and permissions
           </p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <Dialog
+          open={isAddDialogOpen}
+          onOpenChange={(open) => {
+            setIsAddDialogOpen(open);
+            if (open) {
+              setEditingUser(null);
+              setFormData({ email: "", password: "", name: "", role: "user" });
+            }
+          }}
+        >
           <DialogTrigger asChild>
             <Button variant="outline" className="border-[#008B8B] text-[#008B8B] hover:bg-[#008B8B]/10">
               <Plus className="mr-2 h-4 w-4" />
@@ -248,7 +257,7 @@ export function AdminUserManagement() {
             <DialogHeader>
               <DialogTitle>Add New User</DialogTitle>
               <DialogDescription>
-                Create a new user account with the specified role and permissions.
+                Create a new user account. New users are assigned the User role.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -280,21 +289,6 @@ export function AdminUserManagement() {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="John Doe"
                 />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="role">Role</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value) => setFormData({ ...formData, role: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
             <DialogFooter>
