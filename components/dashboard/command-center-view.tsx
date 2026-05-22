@@ -245,7 +245,7 @@ export function DashboardHomeContent() {
           value={String(pendingPilots.length)}
           icon={ClipboardList}
           iconClassName="text-[#ba1a1a]"
-          iconBg="bg-[#ffdad6]/80"
+          iconBg="bg-[#ffdad6]/80 dark:bg-red-950/50"
         />
         <KpiCard
           title="Registered pilots"

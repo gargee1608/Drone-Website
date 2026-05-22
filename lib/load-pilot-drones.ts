@@ -1,5 +1,10 @@
+import { patchPilotDroneDetails } from "@/app/services/pilotServices";
+import { notifyAdminFleetUpdated } from "@/lib/admin-fleet-updated";
 import { apiUrl } from "@/lib/api-url";
-import type { PilotProfileDrone } from "@/lib/pilot-profile-snapshot";
+import {
+  PILOT_PROFILE_UPDATED_EVENT,
+  type PilotProfileDrone,
+} from "@/lib/pilot-profile-snapshot";
 
 type RawDrone = Record<string, unknown>;
 
@@ -103,4 +108,28 @@ export async function fetchPilotDronesFromApi(
   const fromProfile = profileRows.map((r, i) => mapRawDroneToProfile(r, i));
 
   return mergePilotDroneLists(fromFleet, fromProfile);
+}
+
+/**
+ * After admin adds/edits drones, refresh the pilot's profile JSON and notify
+ * Pilot Dashboard → My Drones (same tab + other tabs via fleet broadcast).
+ */
+export async function syncPilotDronesToProfile(
+  pilotId: number,
+  token?: string | null
+): Promise<PilotProfileDrone[]> {
+  const auth =
+    token ??
+    (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+  if (!auth || !Number.isFinite(pilotId)) return [];
+
+  const drones = await fetchPilotDronesFromApi(pilotId, auth);
+  await patchPilotDroneDetails(pilotId, drones);
+
+  notifyAdminFleetUpdated();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
+  }
+
+  return drones;
 }

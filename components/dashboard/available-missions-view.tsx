@@ -389,6 +389,7 @@ export function AvailableMissionsView() {
         return;
       }
       if (editOriginalId === mission.id) closeEditor();
+      setRows((prev) => prev.filter((row) => row.id !== mission.id));
       setRefreshKey((n) => n + 1);
       notifyMissionRequestsUpdated();
     } catch {

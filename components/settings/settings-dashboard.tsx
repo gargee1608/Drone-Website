@@ -139,7 +139,7 @@ export function SettingsDashboard({
   const settingsSectionClass = cn(
     "flex flex-col rounded-xl bg-card p-5 sm:p-6",
     isAdminSettings
-      ? "border border-[#d5e2e7] shadow-[0_2px_5px_rgba(15,23,42,0.08)]"
+      ? "border border-border shadow-sm dark:shadow-none dark:ring-1 dark:ring-white/[0.06]"
       : "border-2 border-border shadow-sm"
   );
   const settingsSectionDividerClass = cn(
@@ -309,7 +309,7 @@ export function SettingsDashboard({
                         checked={theme === "light"}
                         className={
                           isAdminSettings
-                            ? "border border-[#d5e2e7] shadow-none"
+                            ? "border border-border shadow-none"
                             : undefined
                         }
                         onCheckedChange={(on) => {
@@ -330,7 +330,7 @@ export function SettingsDashboard({
                         checked={theme === "dark"}
                         className={
                           isAdminSettings
-                            ? "border border-[#d5e2e7] shadow-none"
+                            ? "border border-border shadow-none"
                             : undefined
                         }
                         onCheckedChange={(on) => {

@@ -252,8 +252,9 @@ export function LandingHeader() {
   const hasLoggedInAppUser = appUserSession != null;
   const hasLoggedInAdmin = adminMarketingActive;
   const onMarketingAuthSurface = isHomePage || isMarketingAuthPage;
-  const hideMarketingRegisterAndLogin =
-    (hasLoggedInAppUser || pilotMarketingActive || hasLoggedInAdmin) && onMarketingAuthSurface;
+  /** Public pages always show Login + New Registration — never persisted session chips. */
+  const showAnonymousMarketingHeader = onMarketingAuthSurface;
+  const hideMarketingRegisterAndLogin = false;
 
   const appUserDisplayName =
     appUserSession?.fullName?.trim() ||
@@ -278,8 +279,9 @@ export function LandingHeader() {
   const adminInitial =
     (adminDisplayName.slice(0, 1) || "?").toUpperCase();
 
-  /** On `/`, logged-in app user: one tap opens user dashboard (no dropdown). */
-  const appUserMarketingHomeDirect = hasLoggedInAppUser && isHomePage;
+  /** On `/`, logged-in app user: one tap opens user dashboard (disabled on anonymous marketing header). */
+  const appUserMarketingHomeDirect =
+    hasLoggedInAppUser && isHomePage && !showAnonymousMarketingHeader;
 
   const marketingUserChipClassName =
     "inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border-0 bg-transparent px-1 font-normal text-slate-800 transition-colors hover:bg-slate-100/90 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white sm:px-1.5";
@@ -376,6 +378,7 @@ export function LandingHeader() {
         "fixed top-0 z-50 w-full border-b border-border bg-background text-foreground",
         (isSignupPage || isPilotRegistration) &&
           "light-header bg-white text-[#191c1d]",
+        appDashboardShell && "dark:border-border dark:bg-background dark:text-foreground",
         !appDashboardShell && "dark:text-white"
       )}
     >
@@ -531,7 +534,9 @@ export function LandingHeader() {
               <span className="hidden min-[360px]:inline">New Registration</span>
               <span className="min-[360px]:hidden">Register</span>
             </Link>
-            {hasLoggedInAdmin && onMarketingAuthSurface ? (
+            {hasLoggedInAdmin &&
+            onMarketingAuthSurface &&
+            !showAnonymousMarketingHeader ? (
               <Link
                 href="/dashboard"
                 className={cn(marketingUserChipClassName, "no-underline")}
@@ -576,7 +581,9 @@ export function LandingHeader() {
                   {appUserDisplayName}
                 </span>
               </Link>
-            ) : hasLoggedInAppUser && hideMarketingRegisterAndLogin ? (
+            ) : hasLoggedInAppUser &&
+              hideMarketingRegisterAndLogin &&
+              !showAnonymousMarketingHeader ? (
               <div className="relative shrink-0" ref={marketingUserMenuRef}>
                 <button
                   type="button"
@@ -639,7 +646,8 @@ export function LandingHeader() {
               </div>
             ) : pilotMarketingActive &&
               !hasLoggedInAppUser &&
-              hideMarketingRegisterAndLogin ? (
+              hideMarketingRegisterAndLogin &&
+              !showAnonymousMarketingHeader ? (
               <Link
                 href="/pilot-dashboard"
                 className={cn(marketingUserChipClassName, "no-underline")}

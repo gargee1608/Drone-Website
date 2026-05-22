@@ -204,7 +204,27 @@
   --sidebar-ring: var(--sidebar-ring);
 }
 
-/* Dark mode: admin + user dashboards use global `html.dark` tokens (`.admin-dashboard` / `.user-dashboard` scope). */
+/* Dark mode: admin command center uses global `html.dark` tokens. */
+.dark .admin-dashboard {
+  color-scheme: dark;
+}
+
+.dark .admin-dashboard .cc-glass-card {
+  background: var(--card);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.dark .admin-dashboard select,
+.dark .admin-dashboard input:not([type="checkbox"]):not([type="radio"]),
+.dark .admin-dashboard textarea {
+  color-scheme: dark;
+}
+
+/* Dark mode: user dashboard scope */
+.dark .user-dashboard {
+  color-scheme: dark;
+}
 
 @layer base {
   * {

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PilotSettingsAddDronePanel } from "@/components/settings/pilot-settings-add-drone-panel";
 import { notifyAdminFleetUpdated } from "@/lib/admin-fleet-updated";
 import { apiUrl } from "@/lib/api-url";
+import { syncPilotDronesToProfile } from "@/lib/load-pilot-drones";
 import { cn } from "@/lib/utils";
 
 const OPEN_REQUEST_TH_CLASS =
@@ -755,9 +756,14 @@ export function AdminDroneView() {
         throw new Error(data.error || "Failed to update drone details");
       }
 
+      const pilotIdNum = numericId(emptyIfDash(editingDroneRow.pilotId));
       setEditingDroneRow(null);
+      if (pilotIdNum != null) {
+        await syncPilotDronesToProfile(pilotIdNum);
+      } else {
+        notifyAdminFleetUpdated();
+      }
       await fetchPilotDroneRows();
-      notifyAdminFleetUpdated();
       alert("Drone details updated successfully.");
     } catch (error) {
       console.error("Error updating drone details:", error);
@@ -844,8 +850,12 @@ export function AdminDroneView() {
         })
       );
 
+      if (pilotIdNum != null) {
+        await syncPilotDronesToProfile(pilotIdNum);
+      } else {
+        notifyAdminFleetUpdated();
+      }
       await fetchPilotDroneRows();
-      notifyAdminFleetUpdated();
     } catch (error) {
       console.error("Error deleting drone details:", error);
       alert(error instanceof Error ? error.message : "Failed to delete drone details.");
@@ -1349,7 +1359,6 @@ export function AdminDroneView() {
                         if (statusResponse.ok) {
                           alert('Drone details successfully added to pilot profile!');
                           setShowDroneForm(false);
-                          // Reset form
                           setDroneFormData({
                             modelName: '',
                             type: '',
@@ -1358,12 +1367,15 @@ export function AdminDroneView() {
                             flightTimeMin: '',
                             rangeKm: ''
                           });
-                          // Refresh the request to show updated status
+                          const pilotIdNum = numericId(actualPilotId);
+                          if (pilotIdNum != null) {
+                            await syncPilotDronesToProfile(pilotIdNum);
+                          } else {
+                            notifyAdminFleetUpdated();
+                          }
                           if (requestId) fetchRequestDetails(requestId);
                           await fetchPendingRequests();
                           await fetchPilotDroneRows();
-                          // Notify Assign To view to refresh fleet data
-                          notifyAdminFleetUpdated();
                         } else {
                           const errorData = await statusResponse.json().catch(() => ({}));
                           throw new Error(errorData.error || 'Failed to update request status');
@@ -1523,9 +1535,18 @@ export function AdminDroneView() {
                 addDronePilotId ? Number.parseInt(addDronePilotId, 10) : null
               }
               onDroneAdded={() => {
-                void fetchPilotDroneRows();
-                notifyAdminFleetUpdated();
-                closeAddDronePanel();
+                const pilotId = addDronePilotId
+                  ? Number.parseInt(addDronePilotId, 10)
+                  : NaN;
+                void (async () => {
+                  if (Number.isFinite(pilotId)) {
+                    await syncPilotDronesToProfile(pilotId);
+                  } else {
+                    notifyAdminFleetUpdated();
+                  }
+                  await fetchPilotDroneRows();
+                  closeAddDronePanel();
+                })();
               }}
             />
           </div>
