@@ -11,13 +11,18 @@ import {
   type ChangeEvent,
 } from "react";
 
-import { postsBySlug, type BlogPost } from "@/components/blogs/blog-data";
+import {
+  blogPosts,
+  postsBySlug,
+  type BlogPost,
+} from "@/components/blogs/blog-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   fetchBlogsFromApi,
   mapApiRowToBlogPost,
   parseBlogDbSlug,
+  type BlogApiRow,
 } from "@/lib/blog-api";
 import { apiUrl } from "@/lib/api-url";
 import {
@@ -89,8 +94,49 @@ function normalizeBlogDbId(id: unknown): number | undefined {
 
 type EditorMode = "closed" | "add" | "edit";
 
-export function AdminBlogsView() {
-  const [rows, setRows] = useState<AdminBlogRow[]>([]);
+function mapApiRowsToDbPosts(apiRows: BlogApiRow[]): AdminBlogRow[] {
+  return apiRows.map((r) => ({
+    ...mapApiRowToBlogPost(r),
+    dbId: normalizeBlogDbId(r.id),
+  }));
+}
+
+/** Same sources as the public /blogs page: database posts + built-in / local catalog. */
+function buildAdminBlogRows(
+  apiRows: BlogApiRow[],
+  useLocalCatalog: boolean
+): AdminBlogRow[] {
+  const dbPosts = mapApiRowsToDbPosts(apiRows);
+  const dbSlugs = new Set(dbPosts.map((p) => p.slug));
+  const catalogPosts = useLocalCatalog
+    ? getMergedBlogPostsList()
+    : blogPosts;
+  const merged = catalogPosts.filter((p) => !dbSlugs.has(p.slug));
+  return [...dbPosts, ...merged];
+}
+
+export function AdminBlogsView({
+  initialApiPosts = [],
+}: {
+  /** Database blogs loaded on the server (same as the public blogs page). */
+  initialApiPosts?: BlogPost[];
+}) {
+  const initialApiRowsRef = useRef<BlogApiRow[]>(
+    initialApiPosts.map((post) => {
+      const dbId = parseBlogDbSlug(post.slug);
+      return {
+        id: dbId ?? 0,
+        title: post.title,
+        content: post.body.join("\n\n"),
+        image: post.image,
+        created_at: "",
+      };
+    })
+  );
+
+  const [rows, setRows] = useState<AdminBlogRow[]>(() =>
+    buildAdminBlogRows(initialApiRowsRef.current, false)
+  );
   const [extras, setExtras] = useState<AdminBlogExtra[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>("closed");
@@ -129,19 +175,14 @@ export function AdminBlogsView() {
   }
 
   const refresh = useCallback(async () => {
-    let dbPosts: AdminBlogRow[] = [];
+    let apiRows = initialApiRowsRef.current;
     try {
-      const apiRows = await fetchBlogsFromApi();
-      dbPosts = apiRows.map((r) => ({
-        ...mapApiRowToBlogPost(r),
-        dbId: normalizeBlogDbId(r.id),
-      }));
+      apiRows = await fetchBlogsFromApi();
+      initialApiRowsRef.current = apiRows;
     } catch {
-      dbPosts = [];
+      /* Keep last known API rows (including server-rendered initial data). */
     }
-    const dbSlugs = new Set(dbPosts.map((p) => p.slug));
-    const merged = getMergedBlogPostsList().filter((p) => !dbSlugs.has(p.slug));
-    setRows([...dbPosts, ...merged]);
+    setRows(buildAdminBlogRows(apiRows, true));
     setExtras(loadBlogExtras());
   }, []);
 

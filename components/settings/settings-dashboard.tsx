@@ -26,10 +26,12 @@ function Switch({
   checked,
   onCheckedChange,
   className,
+  uncheckedClassName,
 }: {
   checked: boolean;
   onCheckedChange: (next: boolean) => void;
   className?: string;
+  uncheckedClassName?: string;
 }) {
   return (
     <button
@@ -38,14 +40,16 @@ function Switch({
       aria-checked={checked}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative inline-flex h-7 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        checked ? "bg-[#008B8B]" : "bg-muted-foreground/35",
+        "relative inline-flex h-7 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        checked
+          ? "bg-[#008B8B]"
+          : cn("bg-muted-foreground/35", uncheckedClassName),
         className
       )}
     >
       <span
         className={cn(
-          "pointer-events-none block size-6 rounded-full bg-background shadow-sm ring-1 ring-black/5 transition-transform",
+          "pointer-events-none block size-6 rounded-full bg-white shadow-sm transition-transform dark:bg-black",
           checked ? "translate-x-[1.15rem]" : "translate-x-0.5"
         )}
       />
@@ -135,51 +139,36 @@ export function SettingsDashboard({
     return () => window.removeEventListener("keydown", onKey);
   }, [profileInfoPopupOpen, closeProfileInfoPopup]);
 
-  const isAdminSettings = settingsContext === "admin";
-  const settingsSectionClass = cn(
-    "flex flex-col rounded-xl bg-card p-5 sm:p-6",
-    isAdminSettings
-      ? "border border-border shadow-sm dark:shadow-none dark:ring-1 dark:ring-white/[0.06]"
-      : "border-2 border-border shadow-sm"
-  );
+  const settingsSectionClass =
+    "flex h-full flex-col rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6";
   const settingsSectionDividerClass = cn(
     "mt-auto space-y-4 pt-4",
     "border-t border-border"
   );
+  const settingsGridClass = cn(
+    "grid grid-cols-1 items-stretch gap-6",
+    settingsContext === "user"
+      ? "md:grid-cols-2 xl:grid-cols-3"
+      : "lg:grid-cols-3"
+  );
+  const profileDescription =
+    settingsContext === "admin"
+      ? "View your admin profile, photo, address, and account details."
+      : settingsContext === "pilot"
+        ? "View your pilot profile, photo, flight details, and drones."
+        : "View your profile page, photo, and account details.";
+  const isAdminSettings = settingsContext === "admin";
+  const appearanceSwitchUncheckedClass = isAdminSettings
+    ? "bg-[#c1c6d7] dark:bg-neutral-600"
+    : undefined;
 
   return (
     <>
       <div className="mx-auto w-full max-w-6xl antialiased">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {settingsContext === "user" ? (
-            <section className="flex flex-col rounded-xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
-              <div className="mb-4 flex items-start gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
-                  <UserRound className="size-5 text-[#008B8B]" aria-hidden />
-                </span>
-                <div className="min-w-0 text-left">
-                  <h2 className="text-base font-bold text-foreground">
-                    Profile
-                  </h2>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    View your profile page, photo, and account details.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-auto flex flex-1 flex-col justify-end pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-10 w-full rounded-lg border-[#008B8B] bg-background text-sm font-semibold text-[#008B8B] hover:bg-[#008B8B]/8"
-                  onClick={openProfileInfoPopup}
-                >
-                  Profile information
-                </Button>
-              </div>
-            </section>
-          ) : null}
-
-          {settingsContext === "admin" ? (
+        <div className={settingsGridClass}>
+          {settingsContext === "user" ||
+          settingsContext === "admin" ||
+          settingsContext === "pilot" ? (
             <section className={settingsSectionClass}>
               <div className="mb-4 flex items-start gap-3">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
@@ -190,36 +179,7 @@ export function SettingsDashboard({
                     Profile
                   </h2>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    View your admin profile, photo, address, and account
-                    details.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-auto flex flex-1 flex-col justify-end pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-10 w-full rounded-lg border-[#008B8B] bg-background text-sm font-semibold text-[#008B8B] hover:bg-[#008B8B]/8"
-                  onClick={openProfileInfoPopup}
-                >
-                  Profile information
-                </Button>
-              </div>
-            </section>
-          ) : null}
-
-          {settingsContext === "pilot" ? (
-            <section className={settingsSectionClass}>
-              <div className="mb-4 flex items-start gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12">
-                  <UserRound className="size-5 text-[#008B8B]" aria-hidden />
-                </span>
-                <div className="min-w-0 text-left">
-                  <h2 className="text-base font-bold text-foreground">
-                    Profile
-                  </h2>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    View your pilot profile, photo, flight details, and drones.
+                    {profileDescription}
                   </p>
                 </div>
               </div>
@@ -272,12 +232,7 @@ export function SettingsDashboard({
                 </section>
 
                 {/* Appearance */}
-                <section
-                  className={cn(
-                    settingsSectionClass,
-                    "md:col-span-2 xl:col-span-1"
-                  )}
-                >
+                <section className={settingsSectionClass}>
                   <div className="mb-5 flex items-start gap-3">
                     <span
                       className="flex size-11 shrink-0 items-center justify-center gap-0.5 rounded-full bg-violet-100 dark:bg-violet-950/50"
@@ -307,11 +262,7 @@ export function SettingsDashboard({
                       </span>
                       <Switch
                         checked={theme === "light"}
-                        className={
-                          isAdminSettings
-                            ? "border border-border shadow-none"
-                            : undefined
-                        }
+                        uncheckedClassName={appearanceSwitchUncheckedClass}
                         onCheckedChange={(on) => {
                           setTheme(on ? "light" : "dark");
                         }}
@@ -328,11 +279,7 @@ export function SettingsDashboard({
                       </span>
                       <Switch
                         checked={theme === "dark"}
-                        className={
-                          isAdminSettings
-                            ? "border border-border shadow-none"
-                            : undefined
-                        }
+                        uncheckedClassName={appearanceSwitchUncheckedClass}
                         onCheckedChange={(on) => {
                           setTheme(on ? "dark" : "light");
                         }}

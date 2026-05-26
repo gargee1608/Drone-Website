@@ -558,9 +558,10 @@ export function RequestServiceModalTrigger({
                 </Button>
                 <Button
                   type="submit"
+                  variant="outline"
                   disabled={submitting}
                   className={cn(
-                    "bg-[#008B8B] text-white hover:bg-[#007a7a]",
+                    "border-[#008B8B] bg-transparent text-[#008B8B] hover:bg-[#008B8B]/10 hover:text-[#007a7a] dark:border-[#4ddbd9] dark:text-[#4ddbd9] dark:hover:bg-[#008B8B]/20",
                     submitting && "opacity-80"
                   )}
                 >

@@ -3,6 +3,7 @@ import { PilotDashboardShell } from "@/components/pilot-dashboard/pilot-dashboar
 import { SettingsDashboard } from "@/components/settings/settings-dashboard";
 import { UserDashboardShell } from "@/components/user-dashboard/user-dashboard-shell";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import { cn } from "@/lib/utils";
 
 export const metadata = {
   title: "Account Settings — Hire A Drone",
@@ -23,9 +24,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   if (isAdmin) {
     return (
       <DashboardLayout>
-        <div className="mx-auto w-full max-w-[1400px] pb-2 pt-3 sm:pb-3 sm:pt-4 lg:pt-6">
-          <h1 className={`mb-6 ${ADMIN_PAGE_TITLE_CLASS}`}>Settings</h1>
-          <SettingsDashboard settingsContext="admin" />
+        <div className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4 lg:px-6 lg:pb-6 lg:pt-6">
+          <div className="mb-10 sm:mb-12">
+            <h1 className={cn(ADMIN_PAGE_TITLE_CLASS, "mb-6")}>Settings</h1>
+            <SettingsDashboard settingsContext="admin" />
+          </div>
         </div>
       </DashboardLayout>
     );
