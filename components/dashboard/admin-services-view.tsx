@@ -391,7 +391,7 @@ export function AdminServicesView() {
                   htmlFor="admin-service-price"
                   className="mb-1.5 block text-xs font-semibold text-foreground"
                 >
-                  Price ($)
+                  Price (Rs.)
                 </label>
                 <Input
                   id="admin-service-price"
@@ -562,7 +562,7 @@ export function AdminServicesView() {
                     {row.description}
                   </p>
                   <p className="text-sm font-semibold text-foreground">
-                    ${row.price}
+                    Rs. {row.price}
                   </p>
 
                   <div className="mt-auto flex flex-wrap gap-2 border-t border-border pt-3">

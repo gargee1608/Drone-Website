@@ -23,7 +23,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-
 // ✅ GET single service
 router.get("/:id", async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);

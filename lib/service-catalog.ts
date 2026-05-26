@@ -29,7 +29,7 @@ export const serviceCatalogItems: ServiceCatalogItem[] = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuAtsFwVqr906z9dXDXzI0vkAP2a3v1YciyF2keAPDg3zn28bql8XeQzZXPuB7aOhR8n-39zz67Fl9jkI7JR9TkOnfiRDGoOB0l8S0Xpi6vQmJ9zvp_IpMJlxenHVc2qgb7AppMMw-NjDE6Ogu7AuOwUuM2nQWucSMkC2Wja-62RTtY1x5kVIJAaQIOOFvTVdQaWEdZFK_ZuAHCL_Q5082OtZTpifdxVa7MU0Y6CrXK3hyL1Dpfohw2OtsC3FUtWtG0_La_Z0I7JFXR5",
     imageAlt: "Medical logistics drone carrying temperature-controlled cargo",
-    topBadge: { text: "$49", variant: "light" },
+    topBadge: { text: "Rs. 200/H", variant: "light" },
   },
   {
     slug: "precision-surveillance",
@@ -48,7 +48,7 @@ export const serviceCatalogItems: ServiceCatalogItem[] = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuDYkARG15cGIRUduK78vb6ss3v46nsHIA2kV1doWb568G-PDaRk1ZOZ2-LT5Xl9k-9AXt4_AKPSPxHqsm1oxkawvzQuga1OXjpxiTAStZWL5w0pwmV1ksP_d8Hl16_5ogYstRVe-rl36QDHIAIpJDEuel6LaZH8oeCF8g_OY_ZIsD-Fc1Gb3wbow79Tb7KGOgNmiWsGK5-huucbeY7jRZDULRxp8QKV2GGVuCUUuYf6P8Naf7d5KmJvfoLL3TL3mz8AWGbZ2ec_hrrC",
     imageAlt: "Thermal surveillance view from a drone",
-    topBadge: { text: "$120/h", variant: "light" },
+    topBadge: { text: "Rs. 120/h", variant: "light" },
   },
   {
     slug: "emergency-response",
@@ -67,7 +67,7 @@ export const serviceCatalogItems: ServiceCatalogItem[] = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuC9_jtj-X27ArAqwVx9HdVzuAS7GUk5_-kAD2G5greai4z4NKlb1gUOnEp5u2QmmuEPcgCIyuBaYiOH68RMN18_4RTQaJtcJ0QXgPILd9skINzuDs2bZWpejCARaIGyMOacwr36ggitwfRE4UUsihC1ZPEVGDZJcuTUoFfRBRy7mrL3-PPZOVc9hCUaJg35DP7eihrbKnz9e2xDamgF-TlVbPzzSS9A-M0iS8aVlsRCm5IZs-9vsAmQAQUy2dZ-ie9rVLRsFIXIprqW",
     imageAlt: "Drone over emergency response zone",
-    topBadge: { text: "$195/h", variant: "priority" },
+    topBadge: { text: "Rs. 195/h", variant: "priority" },
   },
   {
     slug: "infrastructure",
@@ -86,7 +86,7 @@ export const serviceCatalogItems: ServiceCatalogItem[] = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuBeuHk9S-q_53Ot7cr4g3DQg50VuIUM1sKoO9hUERwedcTQb_OzkVmmaszym4TCRRAkFF8Mbk7ocBPHLeXkmT46HTGmnIRgywqqkrr-GDKJFOTytihDZiAbGpCXd44BEfNqDaC_Y1SqSflvAvlhhUMbRXS8PG8Sau4oJqPjrXaCVeQT3SHODelkAS8DS8QfzTyhsVp2ha3mNYJSowYgcABiIT3RgfI2IG54RpbXrsH1UgyZeXLJ1-mFGsr4kVwN7yJBXb5foakBrnzO",
     imageAlt: "Drone inspecting industrial infrastructure",
-    topBadge: { text: "$350/site", variant: "light" },
+    topBadge: { text: "Rs. 350/site", variant: "light" },
   },
 ];
 
@@ -104,6 +104,26 @@ export function serviceSlugFromTitle(title: string): string {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+/** Display service prices in rupees (handles legacy "$" labels). */
+export function formatRupeePrice(value: string | number): string {
+  const s = String(value).trim();
+  if (!s) return "";
+  if (s.startsWith("Rs.")) return s;
+  if (s.startsWith("$")) return s.replace(/^\$/, "Rs. ");
+  return `Rs. ${s}`;
+}
+
+/** Built-in catalog prices win for known slugs; otherwise format DB/admin values. */
+export function getCatalogPriceLabel(
+  slug: string,
+  dbPrice?: string | number | null
+): string {
+  const staticItem = getServiceBySlug(slug.trim());
+  if (staticItem) return staticItem.topBadge.text;
+  if (dbPrice == null || !String(dbPrice).trim()) return "";
+  return formatRupeePrice(dbPrice);
 }
 
 type BackendServiceRow = {
@@ -173,7 +193,9 @@ function mapBackendServiceToCatalogItem(row: BackendServiceRow): ServiceCatalogI
   if (!title) return null;
   const description = String(row.description ?? "").trim();
   const priceRaw = Number(row.price);
-  const priceText = Number.isFinite(priceRaw) ? `$${priceRaw}` : "Custom";
+  const priceText = Number.isFinite(priceRaw)
+    ? formatRupeePrice(priceRaw)
+    : "Custom";
   return {
     slug: slugForBackendRow(row, title),
     title,
@@ -202,6 +224,7 @@ function enrichCatalogFromStatic(
   if (!staticItem) return mapped;
   return {
     ...mapped,
+    topBadge: staticItem.topBadge,
     detailSections: staticItem.detailSections,
     highlights: staticItem.highlights,
     imageAlt: staticItem.imageAlt,

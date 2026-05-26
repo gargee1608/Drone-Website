@@ -722,32 +722,18 @@ export function LandingHeader() {
                     isPilotLogoutContext ||
                     isAdminDashboard ||
                     isAdminSettingsContext ? (
-                      <>
-                        <Link
-                          href="/"
-                          role="menuitem"
-                          className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                          onClick={() => setAccountMenuOpen(false)}
-                        >
-                          <HomeIcon
-                            className="size-4 shrink-0 text-muted-foreground"
-                            aria-hidden
-                          />
-                          Home
-                        </Link>
-                        <Link
-                          href={isUserLogoutContext ? "/user-dashboard" : isPilotLogoutContext ? "/pilot-dashboard" : "/dashboard"}
-                          role="menuitem"
-                          className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                          onClick={() => setAccountMenuOpen(false)}
-                        >
-                          <LayoutDashboard
-                            className="size-4 shrink-0 text-muted-foreground"
-                            aria-hidden
-                          />
-                          Dashboard
-                        </Link>
-                      </>
+                      <Link
+                        href="/"
+                        role="menuitem"
+                        className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                        onClick={() => setAccountMenuOpen(false)}
+                      >
+                        <HomeIcon
+                          className="size-4 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
+                        Home
+                      </Link>
                     ) : null}
                     <Link
                       href={profileHref}
@@ -882,22 +868,13 @@ export function LandingHeader() {
             {showAccountMenu && !isAdminDashboard ? (
               <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-3">
                 {isUserLogoutContext || isPilotLogoutContext ? (
-                  <>
-                    <Link
-                      href="/"
-                      className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                      onClick={() => setOpen(false)}
-                    >
-                      Home
-                    </Link>
-                    <Link
-                      href={isUserLogoutContext ? "/user-dashboard" : "/pilot-dashboard"}
-                      className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                      onClick={() => setOpen(false)}
-                    >
-                      Dashboard
-                    </Link>
-                  </>
+                  <Link
+                    href="/"
+                    className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    onClick={() => setOpen(false)}
+                  >
+                    Home
+                  </Link>
                 ) : null}
                 <Link
                   href={profileHref}

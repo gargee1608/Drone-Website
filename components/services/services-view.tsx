@@ -17,6 +17,8 @@ import { apiUrl } from "@/lib/api-url";
 import type { AdminService } from "@/lib/admin-services";
 import { useAdminServicesCatalog } from "@/hooks/use-admin-services-catalog";
 import {
+  formatRupeePrice,
+  getCatalogPriceLabel,
   serviceCatalogItems,
   serviceSlugFromTitle,
 } from "@/lib/service-catalog";
@@ -137,7 +139,7 @@ function ServiceGridCard({
           </Link>
           <div className="pointer-events-none absolute left-3 top-3">
             <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
-              {item.topBadge.text}
+              {formatRupeePrice(item.topBadge.text)}
             </span>
           </div>
         </div>
@@ -206,7 +208,7 @@ function ServiceGridCard({
           </Link>
           <div className="pointer-events-none absolute left-3 top-3">
             <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
-              {item.priceLabel}
+              {formatRupeePrice(item.priceLabel)}
             </span>
           </div>
         </div>
@@ -244,12 +246,15 @@ function ServiceGridCard({
   const service = entry.item;
   const title = String(service.title ?? "Service");
   const description = catalogExcerpt(String(service.description ?? ""));
-  const price = service.price != null ? String(service.price) : "";
   const image = typeof service.image === "string" ? service.image : "";
   const slug =
     typeof service.slug === "string" && service.slug.trim()
       ? service.slug.trim()
       : serviceSlugFromTitle(title);
+  const priceLabel = getCatalogPriceLabel(
+    slug,
+    service.price as string | number | null | undefined
+  );
   const detailHref = `/services/${slug}`;
 
   return (
@@ -283,10 +288,10 @@ function ServiceGridCard({
             No image
           </div>
         )}
-        {price ? (
+        {priceLabel ? (
           <div className="pointer-events-none absolute left-3 top-3">
             <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
-              ${price}
+              {priceLabel}
             </span>
           </div>
         ) : null}
@@ -414,7 +419,7 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         >
           {catalogExcerpt(item.description)}
         </p>
-        <FeaturedPriceRow value={item.topBadge.text} />
+        <FeaturedPriceRow value={formatRupeePrice(item.topBadge.text)} />
         <div onClick={blockNav} className="flex flex-wrap items-center gap-2.5">
           <Link
             href={`/services/${item.slug}`}
@@ -480,7 +485,7 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         >
           {catalogExcerpt(item.description)}
         </p>
-        <FeaturedPriceRow prefix="Rate" value={item.priceLabel} />
+        <FeaturedPriceRow prefix="Rate" value={formatRupeePrice(item.priceLabel)} />
         <div onClick={blockNav} className="flex flex-wrap items-center gap-2.5">
           <Link
             href={href}
@@ -517,6 +522,10 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         ? String(entry.item.slug).trim()
         : serviceSlugFromTitle(title);
     const href = `/services/${slug}`;
+    const featuredPriceLabel = getCatalogPriceLabel(
+      slug,
+      entry.item.price as string | number | null | undefined
+    );
     const img =
       typeof entry.item.image === "string" ? entry.item.image.trim() : "";
     left = (
@@ -546,10 +555,10 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         >
           {desc}
         </p>
-        {entry.item.price != null ? (
+        {featuredPriceLabel ? (
           <FeaturedPriceRow
             prefix="Starting at"
-            value={`$${String(entry.item.price)}`}
+            value={featuredPriceLabel}
           />
         ) : null}
         <div onClick={blockNav} className="flex flex-wrap items-center gap-2.5">

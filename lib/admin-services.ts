@@ -13,7 +13,7 @@ export type AdminService = {
   id: string;
   title: string;
   description: string;
-  /** Shown like catalog badges, e.g. "$49" or "From $120/h". */
+  /** Shown like catalog badges, e.g. "Rs. 200/H" or "Rs. 120/h". */
   priceLabel: string;
   createdAt: number;
   /** Cover image URL (absolute or under `/public`). */

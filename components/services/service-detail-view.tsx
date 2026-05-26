@@ -5,7 +5,10 @@ import { CheckCircle2, ChevronRight } from "lucide-react";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { PersistFeaturedService } from "@/components/services/persist-featured-service";
 import { RequestServiceModalTrigger } from "@/components/services/request-service-modal-trigger";
-import { type ServiceCatalogItem } from "@/lib/service-catalog";
+import {
+  formatRupeePrice,
+  type ServiceCatalogItem,
+} from "@/lib/service-catalog";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -146,7 +149,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
                   "mt-0.5 text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
                 )}
               >
-                {item.topBadge.text}
+                {formatRupeePrice(item.topBadge.text)}
               </p>
               <p className={cn(body, "mt-2 text-sm leading-relaxed text-foreground")}>
                 Final quote may vary by scope, region, and compliance.

@@ -139,11 +139,17 @@ export function SettingsDashboard({
     return () => window.removeEventListener("keydown", onKey);
   }, [profileInfoPopupOpen, closeProfileInfoPopup]);
 
-  const settingsSectionClass =
-    "flex h-full flex-col rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6";
+  const settingsSectionClass = cn(
+    "flex h-full flex-col rounded-xl bg-card p-5 shadow-sm sm:p-6",
+    settingsContext === "admin"
+      ? "border border-[#c1c7cf]/40 dark:border-white/[0.08]"
+      : "border border-border"
+  );
   const settingsSectionDividerClass = cn(
-    "mt-auto space-y-4 pt-4",
-    "border-t border-border"
+    "mt-auto space-y-4 border-t pt-4",
+    settingsContext === "admin"
+      ? "border-[#c1c7cf]/30 dark:border-white/[0.08]"
+      : "border-border"
   );
   const settingsGridClass = cn(
     "grid grid-cols-1 items-stretch gap-6",

@@ -44,6 +44,13 @@ export function PilotLoginView() {
   }, []);
 
   useEffect(() => {
+    document.title =
+      loginPanel === "user"
+        ? "Hire A Drone | User Login"
+        : "Hire A Drone | Pilot Login";
+  }, [loginPanel]);
+
+  useEffect(() => {
     const p = searchParams.get("panel");
     if (p === "user") setLoginPanel("user");
     else if (p === "pilot") setLoginPanel("pilot");
