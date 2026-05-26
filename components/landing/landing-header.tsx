@@ -36,7 +36,9 @@ import {
   readStoredUserSession,
   type StoredUserSession,
 } from "@/lib/user-session-browser";
+import { PilotLoginLanguageSelector } from "@/components/pilot-login/pilot-login-language-selector";
 import { isPilotRegistrationFromAdmin } from "@/lib/pilot-registration-from-admin";
+import { usePilotLoginLanguage } from "@/lib/pilot-login-i18n";
 import { cn } from "@/lib/utils";
 
 const landingOutlineButtonClassName =
@@ -44,6 +46,7 @@ const landingOutlineButtonClassName =
 
 export function LandingHeader() {
   const serviceMegaMenuItems = useServiceMegaMenuItems();
+  const { copy: pilotLoginCopy } = usePilotLoginLanguage();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -58,6 +61,7 @@ export function LandingHeader() {
     pathname === "/admin" || pathname === "/admin/";
   const isPilotLoginPage =
     pathname === "/pilot-login" || pathname === "/pilot-login/";
+  const isAuthLoginPage = isPilotLoginPage || isAdminLoginPage;
   const isResetPasswordPage =
     pathname === "/reset-password" || pathname === "/reset-password/";
   const isSignupPage = pathname === "/signup" || pathname === "/signup/";
@@ -484,11 +488,13 @@ export function LandingHeader() {
               )}
             >
               <Link href="/" className={linkClass("/")}>
-                Home
+                {isAuthLoginPage ? pilotLoginCopy.nav.home : "Home"}
               </Link>
               <ServiceListingMegaMenu
                 variant="landing"
-                label="Services"
+                label={
+                  isAuthLoginPage ? pilotLoginCopy.nav.services : "Services"
+                }
                 triggerClassName={cn(
                   (pathname === "/services" ||
                     pathname?.startsWith("/services/")) &&
@@ -496,16 +502,17 @@ export function LandingHeader() {
                 )}
               />
               <Link href="/blogs" className={linkClass("/blogs")}>
-                Blogs
+                {isAuthLoginPage ? pilotLoginCopy.nav.blogs : "Blogs"}
               </Link>
               <Link href="/contact" className={linkClass("/contact")}>
-                Contact Us
+                {isAuthLoginPage ? pilotLoginCopy.nav.contact : "Contact Us"}
               </Link>
             </div>
           ) : null}
         </div>
 
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 sm:gap-3 lg:gap-6">
+          {isAuthLoginPage ? <PilotLoginLanguageSelector /> : null}
           {showHeaderSearchBar ? (
             <div className="hidden min-w-0 items-center rounded-full border border-border bg-card py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 xl:flex">
               <Search
@@ -515,7 +522,11 @@ export function LandingHeader() {
               <input
                 type="search"
                 name="track-delivery"
-                placeholder="Search..."
+                placeholder={
+                  isAuthLoginPage
+                    ? pilotLoginCopy.searchPlaceholder
+                    : "Search..."
+                }
                 className="w-40 min-w-0 border-0 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:ring-0 dark:text-white dark:placeholder:text-white/45 xl:w-48"
                 autoComplete="off"
               />
@@ -810,6 +821,9 @@ export function LandingHeader() {
           open ? "block" : "hidden"
         )}
       >
+        {isAuthLoginPage ? (
+          <PilotLoginLanguageSelector variant="drawer" className="xl:hidden" />
+        ) : null}
         {showHeaderSearchBar ? (
           <div className="mb-3 flex min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5">
             <Search
@@ -818,7 +832,11 @@ export function LandingHeader() {
             />
             <input
               type="search"
-              placeholder="Track delivery..."
+              placeholder={
+                isAuthLoginPage
+                  ? pilotLoginCopy.searchPlaceholder
+                  : "Track delivery..."
+              }
               className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 focus:ring-0 dark:bg-transparent dark:text-white dark:placeholder:text-white/45"
             />
           </div>
@@ -832,10 +850,10 @@ export function LandingHeader() {
                   className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                   onClick={() => setOpen(false)}
                 >
-                  Home
+                  {isAuthLoginPage ? pilotLoginCopy.nav.home : "Home"}
                 </Link>
                 <div className="px-3 pt-1 pb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Services
+                  {isAuthLoginPage ? pilotLoginCopy.nav.services : "Services"}
                 </div>
                 {serviceMegaMenuItems.map((item) => (
                   <Link
@@ -864,7 +882,7 @@ export function LandingHeader() {
                   )}
                   onClick={() => setOpen(false)}
                 >
-                  Blogs
+                  {isAuthLoginPage ? pilotLoginCopy.nav.blogs : "Blogs"}
                 </Link>
                 <Link
                   href="/contact"
@@ -876,7 +894,7 @@ export function LandingHeader() {
                   )}
                   onClick={() => setOpen(false)}
                 >
-                  Contact Us
+                  {isAuthLoginPage ? pilotLoginCopy.nav.contact : "Contact Us"}
                 </Link>
               </>
             ) : null}
