@@ -160,8 +160,8 @@ export function PilotLoginView() {
 
   return (
     <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-white text-slate-900">
-      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-14">
-        <div className="w-full max-w-[min(100%,440px)]">
+      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pt-24 pb-10 sm:px-6 sm:pt-28 sm:pb-14">
+        <div className="mt-6 w-full max-w-[min(100%,440px)] sm:mt-8">
           <div className="login-glass-card relative w-full overflow-hidden rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md sm:p-6">
           <div className="mb-4 text-center">
             <h1
