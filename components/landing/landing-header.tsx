@@ -104,6 +104,7 @@ export function LandingHeader() {
     isPilotDashboard ||
     isSettingsPage;
   const isHomePage = pathname === "/" || pathname === "";
+  const centerMarketingHeaderNav = isPilotLoginPage || isPilotRegistration;
   const isMatchingHub = pathname === "/matching-hub";
   const {
     sidebarExpanded: adminSidebarExpanded,
@@ -388,14 +389,19 @@ export function LandingHeader() {
     >
       <nav
         className={cn(
-          "mx-auto flex max-w-[1600px] flex-nowrap items-center justify-between px-2 min-[380px]:px-3 sm:px-6 lg:px-8",
+          "relative mx-auto flex max-w-[1600px] flex-nowrap items-center justify-between px-2 min-[380px]:px-3 sm:px-6 lg:px-8",
           compactAppHeader
             ? "gap-3 py-2.5 sm:py-3"
             : "gap-1 py-3 min-[380px]:gap-2 sm:gap-4 sm:py-4"
         )}
         aria-label="Primary"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-8 lg:gap-12">
+        <div
+          className={cn(
+            "flex min-w-0 items-center gap-1 sm:gap-8 lg:gap-12",
+            !centerMarketingHeaderNav && "flex-1"
+          )}
+        >
           <div className="flex min-w-0 items-center gap-1 sm:gap-2">
             {isAdminCommandCenterShell ? (
               <button
@@ -467,7 +473,15 @@ export function LandingHeader() {
             </Link>
           </div>
           {showMarketingHeaderNav ? (
-            <div className="hidden items-center gap-8 xl:flex">
+            <div
+              className={cn(
+                "hidden shrink-0 items-center gap-6 xl:flex xl:gap-8",
+                centerMarketingHeaderNav &&
+                  "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+                !centerMarketingHeaderNav &&
+                  "ml-auto xl:mr-2 2xl:mr-4"
+              )}
+            >
               <Link href="/" className={linkClass("/")}>
                 Home
               </Link>
