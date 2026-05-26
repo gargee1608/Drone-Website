@@ -115,15 +115,37 @@ type BackendServiceRow = {
   image?: string;
 };
 
+function nextAppOriginForServerFetch(): string | null {
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
+  }
+  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (site) return site.replace(/\/$/, "");
+  const port = process.env.PORT?.trim() || "3000";
+  return `http://127.0.0.1:${port}`;
+}
+
 function backendServicesApiCandidates(): string[] {
+  const urls: string[] = [];
+  const appOrigin = nextAppOriginForServerFetch();
+  if (appOrigin) {
+    urls.push(`${appOrigin}/api/express/services`);
+  }
+
   const rawBase =
     process.env.NEXT_PUBLIC_API_URL?.trim() || process.env.BACKEND_URL?.trim() || "";
   const base = rawBase.replace(/\/$/, "");
   if (base) {
-    if (base.endsWith("/api")) return [`${base}/services`];
-    return [`${base}/api/services`];
+    if (base.endsWith("/api")) urls.push(`${base}/services`);
+    else urls.push(`${base}/api/services`);
   }
-  return ["http://localhost:4000/api/services", "http://127.0.0.1:4000/api/services"];
+
+  urls.push(
+    "http://127.0.0.1:4000/api/services",
+    "http://localhost:4000/api/services"
+  );
+
+  return [...new Set(urls)];
 }
 
 async function fetchBackendServices(): Promise<BackendServiceRow[]> {
@@ -141,6 +163,11 @@ async function fetchBackendServices(): Promise<BackendServiceRow[]> {
   return [];
 }
 
+function slugForBackendRow(row: BackendServiceRow, title: string): string {
+  const explicit = typeof row.slug === "string" ? row.slug.trim() : "";
+  return explicit || serviceSlugFromTitle(title);
+}
+
 function mapBackendServiceToCatalogItem(row: BackendServiceRow): ServiceCatalogItem | null {
   const title = String(row.title ?? "").trim();
   if (!title) return null;
@@ -148,7 +175,7 @@ function mapBackendServiceToCatalogItem(row: BackendServiceRow): ServiceCatalogI
   const priceRaw = Number(row.price);
   const priceText = Number.isFinite(priceRaw) ? `$${priceRaw}` : "Custom";
   return {
-    slug: serviceSlugFromTitle(title),
+    slug: slugForBackendRow(row, title),
     title,
     description:
       description || "Custom drone service added from the admin dashboard.",
@@ -184,15 +211,20 @@ function enrichCatalogFromStatic(
 export async function getServiceBySlugExtended(
   slug: string
 ): Promise<ServiceCatalogItem | undefined> {
+  const normalized = slug.trim();
+  if (!normalized) return undefined;
+
   const backendRows = await fetchBackendServices();
   for (const row of backendRows) {
     const mapped = mapBackendServiceToCatalogItem(row);
     if (!mapped) continue;
-    if (mapped.slug === slug) {
-      return enrichCatalogFromStatic(mapped, slug);
+    if (mapped.slug === normalized) {
+      return enrichCatalogFromStatic(mapped, normalized);
     }
   }
-  return undefined;
+
+  /** Built-in catalog — used when API is empty/offline (same as /services grid fallback). */
+  return getServiceBySlug(normalized);
 }
 
 export function serviceCatalogBadgeClasses(

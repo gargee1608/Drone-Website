@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CheckCircle2, ChevronRight } from "lucide-react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
+import { PersistFeaturedService } from "@/components/services/persist-featured-service";
 import { RequestServiceModalTrigger } from "@/components/services/request-service-modal-trigger";
 import { type ServiceCatalogItem } from "@/lib/service-catalog";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
@@ -23,6 +24,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
         "min-h-0 flex-1 bg-white dark:bg-background pt-22 text-foreground sm:pt-24"
       )}
     >
+      <PersistFeaturedService item={item} />
       <main className="mx-auto min-w-0 max-w-5xl px-4 pb-16 pt-6 sm:px-6 sm:pb-20 sm:pt-8 lg:max-w-6xl lg:pb-24">
         {/* Breadcrumb */}
         <nav

@@ -6,7 +6,7 @@ import {
   serviceCatalogItems,
 } from "@/lib/service-catalog";
 
-/** Admin dashboard mutates `/api/services`; always resolve slug from the backend. */
+/** Merges live `/api/services` rows with the built-in catalog fallback. */
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ slug: string }> };

@@ -21,8 +21,10 @@ import {
   serviceSlugFromTitle,
 } from "@/lib/service-catalog";
 import {
-  mergeFeaturedWithLive,
+  listedServicesExcludingFeatured,
+  resolveFeaturedDisplay,
   useFeaturedServiceSelection,
+  useFeaturedServiceSlug,
   writeFeaturedSelection,
   type FeaturedListedService,
 } from "@/lib/services-featured-selection";
@@ -45,6 +47,10 @@ function catalogExcerpt(text: string) {
 
 function stopSelectNav(e: MouseEvent | KeyboardEvent) {
   e.stopPropagation();
+}
+
+function rememberFeaturedService(entry: ListedService) {
+  writeFeaturedSelection(entry);
 }
 
 function dbRowSlug(row: Record<string, unknown>): string | null {
@@ -116,7 +122,11 @@ function ServiceGridCard({
         className={serviceCardArticle}
       >
         <div onClick={blockNav} className={serviceCardImageWrap}>
-          <Link href={`/services/${item.slug}`} className="block h-full w-full">
+          <Link
+            href={`/services/${item.slug}`}
+            className="block h-full w-full"
+            onClick={() => rememberFeaturedService(entry)}
+          >
             <Image
               src={item.image}
               alt={item.imageAlt}
@@ -138,7 +148,13 @@ function ServiceGridCard({
               "mb-2 text-lg font-bold leading-tight text-[#1a1c1e] dark:text-white transition-colors group-hover:text-[#006a6e] dark:group-hover:text-[#4ddbd9] sm:text-xl"
             )}
           >
-            <Link href={`/services/${item.slug}`} onClick={blockNav}>
+            <Link
+              href={`/services/${item.slug}`}
+              onClick={(e) => {
+                blockNav(e);
+                rememberFeaturedService(entry);
+              }}
+            >
               {item.title}
             </Link>
           </h3>
@@ -251,7 +267,11 @@ function ServiceGridCard({
     >
       <div onClick={blockNav} className={serviceCardImageWrap}>
         {image ? (
-          <Link href={detailHref} className="block h-full w-full">
+          <Link
+            href={detailHref}
+            className="block h-full w-full"
+            onClick={() => rememberFeaturedService(entry)}
+          >
             <img
               src={image}
               alt={title}
@@ -278,7 +298,13 @@ function ServiceGridCard({
             "mb-2 text-lg font-bold leading-tight text-[#1a1c1e] dark:text-white transition-colors group-hover:text-[#006a6e] dark:group-hover:text-[#4ddbd9] sm:text-xl"
           )}
         >
-          <Link href={detailHref} onClick={blockNav}>
+          <Link
+            href={detailHref}
+            onClick={(e) => {
+              blockNav(e);
+              rememberFeaturedService(entry);
+            }}
+          >
             {title}
           </Link>
         </h3>
@@ -286,12 +312,9 @@ function ServiceGridCard({
           {description}
         </p>
         <div
-          className="mt-auto space-y-2 border-t border-[#c1c7cf]/10 pt-3"
+          className="mt-auto border-t border-[#c1c7cf]/10 pt-3"
           onClick={blockNav}
         >
-          <Link href={detailHref} className={serviceGridBtnClass}>
-            View details
-          </Link>
           <RequestServiceModalTrigger
             reasonTitle={title}
             className={serviceGridBtnClass}
@@ -372,7 +395,16 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         <h2
           className={cn("mb-2 sm:mb-3", ADMIN_PAGE_TITLE_CLASS, "text-foreground")}
         >
-          {item.title}
+          <Link
+            href={`/services/${item.slug}`}
+            onClick={(e) => {
+              blockNav(e);
+              rememberFeaturedService(entry);
+            }}
+            className="transition-colors hover:text-[#006a6e] dark:hover:text-[#4ddbd9]"
+          >
+            {item.title}
+          </Link>
         </h2>
         <p
           className={cn(
@@ -383,11 +415,12 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
           {catalogExcerpt(item.description)}
         </p>
         <FeaturedPriceRow value={item.topBadge.text} />
-        <div
-          onClick={blockNav}
-          className="flex flex-wrap items-center gap-2.5"
-        >
-          <Link href={`/services/${item.slug}`} className={featuredBtnOutline}>
+        <div onClick={blockNav} className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href={`/services/${item.slug}`}
+            className={featuredBtnOutline}
+            onClick={() => rememberFeaturedService(entry)}
+          >
             View details
           </Link>
           <RequestServiceModalTrigger
@@ -402,7 +435,10 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
       <Link
         href={`/services/${item.slug}`}
         className="absolute inset-0 block"
-        onClick={blockNav}
+        onClick={(e) => {
+          blockNav(e);
+          rememberFeaturedService(entry);
+        }}
       >
         <Image
           src={item.image}
@@ -425,7 +461,16 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         <h2
           className={cn("mb-2 sm:mb-3", ADMIN_PAGE_TITLE_CLASS, "text-foreground")}
         >
-          {item.title}
+          <Link
+            href={href}
+            onClick={(e) => {
+              blockNav(e);
+              rememberFeaturedService(entry);
+            }}
+            className="transition-colors hover:text-[#006a6e] dark:hover:text-[#4ddbd9]"
+          >
+            {item.title}
+          </Link>
         </h2>
         <p
           className={cn(
@@ -436,11 +481,12 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
           {catalogExcerpt(item.description)}
         </p>
         <FeaturedPriceRow prefix="Rate" value={item.priceLabel} />
-        <div
-          onClick={blockNav}
-          className="flex flex-wrap items-center gap-2.5"
-        >
-          <Link href={href} className={featuredBtnOutline}>
+        <div onClick={blockNav} className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href={href}
+            className={featuredBtnOutline}
+            onClick={() => rememberFeaturedService(entry)}
+          >
             View details
           </Link>
           <RequestServiceModalTrigger
@@ -481,7 +527,16 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         <h2
           className={cn("mb-2 sm:mb-3", ADMIN_PAGE_TITLE_CLASS, "text-foreground")}
         >
-          {title}
+          <Link
+            href={href}
+            onClick={(e) => {
+              blockNav(e);
+              rememberFeaturedService(entry);
+            }}
+            className="transition-colors hover:text-[#006a6e] dark:hover:text-[#4ddbd9]"
+          >
+            {title}
+          </Link>
         </h2>
         <p
           className={cn(
@@ -497,11 +552,12 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
             value={`$${String(entry.item.price)}`}
           />
         ) : null}
-        <div
-          onClick={blockNav}
-          className="flex flex-wrap items-center gap-2.5"
-        >
-          <Link href={href} className={featuredBtnOutline}>
+        <div onClick={blockNav} className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href={href}
+            className={featuredBtnOutline}
+            onClick={() => rememberFeaturedService(entry)}
+          >
             View details
           </Link>
           <RequestServiceModalTrigger
@@ -551,6 +607,7 @@ export function ServicesView({
   const adminExtras = useAdminServicesCatalog();
   const [dbServices, setDbServices] = useState<Record<string, unknown>[]>([]);
   const persistedSelection = useFeaturedServiceSelection();
+  const persistedSlug = useFeaturedServiceSlug();
 
   useEffect(() => {
     let disposed = false;
@@ -604,24 +661,37 @@ export function ServicesView({
   );
 
   const displayEntry = useMemo(
-    () => mergeFeaturedWithLive(persistedSelection, allListed),
-    [persistedSelection, allListed]
+    () =>
+      resolveFeaturedDisplay(persistedSlug, persistedSelection, allListed),
+    [persistedSlug, persistedSelection, allListed]
   );
 
-  const gridItems = allListed;
+  const gridItems = useMemo(
+    () => listedServicesExcludingFeatured(allListed, displayEntry),
+    [allListed, displayEntry]
+  );
 
   return (
     <div
       className={cn(
         landingFontClassName,
-        "blogs-hud-grid relative flex min-h-0 flex-1 flex-col bg-background text-foreground",
+        "relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background text-foreground",
+        !embeddedInDashboard && "services-hud-grid",
         embeddedInDashboard ? "pt-0" : "pt-22 sm:pt-24"
       )}
     >
+      {!embeddedInDashboard ? (
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-20 top-24 h-80 w-80 rounded-full bg-[#006a6e]/12 blur-3xl dark:bg-[#4ddbd9]/10" />
+          <div className="absolute -right-24 top-1/3 h-[28rem] w-[28rem] rounded-full bg-[#008b8b]/10 blur-[100px] dark:bg-[#006a6e]/20" />
+          <div className="absolute bottom-0 left-1/2 h-72 w-96 -translate-x-1/2 rounded-full bg-[#006a6e]/8 blur-3xl dark:bg-[#4ddbd9]/6" />
+          <div className="landing-telemetry-line absolute left-0 right-0 top-[18%] opacity-30" />
+        </div>
+      ) : null}
       <section
         id="catalog"
         className={cn(
-          "scroll-mt-28",
+          "relative z-10 scroll-mt-28",
           embeddedInDashboard ? "px-4 py-5 sm:px-5" : "px-5 py-8 sm:px-6"
         )}
       >
@@ -633,7 +703,7 @@ export function ServicesView({
               <ServiceGridCard
                 key={entry.key}
                 entry={entry}
-                onSelect={writeFeaturedSelection}
+                onSelect={rememberFeaturedService}
               />
             ))}
           </div>
