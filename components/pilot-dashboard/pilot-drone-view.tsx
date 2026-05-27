@@ -65,6 +65,101 @@ function droneIsDeleted(drone: Pick<PilotProfileDrone, "id">, ids: Set<string>) 
   return ids.has(String(drone.id));
 }
 
+function PilotDroneFleetCard({
+  drone,
+  onEdit,
+  onDelete,
+}: {
+  drone: PilotProfileDrone;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <article className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="flex items-start justify-between gap-3 border-b border-border bg-muted/30 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <DroneIcon className="h-4 w-4 shrink-0 text-[#008B8B]" aria-hidden />
+            <h3 className="truncate text-base font-semibold text-foreground">
+              {drone.modelName || "Unnamed Drone"}
+            </h3>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{drone.type || "—"}</p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onEdit}
+            className="h-8 px-2"
+            aria-label={`Edit ${drone.modelName || "drone"}`}
+          >
+            <Edit className="h-3 w-3" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onDelete}
+            className="h-8 px-2 text-red-600 hover:border-red-300 hover:text-red-700"
+            aria-label={`Delete ${drone.modelName || "drone"}`}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-4 py-3 text-sm">
+        <div>
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Camera
+          </dt>
+          <dd className="mt-0.5 text-foreground">{drone.camera || "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Payload
+          </dt>
+          <dd className="mt-0.5 text-foreground">
+            {drone.payloadKg ? `${drone.payloadKg} kg` : "—"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Flight time
+          </dt>
+          <dd className="mt-0.5 text-foreground">
+            {drone.flightTimeMin ? `${drone.flightTimeMin} min` : "—"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Range
+          </dt>
+          <dd className="mt-0.5 text-foreground">
+            {drone.rangeKm ? `${drone.rangeKm} km` : "—"}
+          </dd>
+        </div>
+        {drone.useCases && drone.useCases.length > 0 ? (
+          <div className="col-span-2">
+            <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Use cases
+            </dt>
+            <dd className="mt-1.5 flex flex-wrap gap-1">
+              {drone.useCases.map((useCase, idx) => (
+                <span
+                  key={idx}
+                  className="inline-block rounded-full bg-[#008B8B]/10 px-2 py-1 text-xs font-medium text-[#008B8B]"
+                >
+                  {useCase}
+                </span>
+              ))}
+            </dd>
+          </div>
+        ) : null}
+      </dl>
+    </article>
+  );
+}
+
 function filterVisibleDrones(
   list: PilotProfileDrone[],
   deletedIds: Set<string>
@@ -463,56 +558,57 @@ export function PilotDroneView() {
 
   const visibleDrones = filterVisibleDrones(drones, deletedDroneIds);
 
+  function openEditDrone(drone: PilotProfileDrone) {
+    pauseBackendSync();
+    setIsEditMode(true);
+    setEditingDrone(drone);
+    setShowAddForm(true);
+  }
+
+  function toggleAddForm() {
+    if (isEditMode) {
+      pauseBackendSync();
+      if (dronePanelRef.current) {
+        dronePanelRef.current.triggerSave();
+      }
+      return;
+    }
+    setShowAddForm(!showAddForm);
+    if (!showAddForm) {
+      setIsEditMode(false);
+      setEditingDrone(null);
+    }
+  }
+
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
-      {/* Header with Add Button */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage your drone fleet and equipment details
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={handleSendAdminRequest}
-            variant="outline"
-            className="border-blue-500 text-blue-600 hover:bg-blue-500/10"
-          >
-            <Send className="mr-2 h-4 w-4" />
-            Send Request to Admin
-          </Button>
-          <Button
-            onClick={() => {
-              if (isEditMode) {
-                pauseBackendSync();
-                // Trigger save when in edit mode
-                if (dronePanelRef.current) {
-                  dronePanelRef.current.triggerSave();
-                }
-              } else {
-                setShowAddForm(!showAddForm);
-                if (!showAddForm) {
-                  setIsEditMode(false);
-                  setEditingDrone(null);
-                }
-              }
-            }}
-            variant="outline"
-            className="border-[#008B8B] text-[#008B8B] hover:bg-[#008B8B]/10"
-          >
-            {isEditMode ? (
-              <>
-                <Edit className="mr-2 h-4 w-4" />
-                Save Changes
-              </>
-            ) : (
-              <>
-                <Plus className="mr-2 h-4 w-4" />
-                {showAddForm ? "Cancel" : "Add New Drone"}
-              </>
-            )}
-          </Button>
-        </div>
+    <div className="mx-auto w-full min-w-0 max-w-4xl space-y-6">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+        <Button
+          onClick={handleSendAdminRequest}
+          variant="outline"
+          className="w-full border-blue-500 text-blue-600 hover:bg-blue-500/10 sm:w-auto"
+        >
+          <Send className="mr-2 h-4 w-4 shrink-0" />
+          <span className="sm:hidden">Request Admin</span>
+          <span className="hidden sm:inline">Send Request to Admin</span>
+        </Button>
+        <Button
+          onClick={toggleAddForm}
+          variant="outline"
+          className="w-full border-[#008B8B] text-[#008B8B] hover:bg-[#008B8B]/10 sm:w-auto"
+        >
+          {isEditMode ? (
+            <>
+              <Edit className="mr-2 h-4 w-4 shrink-0" />
+              Save Changes
+            </>
+          ) : (
+            <>
+              <Plus className="mr-2 h-4 w-4 shrink-0" />
+              {showAddForm ? "Cancel" : "Add New Drone"}
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Error/Success Messages */}
@@ -527,13 +623,24 @@ export function PilotDroneView() {
         </div>
       )}
 
-      {/* Existing Drones Display */}
       {visibleDrones.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground">Your Fleet</h3>
-          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="min-w-0 space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Your Fleet</h2>
+
+          <div className="space-y-3 md:hidden">
+            {visibleDrones.map((drone, index) => (
+              <PilotDroneFleetCard
+                key={drone.id || `drone-mobile-${index}`}
+                drone={drone}
+                onEdit={() => openEditDrone(drone)}
+                onDelete={() => void handleDeleteDrone(drone)}
+              />
+            ))}
+          </div>
+
+          <div className="hidden overflow-hidden rounded-xl border border-border bg-card shadow-sm md:block">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
+              <table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Drone Model</th>
@@ -594,12 +701,7 @@ export function PilotDroneView() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              pauseBackendSync();
-                              setIsEditMode(true);
-                              setEditingDrone(drone);
-                              setShowAddForm(true);
-                            }}
+                            onClick={() => openEditDrone(drone)}
                             className="h-8 px-2"
                             aria-label={`Edit ${drone.modelName || "drone"}`}
                           >
@@ -633,21 +735,21 @@ export function PilotDroneView() {
           <p className="text-muted-foreground mb-4">
             Add your first drone to start managing your fleet
           </p>
-          <div className="flex gap-2 justify-center">
+          <div className="mx-auto flex max-w-sm flex-col gap-2 px-4 sm:max-w-none sm:flex-row sm:justify-center">
             <Button
               onClick={() => setShowAddForm(true)}
-              className="bg-[#008B8B] hover:bg-[#006b6b]"
+              className="w-full bg-[#008B8B] hover:bg-[#006b6b] sm:w-auto"
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-2 h-4 w-4 shrink-0" />
               Add Your First Drone
             </Button>
             <Button
               onClick={handleSendAdminRequest}
               variant="outline"
-              className="border-blue-500 text-blue-600 hover:bg-blue-500/10"
+              className="w-full border-blue-500 text-blue-600 hover:bg-blue-500/10 sm:w-auto"
             >
-              <Send className="mr-2 h-4 w-4" />
-              Send Request to Admin
+              <Send className="mr-2 h-4 w-4 shrink-0" />
+              Request Admin
             </Button>
           </div>
         </div>

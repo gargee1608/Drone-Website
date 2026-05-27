@@ -8,7 +8,11 @@ export const metadata = {
 
 export default function PilotDronePage() {
   return (
-    <PilotDashboardShell pageTitle="My Drones">
+    <PilotDashboardShell
+      pageTitle="My Drones"
+      pageSubtitle="Manage your drone fleet and equipment details"
+      hideMobilePageTitle
+    >
       <PilotDroneView />
     </PilotDashboardShell>
   );
