@@ -204,14 +204,14 @@
   --sidebar-ring: var(--sidebar-ring);
 }
 
-/* Dark mode: admin command center uses global `html.dark` tokens. */
+/* Dark mode: admin command center — pure black surfaces (sidebar, main, logout). */
 .dark .admin-dashboard {
   color-scheme: dark;
-}
-
-/* Admin sidebar stays white in light and dark mode. */
-.admin-dashboard #command-center-nav {
-  background-color: #ffffff;
+  --background: #000000;
+  --card: #000000;
+  --sidebar: #000000;
+  --sidebar-accent: oklch(0.18 0 0);
+  --sidebar-border: oklch(0.25 0 0);
 }
 
 .dark .admin-dashboard .cc-glass-card {
