@@ -204,13 +204,24 @@
   --sidebar-ring: var(--sidebar-ring);
 }
 
-/* Dark mode: admin command center — pure black surfaces (sidebar, main, logout). */
+/* Admin sidebar: white in light mode. */
+.admin-dashboard {
+  --sidebar: #ffffff;
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-accent: oklch(0.96 0.01 180);
+  --sidebar-accent-foreground: oklch(0.35 0.06 185);
+  --sidebar-border: oklch(0.922 0 0);
+}
+
+/* Dark mode: admin command center — black surfaces (main + sidebar). */
 .dark .admin-dashboard {
   color-scheme: dark;
   --background: #000000;
   --card: #000000;
   --sidebar: #000000;
+  --sidebar-foreground: oklch(0.95 0 0);
   --sidebar-accent: oklch(0.18 0 0);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
   --sidebar-border: oklch(0.25 0 0);
 }
 

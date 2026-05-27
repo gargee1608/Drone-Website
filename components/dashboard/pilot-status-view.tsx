@@ -70,10 +70,11 @@ const pilotStatusTableHeaderClass = cn(
   "dark:text-white/90"
 );
 
-const pilotRowActionBtnClass =
-  "inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-transparent text-black transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 dark:border-white/40 dark:text-white dark:hover:border-white/60 dark:hover:bg-white/15 dark:focus-visible:ring-white/30";
+const pilotRowEditBtnClass =
+  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[#008080] px-3 text-xs font-medium text-foreground transition hover:bg-[#008080]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008080]/30";
 
-const pilotRowActionIconClass = "size-4 text-black dark:text-white";
+const pilotRowDeleteBtnClass =
+  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-red-300 bg-transparent px-3 text-xs font-medium text-red-600 transition hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 dark:border-red-400/50 dark:text-red-400 dark:hover:bg-red-950/30";
 
 type FilterTab = "all" | "active" | "inactive";
 
@@ -768,7 +769,11 @@ export function PilotStatusView({
                   ].map((h) => (
                     <th
                       key={h}
-                      className={cn("px-4 py-3 sm:px-5", pilotStatusTableHeaderClass)}
+                      className={cn(
+                        "px-4 py-3 sm:px-5",
+                        pilotStatusTableHeaderClass,
+                        h === "Actions" && "text-center"
+                      )}
                     >
                       {h}
                     </th>
@@ -817,23 +822,25 @@ export function PilotStatusView({
                       <td className="px-6 py-5">
                         <DutyBadge status={row.dutyStatus} />
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-wrap items-center gap-2">
+                      <td className="px-6 py-5 text-center">
+                        <div className="flex flex-wrap items-center justify-center gap-2">
                           <button
                             type="button"
                             onClick={() => void openPilotEdit(row.id)}
-                            className={pilotRowActionBtnClass}
+                            className={pilotRowEditBtnClass}
                             aria-label={`Edit pilot ${row.name}`}
                           >
-                            <Pencil className={pilotRowActionIconClass} aria-hidden />
+                            <Pencil className="size-3.5 shrink-0" aria-hidden />
+                            Edit
                           </button>
                           <button
                             type="button"
                             onClick={() => void deletePilot(row)}
-                            className={pilotRowActionBtnClass}
+                            className={pilotRowDeleteBtnClass}
                             aria-label={`Delete pilot ${row.name}`}
                           >
-                            <Trash2 className={pilotRowActionIconClass} aria-hidden />
+                            <Trash2 className="size-3.5 shrink-0" aria-hidden />
+                            Delete
                           </button>
                         </div>
                       </td>

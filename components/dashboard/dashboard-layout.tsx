@@ -30,9 +30,9 @@ function AdminLogoutControl({ onAfterClick }: { onAfterClick?: () => void }) {
       }}
       className={cn(
         "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
-        "text-sidebar-foreground hover:bg-sidebar-accent/90 hover:text-sidebar-accent-foreground",
+        "text-foreground hover:bg-muted dark:text-white/90 dark:hover:bg-white/10",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35",
-        "active:bg-sidebar-accent active:text-sidebar-accent-foreground"
+        "active:bg-muted dark:active:bg-white/10"
       )}
     >
       <LogOut
@@ -117,7 +117,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       <aside
         id="command-center-nav"
         className={cn(
-          "fixed bottom-0 left-0 top-20 z-50 flex h-[calc(100dvh-5rem)] max-h-[calc(100dvh-5rem)] min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground sm:top-22 sm:h-[calc(100dvh-5.5rem)] sm:max-h-[calc(100dvh-5.5rem)] lg:border-r-0",
+          "fixed bottom-0 left-0 top-20 z-50 flex h-[calc(100dvh-5rem)] max-h-[calc(100dvh-5rem)] min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-border bg-white text-foreground dark:border-white/20 dark:bg-black dark:text-white sm:top-22 sm:h-[calc(100dvh-5.5rem)] sm:max-h-[calc(100dvh-5.5rem)] lg:border-r",
           "transform transition-[transform,width] duration-200 ease-out will-change-transform",
           sidebarExpanded ? "lg:w-64" : "lg:w-0 lg:max-w-0 lg:overflow-hidden lg:border-0 lg:p-0",
           "-translate-x-full lg:translate-x-0",
@@ -128,7 +128,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         <div className="flex shrink-0 items-center px-2 py-2 lg:hidden">
           <button
             type="button"
-            className="flex size-10 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground transition-colors hover:bg-sidebar-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35"
+            className="flex size-10 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10"
             onClick={onSidebarMenuButtonClick}
             aria-expanded={sidebarOpen}
             aria-controls="command-center-nav"
@@ -138,9 +138,9 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
 
-        <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-sidebar">
+        <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-white dark:bg-black">
           <nav
-            className="min-h-0 overflow-y-auto overscroll-contain border-t border-sidebar-border bg-sidebar px-2 py-2 lg:border-t-0 lg:pb-2 lg:pt-4"
+            className="min-h-0 overflow-y-auto overscroll-contain border-t border-border bg-white px-2 py-2 dark:border-white/20 dark:bg-black lg:border-t-0 lg:pb-2 lg:pt-4"
             aria-label="Primary"
           >
             <ul className="flex flex-col gap-2" role="list">
@@ -163,8 +163,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                         "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
                         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35",
                         isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent/90 active:bg-sidebar-accent"
+                          ? "bg-[#008B8B]/10 text-[#006b6b] shadow-sm dark:bg-[#008B8B]/20 dark:text-[#5ec4c4]"
+                          : "text-foreground hover:bg-muted active:bg-muted dark:text-white/90 dark:hover:bg-white/10 dark:active:bg-white/10"
                       )}
                     >
                       <Icon
@@ -182,7 +182,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
           <div
             className={cn(
-              "relative z-10 w-full shrink-0 bg-sidebar px-2 pt-4",
+              "relative z-10 w-full shrink-0 border-t border-border bg-white px-2 pt-4 dark:border-white/20 dark:bg-black",
               "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
             )}
           >
