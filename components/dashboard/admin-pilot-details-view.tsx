@@ -15,8 +15,12 @@ import {
   missionsCompletedFromPilotRow,
 } from "@/lib/pilot-db-metrics";
 import { normalizePilotDutyStatus } from "@/lib/pilot-duty-status";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  ADMIN_PAGE_TITLE_CLASS,
+  ADMIN_PAGE_TOP_PADDING_CLASS,
+} from "@/lib/page-heading";
 import { notifyAdminFleetUpdated } from "@/lib/admin-fleet-updated";
+import { cn } from "@/lib/utils";
 
 type PilotRow = Record<string, unknown>;
 
@@ -416,7 +420,12 @@ export function AdminPilotDetailsView() {
 
   return (
     <div className="relative text-foreground">
-      <div className="mx-auto max-w-7xl px-0 pb-8 pt-0 lg:px-2">
+      <div
+        className={cn(
+          "mx-auto max-w-7xl px-0 pb-8 lg:px-2",
+          ADMIN_PAGE_TOP_PADDING_CLASS
+        )}
+      >
         <h1 className={ADMIN_PAGE_TITLE_CLASS}>Add Pilot Details</h1>
         {actionError ? (
           <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

@@ -5,7 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 
 import { apiUrl } from "@/lib/api-url";
 import { jwtPayloadPilotFullName, jwtPayloadSub } from "@/lib/pilot-display-name";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  ADMIN_PAGE_TITLE_CLASS,
+  ADMIN_PAGE_TOP_PADDING_CLASS,
+} from "@/lib/page-heading";
+import { cn } from "@/lib/utils";
 import {
   buildRequestOwnerLookup,
   findStoredUserRequestByAdminRef,
@@ -595,7 +599,10 @@ export function CompletedDeliveriesView({
 
   return (
     <section
-      className="rounded-2xl bg-card px-4 pb-4 pt-0 sm:px-6 sm:pb-6 sm:pt-0"
+      className={cn(
+        "rounded-2xl bg-card px-4 pb-4 sm:px-6 sm:pb-6",
+        showPageTitle && ADMIN_PAGE_TOP_PADDING_CLASS
+      )}
       style={{
         backgroundImage: "radial-gradient(#e2e8f0 0.5px, transparent 0.5px)",
         backgroundSize: "24px 24px",

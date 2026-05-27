@@ -36,6 +36,13 @@ export function apiUrl(path: string): string {
   if (normalized === "/api/submit-request") {
     return normalized;
   }
+  /** Admin-deleted built-in catalog slugs (Next route handler, same DB as Express). */
+  if (
+    normalized === "/api/services/suppressed" ||
+    normalized === "/api/services/suppress"
+  ) {
+    return normalized;
+  }
   /** All other /api routes: strip leading /api to avoid duplicate /api/express/api/... */
   if (normalized.startsWith("/api/")) {
     return `/api/express${normalized.replace(/^\/api/, "")}`;

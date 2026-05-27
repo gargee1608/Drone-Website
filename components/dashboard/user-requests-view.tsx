@@ -16,7 +16,10 @@ import {
   type UserRequestDetailPayload,
 } from "@/components/dashboard/user-request-detail-modal";
 import { UserRequestTable } from "@/components/dashboard/user-request-table";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  ADMIN_PAGE_TITLE_CLASS,
+  ADMIN_PAGE_TOP_PADDING_CLASS,
+} from "@/lib/page-heading";
 import {
   setAssignInspectRow,
   userRequestAdminRowToAssignPilotRow,
@@ -550,7 +553,12 @@ export function UserRequestsView({
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div
+      className={cn(
+        "mx-auto w-full max-w-6xl",
+        showPageTitle && ADMIN_PAGE_TOP_PADDING_CLASS
+      )}
+    >
       {showPageTitle ? <h1 className={ADMIN_PAGE_TITLE_CLASS}>User Request</h1> : null}
       <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
         {pilotTables ? (

@@ -13,10 +13,23 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  buildAdminServiceRows,
+  normalizeServiceRow,
+  type AdminServiceRow,
+} from "@/lib/admin-services-merge";
 import { apiUrl } from "@/lib/api-url";
 import { readResponseJson } from "@/lib/read-response-json";
-import { notifyServicesDbUpdated } from "@/lib/services-db-updated";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  notifyServicesDbUpdated,
+  subscribeServicesDbUpdated,
+} from "@/lib/services-db-updated";
+import {
+  ADMIN_PAGE_TITLE_CLASS,
+  ADMIN_PAGE_TOP_PADDING_CLASS,
+} from "@/lib/page-heading";
+import { fetchSuppressedServiceSlugs } from "@/lib/fetch-suppressed-service-slugs";
+import { serviceSlugFromTitle } from "@/lib/service-catalog";
 import { cn } from "@/lib/utils";
 
 const MAX_SERVICE_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -43,51 +56,24 @@ function readServiceCoverImageFile(file: File): Promise<string> {
   });
 }
 
-type AdminService = {
-  id: number;
-  slug?: string;
-  title: string;
-  description: string;
-  price: number;
-  image: string;
-  createdAt?: string;
-};
-
-function normalizeServiceRow(raw: unknown): AdminService | null {
-  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-    return null;
-  }
-  const row = raw as Record<string, unknown>;
-  const idRaw = row.id;
-  const id =
-    typeof idRaw === "string"
-      ? Number.parseInt(idRaw, 10)
-      : typeof idRaw === "number"
-        ? idRaw
-        : Number(idRaw);
-  if (!Number.isFinite(id)) return null;
-  const price = Number(row.price);
-  return {
-    id,
-    slug: typeof row.slug === "string" ? row.slug : undefined,
-    title: String(row.title ?? ""),
-    description: String(row.description ?? ""),
-    price: Number.isFinite(price) ? price : 0,
-    image: String(row.image ?? ""),
-    createdAt:
-      typeof row.created_at === "string"
-        ? row.created_at
-        : typeof row.createdAt === "string"
-          ? row.createdAt
-          : undefined,
-  };
-}
-
-export function AdminServicesView() {
-  const [items, setItems] = useState<AdminService[]>([]);
+export function AdminServicesView({
+  initialDbRows = [],
+  initialSuppressedSlugs = [],
+}: {
+  /** Database services loaded on the server (same as the public services page). */
+  initialDbRows?: AdminServiceRow[];
+  initialSuppressedSlugs?: string[];
+}) {
+  const initialDbRowsRef = useRef(initialDbRows);
+  const suppressedSlugsRef = useRef(initialSuppressedSlugs);
+  const [items, setItems] = useState<AdminServiceRow[]>(() =>
+    buildAdminServiceRows(initialDbRows, initialSuppressedSlugs)
+  );
 
   const [formMode, setFormMode] = useState<"closed" | "add" | "edit">("closed");
   const [editId, setEditId] = useState<number | null>(null);
+  const [editSlug, setEditSlug] = useState<string | null>(null);
+  const [catalogOnlyEdit, setCatalogOnlyEdit] = useState(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -96,7 +82,7 @@ export function AdminServicesView() {
 
   const [formError, setFormError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -139,26 +125,33 @@ export function AdminServicesView() {
 
   // ================= FETCH SERVICES =================
   const fetchServices = async () => {
+    let dbRows = initialDbRowsRef.current;
+    let suppressed = suppressedSlugsRef.current;
     try {
-      const res = await fetch(apiUrl("/api/services"));
-      const body = await readResponseJson(res);
-      if (!body.okParse || !res.ok || !Array.isArray(body.data)) {
-        setItems([]);
-        return;
-      }
-      setItems(
-        (body.data as unknown[])
+      const [servicesRes, suppressedSlugs] = await Promise.all([
+        fetch(apiUrl("/api/services")),
+        fetchSuppressedServiceSlugs(),
+      ]);
+      suppressed = suppressedSlugs;
+      suppressedSlugsRef.current = suppressed;
+      const body = await readResponseJson(servicesRes);
+      if (body.okParse && servicesRes.ok && Array.isArray(body.data)) {
+        dbRows = (body.data as unknown[])
           .map(normalizeServiceRow)
-          .filter((row): row is AdminService => row !== null)
-      );
+          .filter((row): row is AdminServiceRow => row !== null);
+        initialDbRowsRef.current = dbRows;
+      }
     } catch (err) {
       console.log(err);
-      setItems([]);
     }
+    setItems(buildAdminServiceRows(dbRows, suppressed));
   };
 
   useEffect(() => {
-    fetchServices();
+    void fetchServices();
+    return subscribeServicesDbUpdated(() => {
+      void fetchServices();
+    });
   }, []);
 
   // ================= RESET =================
@@ -168,6 +161,8 @@ export function AdminServicesView() {
     setPrice("");
     setImage("");
     setEditId(null);
+    setEditSlug(null);
+    setCatalogOnlyEdit(false);
     setFormMode("closed");
     clearCoverFileInput();
   };
@@ -216,10 +211,20 @@ export function AdminServicesView() {
   };
 
   // ================= EDIT OPEN =================
-  const openEdit = (item: AdminService) => {
+  const openEdit = (item: AdminServiceRow) => {
     clearCoverFileInput();
     setFormMode("edit");
-    setEditId(item.id);
+    if (item.catalogOnly) {
+      setEditId(null);
+      setCatalogOnlyEdit(true);
+      setEditSlug(
+        item.slug?.trim() || serviceSlugFromTitle(item.title) || null
+      );
+    } else {
+      setEditId(item.id);
+      setCatalogOnlyEdit(false);
+      setEditSlug(item.slug ?? null);
+    }
     setTitle(item.title);
     setDescription(item.description);
     setPrice(String(item.price));
@@ -228,7 +233,7 @@ export function AdminServicesView() {
 
   // ================= UPDATE =================
   const updateService = async () => {
-    if (!editId) return;
+    if (!catalogOnlyEdit && !editId) return;
     if (!title.trim() || !price.trim()) {
       setFormError("Title and Price are required");
       return;
@@ -239,26 +244,46 @@ export function AdminServicesView() {
       return;
     }
 
-    const existing = items.find((r) => r.id === editId);
+    const existing =
+      editId != null ? items.find((r) => r.id === editId) : undefined;
+    const slug =
+      editSlug?.trim() ||
+      existing?.slug?.trim() ||
+      serviceSlugFromTitle(title.trim());
 
     setFormError(null);
     setActionError(null);
     setSaving(true);
     try {
-      const res = await fetch(apiUrl(`/api/services/${editId}`), {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          description,
-          price: priceNum,
-          image,
-          ...(existing?.slug ? { slug: existing.slug } : {}),
-        }),
-      });
+      const payload = {
+        title: title.trim(),
+        description,
+        price: priceNum,
+        image,
+        ...(slug ? { slug } : {}),
+      };
+
+      const res = catalogOnlyEdit
+        ? await fetch(apiUrl("/api/services"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch(apiUrl(`/api/services/${editId}`), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
       const body = await readResponseJson(res);
       if (!res.ok) {
-        setFormError(apiErrorMessage(body, "Could not update service"));
+        setFormError(
+          apiErrorMessage(
+            body,
+            catalogOnlyEdit
+              ? "Could not save service to the database"
+              : "Could not update service"
+          )
+        );
         return;
       }
 
@@ -273,7 +298,12 @@ export function AdminServicesView() {
   };
 
   // ================= DELETE =================
-  const deleteService = async (row: AdminService) => {
+  const rowDeleteKey = (row: AdminServiceRow) =>
+    row.catalogOnly
+      ? `catalog:${row.slug ?? serviceSlugFromTitle(row.title)}`
+      : `db:${row.id}`;
+
+  const deleteService = async (row: AdminServiceRow) => {
     const label = row.title.trim() || "this service";
     if (
       !window.confirm(
@@ -283,31 +313,60 @@ export function AdminServicesView() {
       return;
     }
 
+    const deleteKey = rowDeleteKey(row);
     setActionError(null);
-    setDeletingId(row.id);
+    setDeletingKey(deleteKey);
     try {
-      const res = await fetch(apiUrl(`/api/services/${row.id}`), {
-        method: "DELETE",
-      });
-      const body = await readResponseJson(res);
-      if (!res.ok) {
-        setActionError(apiErrorMessage(body, "Could not delete service"));
-        return;
-      }
-      if (editId === row.id) {
-        resetForm();
+      if (row.catalogOnly) {
+        const slug =
+          row.slug?.trim() || serviceSlugFromTitle(row.title);
+        if (!slug) {
+          setActionError("Could not determine service slug.");
+          return;
+        }
+        const res = await fetch(apiUrl("/api/services/suppress"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug }),
+        });
+        const body = await readResponseJson(res);
+        if (!res.ok) {
+          setActionError(apiErrorMessage(body, "Could not remove service"));
+          return;
+        }
+        if (catalogOnlyEdit && editSlug === slug) {
+          resetForm();
+        }
+      } else {
+        const res = await fetch(apiUrl(`/api/services/${row.id}`), {
+          method: "DELETE",
+        });
+        const body = await readResponseJson(res);
+        if (!res.ok) {
+          setActionError(apiErrorMessage(body, "Could not delete service"));
+          return;
+        }
+        if (editId === row.id) {
+          resetForm();
+        }
       }
       await fetchServices();
       notifyServicesDbUpdated();
     } catch {
       setActionError("Network error while deleting service");
     } finally {
-      setDeletingId(null);
+      setDeletingKey(null);
     }
   };
 
   const sortedItems = useMemo(
-    () => [...items].sort((a, b) => b.id - a.id),
+    () =>
+      [...items].sort((a, b) => {
+        if (a.catalogOnly !== b.catalogOnly) {
+          return a.catalogOnly ? 1 : -1;
+        }
+        return b.id - a.id;
+      }),
     [items]
   );
 
@@ -318,7 +377,7 @@ export function AdminServicesView() {
   };
 
   return (
-    <div className="min-w-0 text-foreground">
+    <div className={cn("min-w-0 text-foreground", ADMIN_PAGE_TOP_PADDING_CLASS)}>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="max-w-2xl">
           <h1 className={ADMIN_PAGE_TITLE_CLASS}>Services</h1>
@@ -364,23 +423,32 @@ export function AdminServicesView() {
               {formMode === "add" ? (
                 <div className="sm:col-span-2">
                   <p className="text-xs text-muted-foreground">
-                    New services are saved to the database and appear in the
-                    catalog.
+                    New services are saved to the database and appear on the
+                    public Services page.
                   </p>
                 </div>
               ) : (
                 <div className="sm:col-span-2 space-y-1">
-                  <p className="text-xs text-muted-foreground">
-                    Service ID:{" "}
-                    <span className="font-mono font-medium text-foreground">
-                      {editId}
-                    </span>
-                  </p>
-                  {sortedItems.find((r) => r.id === editId)?.slug ? (
+                  {catalogOnlyEdit ? (
+                    <p className="text-xs text-muted-foreground">
+                      This service is from the website catalog. Saving will
+                      store it in the database so you can manage it here.
+                    </p>
+                  ) : editId != null ? (
+                    <p className="text-xs text-muted-foreground">
+                      Service ID:{" "}
+                      <span className="font-mono font-medium text-foreground">
+                        {editId}
+                      </span>
+                    </p>
+                  ) : null}
+                  {(editSlug ??
+                    sortedItems.find((r) => r.id === editId)?.slug) ? (
                     <p className="text-xs text-muted-foreground">
                       URL slug:{" "}
                       <span className="font-mono font-medium text-foreground">
-                        {sortedItems.find((r) => r.id === editId)?.slug}
+                        {editSlug ??
+                          sortedItems.find((r) => r.id === editId)?.slug}
                       </span>
                     </p>
                   ) : null}
@@ -530,13 +598,13 @@ export function AdminServicesView() {
         </div>
         {sortedItems.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-muted-foreground sm:px-6">
-            No services yet. Open the page again after the API is running, or
-            use Add New Service.
+            No services found. Use Add New Service or check that the database
+            and API are running.
           </p>
         ) : null}
         <ul className="grid list-none grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3 lg:gap-5">
           {sortedItems.map((row) => (
-            <li key={row.id}>
+            <li key={row.catalogOnly ? `catalog:${row.slug}` : `db:${row.id}`}>
               <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:border-[#008B8B]/35 hover:shadow-md">
                 <div className="relative h-40 w-full shrink-0 bg-muted">
                   {row.image ? (
@@ -555,6 +623,11 @@ export function AdminServicesView() {
                 </div>
 
                 <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+                  {row.catalogOnly ? (
+                    <span className="w-fit rounded-full border border-[#008B8B]/40 bg-[#008B8B]/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#008B8B]">
+                      Website catalog
+                    </span>
+                  ) : null}
                   <h3 className="line-clamp-2 text-base font-bold leading-snug text-foreground">
                     {row.title}
                   </h3>
@@ -576,12 +649,14 @@ export function AdminServicesView() {
 
                     <button
                       type="button"
-                      disabled={deletingId === row.id}
+                      disabled={deletingKey === rowDeleteKey(row)}
                       onClick={() => void deleteService(row)}
                       className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-transparent px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-700 hover:text-red-800 disabled:opacity-50 min-[360px]:flex-none"
                     >
                       <Trash2 className="size-3.5" aria-hidden />
-                      {deletingId === row.id ? "Deleting…" : "Delete"}
+                      {deletingKey === rowDeleteKey(row)
+                        ? "Deleting…"
+                        : "Delete"}
                     </button>
                   </div>
                 </div>

@@ -37,7 +37,10 @@ import {
   type AdminBlogExtra,
 } from "@/lib/blog-admin-storage";
 import { getMergedBlogPostsList } from "@/lib/blog-merge";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  ADMIN_PAGE_TITLE_CLASS,
+  ADMIN_PAGE_TOP_PADDING_CLASS,
+} from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 type AdminBlogRow = BlogPost & { dbId?: number };
@@ -465,7 +468,7 @@ export function AdminBlogsView({
   };
 
   return (
-    <div className="min-w-0 text-foreground">
+    <div className={cn("min-w-0 text-foreground", ADMIN_PAGE_TOP_PADDING_CLASS)}>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="max-w-2xl">
           <h1 className={ADMIN_PAGE_TITLE_CLASS}>Blogs</h1>

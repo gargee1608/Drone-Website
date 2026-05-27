@@ -19,7 +19,10 @@ import {
   type MissionRequestRow,
 } from "@/lib/mission-requests-api";
 import { notifyMissionRequestsUpdated } from "@/lib/mission-requests-updated";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  ADMIN_PAGE_TITLE_CLASS,
+  ADMIN_PAGE_TOP_PADDING_CLASS,
+} from "@/lib/page-heading";
 import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 
@@ -398,7 +401,12 @@ export function AvailableMissionsView() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl pb-8">
+    <div
+      className={cn(
+        "mx-auto w-full max-w-6xl pb-8",
+        ADMIN_PAGE_TOP_PADDING_CLASS
+      )}
+    >
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className={ADMIN_PAGE_TITLE_CLASS}>Available Mission</h1>
         <Button

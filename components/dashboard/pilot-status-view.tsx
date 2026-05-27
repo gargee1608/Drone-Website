@@ -17,6 +17,7 @@ import {
 import {
   ADMIN_PAGE_SECTION_LABEL_CLASS,
   ADMIN_PAGE_TITLE_CLASS,
+  ADMIN_PAGE_TOP_PADDING_CLASS,
   ADMIN_PAGE_TYPE_CLASS,
 } from "@/lib/page-heading";
 import {
@@ -689,7 +690,12 @@ export function PilotStatusView({
         ADMIN_PAGE_TYPE_CLASS
       )}
     >
-      <div className="relative z-10 mx-auto max-w-7xl px-0 pb-2 pt-0 lg:px-2">
+      <div
+        className={cn(
+          "relative z-10 mx-auto max-w-7xl px-0 pb-2 lg:px-2",
+          ADMIN_PAGE_TOP_PADDING_CLASS
+        )}
+      >
         {showPageTitle ? (
           <div className="mb-8 md:mb-10">
             <h1 className={ADMIN_PAGE_TITLE_CLASS}>Pilot Status</h1>
