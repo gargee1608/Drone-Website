@@ -5,12 +5,14 @@ import { Suspense } from "react";
 
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { SiteFooter } from "@/components/nav/site-footer";
+import { useServiceRequestModalOverlay } from "@/components/services/service-request-modal-overlay-context";
 import { isPilotRegistrationFromAdmin } from "@/lib/pilot-registration-from-admin";
 import { cn } from "@/lib/utils";
 
 function ConditionalSiteFooterInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { isServiceRequestModalOpen } = useServiceRequestModalOverlay();
   const isAdminDashboard =
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
@@ -87,6 +89,7 @@ function ConditionalSiteFooterInner() {
   }
 
   if (isLandingChrome) {
+    const isHomePage = pathname === "/" || pathname === "";
     const sidebarShell =
       pathname?.startsWith("/dashboard") || isAdminPilotRegistration;
 
@@ -104,7 +107,13 @@ function ConditionalSiteFooterInner() {
         "light-header bg-white text-slate-600"
     );
 
-    return <LandingFooter className={landingFooterClass} />;
+    return (
+      <LandingFooter
+        className={landingFooterClass}
+        variant={isHomePage ? "home" : "default"}
+        overlaySuppressed={isServiceRequestModalOpen}
+      />
+    );
   }
 
   return (

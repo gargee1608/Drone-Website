@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ForgotPasswordModal } from "@/components/login/forgot-password-modal";
 import { apiUrl } from "@/lib/api-url";
+import { usePilotLoginLanguage } from "@/lib/pilot-login-i18n";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { readResponseJson } from "@/lib/read-response-json";
 import {
@@ -101,6 +102,7 @@ export function LoginView({
   hideWelcomeHeader = false,
   plainCard = false,
   forceLightMode = false,
+  usePilotLoginTranslations = false,
 }: {
   /** Hide Admin login; use on pages that only offer user sign-in (e.g. next to Pilot login). */
   userOnly?: boolean;
@@ -114,8 +116,13 @@ export function LoginView({
   plainCard?: boolean;
   /** Force light mode regardless of system theme preference. */
   forceLightMode?: boolean;
+  /** Use English/Hindi copy from pilot login language selector. */
+  usePilotLoginTranslations?: boolean;
 } = {}) {
   const router = useRouter();
+  const { copy: pilotLoginCopy } = usePilotLoginLanguage();
+  const uf = usePilotLoginTranslations ? pilotLoginCopy.userForm : null;
+  const af = usePilotLoginTranslations ? pilotLoginCopy.adminForm : null;
   const [mode, setMode] = useState<LoginMode>(
     userOnly ? "user" : "admin"
   );
@@ -307,7 +314,7 @@ export function LoginView({
                 </p>
               ) : null}
               <h1 className={cn("mb-1.5", ADMIN_PAGE_TITLE_CLASS)}>
-                Welcome Back
+                {af?.welcomeBack ?? "Welcome Back"}
               </h1>
               {showAdminUserTabs ? (
                 <div
@@ -504,7 +511,7 @@ export function LoginView({
                       : "text-[#414755] hover:text-[#191c1d]"
                   )}
                 >
-                  Password
+                  {uf?.passwordTab ?? "Password"}
                 </button>
                 <button
                   type="button"
@@ -525,7 +532,7 @@ export function LoginView({
                       : "text-[#414755] hover:text-[#191c1d]"
                   )}
                 >
-                  OTP
+                  {uf?.otpTab ?? "OTP"}
                 </button>
               </div>
             ) : null}
@@ -536,10 +543,10 @@ export function LoginView({
                 className="block px-1 text-xs font-semibold text-[#414755] dark:text-white/70 sm:text-sm"
               >
                 {isUserMode && userAuthMethod === "otp"
-                  ? "Email or mobile"
+                  ? (uf?.identity ?? "Email or mobile")
                   : isAdminMode
-                    ? "Email Address"
-                    : "Email or mobile"}
+                    ? (af?.emailAddress ?? "Email Address")
+                    : (uf?.identity ?? "Email or mobile")}
               </label>
               <div className="relative">
                 {isAdminMode ? (
@@ -657,7 +664,9 @@ export function LoginView({
                     htmlFor="login-password"
                     className="block px-1 text-xs font-semibold text-[#414755] dark:text-white/70 sm:text-sm"
                   >
-                    Password
+                    {isAdminMode
+                      ? (af?.password ?? "Password")
+                      : (uf?.password ?? "Password")}
                   </label>
                   <div className="relative">
                     <Lock
@@ -691,7 +700,15 @@ export function LoginView({
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#717786] outline-none transition hover:bg-slate-100 hover:text-[#191c1d] focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:text-white/55 dark:hover:bg-white/10 dark:hover:text-white"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword
+                          ? usePilotLoginTranslations
+                            ? pilotLoginCopy.hidePassword
+                            : "Hide password"
+                          : usePilotLoginTranslations
+                            ? pilotLoginCopy.showPassword
+                            : "Show password"
+                      }
                       aria-pressed={showPassword}
                       aria-controls="login-password"
                     >
@@ -724,7 +741,9 @@ export function LoginView({
                         htmlFor="login-remember"
                         className="cursor-pointer text-xs font-medium text-[#414755] dark:text-white/75 sm:text-sm"
                       >
-                        Remember me
+                        {isAdminMode
+                          ? (af?.rememberMe ?? "Remember me")
+                          : (uf?.rememberMe ?? "Remember me")}
                       </label>
                     </div>
                     <button
@@ -738,7 +757,9 @@ export function LoginView({
                         setForgotOpen(true);
                       }}
                     >
-                      Forgot Password?
+                      {isAdminMode
+                        ? (af?.forgotPassword ?? "Forgot Password?")
+                        : (uf?.forgotPassword ?? "Forgot Password?")}
                     </button>
                   </div>
                 </div>
@@ -752,8 +773,8 @@ export function LoginView({
               )}
             >
               {isAdminMode
-                ? "Sign in to Admin Dashboard"
-                : "Sign in to User Dashboard"}
+                ? (af?.signIn ?? "Sign in to Admin Dashboard")
+                : (uf?.signIn ?? "Sign in to User Dashboard")}
               <ArrowRight className="size-3.5 sm:size-4" />
             </button>
           </form>

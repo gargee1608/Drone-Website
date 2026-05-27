@@ -8,25 +8,36 @@ import { useEffect, useState, type FormEvent } from "react";
 import { ForgotPasswordModal } from "@/components/login/forgot-password-modal";
 import { LoginView } from "@/components/login/login-view";
 import { apiUrl } from "@/lib/api-url";
+import {
+  initPilotLoginLanguageFromStorage,
+  usePilotLoginLanguage,
+  type PilotLoginCopy,
+} from "@/lib/pilot-login-i18n";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validatePilotLogin(email: string, password: string) {
+function validatePilotLogin(
+  email: string,
+  password: string,
+  messages: PilotLoginCopy["errors"]
+) {
   const errors: { email?: string; password?: string } = {};
   const e = email.trim().toLowerCase();
   const pw = password.trim();
-  if (!e) errors.email = "Email is required.";
-  else if (!emailPattern.test(e)) errors.email = "Enter a valid email address.";
-  if (!pw) errors.password = "Password is required.";
+  if (!e) errors.email = messages.emailRequired;
+  else if (!emailPattern.test(e)) errors.email = messages.emailInvalid;
+  if (!pw) errors.password = messages.passwordRequired;
   return errors;
 }
 
 type LoginPanel = "pilot" | "user";
 
 export function PilotLoginView() {
+  const year = new Date().getFullYear();
+  const { copy } = usePilotLoginLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const panelFromUrl = searchParams.get("panel");
@@ -36,12 +47,20 @@ export function PilotLoginView() {
 
   // Force light mode for pilot login page
   useEffect(() => {
-    document.documentElement.classList.remove('dark');
-    document.documentElement.classList.add('light');
+    initPilotLoginLanguageFromStorage();
+    document.documentElement.classList.remove("dark");
+    document.documentElement.classList.add("light");
     return () => {
-      document.documentElement.classList.remove('light');
+      document.documentElement.classList.remove("light");
     };
   }, []);
+
+  useEffect(() => {
+    document.title =
+      loginPanel === "user"
+        ? "Hire A Drone | User Login"
+        : "Hire A Drone | Pilot Login";
+  }, [loginPanel]);
 
   useEffect(() => {
     const p = searchParams.get("panel");
@@ -61,7 +80,7 @@ export function PilotLoginView() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    const next = validatePilotLogin(email, password);
+    const next = validatePilotLogin(email, password, copy.errors);
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
@@ -111,11 +130,11 @@ export function PilotLoginView() {
 
       if (!res.ok || !data.token) {
         if (data.signInError === "email") {
-          setErrors({ email: "Incorrect Email id" });
+          setErrors({ email: copy.errors.emailIncorrect });
           return;
         }
         if (data.signInError === "password") {
-          setErrors({ password: "Incorrect Password" });
+          setErrors({ password: copy.errors.passwordIncorrect });
           return;
         }
         const fromProxy = [data.error, data.detail, data.hint]
@@ -153,8 +172,8 @@ export function PilotLoginView() {
 
   return (
     <div className="relative flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible bg-white text-slate-900">
-      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-14">
-        <div className="w-full max-w-[min(100%,440px)]">
+      <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pt-24 pb-10 sm:px-6 sm:pt-28 sm:pb-14">
+        <div className="mt-6 w-full max-w-[min(100%,440px)] sm:mt-8">
           <div className="login-glass-card relative w-full overflow-hidden rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md sm:p-6">
           <div className="mb-4 text-center">
             <h1
@@ -163,19 +182,19 @@ export function PilotLoginView() {
                 "text-center text-xl sm:text-2xl"
               )}
             >
-              Welcome Back
+              {copy.welcomeBack}
             </h1>
             <p className="mt-1 text-sm text-slate-600">
               {loginPanel === "pilot"
-                ? "Sign in to open your pilot dashboard."
-                : "Sign in to your user dashboard."}
+                ? copy.pilotSubtitle
+                : copy.userSubtitle}
             </p>
           </div>
 
           <div
             className="mb-4 flex justify-center"
             role="tablist"
-            aria-label="Choose pilot or user sign-in"
+            aria-label={copy.chooseSignIn}
           >
             <div className="inline-flex w-full rounded-xl border border-slate-200 bg-slate-100/80 p-1">
               <button
@@ -192,7 +211,7 @@ export function PilotLoginView() {
                 )}
               >
                 <Plane className="size-4 shrink-0 text-[#008B8B]" aria-hidden />
-                Pilot Login
+                {copy.pilotLogin}
               </button>
               <button
                 type="button"
@@ -208,7 +227,7 @@ export function PilotLoginView() {
                 )}
               >
                 <User className="size-4 shrink-0 text-[#008B8B]" aria-hidden />
-                User Login
+                {copy.userLogin}
               </button>
             </div>
           </div>
@@ -228,7 +247,7 @@ export function PilotLoginView() {
                 htmlFor="pilot-login-email"
                 className="mb-1 block text-xs font-semibold tracking-wide text-slate-600"
               >
-                Email Address
+                {copy.emailAddress}
               </label>
               <div className="relative">
                 <Mail
@@ -269,7 +288,7 @@ export function PilotLoginView() {
                 htmlFor="pilot-login-password"
                 className="mb-1 block text-xs font-semibold tracking-wide text-slate-600"
               >
-                Password
+                {copy.password}
               </label>
               <div className="relative">
                 <Lock
@@ -301,7 +320,9 @@ export function PilotLoginView() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 outline-none transition hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword ? copy.hidePassword : copy.showPassword
+                  }
                   aria-pressed={showPassword}
                   aria-controls="pilot-login-password"
                 >
@@ -333,7 +354,7 @@ export function PilotLoginView() {
                     htmlFor="pilot-login-remember"
                     className="cursor-pointer text-xs font-medium text-slate-600 sm:text-sm"
                   >
-                    Remember me
+                    {copy.rememberMe}
                   </label>
                 </div>
                 <button
@@ -344,7 +365,7 @@ export function PilotLoginView() {
                     setForgotOpen(true);
                   }}
                 >
-                  Forgot Password?
+                  {copy.forgotPassword}
                 </button>
               </div>
             </div>
@@ -354,7 +375,7 @@ export function PilotLoginView() {
               disabled={submitting}
               className="mt-2 flex w-full items-center justify-center rounded-lg bg-[#008B8B] py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#006f6f] disabled:opacity-60"
             >
-              {submitting ? "Signing in…" : "Sign in to pilot dashboard"}
+              {submitting ? copy.signingIn : copy.signInPilot}
             </button>
           </form>
 
@@ -363,7 +384,7 @@ export function PilotLoginView() {
               href="/pilot-registration"
               className="font-semibold text-[#008B8B] underline-offset-2 hover:underline"
             >
-              New Pilot Register ? Click here.
+              {copy.newPilotRegister}
             </Link>
           </p>
         </div>
@@ -374,11 +395,15 @@ export function PilotLoginView() {
                   embedded
                   hideWelcomeHeader
                   plainCard
+                  usePilotLoginTranslations
                 />
               </div>
             </div>
           </div>
           </div>
+          <footer className="mt-6 text-center sm:mt-8">
+            <p className="text-xs text-slate-500">{copy.copyright(year)}</p>
+          </footer>
         </div>
       </main>
       <ForgotPasswordModal

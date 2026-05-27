@@ -1,7 +1,7 @@
 import { CommandCenterView } from "@/components/dashboard/command-center-view";
 
 export const metadata = {
-  title: "Hire A Drone | Dashboard",
+  title: "Hire A Drone | Admin Dashboard",
   description:
     "AEROLAMINAR admin dashboard — fleet telemetry, registrations, and operations.",
 };

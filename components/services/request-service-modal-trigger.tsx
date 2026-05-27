@@ -1,11 +1,17 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
+import { useServiceRequestModalOverlay } from "@/components/services/service-request-modal-overlay-context";
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/api-url";
 import { readResponseJson } from "@/lib/read-response-json";
+import {
+  appendUserRequest,
+  resolveRequestOwnerSnapshot,
+} from "@/lib/user-requests";
 import { cn } from "@/lib/utils";
 
 type RequestServiceModalTriggerProps = {
@@ -81,6 +87,36 @@ function validateServiceRequestForm(
   return errors;
 }
 
+function submitRequestErrorMessage(
+  data: unknown,
+  fallback: string
+): string {
+  if (data && typeof data === "object") {
+    const record = data as Record<string, unknown>;
+    if (typeof record.error === "string" && record.error.trim()) {
+      return record.error.trim();
+    }
+    if (typeof record.detail === "string" && record.detail.trim()) {
+      return record.detail.trim();
+    }
+    if (typeof record.hint === "string" && record.hint.trim()) {
+      return record.hint.trim();
+    }
+  }
+  return fallback;
+}
+
+function extractBackendRequestId(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  const record = data as Record<string, unknown>;
+  const inner = record.data;
+  if (inner && typeof inner === "object" && inner !== null && "id" in inner) {
+    const rawId = (inner as { id: unknown }).id;
+    if (rawId != null && rawId !== "") return String(rawId);
+  }
+  return undefined;
+}
+
 export function RequestServiceModalTrigger({
   reasonTitle,
   className,
@@ -98,6 +134,7 @@ export function RequestServiceModalTrigger({
   const [requestType, setRequestType] = useState("");
   const [requestPriority, setRequestPriority] = useState("");
   const [fieldErrors, setFieldErrors] = useState<ServiceRequestFieldErrors>({});
+  const { setServiceRequestModalOpen } = useServiceRequestModalOverlay();
 
   const closeModal = () => {
     setOpen(false);
@@ -105,6 +142,26 @@ export function RequestServiceModalTrigger({
     setSubmitSuccess(null);
     setFieldErrors({});
   };
+
+  useEffect(() => {
+    if (!open) return;
+    setServiceRequestModalOpen(true);
+    return () => setServiceRequestModalOpen(false);
+  }, [open, setServiceRequestModalOpen]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeModal();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -122,24 +179,66 @@ export function RequestServiceModalTrigger({
     setSubmitError(null);
     setSubmitSuccess(null);
 
-    const response = await fetch(apiUrl("/api/submit-request"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        reason_or_title: reasonTitle,
-        pickup_location: pickupLocation.trim(),
-        drop_location: dropLocation.trim(),
-        payload_weight: payloadWeightKg.trim() || "0",
-        cargo_type: requestType.trim(),
-        mission_urgency: requestPriority.trim(),
-      }),
-    });
+    const owner = resolveRequestOwnerSnapshot();
+    const localRequestId = `#UR-${Date.now().toString(36).toUpperCase()}`;
+    const payload = {
+      reason_or_title: reasonTitle,
+      pickup_location: pickupLocation.trim(),
+      drop_location: dropLocation.trim(),
+      payload_weight: payloadWeightKg.trim() || "0",
+      cargo_type: requestType.trim(),
+      mission_urgency: requestPriority.trim(),
+      client_request_id: localRequestId,
+      user_id: owner.ownerUserId || undefined,
+      user_name: owner.ownerName || undefined,
+      user_email: owner.ownerEmail || undefined,
+    };
+
+    let response: Response;
+    try {
+      response = await fetch(apiUrl("/api/submit-request"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      setSubmitting(false);
+      setSubmitError(
+        "Network error while submitting. Check your connection and try again."
+      );
+      return;
+    }
+
     const body = await readResponseJson(response);
     if (!body.okParse || !response.ok) {
       setSubmitting(false);
-      setSubmitError("Could not submit request. Please try again.");
+      setSubmitError(
+        submitRequestErrorMessage(
+          body.okParse ? body.data : null,
+          body.okParse
+            ? "Could not submit request. Please try again."
+            : "Invalid server response. Please try again."
+        )
+      );
       return;
     }
+
+    const backendRequestId = extractBackendRequestId(body.data);
+    appendUserRequest(
+      {
+        reasonOrTitle: payload.reason_or_title,
+        pickupLocation: payload.pickup_location,
+        dropLocation: payload.drop_location,
+        payloadWeightKg: payload.payload_weight,
+        requestType: payload.cargo_type,
+        requestPriority: payload.mission_urgency,
+        ownerUserId: owner.ownerUserId || undefined,
+        ownerEmail: owner.ownerEmail || undefined,
+        ownerName: owner.ownerName || undefined,
+        ...(backendRequestId ? { backendRequestId } : {}),
+      },
+      { id: localRequestId }
+    );
 
     setSubmitting(false);
     setSubmitSuccess("Request submitted successfully.");
@@ -161,24 +260,44 @@ export function RequestServiceModalTrigger({
         {children ?? label}
       </button>
 
-      {open ? (
-        <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/50 p-4 sm:items-center">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-card p-5 shadow-2xl sm:p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <div className="fixed inset-0 z-[120] flex items-end justify-center px-4 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-[calc(5.5rem+1rem)] sm:items-center sm:px-6 sm:pb-10 sm:pt-[calc(6rem+1.25rem)]">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Close dialog"
+            onClick={closeModal}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="service-request-modal-title"
+            className="relative z-10 flex max-h-[min(calc(100dvh-5.5rem-2.5rem),720px)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-card text-foreground shadow-2xl sm:max-h-[min(calc(100dvh-6rem-3.5rem),720px)] sm:rounded-2xl"
+          >
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
+              <h2
+                id="service-request-modal-title"
+                className="pr-4 text-lg font-semibold text-slate-900"
+              >
                 Create New Request
               </h2>
               <button
                 type="button"
                 aria-label="Close"
                 onClick={closeModal}
-                className="rounded-md p-1 text-slate-600 transition hover:bg-slate-100"
+                className="shrink-0 rounded-md p-1 text-slate-600 transition hover:bg-slate-100"
               >
                 <X className="size-4" aria-hidden />
               </button>
             </div>
 
-            <form className="space-y-3.5" onSubmit={handleSubmit} noValidate>
+            <form
+              className="flex min-h-0 flex-1 flex-col"
+              onSubmit={handleSubmit}
+              noValidate
+            >
+              <div className="min-h-0 flex-1 space-y-3.5 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold uppercase tracking-widest text-[#4d5b7f]">
                   Reason or title
@@ -416,18 +535,19 @@ export function RequestServiceModalTrigger({
                 ) : null}
               </div>
 
-              {submitError ? (
-                <p className="text-xs text-red-600" role="alert">
-                  {submitError}
-                </p>
-              ) : null}
-              {submitSuccess ? (
-                <p className="text-xs text-foreground" role="status">
-                  {submitSuccess}
-                </p>
-              ) : null}
+                {submitError ? (
+                  <p className="text-xs text-red-600" role="alert">
+                    {submitError}
+                  </p>
+                ) : null}
+                {submitSuccess ? (
+                  <p className="text-xs text-foreground" role="status">
+                    {submitSuccess}
+                  </p>
+                ) : null}
+              </div>
 
-              <div className="flex justify-end gap-2 pt-1">
+              <div className="flex shrink-0 justify-end gap-2 border-t border-slate-200 bg-card px-5 py-4 sm:px-6">
                 <Button
                   type="button"
                   variant="outline"
@@ -438,9 +558,10 @@ export function RequestServiceModalTrigger({
                 </Button>
                 <Button
                   type="submit"
+                  variant="outline"
                   disabled={submitting}
                   className={cn(
-                    "bg-[#008B8B] text-white hover:bg-[#007a7a]",
+                    "border-[#008B8B] bg-transparent text-[#008B8B] hover:bg-[#008B8B]/10 hover:text-[#007a7a] dark:border-[#4ddbd9] dark:text-[#4ddbd9] dark:hover:bg-[#008B8B]/20",
                     submitting && "opacity-80"
                   )}
                 >
@@ -449,8 +570,10 @@ export function RequestServiceModalTrigger({
               </div>
             </form>
           </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body
+          )
+        : null}
     </>
   );
 }

@@ -268,6 +268,53 @@
     background-size: 32px 32px;
   }
 
+  /* Services catalog — telemetry grid + soft brand glows */
+  .services-hud-grid {
+    --services-grid-dot: rgba(0, 106, 110, 0.09);
+    background-color: var(--background);
+    background-image:
+      radial-gradient(
+        ellipse 90% 55% at 50% -12%,
+        rgba(0, 106, 110, 0.16),
+        transparent 68%
+      ),
+      radial-gradient(
+        ellipse 48% 38% at 98% 42%,
+        rgba(0, 139, 139, 0.11),
+        transparent 62%
+      ),
+      radial-gradient(
+        ellipse 42% 32% at 2% 78%,
+        rgba(0, 106, 110, 0.09),
+        transparent 58%
+      ),
+      radial-gradient(var(--services-grid-dot) 1px, transparent 1px);
+    background-size: 100% 520px, 100% 100%, 100% 100%, 28px 28px;
+    background-position: center top, center, center, 0 0;
+    background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+  }
+
+  .dark .services-hud-grid {
+    --services-grid-dot: rgba(77, 219, 217, 0.075);
+    background-image:
+      radial-gradient(
+        ellipse 90% 55% at 50% -12%,
+        rgba(77, 219, 217, 0.12),
+        transparent 68%
+      ),
+      radial-gradient(
+        ellipse 48% 38% at 98% 42%,
+        rgba(0, 106, 110, 0.18),
+        transparent 62%
+      ),
+      radial-gradient(
+        ellipse 42% 32% at 2% 78%,
+        rgba(77, 219, 217, 0.07),
+        transparent 58%
+      ),
+      radial-gradient(var(--services-grid-dot) 1px, transparent 1px);
+  }
+
   .services-glass-panel {
     backdrop-filter: blur(20px);
     background: rgba(255, 255, 255, 0.7);
@@ -427,6 +474,199 @@
     opacity: 0.2;
   }
 
+  .hero-content-enter {
+    animation: hero-content-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .hero-visual-frame-enter {
+    animation: hero-visual-frame-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1)
+      both;
+  }
+
+  .hero-visual-glow-enter {
+    animation: hero-visual-glow-enter 0.4s ease-out both;
+  }
+
+  .hero-visual-float {
+    animation: hero-visual-float 5.5s ease-in-out 0.55s infinite;
+  }
+
+  .hero-visual-shutter {
+    background: linear-gradient(
+      180deg,
+      #ffffff 0%,
+      #f0fafa 45%,
+      #e0f2f2 100%
+    );
+    box-shadow: inset 0 0 0 1px rgb(0 139 139 / 0.08);
+  }
+
+  .hero-visual-shutter-top {
+    transform: scaleY(1);
+  }
+
+  .hero-visual-shutter-bottom {
+    transform: scaleY(1);
+  }
+
+  [data-open="true"] .hero-visual-shutter-top {
+    animation: hero-visual-shutter-top-open 0.3s
+      cubic-bezier(0.65, 0, 0.35, 1) both;
+  }
+
+  [data-open="true"] .hero-visual-shutter-bottom {
+    animation: hero-visual-shutter-bottom-open 0.3s
+      cubic-bezier(0.65, 0, 0.35, 1) both;
+  }
+
+  .hero-visual-image-open {
+    opacity: 0.35;
+    transform: scale(1.14);
+  }
+
+  [data-open="true"] .hero-visual-image-open {
+    animation: hero-visual-image-open 0.35s cubic-bezier(0.16, 1, 0.3, 1)
+      both;
+  }
+
+  .hero-visual-shine {
+    background: linear-gradient(
+      105deg,
+      transparent 38%,
+      rgb(255 255 255 / 0.55) 50%,
+      transparent 62%
+    );
+    opacity: 0;
+    transform: translateX(-130%);
+  }
+
+  [data-open="true"] .hero-visual-shine {
+    animation: hero-visual-shine-sweep 0.25s ease-out 0.22s both;
+  }
+
+  .hero-telemetry-enter {
+    animation: hero-telemetry-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .hero-telemetry-enter-left {
+    animation-delay: 0.18s;
+  }
+
+  .hero-telemetry-enter-right {
+    animation-delay: 0.26s;
+  }
+
+  .hero-telemetry-value-pulse {
+    animation: hero-telemetry-value-pulse 2.8s ease-in-out 0.45s infinite;
+  }
+
+  @keyframes hero-content-enter {
+    0% {
+      opacity: 0;
+      transform: translateX(-56px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes hero-visual-frame-enter {
+    0% {
+      opacity: 0;
+      transform: translateX(64px) scale(0.88);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+
+  @keyframes hero-visual-glow-enter {
+    0% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+    100% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes hero-visual-shutter-top-open {
+    0% {
+      transform: scaleY(1);
+    }
+    100% {
+      transform: scaleY(0);
+    }
+  }
+
+  @keyframes hero-visual-shutter-bottom-open {
+    0% {
+      transform: scaleY(1);
+    }
+    100% {
+      transform: scaleY(0);
+    }
+  }
+
+  @keyframes hero-visual-image-open {
+    0% {
+      opacity: 0.35;
+      transform: scale(1.14);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes hero-visual-shine-sweep {
+    0% {
+      opacity: 0;
+      transform: translateX(-130%);
+    }
+    15% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(130%);
+    }
+  }
+
+  @keyframes hero-visual-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-12px);
+    }
+  }
+
+  @keyframes hero-telemetry-enter {
+    0% {
+      opacity: 0;
+      transform: translateY(32px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes hero-telemetry-value-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.72;
+    }
+  }
+
   .workflow-slide-from-left {
     animation: workflow-slide-from-left 1s cubic-bezier(0.16, 1, 0.3, 1)
       both;
@@ -490,6 +730,17 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .hero-content-enter,
+    .hero-visual-frame-enter,
+    .hero-visual-glow-enter,
+    .hero-visual-float,
+    .hero-visual-shutter,
+    .hero-visual-shutter-top,
+    .hero-visual-shutter-bottom,
+    .hero-visual-image-open,
+    .hero-visual-shine,
+    .hero-telemetry-enter,
+    .hero-telemetry-value-pulse,
     .workflow-slide-from-left,
     .workflow-slide-from-right,
     .industry-card-zoom-in,
@@ -499,9 +750,22 @@
       transform: none;
       scale: 1;
     }
+
+    .hero-visual-shutter {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    [data-open="true"] .hero-visual-image-open,
+    .hero-visual-image-open {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   @media (max-width: 767px) {
+    .hero-visual-float,
+    .hero-telemetry-value-pulse,
     .workflow-slide-from-left,
     .workflow-slide-from-right,
     .industry-card-zoom-in,

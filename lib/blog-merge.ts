@@ -1,6 +1,7 @@
 import {
   FEATURED_SLUG,
   blogPosts,
+  gridPosts,
   postsBySlug,
   type BlogPost,
 } from "@/components/blogs/blog-data";
@@ -51,4 +52,32 @@ export function getMergedBlogPostsList(): BlogPost[] {
 
 export function getMergedGridPosts(): BlogPost[] {
   return getMergedBlogPostsList().filter((p) => p.slug !== FEATURED_SLUG);
+}
+
+/** Drop API rows the admin removed from this browser catalog (incl. after DB delete). */
+export function filterApiPostsForCatalog(apiMapped: BlogPost[]): BlogPost[] {
+  if (typeof window === "undefined") return apiMapped;
+  const deleted = new Set(loadBlogDeletedBuiltins());
+  return apiMapped.filter((p) => !deleted.has(p.slug));
+}
+
+/** Public /blogs grid: live API posts + merged built-in/extras, respecting deletions. */
+export function buildPublicBlogGridList(apiMapped: BlogPost[]): BlogPost[] {
+  const apiFiltered = filterApiPostsForCatalog(apiMapped);
+  if (typeof window === "undefined") {
+    return [...apiFiltered, ...gridPosts];
+  }
+  return [...apiFiltered, ...getMergedGridPosts()];
+}
+
+export function resolvePublicFeaturedPost(): BlogPost | null {
+  if (typeof window === "undefined") {
+    return postsBySlug[FEATURED_SLUG] ?? null;
+  }
+  return getMergedPostBySlug(FEATURED_SLUG) ?? null;
+}
+
+export function isBlogSlugHiddenFromCatalog(slug: string): boolean {
+  if (typeof window === "undefined") return false;
+  return new Set(loadBlogDeletedBuiltins()).has(slug);
 }

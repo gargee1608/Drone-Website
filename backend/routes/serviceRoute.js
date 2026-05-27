@@ -1,7 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
+const { isCatalogSeedSlug } = require("../lib/seed-default-services");
 
+function slugFromTitle(title) {
+  return String(title ?? "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 // ✅ GET all services
 router.get("/", async (req, res) => {
@@ -14,7 +22,6 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 // ✅ GET single service
 router.get("/:id", async (req, res) => {
@@ -38,12 +45,15 @@ router.get("/:id", async (req, res) => {
 
 // ✅ ADD new service
 router.post("/", async (req, res) => {
-  const { title, description, price, image } = req.body || {};
+  const { title, description, price, image, slug: slugBody } = req.body || {};
+  const slug =
+    String(slugBody ?? "").trim() || slugFromTitle(title);
 
   try {
     const result = await pool.query(
-      "INSERT INTO services (title, description, price, image) VALUES ($1, $2, $3, $4) RETURNING *",
-      [title, description, price, image ?? null]
+      `INSERT INTO services (slug, title, description, price, image)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [slug, title, description, price != null ? String(price) : null, image ?? null]
     );
 
     res.json(result.rows[0]);
@@ -58,17 +68,30 @@ router.put("/:id", async (req, res) => {
   if (!Number.isFinite(id)) {
     return res.status(400).json({ error: "Invalid id" });
   }
-  const { title, description, price, image } = req.body || {};
+  const { title, description, price, image, slug: slugBody } = req.body || {};
+  /** Only change slug when the client sends `slug` — keeps detail URLs stable on rename. */
+  const slug =
+    slugBody !== undefined && slugBody !== null
+      ? String(slugBody).trim() || null
+      : null;
   try {
     const result = await pool.query(
       `UPDATE services
        SET title = COALESCE($1, title),
            description = COALESCE($2, description),
            price = COALESCE($3, price),
-           image = COALESCE($4, image)
-       WHERE id = $5
+           image = COALESCE($4, image),
+           slug = COALESCE($5, slug)
+       WHERE id = $6
        RETURNING *`,
-      [title ?? null, description ?? null, price ?? null, image ?? null, id]
+      [
+        title ?? null,
+        description ?? null,
+        price != null ? String(price) : null,
+        image ?? null,
+        slug,
+        id,
+      ]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Not found" });
@@ -87,11 +110,19 @@ router.delete("/:id", async (req, res) => {
   }
   try {
     const result = await pool.query(
-      "DELETE FROM services WHERE id = $1 RETURNING id",
+      "DELETE FROM services WHERE id = $1 RETURNING id, slug",
       [id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Not found" });
+    }
+    const deletedSlug = result.rows[0]?.slug;
+    if (deletedSlug && isCatalogSeedSlug(deletedSlug)) {
+      await pool.query(
+        `INSERT INTO catalog_seed_suppressed (slug) VALUES ($1)
+         ON CONFLICT (slug) DO NOTHING`,
+        [deletedSlug]
+      );
     }
     res.json({ ok: true, id });
   } catch (err) {

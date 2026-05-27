@@ -6,12 +6,7 @@ import Link from "next/link";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { BlogPost } from "@/components/blogs/blog-data";
-import {
-  FEATURED_SLUG,
-  featuredHero,
-  gridPosts,
-  postsBySlug,
-} from "@/components/blogs/blog-data";
+import { FEATURED_SLUG, featuredHero } from "@/components/blogs/blog-data";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import {
   fetchBlogsFromApi,
@@ -21,7 +16,10 @@ import {
   BLOG_ADMIN_UPDATED_EVENT,
   subscribeBlogCatalogBroadcast,
 } from "@/lib/blog-admin-storage";
-import { getMergedGridPosts, getMergedPostBySlug } from "@/lib/blog-merge";
+import {
+  buildPublicBlogGridList,
+  resolvePublicFeaturedPost,
+} from "@/lib/blog-merge";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -55,40 +53,38 @@ export function BlogsView({
   initialApiRef.current = initialApiPosts;
 
   const [activeFilter, setActiveFilter] = useState<FilterKey>("All Logs");
-  const [listPosts, setListPosts] = useState(() => [
-    ...initialApiPosts,
-    ...gridPosts,
-  ]);
-  const [featuredPost, setFeaturedPost] = useState(
-    () => postsBySlug[FEATURED_SLUG]
-  );
+  const [listPosts, setListPosts] = useState<BlogPost[]>([]);
+  const [featuredPost, setFeaturedPost] = useState<BlogPost | null>(null);
+  const [catalogReady, setCatalogReady] = useState(false);
 
   useLayoutEffect(() => {
     let cancelled = false;
 
-    const mergeLists = (apiMapped: BlogPost[]) => {
-      const merged = getMergedGridPosts();
-      setFeaturedPost(
-        getMergedPostBySlug(FEATURED_SLUG) ?? postsBySlug[FEATURED_SLUG]
-      );
-      /** DB blogs only in the card grid; hero stays the original featured design. */
-      setListPosts([...apiMapped, ...merged]);
+    const applyCatalog = (apiMapped: BlogPost[]) => {
+      if (cancelled) return;
+      setListPosts(buildPublicBlogGridList(apiMapped));
+      setFeaturedPost(resolvePublicFeaturedPost());
+      setCatalogReady(true);
     };
 
     const sync = () => {
       void (async () => {
-        let apiMapped: BlogPost[] = [];
+        let apiMapped = initialApiRef.current;
         try {
           const rows = await fetchBlogsFromApi();
-          if (!cancelled) apiMapped = rows.map(mapApiRowToBlogPost);
+          if (!cancelled) {
+            apiMapped = rows.map(mapApiRowToBlogPost);
+            initialApiRef.current = apiMapped;
+          }
         } catch {
           if (!cancelled) apiMapped = initialApiRef.current;
         }
         if (cancelled) return;
-        mergeLists(apiMapped);
+        applyCatalog(apiMapped);
       })();
     };
 
+    applyCatalog(initialApiRef.current);
     sync();
     window.addEventListener(BLOG_ADMIN_UPDATED_EVENT, sync);
     window.addEventListener("storage", sync);
@@ -182,7 +178,13 @@ export function BlogsView({
       </div>
 
       <div className="mb-24 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((post) => (
+        {!catalogReady ? (
+          <p className="col-span-full py-16 text-center text-sm text-[#41474d] dark:text-slate-300">
+            Loading flight logs…
+          </p>
+        ) : null}
+        {catalogReady
+          ? filtered.map((post) => (
           <article
             key={post.slug}
             className="group flex flex-col overflow-hidden rounded-xl border border-[#c1c7cf]/30 bg-card transition-all duration-300 hover:shadow-xl hover:shadow-[#006a6e]/5"
@@ -228,10 +230,11 @@ export function BlogsView({
               </div>
             </div>
           </article>
-        ))}
+            ))
+          : null}
       </div>
 
-      {filtered.length === 0 ? (
+      {catalogReady && filtered.length === 0 ? (
         <p className="pb-24 text-center text-sm text-[#41474d] dark:text-slate-300">
           No flight logs match your filters.
         </p>

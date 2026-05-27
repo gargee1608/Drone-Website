@@ -29,7 +29,7 @@ export const serviceCatalogItems: ServiceCatalogItem[] = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuAtsFwVqr906z9dXDXzI0vkAP2a3v1YciyF2keAPDg3zn28bql8XeQzZXPuB7aOhR8n-39zz67Fl9jkI7JR9TkOnfiRDGoOB0l8S0Xpi6vQmJ9zvp_IpMJlxenHVc2qgb7AppMMw-NjDE6Ogu7AuOwUuM2nQWucSMkC2Wja-62RTtY1x5kVIJAaQIOOFvTVdQaWEdZFK_ZuAHCL_Q5082OtZTpifdxVa7MU0Y6CrXK3hyL1Dpfohw2OtsC3FUtWtG0_La_Z0I7JFXR5",
     imageAlt: "Medical logistics drone carrying temperature-controlled cargo",
-    topBadge: { text: "$49", variant: "light" },
+    topBadge: { text: "Rs. 200/H", variant: "light" },
   },
   {
     slug: "precision-surveillance",
@@ -48,7 +48,7 @@ export const serviceCatalogItems: ServiceCatalogItem[] = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuDYkARG15cGIRUduK78vb6ss3v46nsHIA2kV1doWb568G-PDaRk1ZOZ2-LT5Xl9k-9AXt4_AKPSPxHqsm1oxkawvzQuga1OXjpxiTAStZWL5w0pwmV1ksP_d8Hl16_5ogYstRVe-rl36QDHIAIpJDEuel6LaZH8oeCF8g_OY_ZIsD-Fc1Gb3wbow79Tb7KGOgNmiWsGK5-huucbeY7jRZDULRxp8QKV2GGVuCUUuYf6P8Naf7d5KmJvfoLL3TL3mz8AWGbZ2ec_hrrC",
     imageAlt: "Thermal surveillance view from a drone",
-    topBadge: { text: "$120/h", variant: "light" },
+    topBadge: { text: "Rs. 120/h", variant: "light" },
   },
   {
     slug: "emergency-response",
@@ -67,7 +67,7 @@ export const serviceCatalogItems: ServiceCatalogItem[] = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuC9_jtj-X27ArAqwVx9HdVzuAS7GUk5_-kAD2G5greai4z4NKlb1gUOnEp5u2QmmuEPcgCIyuBaYiOH68RMN18_4RTQaJtcJ0QXgPILd9skINzuDs2bZWpejCARaIGyMOacwr36ggitwfRE4UUsihC1ZPEVGDZJcuTUoFfRBRy7mrL3-PPZOVc9hCUaJg35DP7eihrbKnz9e2xDamgF-TlVbPzzSS9A-M0iS8aVlsRCm5IZs-9vsAmQAQUy2dZ-ie9rVLRsFIXIprqW",
     imageAlt: "Drone over emergency response zone",
-    topBadge: { text: "$195/h", variant: "priority" },
+    topBadge: { text: "Rs. 195/h", variant: "priority" },
   },
   {
     slug: "infrastructure",
@@ -86,7 +86,7 @@ export const serviceCatalogItems: ServiceCatalogItem[] = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuBeuHk9S-q_53Ot7cr4g3DQg50VuIUM1sKoO9hUERwedcTQb_OzkVmmaszym4TCRRAkFF8Mbk7ocBPHLeXkmT46HTGmnIRgywqqkrr-GDKJFOTytihDZiAbGpCXd44BEfNqDaC_Y1SqSflvAvlhhUMbRXS8PG8Sau4oJqPjrXaCVeQT3SHODelkAS8DS8QfzTyhsVp2ha3mNYJSowYgcABiIT3RgfI2IG54RpbXrsH1UgyZeXLJ1-mFGsr4kVwN7yJBXb5foakBrnzO",
     imageAlt: "Drone inspecting industrial infrastructure",
-    topBadge: { text: "$350/site", variant: "light" },
+    topBadge: { text: "Rs. 350/site", variant: "light" },
   },
 ];
 
@@ -106,23 +106,66 @@ export function serviceSlugFromTitle(title: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Display service prices in rupees (handles legacy "$" labels). */
+export function formatRupeePrice(value: string | number): string {
+  const s = String(value).trim();
+  if (!s) return "";
+  if (s.startsWith("Rs.")) return s;
+  if (s.startsWith("$")) return s.replace(/^\$/, "Rs. ");
+  return `Rs. ${s}`;
+}
+
+/** Built-in catalog prices win for known slugs; otherwise format DB/admin values. */
+export function getCatalogPriceLabel(
+  slug: string,
+  dbPrice?: string | number | null
+): string {
+  const staticItem = getServiceBySlug(slug.trim());
+  if (staticItem) return staticItem.topBadge.text;
+  if (dbPrice == null || !String(dbPrice).trim()) return "";
+  return formatRupeePrice(dbPrice);
+}
+
 type BackendServiceRow = {
   id?: number | string;
+  slug?: string;
   title?: string;
   description?: string;
   price?: number | string;
   image?: string;
 };
 
+function nextAppOriginForServerFetch(): string | null {
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
+  }
+  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (site) return site.replace(/\/$/, "");
+  const port = process.env.PORT?.trim() || "3000";
+  return `http://127.0.0.1:${port}`;
+}
+
 function backendServicesApiCandidates(): string[] {
+  const urls: string[] = [];
+  const appOrigin = nextAppOriginForServerFetch();
+  if (appOrigin) {
+    urls.push(`${appOrigin}/api/express/services`);
+  }
+
   const rawBase =
     process.env.NEXT_PUBLIC_API_URL?.trim() || process.env.BACKEND_URL?.trim() || "";
   const base = rawBase.replace(/\/$/, "");
   if (base) {
-    if (base.endsWith("/api")) return [`${base}/services`];
-    return [`${base}/api/services`];
+    if (base.endsWith("/api")) urls.push(`${base}/services`);
+    else urls.push(`${base}/api/services`);
   }
-  return ["http://localhost:4000/api/services", "http://127.0.0.1:4000/api/services"];
+
+  urls.push(
+    "http://127.0.0.1:4000/api/services",
+    "http://localhost:4000/api/services"
+  );
+
+  return [...new Set(urls)];
 }
 
 async function fetchBackendServices(): Promise<BackendServiceRow[]> {
@@ -140,14 +183,21 @@ async function fetchBackendServices(): Promise<BackendServiceRow[]> {
   return [];
 }
 
+function slugForBackendRow(row: BackendServiceRow, title: string): string {
+  const explicit = typeof row.slug === "string" ? row.slug.trim() : "";
+  return explicit || serviceSlugFromTitle(title);
+}
+
 function mapBackendServiceToCatalogItem(row: BackendServiceRow): ServiceCatalogItem | null {
   const title = String(row.title ?? "").trim();
   if (!title) return null;
   const description = String(row.description ?? "").trim();
   const priceRaw = Number(row.price);
-  const priceText = Number.isFinite(priceRaw) ? `$${priceRaw}` : "Custom";
+  const priceText = Number.isFinite(priceRaw)
+    ? formatRupeePrice(priceRaw)
+    : "Custom";
   return {
-    slug: serviceSlugFromTitle(title),
+    slug: slugForBackendRow(row, title),
     title,
     description:
       description || "Custom drone service added from the admin dashboard.",
@@ -166,19 +216,38 @@ function mapBackendServiceToCatalogItem(row: BackendServiceRow): ServiceCatalogI
   };
 }
 
+function enrichCatalogFromStatic(
+  mapped: ServiceCatalogItem,
+  slug: string
+): ServiceCatalogItem {
+  const staticItem = getServiceBySlug(slug);
+  if (!staticItem) return mapped;
+  return {
+    ...mapped,
+    topBadge: staticItem.topBadge,
+    detailSections: staticItem.detailSections,
+    highlights: staticItem.highlights,
+    imageAlt: staticItem.imageAlt,
+  };
+}
+
 export async function getServiceBySlugExtended(
   slug: string
 ): Promise<ServiceCatalogItem | undefined> {
-  const staticItem = getServiceBySlug(slug);
-  if (staticItem) return staticItem;
+  const normalized = slug.trim();
+  if (!normalized) return undefined;
 
   const backendRows = await fetchBackendServices();
   for (const row of backendRows) {
     const mapped = mapBackendServiceToCatalogItem(row);
     if (!mapped) continue;
-    if (mapped.slug === slug) return mapped;
+    if (mapped.slug === normalized) {
+      return enrichCatalogFromStatic(mapped, normalized);
+    }
   }
-  return undefined;
+
+  /** Built-in catalog — used when API is empty/offline (same as /services grid fallback). */
+  return getServiceBySlug(normalized);
 }
 
 export function serviceCatalogBadgeClasses(

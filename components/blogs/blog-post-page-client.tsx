@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 
 import type { BlogPost } from "@/components/blogs/blog-data";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
@@ -14,7 +14,10 @@ import {
   BLOG_ADMIN_UPDATED_EVENT,
   subscribeBlogCatalogBroadcast,
 } from "@/lib/blog-admin-storage";
-import { getMergedPostBySlug } from "@/lib/blog-merge";
+import {
+  getMergedPostBySlug,
+  isBlogSlugHiddenFromCatalog,
+} from "@/lib/blog-merge";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -25,24 +28,33 @@ export function BlogPostPageClient({
   slug: string;
   initialPost: BlogPost | null;
 }) {
-  const [post, setPost] = useState<BlogPost | null>(initialPost);
-  const [ready, setReady] = useState(
-    Boolean(initialPost) || parseBlogDbSlug(slug) == null
-  );
+  const [post, setPost] = useState<BlogPost | null>(null);
+  const [ready, setReady] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (isBlogSlugHiddenFromCatalog(slug)) {
+      setPost(null);
+      setReady(true);
+      return;
+    }
+
     const id = parseBlogDbSlug(slug);
     if (id != null) {
-      if (initialPost) {
+      if (initialPost && !isBlogSlugHiddenFromCatalog(slug)) {
         setPost(initialPost);
         setReady(true);
-        return undefined;
+        return;
       }
       let cancelled = false;
       setReady(false);
       fetchBlogByIdFromApi(id)
         .then((row) => {
           if (cancelled) return;
+          if (isBlogSlugHiddenFromCatalog(slug)) {
+            setPost(null);
+            setReady(true);
+            return;
+          }
           setPost(row ? mapApiRowToBlogPost(row) : null);
           setReady(true);
         })
@@ -56,6 +68,7 @@ export function BlogPostPageClient({
         cancelled = true;
       };
     }
+
     setPost(getMergedPostBySlug(slug) ?? null);
     setReady(true);
     return undefined;
@@ -63,10 +76,20 @@ export function BlogPostPageClient({
 
   useEffect(() => {
     const sync = () => {
+      if (isBlogSlugHiddenFromCatalog(slug)) {
+        setPost(null);
+        setReady(true);
+        return;
+      }
       const id = parseBlogDbSlug(slug);
       if (id != null) {
         void fetchBlogByIdFromApi(id)
           .then((row) => {
+            if (isBlogSlugHiddenFromCatalog(slug)) {
+              setPost(null);
+              setReady(true);
+              return;
+            }
             setPost(row ? mapApiRowToBlogPost(row) : null);
             setReady(true);
           })

@@ -496,6 +496,19 @@ async function ensureServicesSchema() {
       image TEXT
     );
   `);
+  try {
+    await pool.query("ALTER TABLE services ADD COLUMN IF NOT EXISTS slug TEXT");
+    await pool.query(
+      "CREATE UNIQUE INDEX IF NOT EXISTS services_slug_unique ON services (slug) WHERE slug IS NOT NULL"
+    );
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS catalog_seed_suppressed (
+        slug TEXT PRIMARY KEY
+      );
+    `);
+  } catch (e) {
+    console.warn("  [skip] services slug:", e.message);
+  }
 }
 
 async function ensureBlogsSchema() {
@@ -1530,6 +1543,10 @@ ensureAuthSchema()
   .then(() => ensureMissionSchema())
   .then(() => ensureDroneHireRequestsSchema())
   .then(() => ensureServicesSchema())
+  .then(async () => {
+    const { seedDefaultServicesIfNeeded } = require("./lib/seed-default-services");
+    await seedDefaultServicesIfNeeded(pool);
+  })
   .then(() => ensureBlogsSchema())
   .then(() => seedDevAdminsIfEmpty())
   .then(() => seedDevDronesIfEmpty())

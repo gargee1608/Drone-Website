@@ -26,8 +26,8 @@ export type CommandCenterNavItem = {
 /** Admin command center — same list as `DashboardLayout` sidebar. */
 export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/assign", label: "Assign To", icon: Plane },
   { href: "/dashboard/user-requests", label: "User Request", icon: ClipboardList },
+  { href: "/dashboard/assign", label: "Assign To", icon: Plane },
   {
     href: "/dashboard/available-missions",
     label: "Available Mission",

@@ -36,7 +36,9 @@ import {
   readStoredUserSession,
   type StoredUserSession,
 } from "@/lib/user-session-browser";
+import { PilotLoginLanguageSelector } from "@/components/pilot-login/pilot-login-language-selector";
 import { isPilotRegistrationFromAdmin } from "@/lib/pilot-registration-from-admin";
+import { usePilotLoginLanguage } from "@/lib/pilot-login-i18n";
 import { cn } from "@/lib/utils";
 
 const landingOutlineButtonClassName =
@@ -44,6 +46,7 @@ const landingOutlineButtonClassName =
 
 export function LandingHeader() {
   const serviceMegaMenuItems = useServiceMegaMenuItems();
+  const { copy: pilotLoginCopy } = usePilotLoginLanguage();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -58,6 +61,7 @@ export function LandingHeader() {
     pathname === "/admin" || pathname === "/admin/";
   const isPilotLoginPage =
     pathname === "/pilot-login" || pathname === "/pilot-login/";
+  const isAuthLoginPage = isPilotLoginPage || isAdminLoginPage;
   const isResetPasswordPage =
     pathname === "/reset-password" || pathname === "/reset-password/";
   const isSignupPage = pathname === "/signup" || pathname === "/signup/";
@@ -104,6 +108,7 @@ export function LandingHeader() {
     isPilotDashboard ||
     isSettingsPage;
   const isHomePage = pathname === "/" || pathname === "";
+  const centerMarketingHeaderNav = isPilotLoginPage || isPilotRegistration;
   const isMatchingHub = pathname === "/matching-hub";
   const {
     sidebarExpanded: adminSidebarExpanded,
@@ -252,9 +257,13 @@ export function LandingHeader() {
   const hasLoggedInAppUser = appUserSession != null;
   const hasLoggedInAdmin = adminMarketingActive;
   const onMarketingAuthSurface = isHomePage || isMarketingAuthPage;
-  /** Public pages always show Login + New Registration — never persisted session chips. */
-  const showAnonymousMarketingHeader = onMarketingAuthSurface;
-  const hideMarketingRegisterAndLogin = false;
+  const hasMarketingSession =
+    hasLoggedInAppUser || pilotMarketingActive || hasLoggedInAdmin;
+  /** Logged-out marketing pages show Login + New Registration; signed-in users see their name chip instead. */
+  const showAnonymousMarketingHeader =
+    onMarketingAuthSurface && !hasMarketingSession;
+  const hideMarketingRegisterAndLogin =
+    onMarketingAuthSurface && hasMarketingSession;
 
   const appUserDisplayName =
     appUserSession?.fullName?.trim() ||
@@ -384,14 +393,19 @@ export function LandingHeader() {
     >
       <nav
         className={cn(
-          "mx-auto flex max-w-[1600px] flex-nowrap items-center justify-between px-2 min-[380px]:px-3 sm:px-6 lg:px-8",
+          "relative mx-auto flex max-w-[1600px] flex-nowrap items-center justify-between px-2 min-[380px]:px-3 sm:px-6 lg:px-8",
           compactAppHeader
             ? "gap-3 py-2.5 sm:py-3"
             : "gap-1 py-3 min-[380px]:gap-2 sm:gap-4 sm:py-4"
         )}
         aria-label="Primary"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-8 lg:gap-12">
+        <div
+          className={cn(
+            "flex min-w-0 items-center gap-1 sm:gap-8 lg:gap-12",
+            !centerMarketingHeaderNav && "flex-1"
+          )}
+        >
           <div className="flex min-w-0 items-center gap-1 sm:gap-2">
             {isAdminCommandCenterShell ? (
               <button
@@ -463,13 +477,24 @@ export function LandingHeader() {
             </Link>
           </div>
           {showMarketingHeaderNav ? (
-            <div className="hidden items-center gap-8 xl:flex">
+            <div
+              className={cn(
+                "hidden items-center gap-8 xl:flex",
+                centerMarketingHeaderNav &&
+                  "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+                !centerMarketingHeaderNav &&
+                  !isHomePage &&
+                  "ml-auto shrink-0 gap-6 xl:gap-8 xl:mr-2 2xl:mr-4"
+              )}
+            >
               <Link href="/" className={linkClass("/")}>
-                Home
+                {isAuthLoginPage ? pilotLoginCopy.nav.home : "Home"}
               </Link>
               <ServiceListingMegaMenu
                 variant="landing"
-                label="Services"
+                label={
+                  isAuthLoginPage ? pilotLoginCopy.nav.services : "Services"
+                }
                 triggerClassName={cn(
                   (pathname === "/services" ||
                     pathname?.startsWith("/services/")) &&
@@ -477,16 +502,17 @@ export function LandingHeader() {
                 )}
               />
               <Link href="/blogs" className={linkClass("/blogs")}>
-                Blogs
+                {isAuthLoginPage ? pilotLoginCopy.nav.blogs : "Blogs"}
               </Link>
               <Link href="/contact" className={linkClass("/contact")}>
-                Contact Us
+                {isAuthLoginPage ? pilotLoginCopy.nav.contact : "Contact Us"}
               </Link>
             </div>
           ) : null}
         </div>
 
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 sm:gap-3 lg:gap-6">
+          {isAuthLoginPage ? <PilotLoginLanguageSelector /> : null}
           {showHeaderSearchBar ? (
             <div className="hidden min-w-0 items-center rounded-full border border-border bg-card py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 xl:flex">
               <Search
@@ -496,7 +522,11 @@ export function LandingHeader() {
               <input
                 type="search"
                 name="track-delivery"
-                placeholder="Search..."
+                placeholder={
+                  isAuthLoginPage
+                    ? pilotLoginCopy.searchPlaceholder
+                    : "Search..."
+                }
                 className="w-40 min-w-0 border-0 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:ring-0 dark:text-white dark:placeholder:text-white/45 xl:w-48"
                 autoComplete="off"
               />
@@ -718,32 +748,18 @@ export function LandingHeader() {
                     isPilotLogoutContext ||
                     isAdminDashboard ||
                     isAdminSettingsContext ? (
-                      <>
-                        <Link
-                          href="/"
-                          role="menuitem"
-                          className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                          onClick={() => setAccountMenuOpen(false)}
-                        >
-                          <HomeIcon
-                            className="size-4 shrink-0 text-muted-foreground"
-                            aria-hidden
-                          />
-                          Home
-                        </Link>
-                        <Link
-                          href={isUserLogoutContext ? "/user-dashboard" : isPilotLogoutContext ? "/pilot-dashboard" : "/dashboard"}
-                          role="menuitem"
-                          className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                          onClick={() => setAccountMenuOpen(false)}
-                        >
-                          <LayoutDashboard
-                            className="size-4 shrink-0 text-muted-foreground"
-                            aria-hidden
-                          />
-                          Dashboard
-                        </Link>
-                      </>
+                      <Link
+                        href="/"
+                        role="menuitem"
+                        className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                        onClick={() => setAccountMenuOpen(false)}
+                      >
+                        <HomeIcon
+                          className="size-4 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
+                        Home
+                      </Link>
                     ) : null}
                     <Link
                       href={profileHref}
@@ -805,6 +821,9 @@ export function LandingHeader() {
           open ? "block" : "hidden"
         )}
       >
+        {isAuthLoginPage ? (
+          <PilotLoginLanguageSelector variant="drawer" className="xl:hidden" />
+        ) : null}
         {showHeaderSearchBar ? (
           <div className="mb-3 flex min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5">
             <Search
@@ -813,7 +832,11 @@ export function LandingHeader() {
             />
             <input
               type="search"
-              placeholder="Track delivery..."
+              placeholder={
+                isAuthLoginPage
+                  ? pilotLoginCopy.searchPlaceholder
+                  : "Track delivery..."
+              }
               className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 focus:ring-0 dark:bg-transparent dark:text-white dark:placeholder:text-white/45"
             />
           </div>
@@ -827,10 +850,10 @@ export function LandingHeader() {
                   className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                   onClick={() => setOpen(false)}
                 >
-                  Home
+                  {isAuthLoginPage ? pilotLoginCopy.nav.home : "Home"}
                 </Link>
                 <div className="px-3 pt-1 pb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Services
+                  {isAuthLoginPage ? pilotLoginCopy.nav.services : "Services"}
                 </div>
                 {serviceMegaMenuItems.map((item) => (
                   <Link
@@ -859,7 +882,7 @@ export function LandingHeader() {
                   )}
                   onClick={() => setOpen(false)}
                 >
-                  Blogs
+                  {isAuthLoginPage ? pilotLoginCopy.nav.blogs : "Blogs"}
                 </Link>
                 <Link
                   href="/contact"
@@ -871,29 +894,20 @@ export function LandingHeader() {
                   )}
                   onClick={() => setOpen(false)}
                 >
-                  Contact Us
+                  {isAuthLoginPage ? pilotLoginCopy.nav.contact : "Contact Us"}
                 </Link>
               </>
             ) : null}
             {showAccountMenu && !isAdminDashboard ? (
               <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-3">
                 {isUserLogoutContext || isPilotLogoutContext ? (
-                  <>
-                    <Link
-                      href="/"
-                      className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                      onClick={() => setOpen(false)}
-                    >
-                      Home
-                    </Link>
-                    <Link
-                      href={isUserLogoutContext ? "/user-dashboard" : "/pilot-dashboard"}
-                      className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                      onClick={() => setOpen(false)}
-                    >
-                      Dashboard
-                    </Link>
-                  </>
+                  <Link
+                    href="/"
+                    className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    onClick={() => setOpen(false)}
+                  >
+                    Home
+                  </Link>
                 ) : null}
                 <Link
                   href={profileHref}
