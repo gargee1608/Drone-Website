@@ -141,7 +141,8 @@ export const pilotLoginTranslations = {
   },
 } as const;
 
-export type PilotLoginCopy = (typeof pilotLoginTranslations)["en"];
+export type PilotLoginCopy =
+  (typeof pilotLoginTranslations)[PilotLoginLanguage];
 
 function isPilotLoginLanguage(value: string): value is PilotLoginLanguage {
   return value === "en" || value === "hi";

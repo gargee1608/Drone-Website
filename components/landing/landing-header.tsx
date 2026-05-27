@@ -479,12 +479,9 @@ export function LandingHeader() {
           {showMarketingHeaderNav ? (
             <div
               className={cn(
-                "hidden items-center gap-8 xl:flex",
+                "hidden shrink-0 items-center gap-6 xl:flex xl:gap-8",
                 centerMarketingHeaderNav &&
-                  "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-                !centerMarketingHeaderNav &&
-                  !isHomePage &&
-                  "ml-auto shrink-0 gap-6 xl:gap-8 xl:mr-2 2xl:mr-4"
+                  "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
               )}
             >
               <Link href="/" className={linkClass("/")}>
