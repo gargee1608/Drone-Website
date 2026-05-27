@@ -1,6 +1,12 @@
 "use client";
 
-import { CheckCircle2, ClipboardList, Clock, PackageCheck } from "lucide-react";
+import {
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  PackageCheck,
+  X,
+} from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   useEffect,
@@ -648,7 +654,7 @@ export function UserRequestsView({
             aria-label="Close edit request dialog"
             onClick={() => setEditingRequest(null)}
           />
-          <div className="relative z-10 max-h-[min(92dvh,44rem)] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-border bg-card p-5 shadow-2xl sm:rounded-2xl sm:p-6">
+          <div className="relative z-10 max-h-[min(92dvh,44rem)] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-border bg-white p-5 text-foreground shadow-2xl sm:rounded-2xl sm:p-6 dark:border-white/20 dark:bg-black dark:text-white">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-bold text-foreground">Edit User Request</h2>
@@ -659,9 +665,10 @@ export function UserRequestsView({
               <button
                 type="button"
                 onClick={() => setEditingRequest(null)}
-                className="rounded-lg border border-border px-2 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-muted"
+                className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted dark:text-white/80 dark:hover:bg-white/10"
+                aria-label="Close edit request dialog"
               >
-                Close
+                <X className="size-4" aria-hidden />
               </button>
             </div>
 
@@ -713,7 +720,7 @@ export function UserRequestsView({
                       missionUrgency: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+                  className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:bg-black"
                 >
                   <option value="critical">Critical</option>
                   <option value="normal">Normal</option>
@@ -732,7 +739,7 @@ export function UserRequestsView({
                       adminStatus: event.target.value as UserMissionAdminStatus,
                     }))
                   }
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+                  className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:bg-black"
                 >
                   <option value="pending">Pending</option>
                   <option value="accepted">Accepted</option>
@@ -758,7 +765,7 @@ export function UserRequestsView({
                 type="button"
                 disabled={requestSaving}
                 onClick={() => void saveRequestEdit()}
-                className="rounded-lg bg-[#008B8B] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#007373] disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border border-[#008B8B] bg-transparent px-4 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/8 disabled:cursor-not-allowed disabled:opacity-60 dark:border-primary dark:text-primary"
               >
                 {requestSaving ? "Saving..." : "Save changes"}
               </button>
@@ -787,7 +794,7 @@ function RequestField({
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+        className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:bg-black dark:text-white"
       />
     </label>
   );

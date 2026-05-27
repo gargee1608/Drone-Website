@@ -668,116 +668,13 @@ export function CompletedDeliveriesView({
           </div>
         ) : (
           paginatedRows.map((row) => (
-            <article
+            <CompletedDeliveryDetailCard
               key={`${row.missionId}-${row.completedAt}`}
-              className="rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm dark:border-white/20"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#008B8B]">
-                    Completed Mission
-                  </p>
-                  <h3 className="mt-1 text-base font-semibold text-foreground">
-                    {row.userName !== "—" ? row.userName : "Mission"}
-                  </h3>
-                  {row.userEmail !== "—" ? (
-                    <p className="mt-0.5 text-sm text-muted-foreground">
-                      {row.userEmail}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {!pilotScoped ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => openDeliveryEdit(row)}
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-blue-500/25 bg-blue-500/8 text-blue-700 transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 dark:text-blue-300"
-                        title="Edit"
-                        aria-label={`Edit completed delivery ${row.missionId}`}
-                      >
-                        <Pencil className="size-3.5" aria-hidden />
-                        <span className="sr-only">Edit</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void deleteDelivery(row)}
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-red-500/25 bg-red-500/8 text-red-700 transition-colors hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 dark:text-red-300"
-                        title="Delete"
-                        aria-label={`Delete completed delivery ${row.missionId}`}
-                      >
-                        <Trash2 className="size-3.5" aria-hidden />
-                        <span className="sr-only">Delete</span>
-                      </button>
-                    </div>
-                  ) : null}
-                  <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase text-sky-700 dark:border-sky-400/40 dark:bg-sky-950/30 dark:text-sky-300">
-                    Completed
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                <p className="text-[#5a6d71] dark:text-white/75">
-                  <span className="font-semibold text-[#1a3e42] dark:text-white">
-                    User Name:
-                  </span>{" "}
-                  {row.userName}
-                </p>
-                <p className="text-[#5a6d71] dark:text-white/75">
-                  <span className="font-semibold text-[#1a3e42] dark:text-white">
-                    User Email Id:
-                  </span>{" "}
-                  {row.userEmail}
-                </p>
-                <p className="text-[#5a6d71] dark:text-white/75">
-                  <span className="font-semibold text-[#1a3e42] dark:text-white">
-                    Request ID:
-                  </span>{" "}
-                  {row.missionId}
-                </p>
-                <p className="text-[#5a6d71] dark:text-white/75 sm:col-span-2">
-                  <span className="font-semibold text-[#1a3e42] dark:text-white">
-                    User Requirement:
-                  </span>{" "}
-                  {row.customer}
-                </p>
-                <p className="text-[#5a6d71] dark:text-white/75">
-                  <span className="font-semibold text-[#1a3e42] dark:text-white">
-                    Service:
-                  </span>{" "}
-                  {row.service || "—"}
-                </p>
-                <p className="text-[#5a6d71] dark:text-white/75">
-                  <span className="font-semibold text-[#1a3e42] dark:text-white">
-                    Drone:
-                  </span>{" "}
-                  {row.droneUnit || "—"}
-                </p>
-                <p className="text-[#5a6d71] dark:text-white/75">
-                  <span className="font-semibold text-[#1a3e42] dark:text-white">
-                    Pilot:
-                  </span>{" "}
-                  {row.pilot || "—"}
-                </p>
-                <p className="text-[#5a6d71] dark:text-white/75">
-                  <span className="font-semibold text-[#1a3e42] dark:text-white">
-                    Assigned At:
-                  </span>{" "}
-                  {formatDateTime(row.assignedAt)}
-                </p>
-                <p className="text-[#5a6d71] dark:text-white/75">
-                  <span className="font-semibold text-[#1a3e42] dark:text-white">
-                    Completed At:
-                  </span>{" "}
-                  {formatDateTime(row.completedAt)}
-                </p>
-              </div>
-
-              <div className="mt-3 inline-flex items-center gap-2 text-sm text-[#2d4f53] dark:text-white/85">
-                <span className="font-semibold">Destination:</span> {row.dropoff || "Destination TBD"}
-              </div>
-            </article>
+              row={row}
+              pilotScoped={pilotScoped}
+              onEdit={() => openDeliveryEdit(row)}
+              onDelete={() => void deleteDelivery(row)}
+            />
           ))
         )}
       </section>
@@ -911,6 +808,93 @@ export function CompletedDeliveriesView({
         </div>
       ) : null}
 
+    </section>
+  );
+}
+
+function InlineDeliveryField({ label, value }: { label: string; value: string }) {
+  return (
+    <p className="min-w-0 text-xs leading-snug text-muted-foreground">
+      <span className="font-semibold text-foreground">{label}</span>
+      {" : "}
+      <span className="text-foreground">{value}</span>
+    </p>
+  );
+}
+
+function CompletedDeliveryDetailCard({
+  row,
+  pilotScoped,
+  onEdit,
+  onDelete,
+}: {
+  row: DeliveryRow;
+  pilotScoped: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const title =
+    row.missionId !== "—" ? row.missionId : row.userName !== "—" ? row.userName : "Mission";
+  const hasUserLine = row.userName !== "—" || row.userEmail !== "—";
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm dark:border-white/20">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-muted/30 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Completed delivery
+          </p>
+          <h2 className="mt-1 truncate text-sm font-semibold text-foreground">{title}</h2>
+          {hasUserLine ? (
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              {row.userName !== "—" ? (
+                <InlineDeliveryField label="User name" value={row.userName} />
+              ) : null}
+              {row.userEmail !== "—" ? (
+                <InlineDeliveryField label="User email id" value={row.userEmail} />
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        {!pilotScoped ? (
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onEdit}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#008080] px-3 text-xs font-medium text-foreground transition hover:bg-[#008080]/10"
+            >
+              <Pencil className="size-3.5 shrink-0" aria-hidden />
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-300 bg-transparent px-3 text-xs font-medium text-red-600 transition hover:bg-red-50 hover:text-red-700"
+            >
+              <Trash2 className="size-3.5 shrink-0" aria-hidden />
+              Delete
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+          <InlineDeliveryField label="Request ID" value={row.missionId} />
+          <InlineDeliveryField label="User Requirement" value={row.customer} />
+          <InlineDeliveryField label="Service" value={row.service} />
+          <InlineDeliveryField label="Drone" value={row.droneUnit} />
+        </div>
+        <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+          <InlineDeliveryField label="Pilot" value={row.pilot} />
+          <InlineDeliveryField label="Assigned at" value={formatDateTime(row.assignedAt)} />
+          <InlineDeliveryField label="Completed at" value={formatDateTime(row.completedAt)} />
+          <InlineDeliveryField
+            label="Destination"
+            value={row.dropoff !== "—" ? row.dropoff : "Destination TBD"}
+          />
+        </div>
+      </div>
     </section>
   );
 }
