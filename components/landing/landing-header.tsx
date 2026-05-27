@@ -107,7 +107,6 @@ export function LandingHeader() {
     isPilotDashboard ||
     isSettingsPage;
   const isHomePage = pathname === "/" || pathname === "";
-  const centerMarketingHeaderNav = isPilotLoginPage || isPilotRegistration;
   const isMatchingHub = pathname === "/matching-hub";
   const {
     sidebarExpanded: adminSidebarExpanded,
@@ -399,12 +398,7 @@ export function LandingHeader() {
         )}
         aria-label="Primary"
       >
-        <div
-          className={cn(
-            "flex min-w-0 items-center gap-1 sm:gap-8 lg:gap-12",
-            !centerMarketingHeaderNav && "flex-1"
-          )}
-        >
+        <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-8 lg:gap-12">
           <div className="flex min-w-0 items-center gap-1 sm:gap-2">
             {isAdminCommandCenterShell ? (
               <button
@@ -476,13 +470,7 @@ export function LandingHeader() {
             </Link>
           </div>
           {showMarketingHeaderNav ? (
-            <div
-              className={cn(
-                "hidden shrink-0 items-center gap-6 xl:flex xl:gap-8",
-                centerMarketingHeaderNav &&
-                  "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-              )}
-            >
+            <div className="hidden shrink-0 items-center gap-6 xl:flex xl:gap-8">
               <Link href="/" className={linkClass("/")}>
                 {isAuthLoginPage ? pilotLoginCopy.nav.home : "Home"}
               </Link>
