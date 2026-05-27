@@ -16,6 +16,13 @@ export function apiUrl(path: string): string {
   if (normalized === "/api/pilots/register") {
     return "/api/pilots/register";
   }
+  /** Pilot table counts — Next route handlers query PostgreSQL `pilots` directly. */
+  if (
+    normalized === "/api/pilots/active-count" ||
+    normalized === "/api/pilots/total-count"
+  ) {
+    return normalized;
+  }
   /** Served by Next Route Handlers (`app/api/blogs/...`) — same DB as backend; works without Express. */
   if (normalized.startsWith("/api/blogs")) {
     return normalized;

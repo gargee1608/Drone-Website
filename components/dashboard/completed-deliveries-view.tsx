@@ -82,6 +82,20 @@ function formatNumber(value: number) {
   return value.toLocaleString("en-US");
 }
 
+function parseCountPayload(payload: unknown): number | null {
+  const raw =
+    payload &&
+    typeof payload === "object" &&
+    "count" in payload &&
+    (payload as { count: unknown }).count;
+  const n = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatStatCount(value: number | null): string {
+  return value === null ? "—" : formatNumber(value);
+}
+
 function toDateTimeLocalInput(value: string): string {
   if (!value) return "";
   const d = new Date(value);
@@ -261,11 +275,15 @@ export function CompletedDeliveriesView({
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<DeliveryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  /** All `missions` rows (any status); null until loaded or on error. */
+  const [totalDeliveriesDbCount, setTotalDeliveriesDbCount] = useState<
+    number | null
+  >(null);
   /** `missions` table count (completed); null until loaded or on error. */
   const [completedDeliveriesDbCount, setCompletedDeliveriesDbCount] = useState<
     number | null
   >(null);
-  /** `pilots` table count (duty_status ACTIVE); null until loaded or on error. */
+  /** `pilots` table count (`duty_status` ACTIVE); null until loaded or on error. */
   const [activePilotsDbCount, setActivePilotsDbCount] = useState<number | null>(
     null
   );
@@ -373,42 +391,58 @@ export function CompletedDeliveriesView({
 
   useEffect(() => {
     let cancelled = false;
-    async function loadCompletedCount() {
+    async function loadMissionStats() {
       const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const pilotSub = pilotScoped && token ? jwtPayloadSub(token) : null;
       const pilotName = pilotScoped && token ? jwtPayloadPilotFullName(token) : null;
       const nameTrim = pilotName?.trim() || "";
 
       if (pilotScoped && !pilotSub && !nameTrim) {
-        if (!cancelled) setCompletedDeliveriesDbCount(0);
+        if (!cancelled) {
+          setTotalDeliveriesDbCount(0);
+          setCompletedDeliveriesDbCount(0);
+        }
         return;
       }
 
-      const url =
+      const pilotQuery =
         pilotScoped && (pilotSub || nameTrim)
-          ? apiUrl(
-              `/api/missions/completed-deliveries-count?pilotSub=${encodeURIComponent(pilotSub ?? "")}&pilotName=${encodeURIComponent(nameTrim)}`
-            )
-          : apiUrl("/api/missions/completed-deliveries-count");
+          ? `?pilotSub=${encodeURIComponent(pilotSub ?? "")}&pilotName=${encodeURIComponent(nameTrim)}`
+          : "";
 
       try {
-        const response = await fetch(url, { cache: "no-store" });
-        if (!response.ok) throw new Error("bad response");
-        const payload: unknown = await response.json();
-        const raw =
-          payload &&
-          typeof payload === "object" &&
-          "count" in payload &&
-          (payload as { count: unknown }).count;
-        const n = typeof raw === "number" ? raw : Number(raw);
-        if (!cancelled) {
-          setCompletedDeliveriesDbCount(Number.isFinite(n) ? n : null);
+        const [totalRes, completedRes] = await Promise.all([
+          fetch(apiUrl(`/api/missions/total-deliveries-count${pilotQuery}`), {
+            cache: "no-store",
+          }),
+          fetch(apiUrl(`/api/missions/completed-deliveries-count${pilotQuery}`), {
+            cache: "no-store",
+          }),
+        ]);
+
+        if (cancelled) return;
+
+        if (totalRes.ok) {
+          const payload: unknown = await totalRes.json();
+          setTotalDeliveriesDbCount(parseCountPayload(payload));
+        } else {
+          setTotalDeliveriesDbCount(null);
+        }
+
+        if (completedRes.ok) {
+          const payload: unknown = await completedRes.json();
+          setCompletedDeliveriesDbCount(parseCountPayload(payload));
+        } else {
+          setCompletedDeliveriesDbCount(null);
         }
       } catch {
-        if (!cancelled) setCompletedDeliveriesDbCount(null);
+        if (!cancelled) {
+          setTotalDeliveriesDbCount(null);
+          setCompletedDeliveriesDbCount(null);
+        }
       }
     }
-    void loadCompletedCount();
+    void loadMissionStats();
     return () => {
       cancelled = true;
     };
@@ -421,16 +455,12 @@ export function CompletedDeliveriesView({
         const response = await fetch(apiUrl("/api/pilots/active-count"), {
           cache: "no-store",
         });
-        if (!response.ok) throw new Error("bad response");
-        const payload: unknown = await response.json();
-        const raw =
-          payload &&
-          typeof payload === "object" &&
-          "count" in payload &&
-          (payload as { count: unknown }).count;
-        const n = typeof raw === "number" ? raw : Number(raw);
-        if (!cancelled) {
-          setActivePilotsDbCount(Number.isFinite(n) ? n : null);
+        if (cancelled) return;
+        if (response.ok) {
+          const payload: unknown = await response.json();
+          setActivePilotsDbCount(parseCountPayload(payload));
+        } else {
+          setActivePilotsDbCount(null);
         }
       } catch {
         if (!cancelled) setActivePilotsDbCount(null);
@@ -440,7 +470,7 @@ export function CompletedDeliveriesView({
     return () => {
       cancelled = true;
     };
-  }, [pilotScoped]);
+  }, [refreshTick]);
 
   const filteredRows = useMemo(() => rows, [rows]);
 
@@ -458,17 +488,6 @@ export function CompletedDeliveriesView({
     const start = (page - 1) * PAGE_SIZE;
     return filteredRows.slice(start, start + PAGE_SIZE);
   }, [filteredRows, page]);
-
-  const completedDeliveriesStat =
-    completedDeliveriesDbCount !== null
-      ? completedDeliveriesDbCount
-      : filteredRows.length;
-
-  const uniquePilotsFromRows = new Set(
-    filteredRows.map((row) => row.pilot).filter((name) => name !== "—")
-  ).size;
-  const activePilotsStat =
-    activePilotsDbCount !== null ? activePilotsDbCount : uniquePilotsFromRows;
 
   function handleExportCsv() {
     const header = [
@@ -633,7 +652,7 @@ export function CompletedDeliveriesView({
               Total Deliveries
             </p>
             <p className="mt-1 font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-              {formatNumber(filteredRows.length)}
+              {formatStatCount(totalDeliveriesDbCount)}
             </p>
           </article>
 
@@ -642,7 +661,7 @@ export function CompletedDeliveriesView({
               Completed Deliveries
             </p>
             <p className="mt-1 font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-              {formatNumber(completedDeliveriesStat)}
+              {formatStatCount(completedDeliveriesDbCount)}
             </p>
           </article>
 
@@ -651,7 +670,7 @@ export function CompletedDeliveriesView({
               Active Pilots
             </p>
             <p className="mt-1 font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-              {formatNumber(activePilotsStat)}
+              {formatStatCount(activePilotsDbCount)}
             </p>
           </article>
         </div>

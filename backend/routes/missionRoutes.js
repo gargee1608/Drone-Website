@@ -214,6 +214,38 @@ router.get("/assigned-count", async (req, res) => {
   }
 });
 
+/**
+ * Count of all mission rows (any status). Optional pilotSub / pilotName filter
+ * matches GET / and completed-deliveries-count.
+ */
+router.get("/total-deliveries-count", async (req, res) => {
+  try {
+    await ensureMissionColumns();
+    const pilotSub = toTrimmed(req.query?.pilotSub);
+    const pilotName = toTrimmed(req.query?.pilotName).toLowerCase();
+    const result = pilotSub || pilotName
+      ? await pool.query(
+          `SELECT COUNT(*)::int AS count
+           FROM missions
+           WHERE (
+             TRIM(COALESCE(pilot_sub, '')) = $1
+             OR (
+               $2 <> ''
+               AND TRIM(COALESCE(pilot_sub, '')) = ''
+               AND LOWER(TRIM(COALESCE(pilot_name, ''))) = $2
+             )
+           )`,
+          [pilotSub, pilotName]
+        )
+      : await pool.query(`SELECT COUNT(*)::int AS count FROM missions`);
+    const count = Number(result.rows[0]?.count ?? 0);
+    return res.status(200).json({ success: true, count });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.get("/completed-deliveries-count", async (req, res) => {
   try {
     await ensureMissionColumns();
