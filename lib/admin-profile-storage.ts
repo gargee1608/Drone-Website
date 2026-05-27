@@ -59,3 +59,8 @@ export function buildAdminProfileForDisplay(): AdminProfileDraft {
   if (saved) return saved;
   return { ...DEFAULT_ADMIN_PROFILE, userRole: userRoleFromAuthToken() };
 }
+
+export function getAdminDisplayName(): string {
+  const profile = buildAdminProfileForDisplay();
+  return `${profile.firstName} ${profile.lastName}`.trim() || "Admin";
+}

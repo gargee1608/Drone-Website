@@ -90,6 +90,33 @@ export function commandCenterNavHrefPath(href: string): string {
   return q === -1 ? href : href.slice(0, q);
 }
 
+/** Mobile header title under the global nav (matches User Dashboard shell). */
+export function adminMobilePageTitle(pathname: string | null): string {
+  if (!pathname) return "Admin Dashboard";
+  if (
+    pathname === "/settings" ||
+    pathname === "/settings/" ||
+    pathname.startsWith("/settings/")
+  ) {
+    return "Settings";
+  }
+  if (pathname === "/dashboard" || pathname === "/dashboard/") {
+    return "Admin Dashboard";
+  }
+  if (
+    pathname === "/dashboard/profile" ||
+    pathname.startsWith("/dashboard/profile/")
+  ) {
+    return "My Profile";
+  }
+  const match = commandCenterNavMain.find(
+    (item) =>
+      item.href !== "/dashboard" &&
+      commandCenterNavItemIsActive(pathname, item.href)
+  );
+  return match?.label ?? "Admin Dashboard";
+}
+
 export function commandCenterNavItemIsActive(
   pathname: string | null,
   href: string

@@ -328,14 +328,28 @@ export function UserDashboardShell({
             <div
               className={cn(omitPageTitle ? "mb-6 sm:mb-8" : "mb-10 sm:mb-12")}
             >
-              {userWelcome && isMainUserDashboard ? (
-                <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
-                  Welcome, {userWelcome}
-                </h2>
-              ) : null}
               {omitPageTitle ? (
                 <>
-                  <h1 className="sr-only">{pageTitle}</h1>
+                  {isMainUserDashboard ? (
+                    <>
+                      <h1 className="sr-only lg:hidden">{pageTitle}</h1>
+                      <h1
+                        className={cn(
+                          ADMIN_PAGE_TITLE_CLASS,
+                          "mb-4 hidden lg:block sm:mb-5"
+                        )}
+                      >
+                        {pageTitle}
+                      </h1>
+                      {userWelcome ? (
+                        <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
+                          Welcome, {userWelcome}
+                        </h2>
+                      ) : null}
+                    </>
+                  ) : (
+                    <h1 className="sr-only">{pageTitle}</h1>
+                  )}
                   {children}
                 </>
               ) : pageSubtitle ? (
@@ -368,6 +382,11 @@ export function UserDashboardShell({
                       {pageTitle}
                     </h1>
                   </div>
+                  {userWelcome && isMainUserDashboard ? (
+                    <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
+                      Welcome, {userWelcome}
+                    </h2>
+                  ) : null}
                   {children}
                 </>
               )}

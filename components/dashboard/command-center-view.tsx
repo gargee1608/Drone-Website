@@ -13,6 +13,11 @@ import {
   ADMIN_DASH_DIVIDER_BORDER,
   ADMIN_DASH_PANEL_BORDER,
 } from "@/lib/admin-dashboard-styles";
+import {
+  ADMIN_PROFILE_UPDATED_EVENT,
+  getAdminDisplayName,
+} from "@/lib/admin-profile-storage";
+import { jwtPayloadRole } from "@/lib/pilot-display-name";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -117,10 +122,32 @@ function mapDbPilotToApprovedCard(row: DashboardPilotDbRow): PilotRegCard {
 
 export function DashboardHomeContent() {
   const router = useRouter();
+  const [adminWelcome, setAdminWelcome] = useState<string | null>(null);
   const [dbPendingPilots, setDbPendingPilots] = useState<PilotRegCard[]>([]);
   const [dbApprovedPilots, setDbApprovedPilots] = useState<PilotRegCard[]>([]);
   const [dbTotalPilots, setDbTotalPilots] = useState(0);
   const [dbTotalDrones, setDbTotalDrones] = useState(0);
+
+  useEffect(() => {
+    const sync = () => {
+      const t =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!t || jwtPayloadRole(t) !== "admin") {
+        setAdminWelcome(null);
+        return;
+      }
+      setAdminWelcome(getAdminDisplayName());
+    };
+    sync();
+    window.addEventListener("storage", sync);
+    window.addEventListener("focus", sync);
+    window.addEventListener(ADMIN_PROFILE_UPDATED_EVENT, sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("focus", sync);
+      window.removeEventListener(ADMIN_PROFILE_UPDATED_EVENT, sync);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -223,7 +250,20 @@ export function DashboardHomeContent() {
 
   return (
     <>
-      <h1 className={cn(ADMIN_PAGE_TITLE_CLASS, "mt-8 mb-8")}>Admin Dashboard</h1>
+      <h1 className="sr-only lg:hidden">Admin Dashboard</h1>
+      <h1
+        className={cn(
+          ADMIN_PAGE_TITLE_CLASS,
+          "mb-4 mt-8 hidden lg:block sm:mb-5"
+        )}
+      >
+        Admin Dashboard
+      </h1>
+      {adminWelcome ? (
+        <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
+          Welcome, {adminWelcome}
+        </h2>
+      ) : null}
 
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard

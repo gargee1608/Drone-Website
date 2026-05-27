@@ -357,7 +357,7 @@ export function PilotDashboardView() {
   }
 
   return (
-    <PilotDashboardShell pageTitle="Flight deck" omitPageTitle hideMobilePageTitle>
+    <PilotDashboardShell pageTitle="Pilot Dashboard" omitPageTitle>
       <div
         className={cn(
           flightDeck.variable,
