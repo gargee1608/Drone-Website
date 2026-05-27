@@ -209,6 +209,11 @@
   color-scheme: dark;
 }
 
+/* Admin sidebar stays white in light and dark mode. */
+.admin-dashboard #command-center-nav {
+  background-color: #ffffff;
+}
+
 .dark .admin-dashboard .cc-glass-card {
   background: var(--card);
   backdrop-filter: none;

@@ -135,6 +135,8 @@ export type PilotDashboardShellProps = {
   pageSubtitle?: ReactNode;
   pageTitleClassName?: string;
   pageTitleBarClassName?: string;
+  /** When true, hide the compact mobile header title text. */
+  hideMobilePageTitle?: boolean;
   /** When true, skip the large visible page title (use sr-only for a11y). */
   omitPageTitle?: boolean;
   children: ReactNode;
@@ -145,6 +147,7 @@ export function PilotDashboardShell({
   pageSubtitle,
   pageTitleClassName,
   pageTitleBarClassName,
+  hideMobilePageTitle = false,
   omitPageTitle = false,
   children,
 }: PilotDashboardShellProps) {
@@ -214,14 +217,16 @@ export function PilotDashboardShell({
         >
           <Menu className="size-5" strokeWidth={2.25} aria-hidden />
         </button>
-        <span
-          className={cn(
-            "font-bold text-[#191c1d] dark:text-white",
-            pageTitleBarClassName ?? "text-sm"
-          )}
-        >
-          {pageTitle}
-        </span>
+        {!hideMobilePageTitle ? (
+          <span
+            className={cn(
+              "font-bold text-[#191c1d] dark:text-white",
+              pageTitleBarClassName ?? "text-sm"
+            )}
+          >
+            {pageTitle}
+          </span>
+        ) : null}
       </div>
 
       {mobileNavOpen ? (

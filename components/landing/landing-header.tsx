@@ -36,7 +36,6 @@ import {
   readStoredUserSession,
   type StoredUserSession,
 } from "@/lib/user-session-browser";
-import { PilotLoginLanguageSelector } from "@/components/pilot-login/pilot-login-language-selector";
 import { isPilotRegistrationFromAdmin } from "@/lib/pilot-registration-from-admin";
 import { usePilotLoginLanguage } from "@/lib/pilot-login-i18n";
 import { cn } from "@/lib/utils";
@@ -509,7 +508,6 @@ export function LandingHeader() {
         </div>
 
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 sm:gap-3 lg:gap-6">
-          {isAuthLoginPage ? <PilotLoginLanguageSelector /> : null}
           {showHeaderSearchBar ? (
             <div className="hidden min-w-0 items-center rounded-full border border-border bg-card py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 xl:flex">
               <Search
@@ -818,9 +816,6 @@ export function LandingHeader() {
           open ? "block" : "hidden"
         )}
       >
-        {isAuthLoginPage ? (
-          <PilotLoginLanguageSelector variant="drawer" className="xl:hidden" />
-        ) : null}
         {showHeaderSearchBar ? (
           <div className="mb-3 flex min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5">
             <Search
