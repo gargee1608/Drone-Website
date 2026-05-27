@@ -29,6 +29,7 @@ import {
 } from "@/lib/user-requests";
 import { apiUrl } from "@/lib/api-url";
 import {
+  USER_DASH_BORDER_COLOR,
   USER_DASH_CHIP,
   USER_DASH_CHIP_CHECKED,
   USER_DASH_DIVIDER_BORDER,
@@ -420,7 +421,8 @@ export function UserDashboardFleetDashboard({
           <section
             className={cn(
               "flex h-full flex-col overflow-hidden rounded-xl bg-card",
-              USER_DASH_PANEL_BORDER
+              USER_DASH_BORDER_COLOR,
+              "shadow-[0_1px_3px_rgba(15,23,42,0.06)] dark:shadow-none"
             )}
           >
             <div

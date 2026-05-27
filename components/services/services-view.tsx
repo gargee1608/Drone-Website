@@ -621,8 +621,20 @@ export function ServicesView({
 }: ServicesViewProps = {}) {
   const adminExtras = useAdminServicesCatalog();
   const [dbServices, setDbServices] = useState<Record<string, unknown>[]>([]);
+  const [suppressedSlugs, setSuppressedSlugs] = useState<string[]>([]);
   const persistedSelection = useFeaturedServiceSelection();
   const persistedSlug = useFeaturedServiceSlug();
+
+  useEffect(() => {
+    void fetchSuppressedServiceSlugs()
+      .then(setSuppressedSlugs)
+      .catch(() => setSuppressedSlugs([]));
+  }, []);
+
+  const suppressed = useMemo(
+    () => suppressedSlugSet(suppressedSlugs),
+    [suppressedSlugs]
+  );
 
   useEffect(() => {
     let disposed = false;
@@ -671,8 +683,8 @@ export function ServicesView({
   }, []);
 
   const allListed = useMemo(
-    () => buildListedServices(adminExtras, dbServices),
-    [adminExtras, dbServices]
+    () => buildListedServices(adminExtras, dbServices, suppressed),
+    [adminExtras, dbServices, suppressed]
   );
 
   const displayEntry = useMemo(
