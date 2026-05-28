@@ -117,7 +117,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       <aside
         id="command-center-nav"
         className={cn(
-          "fixed bottom-0 left-0 top-20 z-50 flex h-[calc(100dvh-5rem)] max-h-[calc(100dvh-5rem)] min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col border-r border-border bg-white text-foreground dark:border-white/20 dark:bg-black dark:text-white sm:top-22 sm:h-[calc(100dvh-5.5rem)] sm:max-h-[calc(100dvh-5.5rem)] lg:border-r",
+          "fixed bottom-0 left-0 top-20 z-50 flex h-[calc(100dvh-5rem)] max-h-[calc(100dvh-5rem)] min-h-0 w-[min(16rem,85vw)] max-w-[16rem] flex-col bg-white text-foreground dark:bg-black dark:text-white sm:top-22 sm:h-[calc(100dvh-5.5rem)] sm:max-h-[calc(100dvh-5.5rem)]",
           "transform transition-[transform,width] duration-200 ease-out will-change-transform",
           sidebarExpanded ? "lg:w-64" : "lg:w-0 lg:max-w-0 lg:overflow-hidden lg:border-0 lg:p-0",
           "-translate-x-full lg:translate-x-0",
@@ -182,7 +182,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
           <div
             className={cn(
-              "relative z-10 w-full shrink-0 border-t border-border bg-white px-2 pt-4 dark:border-white/20 dark:bg-black",
+              "relative z-10 w-full shrink-0 bg-white px-2 pt-4 dark:bg-black",
               "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
             )}
           >
@@ -205,14 +205,6 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </aside>
-
-      {/* Full-height vertical rule at sidebar edge (continues over the global footer in the viewport). */}
-      {sidebarExpanded ? (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed bottom-0 left-64 top-20 z-[35] hidden w-px bg-border sm:top-22 lg:block"
-        />
-      ) : null}
 
       <main
         className={cn(

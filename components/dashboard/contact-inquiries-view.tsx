@@ -109,9 +109,8 @@ export function ContactInquiriesView() {
           </p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-5">
-          <div className="rounded-xl border border-border/90">
-            <table className="w-full table-fixed border-collapse text-left text-[10px] leading-snug sm:text-[11px]">
+        <div className="rounded-xl border border-border/90">
+          <table className="w-full table-fixed border-collapse text-left text-[10px] leading-snug sm:text-[11px]">
               <thead>
                 <tr className="border-b border-border bg-muted/60">
                   <th
@@ -206,8 +205,7 @@ export function ContactInquiriesView() {
                   );
                 })}
               </tbody>
-            </table>
-          </div>
+          </table>
         </div>
       )}
     </div>
