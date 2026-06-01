@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type DragEvent,
 } from "react";
 
 import {
@@ -62,6 +63,30 @@ function statusLabel(status: BlogStatus): string {
 }
 
 const MAX_BLOG_COVER_BYTES = 2 * 1024 * 1024;
+
+function getImageFileFromDataTransfer(dt: DataTransfer): File | null {
+  if (dt.files?.length) {
+    const file = dt.files[0];
+    if (file.type.startsWith("image/")) return file;
+  }
+  for (const item of Array.from(dt.items)) {
+    if (item.kind === "file" && item.type.startsWith("image/")) {
+      const file = item.getAsFile();
+      if (file) return file;
+    }
+  }
+  return null;
+}
+
+function getImageFileFromClipboard(dt: DataTransfer): File | null {
+  for (const item of Array.from(dt.items)) {
+    if (item.type.startsWith("image/")) {
+      const file = item.getAsFile();
+      if (file) return file;
+    }
+  }
+  return getImageFileFromDataTransfer(dt);
+}
 
 function readBlogCoverImageFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -166,6 +191,7 @@ export function AdminBlogsView({
   const [status, setStatus] = useState<BlogStatus>("draft");
   const [bodyText, setBodyText] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [coverDragActive, setCoverDragActive] = useState(false);
   const openedEditSlugRef = useRef<string | null>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -173,10 +199,7 @@ export function AdminBlogsView({
     if (coverFileInputRef.current) coverFileInputRef.current.value = "";
   }, []);
 
-  async function onCoverFileSelected(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  const applyCoverImageFile = useCallback(async (file: File) => {
     try {
       const dataUrl = await readBlogCoverImageFile(file);
       setImage(dataUrl);
@@ -184,7 +207,62 @@ export function AdminBlogsView({
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Invalid image.");
     }
-  }
+  }, []);
+
+  const onCoverFileSelected = useCallback(
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      await applyCoverImageFile(file);
+    },
+    [applyCoverImageFile]
+  );
+
+  const onCoverDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes("Files")) {
+      e.dataTransfer.dropEffect = "copy";
+      setCoverDragActive(true);
+    }
+  }, []);
+
+  const onCoverDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const related = e.relatedTarget as Node | null;
+    if (!e.currentTarget.contains(related)) {
+      setCoverDragActive(false);
+    }
+  }, []);
+
+  const onCoverDrop = useCallback(
+    async (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setCoverDragActive(false);
+      const file = getImageFileFromDataTransfer(e.dataTransfer);
+      if (file) await applyCoverImageFile(file);
+    },
+    [applyCoverImageFile]
+  );
+
+  useEffect(() => {
+    if (editorMode === "closed") return;
+
+    const onPaste = (e: ClipboardEvent) => {
+      const file = e.clipboardData
+        ? getImageFileFromClipboard(e.clipboardData)
+        : null;
+      if (!file) return;
+      e.preventDefault();
+      void applyCoverImageFile(file);
+    };
+
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [editorMode, applyCoverImageFile]);
 
   const refresh = useCallback(async () => {
     let apiRows = initialApiRowsRef.current;
@@ -635,13 +713,29 @@ export function AdminBlogsView({
                   />
                   <div className="space-y-3">
                     <div
+                      onDragEnter={onCoverDragOver}
+                      onDragOver={onCoverDragOver}
+                      onDragLeave={onCoverDragLeave}
+                      onDrop={onCoverDrop}
                       className={cn(
-                        "relative aspect-[16/10] w-full overflow-hidden rounded-lg border bg-muted",
+                        "relative aspect-[16/10] w-full overflow-hidden rounded-lg border bg-muted transition-colors",
                         image
                           ? "border-border"
-                          : "border-dashed border-muted-foreground/30"
+                          : "border-dashed border-muted-foreground/30",
+                        coverDragActive &&
+                          "border-[#008B8B] bg-[#008B8B]/10 ring-2 ring-[#008B8B]/30"
                       )}
                     >
+                      {coverDragActive ? (
+                        <div
+                          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[#008B8B]/15"
+                          aria-hidden
+                        >
+                          <span className="text-sm font-semibold text-[#008B8B]">
+                            Drop image here
+                          </span>
+                        </div>
+                      ) : null}
                       {image ? (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element -- data URLs + remote URLs */}
@@ -678,7 +772,7 @@ export function AdminBlogsView({
                             aria-hidden
                           />
                           <span className="text-xs text-muted-foreground">
-                            No cover yet — click here or use Browser below
+                            Click, drag & drop, or paste an image
                           </span>
                         </button>
                       )}
@@ -693,7 +787,8 @@ export function AdminBlogsView({
                       Browser
                     </Button>
                     <p className="text-[11px] leading-snug text-muted-foreground">
-                      JPEG, PNG, WebP, or GIF · max 2 MB
+                      JPEG, PNG, WebP, or GIF · max 2 MB · click, drag & drop,
+                      or paste from clipboard
                     </p>
                   </div>
                 </div>
