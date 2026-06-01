@@ -1,17 +1,35 @@
+import Image from "next/image";
 import {
   BadgeCheck,
+  BarChart3,
   Building2,
   CalendarClock,
   Clapperboard,
+  CloudRain,
+  Droplets,
   HardHat,
   Heart,
+  Home,
+  Layers,
   Map,
   MapPinned,
+  Megaphone,
   Radar,
   ScanLine,
+  Sprout,
   Tractor,
+  Video,
   Weight,
+  type LucideIcon,
 } from "lucide-react";
+
+type DescriptionListItem = string | { text: string; icon: LucideIcon };
+
+function isIconListItem(
+  item: DescriptionListItem,
+): item is { text: string; icon: LucideIcon } {
+  return typeof item === "object";
+}
 
 const items = [
   {
@@ -22,7 +40,15 @@ const items = [
   {
     icon: Tractor,
     title: "Agriculture & Spraying",
-    description: "Crop health, precision spraying & field mapping.",
+    image: "/images/agriculture-spraying.png",
+    imageAlt:
+      "Agricultural drones spraying pesticides and fertilizers over a green crop field at sunrise",
+    description: [
+      { text: "Crop monitoring", icon: Sprout },
+      { text: "Spraying pesticides and fertilizers", icon: Droplets },
+      { text: "Irrigation management", icon: CloudRain },
+      { text: "Yield analysis", icon: BarChart3 },
+    ],
   },
   {
     icon: Clapperboard,
@@ -37,7 +63,15 @@ const items = [
   {
     icon: Building2,
     title: "Real Estate & Property Shoots",
-    description: "Listings, developments & polished property marketing.",
+    image: "/images/real-estate-property-shoots.png",
+    imageAlt:
+      "Aerial view of a modern residential development with terracotta roofs, canals, and landscaped grounds",
+    description: [
+      { text: "Property showcases", icon: Home },
+      { text: "Virtual tours", icon: Video },
+      { text: "Land visualization", icon: Layers },
+      { text: "Marketing content", icon: Megaphone },
+    ],
   },
   {
     icon: Heart,
@@ -121,38 +155,119 @@ export function Features() {
                 key={`industry-row-${rowIndex}`}
                 className={`grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-7 ${rowZoomClass}`}
               >
-                {row.map(({ icon: Icon, title, description }) => (
-                  <div
-                    key={title}
-                    className="group relative flex h-full min-h-[180px] flex-col overflow-hidden rounded-3xl border border-[#008B8B]/15 bg-white/90 p-5 text-left shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-[#008B8B]/35 hover:shadow-[0_24px_60px_rgba(0,139,139,0.16)] sm:min-h-[210px] sm:p-7"
-                  >
+                {row.map((item) => {
+                  const { title, description } = item;
+                  const Icon = "icon" in item ? item.icon : undefined;
+                  const image = "image" in item ? item.image : undefined;
+                  const imageAlt =
+                    "imageAlt" in item ? item.imageAlt : `${title} illustration`;
+
+                  return (
                     <div
-                      className="absolute inset-x-6 top-0 h-1 rounded-b-full bg-gradient-to-r from-transparent via-[#008B8B] to-transparent opacity-60"
-                      aria-hidden
-                    />
-                    <div
-                      className="pointer-events-none absolute -right-12 -top-12 size-32 rounded-full bg-[#008B8B]/10 transition-transform duration-300 group-hover:scale-125"
-                      aria-hidden
-                    />
-                    <div className="relative mb-5 flex size-14 shrink-0 items-center justify-center rounded-2xl border border-[#008B8B]/20 bg-[#f4fbfb] shadow-sm transition-transform duration-300 group-hover:scale-105 sm:mb-6 sm:size-16">
-                      <Icon
-                        className="size-8 text-[#008B8B] sm:size-9"
-                        strokeWidth={1.5}
-                        aria-hidden
-                      />
+                      key={title}
+                      className={`group relative flex h-full min-h-[180px] flex-col overflow-hidden rounded-3xl border border-[#008B8B]/15 bg-white/90 text-left shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-[#008B8B]/35 hover:shadow-[0_24px_60px_rgba(0,139,139,0.16)] sm:min-h-[210px] ${image ? "p-0" : "p-5 sm:p-7"}`}
+                    >
+                      {image ? (
+                        <div className="relative h-36 w-full shrink-0 sm:h-40">
+                          <Image
+                            src={image}
+                            alt={imageAlt}
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          />
+                          <div
+                            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white/80 via-transparent to-transparent"
+                            aria-hidden
+                          />
+                        </div>
+                      ) : null}
+                      <div
+                        className={
+                          image
+                            ? "relative flex flex-1 flex-col p-5 sm:p-7"
+                            : "contents"
+                        }
+                      >
+                        <div
+                          className="absolute inset-x-6 top-0 h-1 rounded-b-full bg-gradient-to-r from-transparent via-[#008B8B] to-transparent opacity-60"
+                          aria-hidden
+                        />
+                        <div
+                          className="pointer-events-none absolute -right-12 -top-12 size-32 rounded-full bg-[#008B8B]/10 transition-transform duration-300 group-hover:scale-125"
+                          aria-hidden
+                        />
+                        {Icon && !image ? (
+                          <div className="relative mb-5 flex size-14 shrink-0 items-center justify-center rounded-2xl border border-[#008B8B]/20 bg-[#f4fbfb] shadow-sm transition-transform duration-300 group-hover:scale-105 sm:mb-6 sm:size-16">
+                            <Icon
+                              className="size-8 text-[#008B8B] sm:size-9"
+                              strokeWidth={1.5}
+                              aria-hidden
+                            />
+                          </div>
+                        ) : null}
+                        <h3 className="relative mb-3 flex items-center gap-2.5 font-[family-name:var(--font-landing-headline)] text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl">
+                          {Icon && image ? (
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#008B8B]/20 bg-[#f4fbfb] sm:size-9">
+                              <Icon
+                                className="size-4 text-[#008B8B] sm:size-5"
+                                strokeWidth={1.75}
+                                aria-hidden
+                              />
+                            </span>
+                          ) : null}
+                          {title}
+                        </h3>
+                        {Array.isArray(description) ? (
+                          <ul className="relative mb-6 flex-1 space-y-2 text-sm leading-relaxed text-slate-600 sm:space-y-2.5 sm:text-[0.9375rem]">
+                            {description.map((listItem) => {
+                              if (isIconListItem(listItem)) {
+                                const ItemIcon = listItem.icon;
+
+                                return (
+                                  <li
+                                    key={listItem.text}
+                                    className="flex items-start gap-2.5"
+                                  >
+                                    <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border border-[#008B8B]/20 bg-[#f4fbfb]">
+                                      <ItemIcon
+                                        className="size-3.5 text-[#008B8B]"
+                                        strokeWidth={1.75}
+                                        aria-hidden
+                                      />
+                                    </div>
+                                    <span>{listItem.text}</span>
+                                  </li>
+                                );
+                              }
+
+                              return (
+                                <li
+                                  key={listItem}
+                                  className="flex items-start gap-2"
+                                >
+                                  <span
+                                    className="mt-2 size-1.5 shrink-0 rounded-full bg-[#008B8B]"
+                                    aria-hidden
+                                  />
+                                  <span>{listItem}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        ) : (
+                          <p className="relative mb-6 flex-1 text-sm leading-relaxed text-slate-600 sm:text-[0.9375rem]">
+                            {description}
+                          </p>
+                        )}
+                        <div className="relative mt-auto flex items-center gap-3">
+                          <div className="landing-telemetry-line flex-1 opacity-90" />
+                          <span className="size-2 rounded-full bg-[#008B8B] shadow-[0_0_0_5px_rgba(0,139,139,0.12)]" />
+                        </div>
+                      </div>
                     </div>
-                    <h3 className="relative mb-3 font-[family-name:var(--font-landing-headline)] text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl">
-                      {title}
-                    </h3>
-                    <p className="relative mb-6 flex-1 text-sm leading-relaxed text-slate-600 sm:text-[0.9375rem]">
-                      {description}
-                    </p>
-                    <div className="relative mt-auto flex items-center gap-3">
-                      <div className="landing-telemetry-line flex-1 opacity-90" />
-                      <span className="size-2 rounded-full bg-[#008B8B] shadow-[0_0_0_5px_rgba(0,139,139,0.12)]" />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })}

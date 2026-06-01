@@ -1,14 +1,31 @@
 import {
+  BarChart3,
   Building2,
   Clapperboard,
+  CloudRain,
+  Droplets,
   HardHat,
   Heart,
+  Home,
+  Layers,
   Map,
+  Megaphone,
   Radar,
   ScanLine,
+  Sprout,
   Tractor,
+  Video,
   Weight,
+  type LucideIcon,
 } from "lucide-react";
+
+type DescriptionListItem = string | { text: string; icon: LucideIcon };
+
+function isIconListItem(
+  item: DescriptionListItem,
+): item is { text: string; icon: LucideIcon } {
+  return typeof item === "object";
+}
 
 const cases = [
   {
@@ -19,7 +36,12 @@ const cases = [
   {
     icon: Tractor,
     title: "Agriculture & Spraying",
-    description: "Crop health, precision spraying & field mapping.",
+    description: [
+      { text: "Crop monitoring", icon: Sprout },
+      { text: "Spraying pesticides and fertilizers", icon: Droplets },
+      { text: "Irrigation management", icon: CloudRain },
+      { text: "Yield analysis", icon: BarChart3 },
+    ],
   },
   {
     icon: Clapperboard,
@@ -34,7 +56,12 @@ const cases = [
   {
     icon: Building2,
     title: "Real Estate & Property Shoots",
-    description: "Listings, developments & polished property marketing.",
+    description: [
+      { text: "Property showcases", icon: Home },
+      { text: "Virtual tours", icon: Video },
+      { text: "Land visualization", icon: Layers },
+      { text: "Marketing content", icon: Megaphone },
+    ],
   },
   {
     icon: Heart,
@@ -80,9 +107,45 @@ export function IndustryUseCases() {
               <h3 className="font-heading text-base font-bold leading-snug text-[#0f172a]">
                 {title}
               </h3>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600 sm:text-sm">
-                {description}
-              </p>
+              {Array.isArray(description) ? (
+                <ul className="mt-1.5 space-y-1.5 text-[13px] leading-relaxed text-slate-600 sm:text-sm">
+                  {description.map((item) => {
+                    if (isIconListItem(item)) {
+                      const ItemIcon = item.icon;
+
+                      return (
+                        <li
+                          key={item.text}
+                          className="flex items-start gap-2"
+                        >
+                          <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md border border-[#008B8B]/20 bg-[#f4fbfb]">
+                            <ItemIcon
+                              className="size-3 text-[#008B8B]"
+                              strokeWidth={1.75}
+                              aria-hidden
+                            />
+                          </div>
+                          <span>{item.text}</span>
+                        </li>
+                      );
+                    }
+
+                    return (
+                      <li key={item} className="flex items-start gap-2">
+                        <span
+                          className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#008B8B]"
+                          aria-hidden
+                        />
+                        <span>{item}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600 sm:text-sm">
+                  {description}
+                </p>
+              )}
             </div>
           ))}
         </div>
