@@ -3,23 +3,32 @@ const router = express.Router();
 const pool = require("../db");
 
 const BLOG_ROW_SELECT =
-  "id, title, content, image, created_at, status";
+  "id, title, content, image, created_at, status, author";
 
 function normalizeBlogStatus(raw) {
   const s = typeof raw === "string" ? raw.trim().toLowerCase() : "";
   return s === "draft" ? "draft" : "published";
 }
 
-async function ensureBlogsStatusColumn() {
+function normalizeBlogAuthor(raw) {
+  const a = raw != null ? String(raw).trim() : "";
+  return a || "Hire A Drone";
+}
+
+async function ensureBlogsSchema() {
   await pool.query(`
     ALTER TABLE blogs
     ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'published'
+  `);
+  await pool.query(`
+    ALTER TABLE blogs
+    ADD COLUMN IF NOT EXISTS author TEXT NOT NULL DEFAULT 'Hire A Drone'
   `);
 }
 
 router.get("/", async (req, res) => {
   try {
-    await ensureBlogsStatusColumn();
+    await ensureBlogsSchema();
     const result = await pool.query(
       `SELECT ${BLOG_ROW_SELECT} FROM blogs ORDER BY id DESC`
     );
@@ -36,7 +45,7 @@ router.get("/id/:id", async (req, res) => {
     return res.status(400).json({ error: "Invalid id" });
   }
   try {
-    await ensureBlogsStatusColumn();
+    await ensureBlogsSchema();
     const result = await pool.query(
       `SELECT ${BLOG_ROW_SELECT} FROM blogs WHERE id = $1`,
       [id]
@@ -58,22 +67,24 @@ router.post("/", async (req, res) => {
   const image =
     req.body?.image != null ? String(req.body.image).trim() : "";
   const status = normalizeBlogStatus(req.body?.status);
+  const author = normalizeBlogAuthor(req.body?.author);
 
   if (!title) {
     return res.status(400).json({ error: "Title is required" });
   }
 
   try {
-    await ensureBlogsStatusColumn();
+    await ensureBlogsSchema();
     const result = await pool.query(
-      `INSERT INTO blogs (title, content, image, status)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO blogs (title, content, image, status, author)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING ${BLOG_ROW_SELECT}`,
       [
         title,
         content,
         image || "https://via.placeholder.com/400",
         status,
+        author,
       ]
     );
     res.status(201).json(result.rows[0]);
@@ -94,23 +105,25 @@ router.put("/:id", async (req, res) => {
   const image =
     req.body?.image != null ? String(req.body.image).trim() : "";
   const status = normalizeBlogStatus(req.body?.status);
+  const author = normalizeBlogAuthor(req.body?.author);
 
   if (!title) {
     return res.status(400).json({ error: "Title is required" });
   }
 
   try {
-    await ensureBlogsStatusColumn();
+    await ensureBlogsSchema();
     const result = await pool.query(
       `UPDATE blogs
-       SET title = $1, content = $2, image = $3, status = $4
-       WHERE id = $5
+       SET title = $1, content = $2, image = $3, status = $4, author = $5
+       WHERE id = $6
        RETURNING ${BLOG_ROW_SELECT}`,
       [
         title,
         content,
         image || "https://via.placeholder.com/400",
         status,
+        author,
         id,
       ]
     );

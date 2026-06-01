@@ -6,7 +6,11 @@ import Link from "next/link";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { BlogPost } from "@/components/blogs/blog-data";
-import { FEATURED_SLUG, featuredHero } from "@/components/blogs/blog-data";
+import {
+  FEATURED_SLUG,
+  featuredHero,
+  postsBySlug,
+} from "@/components/blogs/blog-data";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import {
   fetchBlogsFromApi,
@@ -131,6 +135,11 @@ export function BlogsView({
             <p className="mb-5 max-w-xl font-[family-name:var(--font-landing-body)] text-sm leading-relaxed text-slate-600 dark:text-slate-300 sm:mb-6 sm:text-base md:max-w-2xl">
               {featuredPost?.excerpt ?? featuredHero.subhead}
             </p>
+            {(featuredPost?.author ?? postsBySlug[FEATURED_SLUG]?.author) ? (
+              <p className="mb-5 text-xs font-bold uppercase tracking-tighter text-[#1a1c1e] dark:text-white sm:mb-6">
+                By {featuredPost?.author ?? postsBySlug[FEATURED_SLUG]?.author}
+              </p>
+            ) : null}
             <Link
               href={`/blogs/${FEATURED_SLUG}`}
               className="inline-flex w-fit items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-6 py-2.5 text-center font-[family-name:var(--font-landing-headline)] text-xs font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] transition-all hover:bg-[#006a6e]/10 active:scale-95 sm:px-7 sm:py-3 sm:text-sm"
@@ -201,18 +210,18 @@ export function BlogsView({
                 className="object-cover transition-transform duration-500 group-hover:scale-110"
                 sizes="(max-width:768px) 100vw, 33vw"
               />
-              <div className="absolute left-4 top-4">
+            </Link>
+            <div className="flex flex-1 flex-col p-6">
+              <p className="mb-3">
                 <span
                   className={cn(
-                    "rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-foreground shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]",
+                    "inline-block rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-foreground shadow-sm sm:px-2.5 sm:text-[10px]",
                     tagToneClasses(post.tagTone)
                   )}
                 >
                   {post.category}
                 </span>
-              </div>
-            </Link>
-            <div className="flex flex-1 flex-col p-6">
+              </p>
               <h3 className="mb-3 font-[family-name:var(--font-landing-headline)] text-xl font-bold leading-tight text-[#1a1c1e] dark:text-white transition-colors group-hover:text-[#006a6e] dark:group-hover:text-[#4ddbd9]">
                 <Link href={`/blogs/${post.slug}`}>{post.title}</Link>
               </h3>

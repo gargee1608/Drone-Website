@@ -519,7 +519,8 @@ async function ensureBlogsSchema() {
       content TEXT,
       image TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      status TEXT NOT NULL DEFAULT 'published'
+      status TEXT NOT NULL DEFAULT 'published',
+      author TEXT NOT NULL DEFAULT 'Hire A Drone'
     );
   `);
   const blogAlters = [
@@ -528,6 +529,7 @@ async function ensureBlogsSchema() {
     "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS image TEXT",
     "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
     "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'published'",
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS author TEXT NOT NULL DEFAULT 'Hire A Drone'",
   ];
   for (const sql of blogAlters) {
     try {

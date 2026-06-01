@@ -3,7 +3,6 @@ import {
   Activity,
   BadgeCheck,
   BookOpen,
-  Briefcase,
   CheckCircle2,
   ClipboardList,
   Drone,
@@ -16,6 +15,8 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
+
+import { ServiceIcon } from "@/components/icons/service-icon";
 
 export type CommandCenterNavItem = {
   readonly href: string;
@@ -55,7 +56,7 @@ export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
   },
     { href: "/dashboard/pilot-status", label: "Pilot Status", icon: BadgeCheck },
   { href: "/dashboard/blogs", label: "Add Blogs", icon: BookOpen },
-  { href: "/dashboard/services", label: "Add Services", icon: Briefcase },
+  { href: "/dashboard/services", label: "Add Services", icon: ServiceIcon },
   {
     href: "/dashboard/contact-inquiries",
     label: "Contact inquiries",

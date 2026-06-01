@@ -4,27 +4,31 @@ import { normalizeBlogStatus } from "@/lib/blog-api";
 import { getPgPool } from "@/lib/pg-pool";
 
 const BLOG_ROW_SELECT =
-  "id, title, content, image, created_at, status" as const;
+  "id, title, content, image, created_at, status, author" as const;
 
-let statusColumnReady: Promise<void> | null = null;
+let blogsSchemaReady: Promise<void> | null = null;
 
-async function ensureBlogsStatusColumn(): Promise<void> {
-  if (!statusColumnReady) {
-    statusColumnReady = (async () => {
+async function ensureBlogsSchema(): Promise<void> {
+  if (!blogsSchemaReady) {
+    blogsSchemaReady = (async () => {
       await getPgPool().query(`
         ALTER TABLE blogs
         ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'published'
       `);
+      await getPgPool().query(`
+        ALTER TABLE blogs
+        ADD COLUMN IF NOT EXISTS author TEXT NOT NULL DEFAULT 'Hire A Drone'
+      `);
     })().catch((err) => {
-      statusColumnReady = null;
+      blogsSchemaReady = null;
       throw err;
     });
   }
-  await statusColumnReady;
+  await blogsSchemaReady;
 }
 
 export async function queryAllBlogs(): Promise<BlogApiRow[]> {
-  await ensureBlogsStatusColumn();
+  await ensureBlogsSchema();
   const result = await getPgPool().query(
     `SELECT ${BLOG_ROW_SELECT} FROM blogs ORDER BY id DESC`
   );
@@ -32,7 +36,7 @@ export async function queryAllBlogs(): Promise<BlogApiRow[]> {
 }
 
 export async function queryPublishedBlogs(): Promise<BlogApiRow[]> {
-  await ensureBlogsStatusColumn();
+  await ensureBlogsSchema();
   const result = await getPgPool().query(
     `SELECT ${BLOG_ROW_SELECT}
      FROM blogs
@@ -43,7 +47,7 @@ export async function queryPublishedBlogs(): Promise<BlogApiRow[]> {
 }
 
 export async function queryBlogById(id: number): Promise<BlogApiRow | null> {
-  await ensureBlogsStatusColumn();
+  await ensureBlogsSchema();
   const result = await getPgPool().query(
     `SELECT ${BLOG_ROW_SELECT} FROM blogs WHERE id = $1`,
     [id]
@@ -55,15 +59,17 @@ export async function insertBlog(input: {
   title: string;
   content: string;
   image: string;
+  author?: string;
   status?: BlogStatus;
 }): Promise<BlogApiRow> {
-  await ensureBlogsStatusColumn();
+  await ensureBlogsSchema();
   const status = normalizeBlogStatus(input.status);
+  const author = input.author?.trim() || "Hire A Drone";
   const result = await getPgPool().query(
-    `INSERT INTO blogs (title, content, image, status)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO blogs (title, content, image, status, author)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING ${BLOG_ROW_SELECT}`,
-    [input.title, input.content, input.image, status]
+    [input.title, input.content, input.image, status, author]
   );
   return result.rows[0] as BlogApiRow;
 }
@@ -74,17 +80,19 @@ export async function updateBlog(
     title: string;
     content: string;
     image: string;
+    author?: string;
     status?: BlogStatus;
   }
 ): Promise<BlogApiRow | null> {
-  await ensureBlogsStatusColumn();
+  await ensureBlogsSchema();
   const status = normalizeBlogStatus(input.status);
+  const author = input.author?.trim() || "Hire A Drone";
   const result = await getPgPool().query(
     `UPDATE blogs
-     SET title = $1, content = $2, image = $3, status = $4
-     WHERE id = $5
+     SET title = $1, content = $2, image = $3, status = $4, author = $5
+     WHERE id = $6
      RETURNING ${BLOG_ROW_SELECT}`,
-    [input.title, input.content, input.image, status, id]
+    [input.title, input.content, input.image, status, author, id]
   );
   return (result.rows[0] as BlogApiRow | undefined) ?? null;
 }

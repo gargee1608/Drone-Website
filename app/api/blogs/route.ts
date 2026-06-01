@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
     title?: string;
     content?: string;
     image?: string;
+    author?: string;
     status?: string;
   };
   try {
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
   const title = body.title != null ? String(body.title).trim() : "";
   const content = body.content != null ? String(body.content) : "";
   const image = body.image != null ? String(body.image).trim() : "";
+  const author = body.author != null ? String(body.author).trim() : "";
   const status = body.status;
 
   if (!title) {
@@ -43,6 +45,7 @@ export async function POST(req: NextRequest) {
       title,
       content,
       image: image || "https://via.placeholder.com/400",
+      author: author || "Hire A Drone",
       status,
     });
     return NextResponse.json(row, { status: 201 });

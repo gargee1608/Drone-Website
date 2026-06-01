@@ -54,8 +54,6 @@ const CATEGORIES: BlogPost["category"][] = [
   "Company News",
 ];
 
-const TAG_TONES: BlogPost["tagTone"][] = ["emerald", "primary", "slate"];
-
 const BLOG_STATUSES: BlogStatus[] = ["draft", "published"];
 
 function statusLabel(status: BlogStatus): string {
@@ -187,7 +185,6 @@ export function AdminBlogsView({
   const [author, setAuthor] = useState("");
   const [image, setImage] = useState("");
   const [imageAlt, setImageAlt] = useState("");
-  const [tagTone, setTagTone] = useState<BlogPost["tagTone"]>("primary");
   const [status, setStatus] = useState<BlogStatus>("draft");
   const [bodyText, setBodyText] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -307,7 +304,6 @@ export function AdminBlogsView({
     setAuthor("");
     setImage("");
     setImageAlt("");
-    setTagTone("primary");
     setStatus("draft");
     setBodyText("");
     setFormError(null);
@@ -329,7 +325,6 @@ export function AdminBlogsView({
     setAuthor(post.author);
     setImage(post.image);
     setImageAlt(post.imageAlt);
-    setTagTone(post.tagTone);
     setStatus(post.status ?? "published");
     setBodyText(bodyToText(post.body));
     setFormError(null);
@@ -379,6 +374,12 @@ export function AdminBlogsView({
     }
     const body = textToBody(bodyText);
     const ex = excerpt.trim();
+    const tagTone: BlogPost["tagTone"] =
+      editorMode === "edit" && editSlug
+        ? (rows.find((r) => r.slug === editSlug)?.tagTone ??
+          postsBySlug[editSlug]?.tagTone ??
+          "primary")
+        : "primary";
     const baseFields: BlogPost = {
       slug: "",
       title: t,
@@ -401,7 +402,13 @@ export function AdminBlogsView({
         const res = await fetch(apiUrl("/api/blogs"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: t, content, image: img, status }),
+          body: JSON.stringify({
+            title: t,
+            content,
+            image: img,
+            status,
+            author: baseFields.author,
+          }),
         });
         const data = (await res.json().catch(() => ({}))) as {
           error?: string;
@@ -429,7 +436,13 @@ export function AdminBlogsView({
         const res = await fetch(apiUrl(`/api/blogs/${editDbId}`), {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: t, content, image: img, status }),
+            body: JSON.stringify({
+              title: t,
+              content,
+              image: img,
+              status,
+              author: baseFields.author,
+            }),
           }
         );
         const data = (await res.json().catch(() => ({}))) as {
@@ -650,24 +663,6 @@ export function AdminBlogsView({
                   onChange={(e) => setAuthor(e.target.value)}
                   className="h-11 rounded-lg border-border"
                 />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                  Tag tone
-                </label>
-                <select
-                  value={tagTone}
-                  onChange={(e) =>
-                    setTagTone(e.target.value as BlogPost["tagTone"])
-                  }
-                  className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
-                >
-                  {TAG_TONES.map((tone) => (
-                    <option key={tone} value={tone}>
-                      {tone}
-                    </option>
-                  ))}
-                </select>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-foreground">

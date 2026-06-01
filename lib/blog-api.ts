@@ -7,6 +7,7 @@ export type BlogApiRow = {
   content: string;
   image: string;
   created_at: string;
+  author?: string;
   status?: BlogStatus;
 };
 
@@ -57,6 +58,7 @@ function coerceApiRow(raw: BlogApiRow): BlogApiRow {
     image: raw.image == null ? "" : String(raw.image),
     created_at:
       raw.created_at == null ? "" : String(raw.created_at),
+    author: raw.author == null ? "" : String(raw.author).trim(),
     status: normalizeBlogStatus(raw.status),
   };
 }
@@ -78,7 +80,7 @@ export function mapApiRowToBlogPost(row: BlogApiRow): BlogPost {
     excerpt: excerptFromContent(r.content),
     date,
     category: "Company News",
-    author: "Hire A Drone",
+    author: r.author?.trim() || "Hire A Drone",
     image: r.image?.trim() || "https://via.placeholder.com/400",
     imageAlt: r.title,
     tagTone: TAG_TONES[Math.abs(r.id) % TAG_TONES.length],

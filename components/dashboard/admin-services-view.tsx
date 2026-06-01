@@ -3,11 +3,13 @@
 import Image from "next/image";
 import { Pencil, Plus, Trash2, Upload, X } from "lucide-react";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
   type ChangeEvent,
+  type DragEvent,
   type FormEvent,
 } from "react";
 
@@ -33,6 +35,30 @@ import { serviceSlugFromTitle } from "@/lib/service-catalog";
 import { cn } from "@/lib/utils";
 
 const MAX_SERVICE_IMAGE_BYTES = 2 * 1024 * 1024;
+
+function getImageFileFromDataTransfer(dt: DataTransfer): File | null {
+  if (dt.files?.length) {
+    const file = dt.files[0];
+    if (file.type.startsWith("image/")) return file;
+  }
+  for (const item of Array.from(dt.items)) {
+    if (item.kind === "file" && item.type.startsWith("image/")) {
+      const file = item.getAsFile();
+      if (file) return file;
+    }
+  }
+  return null;
+}
+
+function getImageFileFromClipboard(dt: DataTransfer): File | null {
+  for (const item of Array.from(dt.items)) {
+    if (item.type.startsWith("image/")) {
+      const file = item.getAsFile();
+      if (file) return file;
+    }
+  }
+  return getImageFileFromDataTransfer(dt);
+}
 
 function readServiceCoverImageFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -82,6 +108,7 @@ export function AdminServicesView({
 
   const [formError, setFormError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [coverDragActive, setCoverDragActive] = useState(false);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
@@ -106,14 +133,11 @@ export function AdminServicesView({
     return fallback;
   }
 
-  const clearCoverFileInput = () => {
+  const clearCoverFileInput = useCallback(() => {
     if (coverFileInputRef.current) coverFileInputRef.current.value = "";
-  };
+  }, []);
 
-  async function onCoverFileSelected(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  const applyCoverImageFile = useCallback(async (file: File) => {
     try {
       const dataUrl = await readServiceCoverImageFile(file);
       setImage(dataUrl);
@@ -121,7 +145,62 @@ export function AdminServicesView({
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Invalid image.");
     }
-  }
+  }, []);
+
+  const onCoverFileSelected = useCallback(
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      await applyCoverImageFile(file);
+    },
+    [applyCoverImageFile]
+  );
+
+  const onCoverDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes("Files")) {
+      e.dataTransfer.dropEffect = "copy";
+      setCoverDragActive(true);
+    }
+  }, []);
+
+  const onCoverDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const related = e.relatedTarget as Node | null;
+    if (!e.currentTarget.contains(related)) {
+      setCoverDragActive(false);
+    }
+  }, []);
+
+  const onCoverDrop = useCallback(
+    async (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setCoverDragActive(false);
+      const file = getImageFileFromDataTransfer(e.dataTransfer);
+      if (file) await applyCoverImageFile(file);
+    },
+    [applyCoverImageFile]
+  );
+
+  useEffect(() => {
+    if (formMode === "closed") return;
+
+    const onPaste = (e: ClipboardEvent) => {
+      const file = e.clipboardData
+        ? getImageFileFromClipboard(e.clipboardData)
+        : null;
+      if (!file) return;
+      e.preventDefault();
+      void applyCoverImageFile(file);
+    };
+
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [formMode, applyCoverImageFile]);
 
   // ================= FETCH SERVICES =================
   const fetchServices = async () => {
@@ -500,13 +579,29 @@ export function AdminServicesView({
                   />
                   <div className="space-y-3">
                     <div
+                      onDragEnter={onCoverDragOver}
+                      onDragOver={onCoverDragOver}
+                      onDragLeave={onCoverDragLeave}
+                      onDrop={onCoverDrop}
                       className={cn(
-                        "relative aspect-[16/10] w-full overflow-hidden rounded-lg border bg-muted",
+                        "relative aspect-[16/10] w-full overflow-hidden rounded-lg border bg-muted transition-colors",
                         image
                           ? "border-border"
-                          : "border-dashed border-muted-foreground/30"
+                          : "border-dashed border-muted-foreground/30",
+                        coverDragActive &&
+                          "border-[#008B8B] bg-[#008B8B]/10 ring-2 ring-[#008B8B]/30"
                       )}
                     >
+                      {coverDragActive ? (
+                        <div
+                          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[#008B8B]/15"
+                          aria-hidden
+                        >
+                          <span className="text-sm font-semibold text-[#008B8B]">
+                            Drop image here
+                          </span>
+                        </div>
+                      ) : null}
                       {image ? (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element -- data URLs + remote URLs */}
@@ -532,15 +627,20 @@ export function AdminServicesView({
                           </button>
                         </>
                       ) : (
-                        <div className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 px-3 py-4 text-center">
+                        <button
+                          type="button"
+                          className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-3 py-4 text-center transition hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/50 focus-visible:ring-offset-2"
+                          onClick={() => coverFileInputRef.current?.click()}
+                          aria-label="Upload service cover image from your computer"
+                        >
                           <Upload
                             className="size-6 text-muted-foreground/70"
                             aria-hidden
                           />
                           <span className="text-xs text-muted-foreground">
-                            No cover yet — use Browser below
+                            Click, drag & drop, or paste an image
                           </span>
-                        </div>
+                        </button>
                       )}
                     </div>
                     <Button
@@ -553,7 +653,8 @@ export function AdminServicesView({
                       Browser
                     </Button>
                     <p className="text-[11px] leading-snug text-muted-foreground">
-                      JPEG, PNG, WebP, or GIF · max 2 MB
+                      JPEG, PNG, WebP, or GIF · max 2 MB · click, drag & drop,
+                      or paste from clipboard
                     </p>
                   </div>
                 </div>
