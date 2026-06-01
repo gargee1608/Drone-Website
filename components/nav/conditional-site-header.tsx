@@ -23,6 +23,7 @@ export function ConditionalSiteHeader() {
     pathname === "/blogs" ||
     pathname?.startsWith("/blogs/") ||
     pathname === "/contact" ||
+    pathname === "/post-your-requirement" ||
     pathname === "/matching-hub" ||
     pathname === "/settings" ||
     pathname?.startsWith("/settings/") ||

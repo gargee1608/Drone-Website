@@ -6,6 +6,7 @@ import {
   Briefcase,
   Eye,
   MapPin,
+  Search,
   SlidersHorizontal,
   Star,
   X,
@@ -31,10 +32,114 @@ import {
 } from "@/lib/mission-requests-api";
 import { subscribeMissionRequestsUpdated } from "@/lib/mission-requests-updated";
 import { readResponseJson } from "@/lib/read-response-json";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { notifyMissionsDbUpdated } from "@/lib/user-requests";
 
 type HubTab = "missions" | "pilots";
+
+type HubPayloadClass = "any" | "l1" | "l3" | "l5";
+
+type HubAppliedFilters = {
+  globalQuery: string;
+  payloadClass: HubPayloadClass;
+  region: string;
+};
+
+function payloadClassFromOption(option: string): HubPayloadClass {
+  if (option.includes("L-1")) return "l1";
+  if (option.includes("L-3")) return "l3";
+  if (option.includes("L-5")) return "l5";
+  return "any";
+}
+
+function extractKgFromText(text: string): number | null {
+  const match = text.match(/(\d+(?:\.\d+)?)\s*kg/i);
+  return match ? Number.parseFloat(match[1]) : null;
+}
+
+function textMatchesPayloadClass(text: string, payloadClass: HubPayloadClass): boolean {
+  if (payloadClass === "any") return true;
+  const lower = text.toLowerCase();
+  const kg = extractKgFromText(text);
+  if (kg != null) {
+    if (payloadClass === "l1") return kg < 5;
+    if (payloadClass === "l3") return kg >= 5 && kg <= 20;
+    return kg > 20;
+  }
+  if (payloadClass === "l1") {
+    return lower.includes("l-1") || lower.includes("light") || lower.includes("< 5");
+  }
+  if (payloadClass === "l3") {
+    return lower.includes("l-3") || lower.includes("5-20") || lower.includes("5–20");
+  }
+  return lower.includes("l-5") || lower.includes("heavy") || lower.includes("20kg+");
+}
+
+function missionMatchesFilters(mission: HubMission, filters: HubAppliedFilters): boolean {
+  const query = filters.globalQuery.trim().toLowerCase();
+  if (query) {
+    const haystack = [
+      mission.id,
+      mission.title,
+      mission.description,
+      mission.payload,
+      mission.aircraftClass,
+      mission.distance,
+      mission.requirements,
+    ]
+      .join(" ")
+      .toLowerCase();
+    if (!haystack.includes(query)) return false;
+  }
+
+  const payloadText = `${mission.payload} ${mission.aircraftClass}`;
+  if (!textMatchesPayloadClass(payloadText, filters.payloadClass)) return false;
+
+  if (filters.region !== "India") {
+    const regionHaystack = [
+      mission.id,
+      mission.title,
+      mission.description,
+      mission.requirements,
+      mission.distance,
+    ]
+      .join(" ")
+      .toLowerCase();
+    if (!regionHaystack.includes(filters.region.toLowerCase())) return false;
+  }
+
+  return true;
+}
+
+function pilotMatchesFilters(pilot: HubPilotCard, filters: HubAppliedFilters): boolean {
+  const query = filters.globalQuery.trim().toLowerCase();
+  if (query) {
+    const haystack = [
+      pilot.id,
+      pilot.name,
+      pilot.role,
+      pilot.ratingLabel,
+      pilot.location,
+      pilot.droneSummary,
+      pilot.useCases,
+      pilot.certLevel,
+    ]
+      .join(" ")
+      .toLowerCase();
+    if (!haystack.includes(query)) return false;
+  }
+
+  if (!textMatchesPayloadClass(pilot.droneSummary, filters.payloadClass)) return false;
+
+  if (filters.region !== "India") {
+    if (!pilot.location.toLowerCase().includes(filters.region.toLowerCase())) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 const MATCHING_HUB_REGION_CITIES = [
   "Mumbai",
@@ -654,11 +759,13 @@ function PilotCards({
   pilots,
   loading,
   errorMessage,
+  emptyMessage = "No active pilots are listed yet. Check back soon.",
   onPilotClick,
 }: {
   pilots: HubPilotCard[];
   loading: boolean;
   errorMessage: string | null;
+  emptyMessage?: string;
   onPilotClick?: (pilot: HubPilotCard) => void;
 }) {
   if (loading) {
@@ -676,11 +783,7 @@ function PilotCards({
     );
   }
   if (pilots.length === 0) {
-    return (
-      <p className="text-sm text-slate-500">
-        No active pilots are listed yet. Check back soon.
-      </p>
-    );
+    return <p className="text-sm text-slate-500">{emptyMessage}</p>;
   }
 
   return (
@@ -735,6 +838,52 @@ export function MatchingHubView() {
   const [detailPilot, setDetailPilot] = useState<HubPilotCard | null>(null);
   const [detailPilotLoading, setDetailPilotLoading] = useState(false);
   const [detailPilotError, setDetailPilotError] = useState<string | null>(null);
+  const [globalQueryDraft, setGlobalQueryDraft] = useState("");
+  const [payloadClassDraft, setPayloadClassDraft] = useState("Any Weight");
+  const [regionDraft, setRegionDraft] = useState("India");
+  const [appliedFilters, setAppliedFilters] = useState<HubAppliedFilters>({
+    globalQuery: "",
+    payloadClass: "any",
+    region: "India",
+  });
+
+  const syncAppliedFiltersFromDrafts = useCallback(
+    (globalQuery: string) => {
+      setAppliedFilters({
+        globalQuery: globalQuery.trim(),
+        payloadClass: payloadClassFromOption(payloadClassDraft),
+        region: regionDraft,
+      });
+    },
+    [payloadClassDraft, regionDraft]
+  );
+
+  const handleGlobalQueryChange = useCallback(
+    (value: string) => {
+      setGlobalQueryDraft(value);
+      if (value.trim() === "") {
+        setAppliedFilters({
+          globalQuery: "",
+          payloadClass: "any",
+          region: "India",
+        });
+        return;
+      }
+      setAppliedFilters((prev) => ({
+        ...prev,
+        globalQuery: value.trim(),
+      }));
+    },
+    []
+  );
+
+  const applyHubFilters = useCallback(
+    (event?: FormEvent) => {
+      event?.preventDefault();
+      syncAppliedFiltersFromDrafts(globalQueryDraft);
+    },
+    [globalQueryDraft, syncAppliedFiltersFromDrafts]
+  );
 
   const closeMissionDetail = useCallback(() => setDetailMission(null), []);
   const closePilotDetail = useCallback(() => {
@@ -845,12 +994,25 @@ export function MatchingHubView() {
     };
   }, []);
 
+  const filteredMissionRows = useMemo(() => {
+    return missionRows.filter((mission) =>
+      missionMatchesFilters(mission, appliedFilters)
+    );
+  }, [missionRows, appliedFilters]);
+
   const topRatedPilots = useMemo(() => {
-    return [...hubPilots].sort((a, b) => {
-      if (b.safetyScore !== a.safetyScore) return b.safetyScore - a.safetyScore;
-      return b.missionCount - a.missionCount;
-    });
-  }, [hubPilots]);
+    return [...hubPilots]
+      .filter((pilot) => pilotMatchesFilters(pilot, appliedFilters))
+      .sort((a, b) => {
+        if (b.safetyScore !== a.safetyScore) return b.safetyScore - a.safetyScore;
+        return b.missionCount - a.missionCount;
+      });
+  }, [hubPilots, appliedFilters]);
+
+  const hasActiveHubFilters =
+    appliedFilters.globalQuery !== "" ||
+    appliedFilters.payloadClass !== "any" ||
+    appliedFilters.region !== "India";
 
   return (
     <div className="min-h-dvh bg-white text-[#191c1d]">
@@ -893,15 +1055,26 @@ export function MatchingHubView() {
         </header>
 
         <section className="mb-6 rounded-lg border border-slate-200 bg-white/80 p-3 shadow-sm backdrop-blur-sm">
-          <div className="flex flex-wrap items-end gap-3">
+          <form
+            className="flex flex-wrap items-end gap-3"
+            onSubmit={applyHubFilters}
+          >
             <div className="min-w-[180px] max-w-md flex-1">
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+              <label
+                htmlFor="matching-hub-global-filter"
+                className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500"
+              >
                 Global Filter
               </label>
               <div className="relative">
                 <SlidersHorizontal className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
                 <input
-                  type="text"
+                  id="matching-hub-global-filter"
+                  type="search"
+                  value={globalQueryDraft}
+                  onChange={(event) =>
+                    handleGlobalQueryChange(event.target.value)
+                  }
                   placeholder={
                     activeTab === "missions"
                       ? "Search by ID, Region, or Drone Class..."
@@ -912,10 +1085,18 @@ export function MatchingHubView() {
               </div>
             </div>
             <div className="min-w-[130px] sm:min-w-[140px]">
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+              <label
+                htmlFor="matching-hub-payload-class"
+                className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500"
+              >
                 Payload Class
               </label>
-              <select className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm">
+              <select
+                id="matching-hub-payload-class"
+                value={payloadClassDraft}
+                onChange={(event) => setPayloadClassDraft(event.target.value)}
+                className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
+              >
                 <option>Any Weight</option>
                 <option>L-1 (&lt; 5kg)</option>
                 <option>L-3 (5-20kg)</option>
@@ -923,11 +1104,16 @@ export function MatchingHubView() {
               </select>
             </div>
             <div className="min-w-[130px] sm:min-w-[140px]">
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+              <label
+                htmlFor="matching-hub-region"
+                className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500"
+              >
                 Region
               </label>
               <select
-                defaultValue="India"
+                id="matching-hub-region"
+                value={regionDraft}
+                onChange={(event) => setRegionDraft(event.target.value)}
                 className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
               >
                 <option value="India">India</option>
@@ -938,7 +1124,20 @@ export function MatchingHubView() {
                 ))}
               </select>
             </div>
-          </div>
+            <div className="min-w-[100px]">
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                Search
+              </span>
+              <Button
+                type="submit"
+                variant="outline"
+                className="h-[34px] w-full gap-1.5 rounded-md border border-slate-300 bg-transparent px-4 text-xs font-semibold text-[#0D9488] shadow-none hover:bg-slate-50 sm:text-sm"
+              >
+                <Search className="size-3.5" aria-hidden />
+                Search
+              </Button>
+            </div>
+          </form>
         </section>
 
         <div className="overflow-hidden">
@@ -965,15 +1164,17 @@ export function MatchingHubView() {
                     <p className="col-span-full text-sm text-red-600">
                       {missionsError}
                     </p>
-                  ) : missionRows.length === 0 ? (
+                  ) : filteredMissionRows.length === 0 ? (
                     <div className="col-span-full rounded-lg border border-dashed border-slate-200 bg-white/60 px-6 py-10 text-center">
                       <p className="text-sm font-semibold text-slate-700">
-                        No Available Mission
+                        {missionRows.length === 0
+                          ? "No Available Mission"
+                          : "No missions match your search."}
                       </p>
                     </div>
                   ) : null}
                   {!missionsLoading && !missionsError
-                    ? missionRows.map((mission) => (
+                    ? filteredMissionRows.map((mission) => (
                     <button
                       key={mission.id}
                       type="button"
@@ -1033,6 +1234,11 @@ export function MatchingHubView() {
                     pilots={topRatedPilots}
                     loading={pilotsLoading}
                     errorMessage={pilotsError}
+                    emptyMessage={
+                      hasActiveHubFilters && hubPilots.length > 0
+                        ? "No pilots match your search."
+                        : undefined
+                    }
                     onPilotClick={openPilotDetail}
                   />
                 </div>

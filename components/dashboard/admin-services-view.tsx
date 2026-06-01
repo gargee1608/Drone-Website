@@ -385,14 +385,15 @@ export function AdminServicesView({
         <Button
           type="button"
           variant="outline"
+          size="lg"
           onClick={() => {
             clearCoverFileInput();
             setFormMode("add");
           }}
-          className="shrink-0 rounded-full border-[#008B8B] bg-transparent font-bold text-[#008B8B] hover:bg-[#008B8B]/10 hover:text-[#007a7a]"
+          className="shrink-0 gap-2 rounded-full border-[#008B8B] bg-transparent px-5 font-bold leading-none text-[#008B8B] hover:bg-[#008B8B]/10 hover:text-[#007a7a]"
         >
-          <Plus className="mr-2 size-4" aria-hidden />
-          Add New Service
+          <Plus data-icon="inline-start" className="size-4 shrink-0" aria-hidden />
+          Add Services
         </Button>
       </div>
 
@@ -598,7 +599,7 @@ export function AdminServicesView({
         </div>
         {sortedItems.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-muted-foreground sm:px-6">
-            No services found. Use Add New Service or check that the database
+            No services found. Use Add Services or check that the database
             and API are running.
           </p>
         ) : null}

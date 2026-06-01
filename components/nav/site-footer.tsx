@@ -134,7 +134,7 @@ export function SiteFooter({
       )}
       role="contentinfo"
     >
-      <div className="mx-auto box-border flex w-full min-w-0 max-w-[1200px] flex-col items-center justify-between gap-4 px-4 pt-0 sm:flex-row sm:gap-6 sm:px-6 md:items-center md:gap-6 lg:gap-8 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
+      <div className="admin-shell-footer-pane mx-auto box-border flex w-full min-w-0 max-w-[1200px] flex-col items-center justify-between gap-4 px-4 pt-0 sm:flex-row sm:gap-6 sm:px-6 md:items-center md:gap-6 lg:gap-8">
         <Link
           href="/"
           className="inline-flex w-full min-w-0 shrink-0 items-center justify-center gap-2 font-heading text-sm font-bold tracking-tight text-foreground transition-opacity hover:opacity-90 sm:w-auto sm:justify-start"

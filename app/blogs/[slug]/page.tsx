@@ -1,6 +1,10 @@
 import { postsBySlug } from "@/components/blogs/blog-data";
 import { BlogPostPageClient } from "@/components/blogs/blog-post-page-client";
-import { mapApiRowToBlogPost, parseBlogDbSlug } from "@/lib/blog-api";
+import {
+  isBlogPostPublished,
+  mapApiRowToBlogPost,
+  parseBlogDbSlug,
+} from "@/lib/blog-api";
 import { queryBlogById } from "@/lib/blogs-db";
 
 /** Admin edits DB-backed posts; always resolve from the database. */
@@ -20,10 +24,12 @@ export async function generateMetadata({ params }: Props) {
     }
     if (row) {
       const post = mapApiRowToBlogPost(row);
-      return {
-        title: `${post.title} | Blogs | Hire A Drone`,
-        description: post.excerpt,
-      };
+      if (isBlogPostPublished(post)) {
+        return {
+          title: `${post.title} | Blogs | Hire A Drone`,
+          description: post.excerpt,
+        };
+      }
     }
     return {
       title: "Flight Log | Hire A Drone",
@@ -50,7 +56,10 @@ export default async function BlogPostPage({ params }: Props) {
   if (dbId != null && !initialPost) {
     try {
       const row = await queryBlogById(dbId);
-      if (row) initialPost = mapApiRowToBlogPost(row);
+      if (row) {
+        const mapped = mapApiRowToBlogPost(row);
+        if (isBlogPostPublished(mapped)) initialPost = mapped;
+      }
     } catch {
       /* DB unavailable */
     }

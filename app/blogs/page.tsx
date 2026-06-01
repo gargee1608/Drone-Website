@@ -1,7 +1,7 @@
 import type { BlogPost } from "@/components/blogs/blog-data";
 import { BlogsView } from "@/components/blogs/blogs-view";
 import { mapApiRowToBlogPost } from "@/lib/blog-api";
-import { queryAllBlogs } from "@/lib/blogs-db";
+import { queryPublishedBlogs } from "@/lib/blogs-db";
 
 /** Admin dashboard mutates blogs; avoid stale SSR props vs DB. */
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export const metadata = {
 export default async function BlogsPage() {
   let initialApiPosts: BlogPost[] = [];
   try {
-    const rows = await queryAllBlogs();
+    const rows = await queryPublishedBlogs();
     initialApiPosts = rows.map(mapApiRowToBlogPost);
   } catch {
     /* DB unavailable on server — client will refetch */

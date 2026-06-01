@@ -1,4 +1,4 @@
-import type { BlogPost } from "@/components/blogs/blog-data";
+import type { BlogPost, BlogStatus } from "@/components/blogs/blog-data";
 import { apiUrl } from "@/lib/api-url";
 
 export type BlogApiRow = {
@@ -7,7 +7,17 @@ export type BlogApiRow = {
   content: string;
   image: string;
   created_at: string;
+  status?: BlogStatus;
 };
+
+export function normalizeBlogStatus(raw: unknown): BlogStatus {
+  const s = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  return s === "draft" ? "draft" : "published";
+}
+
+export function isBlogPostPublished(post: BlogPost): boolean {
+  return post.status !== "draft";
+}
 
 const TAG_TONES: BlogPost["tagTone"][] = ["emerald", "primary", "slate"];
 
@@ -47,6 +57,7 @@ function coerceApiRow(raw: BlogApiRow): BlogApiRow {
     image: raw.image == null ? "" : String(raw.image),
     created_at:
       raw.created_at == null ? "" : String(raw.created_at),
+    status: normalizeBlogStatus(raw.status),
   };
 }
 
@@ -72,6 +83,7 @@ export function mapApiRowToBlogPost(row: BlogApiRow): BlogPost {
     imageAlt: r.title,
     tagTone: TAG_TONES[Math.abs(r.id) % TAG_TONES.length],
     body: bodyFromContent(r.content),
+    status: r.status,
   };
 }
 

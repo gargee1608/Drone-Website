@@ -465,12 +465,7 @@ function PilotRegistrationsTable({
 
   if (pilots.length === 0) {
     return (
-      <div
-        className={cn(
-          "rounded-xl border border-dashed border-border/80 bg-card px-6 py-12 text-center",
-          ADMIN_DASH_PANEL_BORDER
-        )}
-      >
+      <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
         <p className="text-sm font-medium text-muted-foreground">
           {isPending
             ? "No pending pilot registrations."
@@ -481,12 +476,7 @@ function PilotRegistrationsTable({
   }
 
   return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-xl bg-card",
-        ADMIN_DASH_PANEL_BORDER
-      )}
-    >
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse text-left">
           <thead>

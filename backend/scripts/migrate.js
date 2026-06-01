@@ -298,7 +298,8 @@ async function migrateBlogsSchema() {
       title TEXT NOT NULL,
       content TEXT,
       image TEXT,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      status TEXT NOT NULL DEFAULT 'published'
     );
   `);
   const blogAlters = [
@@ -306,6 +307,7 @@ async function migrateBlogsSchema() {
     "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS content TEXT",
     "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS image TEXT",
     "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+    "ALTER TABLE blogs ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'published'",
   ];
   for (const sql of blogAlters) {
     try {

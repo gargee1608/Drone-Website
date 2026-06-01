@@ -5,6 +5,7 @@ import {
   postsBySlug,
   type BlogPost,
 } from "@/components/blogs/blog-data";
+import { isBlogPostPublished } from "@/lib/blog-api";
 import {
   loadBlogDeletedBuiltins,
   loadBlogExtras,
@@ -63,11 +64,13 @@ export function filterApiPostsForCatalog(apiMapped: BlogPost[]): BlogPost[] {
 
 /** Public /blogs grid: live API posts + merged built-in/extras, respecting deletions. */
 export function buildPublicBlogGridList(apiMapped: BlogPost[]): BlogPost[] {
-  const apiFiltered = filterApiPostsForCatalog(apiMapped);
+  const apiFiltered = filterApiPostsForCatalog(apiMapped).filter(
+    isBlogPostPublished
+  );
   if (typeof window === "undefined") {
     return [...apiFiltered, ...gridPosts];
   }
-  return [...apiFiltered, ...getMergedGridPosts()];
+  return [...apiFiltered, ...getMergedGridPosts().filter(isBlogPostPublished)];
 }
 
 export function resolvePublicFeaturedPost(): BlogPost | null {

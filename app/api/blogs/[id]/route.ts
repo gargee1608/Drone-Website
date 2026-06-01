@@ -13,7 +13,12 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
-  let body: { title?: string; content?: string; image?: string };
+  let body: {
+    title?: string;
+    content?: string;
+    image?: string;
+    status?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -22,6 +27,7 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
   const title = body.title != null ? String(body.title).trim() : "";
   const content = body.content != null ? String(body.content) : "";
   const image = body.image != null ? String(body.image).trim() : "";
+  const status = body.status;
 
   if (!title) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -32,6 +38,7 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
       title,
       content,
       image: image || "https://via.placeholder.com/400",
+      status,
     });
     if (!row) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });

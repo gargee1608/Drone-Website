@@ -7,6 +7,7 @@ import type { BlogPost } from "@/components/blogs/blog-data";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import {
   fetchBlogByIdFromApi,
+  isBlogPostPublished,
   mapApiRowToBlogPost,
   parseBlogDbSlug,
 } from "@/lib/blog-api";
@@ -40,7 +41,11 @@ export function BlogPostPageClient({
 
     const id = parseBlogDbSlug(slug);
     if (id != null) {
-      if (initialPost && !isBlogSlugHiddenFromCatalog(slug)) {
+      if (
+        initialPost &&
+        isBlogPostPublished(initialPost) &&
+        !isBlogSlugHiddenFromCatalog(slug)
+      ) {
         setPost(initialPost);
         setReady(true);
         return;
@@ -55,7 +60,8 @@ export function BlogPostPageClient({
             setReady(true);
             return;
           }
-          setPost(row ? mapApiRowToBlogPost(row) : null);
+          const mapped = row ? mapApiRowToBlogPost(row) : null;
+          setPost(mapped && isBlogPostPublished(mapped) ? mapped : null);
           setReady(true);
         })
         .catch(() => {
@@ -69,7 +75,8 @@ export function BlogPostPageClient({
       };
     }
 
-    setPost(getMergedPostBySlug(slug) ?? null);
+    const merged = getMergedPostBySlug(slug);
+    setPost(merged && isBlogPostPublished(merged) ? merged : null);
     setReady(true);
     return undefined;
   }, [slug, initialPost]);
@@ -90,7 +97,8 @@ export function BlogPostPageClient({
               setReady(true);
               return;
             }
-            setPost(row ? mapApiRowToBlogPost(row) : null);
+            const mapped = row ? mapApiRowToBlogPost(row) : null;
+            setPost(mapped && isBlogPostPublished(mapped) ? mapped : null);
             setReady(true);
           })
           .catch(() => {
@@ -98,7 +106,8 @@ export function BlogPostPageClient({
             setReady(true);
           });
       } else {
-        setPost(getMergedPostBySlug(slug) ?? null);
+        const merged = getMergedPostBySlug(slug);
+        setPost(merged && isBlogPostPublished(merged) ? merged : null);
         setReady(true);
       }
     };

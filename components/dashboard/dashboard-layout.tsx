@@ -180,14 +180,13 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             </ul>
           </nav>
 
-          <div
-            className={cn(
-              "relative z-10 w-full shrink-0 bg-white px-2 pt-4 dark:bg-black",
-              "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
-            )}
-          >
-            <nav aria-label="Logout">
-              <ul className="flex flex-col gap-2" role="list">
+          <div className="relative z-10 w-full shrink-0 bg-white dark:bg-black">
+            <div className="admin-shell-footer-rule" aria-hidden />
+            <nav
+              aria-label="Logout"
+              className="admin-shell-footer-pane flex items-center px-2"
+            >
+              <ul className="flex w-full flex-col gap-2" role="list">
                 <li>
                   <AdminLogoutControl
                     onAfterClick={() => {

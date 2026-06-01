@@ -1,3 +1,5 @@
+export type BlogStatus = "draft" | "published";
+
 /** Flight Log posts — used by listing and `/blogs/[slug]`. */
 export type BlogPost = {
   slug: string;
@@ -11,6 +13,8 @@ export type BlogPost = {
   /** Tag pill text color / style hint */
   tagTone: "emerald" | "primary" | "slate";
   body: string[];
+  /** Omitted on built-in posts (treated as published). */
+  status?: BlogStatus;
 };
 
 export const FEATURED_SLUG = "autonomous-urban-delivery";

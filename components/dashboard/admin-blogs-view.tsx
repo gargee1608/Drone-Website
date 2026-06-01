@@ -15,6 +15,7 @@ import {
   blogPosts,
   postsBySlug,
   type BlogPost,
+  type BlogStatus,
 } from "@/components/blogs/blog-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,12 @@ const CATEGORIES: BlogPost["category"][] = [
 ];
 
 const TAG_TONES: BlogPost["tagTone"][] = ["emerald", "primary", "slate"];
+
+const BLOG_STATUSES: BlogStatus[] = ["draft", "published"];
+
+function statusLabel(status: BlogStatus): string {
+  return status === "draft" ? "Draft" : "Published";
+}
 
 const MAX_BLOG_COVER_BYTES = 2 * 1024 * 1024;
 
@@ -133,6 +140,7 @@ export function AdminBlogsView({
         content: post.body.join("\n\n"),
         image: post.image,
         created_at: "",
+        status: post.status ?? "published",
       };
     })
   );
@@ -155,6 +163,7 @@ export function AdminBlogsView({
   const [image, setImage] = useState("");
   const [imageAlt, setImageAlt] = useState("");
   const [tagTone, setTagTone] = useState<BlogPost["tagTone"]>("primary");
+  const [status, setStatus] = useState<BlogStatus>("draft");
   const [bodyText, setBodyText] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const openedEditSlugRef = useRef<string | null>(null);
@@ -221,6 +230,7 @@ export function AdminBlogsView({
     setImage("");
     setImageAlt("");
     setTagTone("primary");
+    setStatus("draft");
     setBodyText("");
     setFormError(null);
     clearCoverFileInput();
@@ -242,6 +252,7 @@ export function AdminBlogsView({
     setImage(post.image);
     setImageAlt(post.imageAlt);
     setTagTone(post.tagTone);
+    setStatus(post.status ?? "published");
     setBodyText(bodyToText(post.body));
     setFormError(null);
     clearCoverFileInput();
@@ -301,6 +312,7 @@ export function AdminBlogsView({
       imageAlt: imageAlt.trim() || t,
       tagTone,
       body,
+      status,
     };
 
     if (editorMode === "add") {
@@ -311,7 +323,7 @@ export function AdminBlogsView({
         const res = await fetch(apiUrl("/api/blogs"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: t, content, image: img }),
+          body: JSON.stringify({ title: t, content, image: img, status }),
         });
         const data = (await res.json().catch(() => ({}))) as {
           error?: string;
@@ -339,7 +351,7 @@ export function AdminBlogsView({
         const res = await fetch(apiUrl(`/api/blogs/${editDbId}`), {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: t, content, image: img }),
+            body: JSON.stringify({ title: t, content, image: img, status }),
           }
         );
         const data = (await res.json().catch(() => ({}))) as {
@@ -393,6 +405,7 @@ export function AdminBlogsView({
             imageAlt: baseFields.imageAlt,
             tagTone: baseFields.tagTone,
             body: baseFields.body,
+            status: baseFields.status,
           },
         });
       }
@@ -476,11 +489,12 @@ export function AdminBlogsView({
         <Button
           type="button"
           variant="outline"
+          size="lg"
           onClick={openAdd}
-          className="shrink-0 rounded-full border-[#008B8B] bg-transparent font-bold text-[#008B8B] hover:bg-[#008B8B]/10 hover:text-[#007a7a]"
+          className="shrink-0 gap-2 rounded-full border-[#008B8B] bg-transparent px-5 font-bold leading-none text-[#008B8B] hover:bg-[#008B8B]/10 hover:text-[#007a7a]"
         >
-          <Plus className="mr-2 size-4" aria-hidden />
-          Add New Blogs
+          <Plus data-icon="inline-start" className="size-4 shrink-0" aria-hidden />
+          Add Blogs
         </Button>
       </div>
 
@@ -577,9 +591,27 @@ export function AdminBlogsView({
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                  Status
+                </label>
+                <select
+                  value={status}
+                  onChange={(e) =>
+                    setStatus(e.target.value as BlogStatus)
+                  }
+                  className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
+                >
+                  {BLOG_STATUSES.map((value) => (
+                    <option key={value} value={value}>
+                      {statusLabel(value)}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                  Excerpt
+                  Short Descriptions
                 </label>
                 <textarea
                   value={excerpt}
@@ -635,15 +667,20 @@ export function AdminBlogsView({
                           </button>
                         </>
                       ) : (
-                        <div className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 px-3 py-4 text-center">
+                        <button
+                          type="button"
+                          className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-3 py-4 text-center transition hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/50 focus-visible:ring-offset-2"
+                          onClick={() => coverFileInputRef.current?.click()}
+                          aria-label="Upload cover image from your computer"
+                        >
                           <Upload
                             className="size-6 text-muted-foreground/70"
                             aria-hidden
                           />
                           <span className="text-xs text-muted-foreground">
-                            No cover yet — use Browser below
+                            No cover yet — click here or use Browser below
                           </span>
-                        </div>
+                        </button>
                       )}
                     </div>
                     <Button
@@ -673,7 +710,7 @@ export function AdminBlogsView({
               </div>
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                  Body (paragraphs separated by a blank line)
+                  Descriptions
                 </label>
                 <textarea
                   value={bodyText}
@@ -721,7 +758,7 @@ export function AdminBlogsView({
           </p>
         ) : rows.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-muted-foreground sm:px-6">
-            No posts yet. Use &quot;Add New Blogs&quot; to add one.
+            No posts yet. Use &quot;Add Blogs&quot; to add one.
           </p>
         ) : (
           <ul className="grid list-none grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3 lg:gap-5">
@@ -770,6 +807,11 @@ export function AdminBlogsView({
                         <span className="rounded-full border border-border bg-card px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {post.category}
                         </span>
+                        {post.status === "draft" ? (
+                          <span className="rounded-full border border-amber-600/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
+                            Draft
+                          </span>
+                        ) : null}
                       </div>
                       <h3 className="line-clamp-2 text-base font-bold leading-snug text-foreground">
                         {post.title}
