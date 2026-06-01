@@ -40,7 +40,7 @@ const items = [
   {
     icon: Tractor,
     title: "Agriculture & Spraying",
-    image: "/images/agriculture-spraying.png",
+    image: "/images/agriculture-spraying-v2.png",
     imageAlt:
       "Agricultural drones spraying pesticides and fertilizers over a green crop field at sunrise",
     description: [
