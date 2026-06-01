@@ -63,9 +63,9 @@ const items = [
   {
     icon: Building2,
     title: "Real Estate & Property Shoots",
-    image: "/images/real-estate-property-shoots.png",
+    image: "/images/real-estate-property-shoots-v2.png",
     imageAlt:
-      "Aerial view of a modern residential development with terracotta roofs, canals, and landscaped grounds",
+      "Aerial view of a luxury villa with a swimming pool, landscaped grounds, and warm evening lighting",
     description: [
       { text: "Property showcases", icon: Home },
       { text: "Virtual tours", icon: Video },
