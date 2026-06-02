@@ -46,6 +46,11 @@ import {
   type UserMissionRequest,
   type UserRequestAdminRow,
 } from "@/lib/user-requests";
+import {
+  type BackendDroneHireRequestRow,
+  mapBackendRequestToAdminRow,
+} from "@/lib/drone-hire-request-admin-map";
+import { isProjectRequirementRequest } from "@/lib/project-requests";
 import { cn } from "@/lib/utils";
 
 type RequestTier = "critical" | "normal" | "routine";
@@ -101,23 +106,6 @@ const REQUESTS: UserRequestRow[] = [
 
 const DEMO_ADMIN_STORAGE_KEY = "aerolaminar_user_request_demo_admin_v1";
 
-type BackendRequestRow = {
-  id?: number | string;
-  reason_or_title?: string;
-  pickup_location?: string;
-  drop_location?: string;
-  payload_weight?: number | string;
-  cargo_type?: string;
-  mission_urgency?: string;
-  admin_status?: string;
-  adminStatus?: string;
-  mission_status?: string | null;
-  missionStatus?: string | null;
-  user_name?: string | null;
-  user_email?: string | null;
-  client_request_id?: string | null;
-};
-
 type RequestEditForm = {
   reasonOrTitle: string;
   pickupLocation: string;
@@ -127,19 +115,6 @@ type RequestEditForm = {
   missionUrgency: string;
   adminStatus: UserMissionAdminStatus;
 };
-
-function pickBackendAdminStatus(r: BackendRequestRow): string | undefined {
-  if (typeof r.admin_status === "string") return r.admin_status;
-  if (typeof r.adminStatus === "string") return r.adminStatus;
-  return undefined;
-}
-
-function pickBackendMissionStatus(r: BackendRequestRow): string | null | undefined {
-  if (typeof r.mission_status === "string") return r.mission_status;
-  if (typeof r.missionStatus === "string") return r.missionStatus;
-  if (r.mission_status === null || r.missionStatus === null) return null;
-  return undefined;
-}
 
 function staticRequestToAdminRow(
   r: UserRequestRow,
@@ -179,57 +154,6 @@ function staticRequestToAdminRow(
     barColor: "#008B8B",
     desc,
     adminStatus,
-  };
-}
-
-function mapBackendRequestToAdminRow(r: BackendRequestRow): UserRequestAdminRow {
-  const urgency = String(r.mission_urgency ?? "")
-    .trim()
-    .toLowerCase();
-  let badge: UserRequestAdminRow["badge"] = "NORMAL";
-  let badgeClass =
-    "bg-[#cde5ff] text-[#001d32] dark:bg-blue-950/50 dark:text-blue-200";
-  let barColor = "#006195";
-
-  if (urgency === "critical" || urgency === "urgent") {
-    badge = "CRITICAL";
-    badgeClass =
-      "bg-[#ffdad6] text-[#93000a] dark:bg-red-950/50 dark:text-red-200";
-    barColor = "#ba1a1a";
-  } else if (urgency === "standard" || urgency === "routine") {
-    badge = "ROUTINE";
-    badgeClass = "bg-[#008B8B]/14 text-[#0a3030]";
-    barColor = "#008B8B";
-  }
-
-  const payloadWeight = String(r.payload_weight ?? "").trim();
-  const cargoType = String(r.cargo_type ?? "").trim();
-  const pickupLocation = String(r.pickup_location ?? "").trim();
-  const dropLocation = String(r.drop_location ?? "").trim();
-
-  return {
-    key: String(r.id ?? `${Date.now()}-${Math.random()}`),
-    title: String(r.reason_or_title ?? "").trim() || "Mission request",
-    badge,
-    badgeClass,
-    barColor,
-    desc: `Payload: ${cargoType || "General cargo"} (${payloadWeight || "0"}kg) | Target: ${
-      dropLocation || pickupLocation || "—"
-    }`,
-    adminStatus: normalizeUserMissionAdminStatus(pickBackendAdminStatus(r)),
-    missionStatus: pickBackendMissionStatus(r) ?? null,
-    userName: String(r.user_name ?? "").trim() || undefined,
-    userEmail: String(r.user_email ?? "").trim().toLowerCase() || undefined,
-    backendRequest: {
-      id: String(r.id ?? ""),
-      reasonOrTitle: String(r.reason_or_title ?? "").trim(),
-      pickupLocation,
-      dropLocation,
-      payloadWeight,
-      cargoType,
-      missionUrgency: String(r.mission_urgency ?? "").trim() || "normal",
-      adminStatus: normalizeUserMissionAdminStatus(pickBackendAdminStatus(r)),
-    },
   };
 }
 
@@ -287,10 +211,17 @@ export function UserRequestsView({
         if (!response.ok) return;
         const payload: unknown = await response.json();
         const data = Array.isArray((payload as { data?: unknown[] })?.data)
-          ? ((payload as { data?: unknown[] }).data as BackendRequestRow[])
+          ? ((payload as { data?: unknown[] }).data as BackendDroneHireRequestRow[])
           : [];
         if (!cancelled) {
-          setBackendRequests(data.map(mapBackendRequestToAdminRow));
+          setBackendRequests(
+            data
+              .filter(
+                (row) =>
+                  !isProjectRequirementRequest(row.client_request_id)
+              )
+              .map(mapBackendRequestToAdminRow)
+          );
         }
       } catch {
         if (!cancelled) {

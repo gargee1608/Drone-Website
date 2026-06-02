@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { apiUrl } from "@/lib/api-url";
+import { notifyProjectRequestsUpdated } from "@/lib/project-requests";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
@@ -84,6 +85,7 @@ export function PostYourRequirementView() {
         return;
       }
 
+      notifyProjectRequestsUpdated();
       setSubmitSuccess(true);
       setFullName("");
       setEmail("");

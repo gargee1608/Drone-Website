@@ -583,6 +583,8 @@ export type UserRequestAdminRow = {
   /** From `drone_hire_requests` when loaded via `/api/requests`. */
   userName?: string;
   userEmail?: string;
+  /** Shown in Request ID column (e.g. `#PR-…` from Post Your Requirement). */
+  queueDisplayId?: string;
   /** Editable backend fields for admin User Request rows. */
   backendRequest?: {
     id: string;
