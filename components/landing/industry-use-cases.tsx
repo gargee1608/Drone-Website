@@ -80,8 +80,13 @@ const cases = [
   },
   {
     icon: HardHat,
-    title: "Construction Progress Tracking",
-    description: "Site documentation, milestones & stakeholder updates.",
+    title: "Construction Monitoring",
+    description: [
+      { text: "Site inspections", icon: ScanLine },
+      { text: "Progress tracking", icon: BarChart3 },
+      { text: "Safety monitoring", icon: HardHat },
+      { text: "Volume measurements", icon: Layers },
+    ],
   },
 ] as const;
 

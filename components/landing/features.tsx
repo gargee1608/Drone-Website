@@ -111,8 +111,18 @@ const items = [
   },
   {
     icon: HardHat,
-    title: "Construction Progress Tracking",
-    description: "Site documentation, milestones & stakeholder updates.",
+    title: "Construction Monitoring",
+    image: "/images/construction-monitoring-hero.png",
+    imageAlt:
+      "Drone scanning a construction site while engineers review progress data at sunset",
+    imageObjectPosition: "object-[42%_5%]",
+    imageContainerClass: "relative h-40 w-full shrink-0 sm:h-44",
+    description: [
+      { text: "Site inspections", icon: ScanLine },
+      { text: "Progress tracking", icon: BarChart3 },
+      { text: "Safety monitoring", icon: HardHat },
+      { text: "Volume measurements", icon: Layers },
+    ],
   },
 ] as const;
 
