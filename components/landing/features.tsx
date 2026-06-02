@@ -6,20 +6,31 @@ import {
   CalendarClock,
   Clapperboard,
   CloudRain,
+  AlertTriangle,
   Droplets,
+  Factory,
+  Flame,
   HardHat,
   Heart,
+  HeartPulse,
   Home,
   Layers,
+  LifeBuoy,
   Map,
   MapPinned,
   Megaphone,
+  Package,
   Radar,
+  Radio,
   ScanLine,
+  Search,
   Sprout,
+  Sun,
   Tractor,
+  Truck,
   Video,
   Weight,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -63,13 +74,32 @@ const items = [
   },
   {
     icon: Clapperboard,
-    title: "Filming & Cinematography",
-    description: "Commercial spots, TV & cinematic aerial sequences.",
+    title: "Media & Film Production",
+    image: "/images/media-film-production-hero.png",
+    imageAlt:
+      "Cinema drone with professional camera flying over a coastline at golden hour",
+    imageObjectPosition: "object-[50%_5%]",
+    imageContainerClass: "relative h-40 w-full shrink-0 sm:h-44",
+    description: [
+      { text: "Aerial videography", icon: Video },
+      { text: "Movie production", icon: Clapperboard },
+      { text: "Event coverage", icon: CalendarClock },
+      { text: "Tourism promotion", icon: MapPinned },
+      { text: "Weddings & Events Shoots", icon: Heart },
+    ],
   },
   {
-    icon: Weight,
-    title: "Heavy Lifting & Industry Work",
-    description: "Industrial payloads, logistics & on-site aerial lifts.",
+    icon: LifeBuoy,
+    title: "Search & Rescue",
+    image: "/images/search-rescue-hero.png",
+    imageAlt:
+      "Search and rescue responder with drone monitoring smoke over mountain valleys",
+    description: [
+      { text: "Disaster assessment", icon: AlertTriangle },
+      { text: "Missing person searches", icon: Search },
+      { text: "Fire monitoring", icon: Flame },
+      { text: "Emergency response", icon: Zap },
+    ],
   },
   {
     icon: Building2,
@@ -85,9 +115,17 @@ const items = [
     ],
   },
   {
-    icon: Heart,
-    title: "Weddings & Events",
-    description: "Ceremonies, venues & live celebrations from above.",
+    icon: Truck,
+    title: "Delivery & Logistics",
+    image: "/images/delivery-logistics-hero.png",
+    imageAlt:
+      "Delivery drone carrying medical supplies over a city toward a hospital",
+    description: [
+      { text: "Parcel delivery", icon: Package },
+      { text: "Medical supply transport", icon: HeartPulse },
+      { text: "Emergency deliveries", icon: Zap },
+      { text: "Last-mile logistics", icon: Truck },
+    ],
   },
   {
     icon: Map,
@@ -107,7 +145,16 @@ const items = [
   {
     icon: ScanLine,
     title: "Inspection (Solar, Tower, Infra)",
-    description: "Solar arrays, towers & critical infrastructure checks.",
+    image: "/images/infrastructure-inspection-hero.png",
+    imageAlt:
+      "Inspector operating a drone to inspect bridges and critical infrastructure over water",
+    description: [
+      { text: "Solar Panel Inspection", icon: Sun },
+      { text: "Telecom Tower Inspection", icon: Radio },
+      { text: "Power Line Inspection", icon: Zap },
+      { text: "Bridge & Infrastructure Inspection", icon: Building2 },
+      { text: "Industrial Facility Inspection", icon: Factory },
+    ],
   },
   {
     icon: HardHat,
