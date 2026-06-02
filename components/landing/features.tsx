@@ -81,7 +81,17 @@ const items = [
   {
     icon: Map,
     title: "Surveying & Mapping",
-    description: "Topographic surveys, orthomosaics & GIS-ready outputs.",
+    image: "/images/surveying-mapping-hero.png",
+    imageAlt:
+      "Surveyor with total station and drone over a mountain valley at golden hour",
+    imageObjectPosition: "object-[74%_8%]",
+    imageContainerClass: "relative h-40 w-full shrink-0 sm:h-44",
+    description: [
+      { text: "Land surveys", icon: ScanLine },
+      { text: "GIS mapping", icon: Map },
+      { text: "3D terrain models", icon: Layers },
+      { text: "Mining surveys", icon: HardHat },
+    ],
   },
   {
     icon: ScanLine,
@@ -161,6 +171,14 @@ export function Features() {
                   const image = "image" in item ? item.image : undefined;
                   const imageAlt =
                     "imageAlt" in item ? item.imageAlt : `${title} illustration`;
+                  const imageObjectPosition =
+                    "imageObjectPosition" in item
+                      ? item.imageObjectPosition
+                      : "";
+                  const imageContainerClass =
+                    "imageContainerClass" in item
+                      ? item.imageContainerClass
+                      : "relative h-36 w-full shrink-0 sm:h-40";
 
                   return (
                     <div
@@ -168,12 +186,12 @@ export function Features() {
                       className={`group relative flex h-full min-h-[180px] flex-col overflow-hidden rounded-3xl border border-[#008B8B]/15 bg-white/90 text-left shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-[#008B8B]/35 hover:shadow-[0_24px_60px_rgba(0,139,139,0.16)] sm:min-h-[210px] ${image ? "p-0" : "p-5 sm:p-7"}`}
                     >
                       {image ? (
-                        <div className="relative h-36 w-full shrink-0 sm:h-40">
+                        <div className={imageContainerClass}>
                           <Image
                             src={image}
                             alt={imageAlt}
                             fill
-                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                            className={`object-cover ${imageObjectPosition} transition-transform duration-500 group-hover:scale-105`}
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           />
                           <div
@@ -255,11 +273,11 @@ export function Features() {
                               );
                             })}
                           </ul>
-                        ) : (
+                        ) : typeof description === "string" ? (
                           <p className="relative mb-6 flex-1 text-sm leading-relaxed text-slate-600 sm:text-[0.9375rem]">
                             {description}
                           </p>
-                        )}
+                        ) : null}
                         <div className="relative mt-auto flex items-center gap-3">
                           <div className="landing-telemetry-line flex-1 opacity-90" />
                           <span className="size-2 rounded-full bg-[#008B8B] shadow-[0_0_0_5px_rgba(0,139,139,0.12)]" />
