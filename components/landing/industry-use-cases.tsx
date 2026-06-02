@@ -34,13 +34,19 @@ import {
 
 type DescriptionListItem = string | { text: string; icon: LucideIcon };
 
+type IndustryUseCase = {
+  icon: LucideIcon;
+  title: string;
+  description: string | DescriptionListItem[];
+};
+
 function isIconListItem(
   item: DescriptionListItem,
 ): item is { text: string; icon: LucideIcon } {
   return typeof item === "object";
 }
 
-const cases = [
+const cases: IndustryUseCase[] = [
   {
     icon: Radar,
     title: "Defence & Surveillance",
@@ -123,7 +129,7 @@ const cases = [
       { text: "Volume measurements", icon: Layers },
     ],
   },
-] as const;
+];
 
 export function IndustryUseCases() {
   return (

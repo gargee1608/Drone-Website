@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { normalizeBlogStatus } from "@/lib/blog-api";
 import { insertBlog, queryAllBlogs } from "@/lib/blogs-db";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +35,8 @@ export async function POST(req: NextRequest) {
   const content = body.content != null ? String(body.content) : "";
   const image = body.image != null ? String(body.image).trim() : "";
   const author = body.author != null ? String(body.author).trim() : "";
-  const status = body.status;
+  const status =
+    body.status !== undefined ? normalizeBlogStatus(body.status) : undefined;
 
   if (!title) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
