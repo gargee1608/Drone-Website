@@ -5,14 +5,18 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { DetailField } from "@/components/dashboard/user-request-detail-modal";
 import { apiUrl } from "@/lib/api-url";
+import { PROFILE_INFO_POPUP_SHELL_CLASS } from "@/lib/profile-popup-styles";
 import { type PilotRegCard } from "@/lib/admin-pilot-registration-storage";
 import {
   ADMIN_DASH_AVATAR_RING,
-  ADMIN_DASH_DIVIDER_BORDER,
   ADMIN_DASH_PANEL_BORDER,
 } from "@/lib/admin-dashboard-styles";
+import {
+  ADMIN_PROFILE_UPDATED_EVENT,
+  getAdminDisplayName,
+} from "@/lib/admin-profile-storage";
+import { jwtPayloadRole } from "@/lib/pilot-display-name";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +26,8 @@ const REGISTERED_PILOTS_COUNT_BASE = 0;
 type DashboardPilotDbRow = {
   id?: number | string;
   name?: string | null;
+  email?: string | null;
+  phone?: string | null;
   license_number?: string | null;
   duty_status?: string | null;
   experience?: string | number | null;
@@ -88,18 +94,23 @@ function mapDbPilotToApprovedCard(row: DashboardPilotDbRow): PilotRegCard {
   const id = String(row.id ?? "").trim() || `pilot-${Math.random().toString(36).slice(2, 9)}`;
   const name = String(row.name ?? "").trim() || "Pilot";
   const license = String(row.license_number ?? "").trim() || "—";
+  const email = String(row.email ?? "").trim() || "—";
+  const phone = String(row.phone ?? "").trim() || "—";
   const region = [String(row.city ?? "").trim(), String(row.state ?? "").trim()]
     .filter(Boolean)
     .join(", ");
   const status = String(row.duty_status ?? "ACTIVE").trim().toUpperCase() || "ACTIVE";
+  const flightHoursRaw = String(row.flight_hours ?? row.experience ?? "").trim();
+  const flightExperience = flightHoursRaw ? `${flightHoursRaw} hours` : "—";
   const drones = droneDetailsCount(row.drone_details);
 
   return {
     id: `db-approved-${id}`,
     name,
     badge: "Registered Pilot",
-    submitted: "From database",
+    submitted: "",
     rows: [
+      { k: "Pilot ID", v: id, vClass: "font-mono text-xs" },
       { k: "License ID", v: license, vClass: "font-mono text-xs" },
       {
         k: "Status",
@@ -110,6 +121,9 @@ function mapDbPilotToApprovedCard(row: DashboardPilotDbRow): PilotRegCard {
             : "font-semibold text-amber-700 dark:text-amber-300",
       },
       { k: "Region", v: region || "—" },
+      { k: "Email", v: email },
+      { k: "Phone", v: phone },
+      { k: "Flight experience", v: flightExperience },
       { k: "Drones registered", v: String(drones) },
     ],
   };
@@ -117,10 +131,32 @@ function mapDbPilotToApprovedCard(row: DashboardPilotDbRow): PilotRegCard {
 
 export function DashboardHomeContent() {
   const router = useRouter();
+  const [adminWelcome, setAdminWelcome] = useState<string | null>(null);
   const [dbPendingPilots, setDbPendingPilots] = useState<PilotRegCard[]>([]);
   const [dbApprovedPilots, setDbApprovedPilots] = useState<PilotRegCard[]>([]);
   const [dbTotalPilots, setDbTotalPilots] = useState(0);
   const [dbTotalDrones, setDbTotalDrones] = useState(0);
+
+  useEffect(() => {
+    const sync = () => {
+      const t =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!t || jwtPayloadRole(t) !== "admin") {
+        setAdminWelcome(null);
+        return;
+      }
+      setAdminWelcome(getAdminDisplayName());
+    };
+    sync();
+    window.addEventListener("storage", sync);
+    window.addEventListener("focus", sync);
+    window.addEventListener(ADMIN_PROFILE_UPDATED_EVENT, sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("focus", sync);
+      window.removeEventListener(ADMIN_PROFILE_UPDATED_EVENT, sync);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -223,7 +259,20 @@ export function DashboardHomeContent() {
 
   return (
     <>
-      <h1 className={cn(ADMIN_PAGE_TITLE_CLASS, "mt-8 mb-8")}>Admin Dashboard</h1>
+      <h1 className="sr-only lg:hidden">Admin Dashboard</h1>
+      <h1
+        className={cn(
+          ADMIN_PAGE_TITLE_CLASS,
+          "mb-4 mt-8 hidden lg:block sm:mb-5"
+        )}
+      >
+        Admin Dashboard
+      </h1>
+      {adminWelcome ? (
+        <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
+          Welcome, {adminWelcome}
+        </h2>
+      ) : null}
 
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
@@ -416,12 +465,7 @@ function PilotRegistrationsTable({
 
   if (pilots.length === 0) {
     return (
-      <div
-        className={cn(
-          "rounded-xl border border-dashed border-border/80 bg-card px-6 py-12 text-center",
-          ADMIN_DASH_PANEL_BORDER
-        )}
-      >
+      <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
         <p className="text-sm font-medium text-muted-foreground">
           {isPending
             ? "No pending pilot registrations."
@@ -432,12 +476,7 @@ function PilotRegistrationsTable({
   }
 
   return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-xl bg-card",
-        ADMIN_DASH_PANEL_BORDER
-      )}
-    >
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse text-left">
           <thead>
@@ -518,6 +557,36 @@ function PilotRegistrationsTable({
 }
 
 
+function pilotProfileRow(
+  pilot: PilotRegCard,
+  key: string
+): { label: string; value: string; valueClass?: string } {
+  const row = pilot.rows.find((r) => r.k === key);
+  return {
+    label: key,
+    value: row?.v?.trim() || "—",
+    valueClass: row?.vClass,
+  };
+}
+
+function InlinePilotProfileField({
+  label,
+  value,
+  valueClass,
+}: {
+  label: string;
+  value: string;
+  valueClass?: string;
+}) {
+  return (
+    <p className="min-w-0 text-xs leading-snug text-muted-foreground">
+      <span className="font-semibold text-foreground">{label}</span>
+      {" : "}
+      <span className={cn("text-foreground", valueClass)}>{value}</span>
+    </p>
+  );
+}
+
 function ApprovedPilotProfileModal({
   pilot,
   onClose,
@@ -541,6 +610,16 @@ function ApprovedPilotProfileModal({
 
   if (!pilot) return null;
 
+  const pilotId = pilotProfileRow(pilot, "Pilot ID");
+  const license = pilotProfileRow(pilot, "License ID");
+  const status = pilotProfileRow(pilot, "Status");
+  const region = pilotProfileRow(pilot, "Region");
+  const email = pilotProfileRow(pilot, "Email");
+  const phone = pilotProfileRow(pilot, "Phone");
+  const flightExperience = pilotProfileRow(pilot, "Flight experience");
+  const dronesRegistered = pilotProfileRow(pilot, "Drones registered");
+  const isActive = status.value.toUpperCase() === "ACTIVE";
+
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
       <button
@@ -554,68 +633,128 @@ function ApprovedPilotProfileModal({
         aria-modal="true"
         aria-labelledby="approved-pilot-profile-title"
         className={cn(
-          "relative z-10 flex max-h-[min(90dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white text-foreground shadow-2xl dark:bg-black sm:rounded-2xl",
-          ADMIN_DASH_PANEL_BORDER
+          "relative z-10 flex max-h-[min(90dvh,640px)] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-border shadow-2xl sm:rounded-2xl dark:border-white/20",
+          PROFILE_INFO_POPUP_SHELL_CLASS
         )}
       >
-        <div
-          className={cn(
-            "flex shrink-0 items-center justify-between gap-3 px-5 py-4 sm:px-6",
-            ADMIN_DASH_DIVIDER_BORDER
-          )}
-        >
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border bg-muted/30 px-4 py-4 sm:px-5">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
             <div
               className={cn(
-                "flex size-12 shrink-0 items-center justify-center rounded-full bg-muted",
+                "flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/10",
                 ADMIN_DASH_AVATAR_RING
               )}
               aria-hidden
             >
-              <User
-                className="size-6 text-muted-foreground"
-                strokeWidth={2}
-              />
+              <User className="size-5 text-[#008B8B]" strokeWidth={2} />
             </div>
             <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Pilot profile
+              </p>
               <h2
                 id="approved-pilot-profile-title"
-                className="truncate text-base font-bold text-foreground sm:text-lg"
+                className="mt-1 truncate text-base font-semibold text-foreground sm:text-lg"
               >
                 {pilot.name}
               </h2>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">
-                {pilot.badge}
-              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-800 dark:bg-green-950/50 dark:text-green-300">
+                  {pilot.badge}
+                </span>
+                {pilotId.value !== "—" ? (
+                  <span className="text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground">Pilot ID</span>
+                    {" : "}
+                    <span className="font-mono">{pilotId.value}</span>
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted"
+            className="shrink-0 rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-muted"
             aria-label="Close"
           >
-            <X className="size-5" />
+            <X className="size-5" aria-hidden />
           </button>
         </div>
-        <div className="overflow-y-auto px-5 py-5 sm:px-6">
-          <p className="mb-5 text-[11px] font-medium text-muted-foreground">
-            Registered: {pilot.submitted}
-          </p>
-          <dl className="grid gap-4 sm:grid-cols-2">
-            {pilot.rows.map((row, i) => (
-              <div
-                key={`${row.k}-${i}`}
-                className={cn(
-                  row.k === "License ID" ? "sm:col-span-2" : undefined
-                )}
-              >
-                <DetailField label={row.k}>
-                  <span className={cn("font-semibold", row.vClass)}>{row.v}</span>
-                </DetailField>
+
+        <div className="overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
+          <section
+            className={cn(
+              "overflow-hidden rounded-2xl border border-border bg-card shadow-sm dark:border-white/20"
+            )}
+          >
+            <div className="border-b border-border bg-muted/20 px-4 py-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Registration &amp; credentials
+              </p>
+            </div>
+            <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+                <InlinePilotProfileField
+                  label="License ID"
+                  value={license.value}
+                  valueClass={license.valueClass}
+                />
+                <div className="min-w-0">
+                  <p className="text-xs leading-snug text-muted-foreground">
+                    <span className="font-semibold text-foreground">Status</span>
+                    {" : "}
+                    <span
+                      className={cn(
+                        "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                        isActive
+                          ? "bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300"
+                          : "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+                      )}
+                    >
+                      {status.value}
+                    </span>
+                  </p>
+                </div>
+                <InlinePilotProfileField label="Region" value={region.value} />
+                <InlinePilotProfileField
+                  label="Drones registered"
+                  value={dronesRegistered.value}
+                />
               </div>
-            ))}
-          </dl>
+            </div>
+          </section>
+
+          <section
+            className={cn(
+              "mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-sm dark:border-white/20"
+            )}
+          >
+            <div className="border-b border-border bg-muted/20 px-4 py-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Contact &amp; experience
+              </p>
+            </div>
+            <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                <InlinePilotProfileField
+                  label="Email"
+                  value={email.value}
+                  valueClass="break-all"
+                />
+                <InlinePilotProfileField label="Phone" value={phone.value} />
+                <InlinePilotProfileField
+                  label="Flight experience"
+                  value={flightExperience.value}
+                />
+                <InlinePilotProfileField
+                  label="Pilot ID"
+                  value={pilotId.value}
+                  valueClass="font-mono text-xs"
+                />
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>

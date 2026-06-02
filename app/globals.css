@@ -204,9 +204,25 @@
   --sidebar-ring: var(--sidebar-ring);
 }
 
-/* Dark mode: admin command center uses global `html.dark` tokens. */
+/* Admin sidebar: white in light mode. */
+.admin-dashboard {
+  --sidebar: #ffffff;
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-accent: oklch(0.96 0.01 180);
+  --sidebar-accent-foreground: oklch(0.35 0.06 185);
+  --sidebar-border: oklch(0.922 0 0);
+}
+
+/* Dark mode: admin command center — black surfaces (main + sidebar). */
 .dark .admin-dashboard {
   color-scheme: dark;
+  --background: #000000;
+  --card: #000000;
+  --sidebar: #000000;
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-accent: oklch(0.18 0 0);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.25 0 0);
 }
 
 .dark .admin-dashboard .cc-glass-card {
@@ -242,6 +258,25 @@
   /* Site header marketing links — follow theme foreground (light/dark) */
   .site-header-marketing-link {
     color: var(--foreground) !important;
+  }
+
+  /* Dashboard shell: keep sidebar logout rule aligned with global footer rule. */
+  .admin-shell-footer-rule {
+    height: 1px;
+    width: 100%;
+    flex-shrink: 0;
+    background-color: rgb(226 232 240);
+  }
+
+  .dark .admin-shell-footer-rule {
+    background-color: rgb(255 255 255 / 0.15);
+  }
+
+  .admin-shell-footer-pane {
+    --admin-shell-footer-pb: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+    padding-bottom: var(--admin-shell-footer-pb);
+    min-height: calc(1.75rem + 0.375rem + 1.0625rem + var(--admin-shell-footer-pb));
   }
 }
 

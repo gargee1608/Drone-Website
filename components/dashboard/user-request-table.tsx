@@ -52,6 +52,9 @@ export function extractPayloadWeightDisplay(payloadPart: string): string {
 }
 
 export function tableRequestId(m: UserRequestAdminRow): string {
+  if (m.queueDisplayId?.trim()) {
+    return m.queueDisplayId.trim();
+  }
   if (!m.key.startsWith("demo-")) {
     return userRequestQueueDisplayId(m.key);
   }

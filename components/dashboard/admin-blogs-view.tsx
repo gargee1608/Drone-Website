@@ -9,12 +9,14 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type DragEvent,
 } from "react";
 
 import {
   blogPosts,
   postsBySlug,
   type BlogPost,
+  type BlogStatus,
 } from "@/components/blogs/blog-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +39,10 @@ import {
   type AdminBlogExtra,
 } from "@/lib/blog-admin-storage";
 import { getMergedBlogPostsList } from "@/lib/blog-merge";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  ADMIN_PAGE_TITLE_CLASS,
+  ADMIN_PAGE_TOP_PADDING_CLASS,
+} from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
 type AdminBlogRow = BlogPost & { dbId?: number };
@@ -49,9 +54,37 @@ const CATEGORIES: BlogPost["category"][] = [
   "Company News",
 ];
 
-const TAG_TONES: BlogPost["tagTone"][] = ["emerald", "primary", "slate"];
+const BLOG_STATUSES: BlogStatus[] = ["draft", "published"];
+
+function statusLabel(status: BlogStatus): string {
+  return status === "draft" ? "Draft" : "Published";
+}
 
 const MAX_BLOG_COVER_BYTES = 2 * 1024 * 1024;
+
+function getImageFileFromDataTransfer(dt: DataTransfer): File | null {
+  if (dt.files?.length) {
+    const file = dt.files[0];
+    if (file.type.startsWith("image/")) return file;
+  }
+  for (const item of Array.from(dt.items)) {
+    if (item.kind === "file" && item.type.startsWith("image/")) {
+      const file = item.getAsFile();
+      if (file) return file;
+    }
+  }
+  return null;
+}
+
+function getImageFileFromClipboard(dt: DataTransfer): File | null {
+  for (const item of Array.from(dt.items)) {
+    if (item.type.startsWith("image/")) {
+      const file = item.getAsFile();
+      if (file) return file;
+    }
+  }
+  return getImageFileFromDataTransfer(dt);
+}
 
 function readBlogCoverImageFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -130,6 +163,7 @@ export function AdminBlogsView({
         content: post.body.join("\n\n"),
         image: post.image,
         created_at: "",
+        status: post.status ?? "published",
       };
     })
   );
@@ -151,9 +185,10 @@ export function AdminBlogsView({
   const [author, setAuthor] = useState("");
   const [image, setImage] = useState("");
   const [imageAlt, setImageAlt] = useState("");
-  const [tagTone, setTagTone] = useState<BlogPost["tagTone"]>("primary");
+  const [status, setStatus] = useState<BlogStatus>("draft");
   const [bodyText, setBodyText] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [coverDragActive, setCoverDragActive] = useState(false);
   const openedEditSlugRef = useRef<string | null>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -161,10 +196,7 @@ export function AdminBlogsView({
     if (coverFileInputRef.current) coverFileInputRef.current.value = "";
   }, []);
 
-  async function onCoverFileSelected(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  const applyCoverImageFile = useCallback(async (file: File) => {
     try {
       const dataUrl = await readBlogCoverImageFile(file);
       setImage(dataUrl);
@@ -172,7 +204,62 @@ export function AdminBlogsView({
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Invalid image.");
     }
-  }
+  }, []);
+
+  const onCoverFileSelected = useCallback(
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      await applyCoverImageFile(file);
+    },
+    [applyCoverImageFile]
+  );
+
+  const onCoverDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes("Files")) {
+      e.dataTransfer.dropEffect = "copy";
+      setCoverDragActive(true);
+    }
+  }, []);
+
+  const onCoverDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const related = e.relatedTarget as Node | null;
+    if (!e.currentTarget.contains(related)) {
+      setCoverDragActive(false);
+    }
+  }, []);
+
+  const onCoverDrop = useCallback(
+    async (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setCoverDragActive(false);
+      const file = getImageFileFromDataTransfer(e.dataTransfer);
+      if (file) await applyCoverImageFile(file);
+    },
+    [applyCoverImageFile]
+  );
+
+  useEffect(() => {
+    if (editorMode === "closed") return;
+
+    const onPaste = (e: ClipboardEvent) => {
+      const file = e.clipboardData
+        ? getImageFileFromClipboard(e.clipboardData)
+        : null;
+      if (!file) return;
+      e.preventDefault();
+      void applyCoverImageFile(file);
+    };
+
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [editorMode, applyCoverImageFile]);
 
   const refresh = useCallback(async () => {
     let apiRows = initialApiRowsRef.current;
@@ -217,7 +304,7 @@ export function AdminBlogsView({
     setAuthor("");
     setImage("");
     setImageAlt("");
-    setTagTone("primary");
+    setStatus("draft");
     setBodyText("");
     setFormError(null);
     clearCoverFileInput();
@@ -238,7 +325,7 @@ export function AdminBlogsView({
     setAuthor(post.author);
     setImage(post.image);
     setImageAlt(post.imageAlt);
-    setTagTone(post.tagTone);
+    setStatus(post.status ?? "published");
     setBodyText(bodyToText(post.body));
     setFormError(null);
     clearCoverFileInput();
@@ -287,6 +374,12 @@ export function AdminBlogsView({
     }
     const body = textToBody(bodyText);
     const ex = excerpt.trim();
+    const tagTone: BlogPost["tagTone"] =
+      editorMode === "edit" && editSlug
+        ? (rows.find((r) => r.slug === editSlug)?.tagTone ??
+          postsBySlug[editSlug]?.tagTone ??
+          "primary")
+        : "primary";
     const baseFields: BlogPost = {
       slug: "",
       title: t,
@@ -298,6 +391,7 @@ export function AdminBlogsView({
       imageAlt: imageAlt.trim() || t,
       tagTone,
       body,
+      status,
     };
 
     if (editorMode === "add") {
@@ -308,7 +402,13 @@ export function AdminBlogsView({
         const res = await fetch(apiUrl("/api/blogs"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: t, content, image: img }),
+          body: JSON.stringify({
+            title: t,
+            content,
+            image: img,
+            status,
+            author: baseFields.author,
+          }),
         });
         const data = (await res.json().catch(() => ({}))) as {
           error?: string;
@@ -336,7 +436,13 @@ export function AdminBlogsView({
         const res = await fetch(apiUrl(`/api/blogs/${editDbId}`), {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: t, content, image: img }),
+            body: JSON.stringify({
+              title: t,
+              content,
+              image: img,
+              status,
+              author: baseFields.author,
+            }),
           }
         );
         const data = (await res.json().catch(() => ({}))) as {
@@ -390,6 +496,7 @@ export function AdminBlogsView({
             imageAlt: baseFields.imageAlt,
             tagTone: baseFields.tagTone,
             body: baseFields.body,
+            status: baseFields.status,
           },
         });
       }
@@ -465,7 +572,7 @@ export function AdminBlogsView({
   };
 
   return (
-    <div className="min-w-0 text-foreground">
+    <div className={cn("min-w-0 text-foreground", ADMIN_PAGE_TOP_PADDING_CLASS)}>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="max-w-2xl">
           <h1 className={ADMIN_PAGE_TITLE_CLASS}>Blogs</h1>
@@ -473,11 +580,12 @@ export function AdminBlogsView({
         <Button
           type="button"
           variant="outline"
+          size="lg"
           onClick={openAdd}
-          className="shrink-0 rounded-full border-[#008B8B] bg-transparent font-bold text-[#008B8B] hover:bg-[#008B8B]/10 hover:text-[#007a7a]"
+          className="shrink-0 gap-2 rounded-full border-[#008B8B] bg-transparent px-5 font-bold leading-none text-[#008B8B] hover:bg-[#008B8B]/10 hover:text-[#007a7a]"
         >
-          <Plus className="mr-2 size-4" aria-hidden />
-          Add New Blogs
+          <Plus data-icon="inline-start" className="size-4 shrink-0" aria-hidden />
+          Add Blogs
         </Button>
       </div>
 
@@ -558,25 +666,25 @@ export function AdminBlogsView({
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                  Tag tone
+                  Status
                 </label>
                 <select
-                  value={tagTone}
+                  value={status}
                   onChange={(e) =>
-                    setTagTone(e.target.value as BlogPost["tagTone"])
+                    setStatus(e.target.value as BlogStatus)
                   }
                   className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
                 >
-                  {TAG_TONES.map((tone) => (
-                    <option key={tone} value={tone}>
-                      {tone}
+                  {BLOG_STATUSES.map((value) => (
+                    <option key={value} value={value}>
+                      {statusLabel(value)}
                     </option>
                   ))}
                 </select>
               </div>
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                  Excerpt
+                  Short Descriptions
                 </label>
                 <textarea
                   value={excerpt}
@@ -600,13 +708,29 @@ export function AdminBlogsView({
                   />
                   <div className="space-y-3">
                     <div
+                      onDragEnter={onCoverDragOver}
+                      onDragOver={onCoverDragOver}
+                      onDragLeave={onCoverDragLeave}
+                      onDrop={onCoverDrop}
                       className={cn(
-                        "relative aspect-[16/10] w-full overflow-hidden rounded-lg border bg-muted",
+                        "relative aspect-[16/10] w-full overflow-hidden rounded-lg border bg-muted transition-colors",
                         image
                           ? "border-border"
-                          : "border-dashed border-muted-foreground/30"
+                          : "border-dashed border-muted-foreground/30",
+                        coverDragActive &&
+                          "border-[#008B8B] bg-[#008B8B]/10 ring-2 ring-[#008B8B]/30"
                       )}
                     >
+                      {coverDragActive ? (
+                        <div
+                          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[#008B8B]/15"
+                          aria-hidden
+                        >
+                          <span className="text-sm font-semibold text-[#008B8B]">
+                            Drop image here
+                          </span>
+                        </div>
+                      ) : null}
                       {image ? (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element -- data URLs + remote URLs */}
@@ -632,15 +756,20 @@ export function AdminBlogsView({
                           </button>
                         </>
                       ) : (
-                        <div className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 px-3 py-4 text-center">
+                        <button
+                          type="button"
+                          className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-3 py-4 text-center transition hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/50 focus-visible:ring-offset-2"
+                          onClick={() => coverFileInputRef.current?.click()}
+                          aria-label="Upload cover image from your computer"
+                        >
                           <Upload
                             className="size-6 text-muted-foreground/70"
                             aria-hidden
                           />
                           <span className="text-xs text-muted-foreground">
-                            No cover yet — use Browser below
+                            Click, drag & drop, or paste an image
                           </span>
-                        </div>
+                        </button>
                       )}
                     </div>
                     <Button
@@ -653,7 +782,8 @@ export function AdminBlogsView({
                       Browser
                     </Button>
                     <p className="text-[11px] leading-snug text-muted-foreground">
-                      JPEG, PNG, WebP, or GIF · max 2 MB
+                      JPEG, PNG, WebP, or GIF · max 2 MB · click, drag & drop,
+                      or paste from clipboard
                     </p>
                   </div>
                 </div>
@@ -670,7 +800,7 @@ export function AdminBlogsView({
               </div>
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                  Body (paragraphs separated by a blank line)
+                  Descriptions
                 </label>
                 <textarea
                   value={bodyText}
@@ -718,7 +848,7 @@ export function AdminBlogsView({
           </p>
         ) : rows.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-muted-foreground sm:px-6">
-            No posts yet. Use &quot;Add New Blogs&quot; to add one.
+            No posts yet. Use &quot;Add Blogs&quot; to add one.
           </p>
         ) : (
           <ul className="grid list-none grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3 lg:gap-5">
@@ -767,6 +897,11 @@ export function AdminBlogsView({
                         <span className="rounded-full border border-border bg-card px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {post.category}
                         </span>
+                        {post.status === "draft" ? (
+                          <span className="rounded-full border border-amber-600/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
+                            Draft
+                          </span>
+                        ) : null}
                       </div>
                       <h3 className="line-clamp-2 text-base font-bold leading-snug text-foreground">
                         {post.title}

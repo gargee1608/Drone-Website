@@ -49,19 +49,25 @@ export function Hero() {
               </div>
             ))}
           </div>
-          <div className="mt-8 grid gap-3 min-[420px]:grid-cols-2 sm:mt-10 sm:flex sm:flex-wrap sm:gap-4">
+          <div className="mt-8 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3 sm:mt-10">
             <Link
               href="/matching-hub"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#008B8B] px-6 py-3.5 font-[family-name:var(--font-landing-headline)] text-sm font-black text-white shadow-[0_14px_35px_rgba(0,139,139,0.25)] transition-all hover:-translate-y-0.5 hover:bg-[#007474] hover:shadow-[0_18px_45px_rgba(0,139,139,0.32)] sm:px-8 sm:py-4"
+              className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-[#008B8B] px-5 py-3.5 font-[family-name:var(--font-landing-headline)] text-xs font-black text-white shadow-[0_14px_35px_rgba(0,139,139,0.25)] transition-all hover:-translate-y-0.5 hover:bg-[#007474] hover:shadow-[0_18px_45px_rgba(0,139,139,0.32)] sm:px-6 sm:py-4 sm:text-sm lg:px-4 lg:text-xs"
             >
               Find a Pilot
-              <ArrowRight className="size-4" aria-hidden />
+              <ArrowRight className="size-3.5 shrink-0 sm:size-4" aria-hidden />
             </Link>
             <Link
               href="/pilot-registration"
-              className="inline-flex items-center justify-center rounded-xl border-2 border-[#008B8B] bg-white/70 px-6 py-3.5 font-[family-name:var(--font-landing-headline)] text-sm font-bold text-[#008B8B] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#006b6b] hover:bg-white hover:text-[#006b6b] sm:px-8 sm:py-4"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#008B8B] bg-white/70 px-5 py-3.5 font-[family-name:var(--font-landing-headline)] text-xs font-bold text-[#008B8B] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#006b6b] hover:bg-white hover:text-[#006b6b] sm:px-6 sm:py-4 sm:text-sm lg:px-4 lg:text-xs"
             >
               New Registration
+            </Link>
+            <Link
+              href="/post-your-requirement"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#008B8B] bg-white/70 px-5 py-3.5 font-[family-name:var(--font-landing-headline)] text-xs font-bold text-[#008B8B] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#006b6b] hover:bg-white hover:text-[#006b6b] min-[480px]:col-span-2 lg:col-span-1 sm:px-6 sm:py-4 sm:text-sm lg:px-4 lg:text-xs"
+            >
+              Post Your Requirement
             </Link>
           </div>
         </div>

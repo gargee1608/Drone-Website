@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Search, Plus, Edit, Trash2, Users, Mail, Shield, User } from "lucide-react";
 
+import { DetailField } from "@/components/dashboard/user-request-detail-modal";
+import { PROFILE_INFO_POPUP_INNER_PANEL_CLASS } from "@/lib/profile-popup-styles";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -55,6 +58,10 @@ export function AdminUserManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [detailUser, setDetailUser] = useState<User | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<UserFormData>({
     email: "",
@@ -200,6 +207,43 @@ export function AdminUserManagement() {
       console.error("Error deleting user:", err);
       setError(err instanceof Error ? err.message : "Failed to delete user");
     }
+  };
+
+  const openUserDetail = async (user: User) => {
+    setDetailUser(user);
+    setDetailError(null);
+    setIsDetailDialogOpen(true);
+    setDetailLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(apiUrl(`/api/users/${user.id}`), {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to load user details");
+      }
+
+      const data = (await response.json()) as User;
+      setDetailUser(data);
+    } catch (err) {
+      console.error("Error fetching user details:", err);
+      setDetailError(
+        err instanceof Error ? err.message : "Failed to load user details"
+      );
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const closeUserDetail = () => {
+    setIsDetailDialogOpen(false);
+    setDetailUser(null);
+    setDetailError(null);
+    setDetailLoading(false);
   };
 
   // Open edit dialog
@@ -355,8 +399,8 @@ export function AdminUserManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
-                  <TableHead>Email</TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead>Email id</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -367,15 +411,30 @@ export function AdminUserManagement() {
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.id}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        {user.email}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void openUserDetail(user)}
+                        className={cn(
+                          "inline-flex max-w-full items-center gap-2 rounded-md text-left font-medium transition-colors",
+                          "text-[#008B8B] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35"
+                        )}
+                      >
+                        <User
+                          className="h-4 w-4 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
+                        <span className="truncate">{user.name?.trim() || "—"}</span>
+                      </button>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        {user.name || "—"}
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <a
+                          href={`mailto:${encodeURIComponent(user.email)}`}
+                          className="truncate text-foreground no-underline hover:underline"
+                        >
+                          {user.email}
+                        </a>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -418,6 +477,92 @@ export function AdminUserManagement() {
           </div>
         )}
       </div>
+
+      {/* User details */}
+      <Dialog
+        open={isDetailDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeUserDetail();
+        }}
+      >
+        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <DialogHeader className="border-b border-border px-6 py-4 pr-12 text-left">
+            <DialogTitle className="text-base font-bold sm:text-lg">
+              User details
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="px-6 py-5">
+            {detailLoading ? (
+              <div className="flex min-h-[8rem] items-center justify-center">
+                <p className="text-sm text-muted-foreground">
+                  Loading user details…
+                </p>
+              </div>
+            ) : detailError ? (
+              <p className="text-sm text-red-600">{detailError}</p>
+            ) : detailUser ? (
+              <section aria-label="User account information">
+                <div
+                  className={cn(
+                    PROFILE_INFO_POPUP_INNER_PANEL_CLASS,
+                    "px-4 py-4 sm:px-5 sm:py-5"
+                  )}
+                >
+                  <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-5">
+                    <DetailField label="Name">
+                      <span className="text-sm font-semibold text-foreground">
+                        {detailUser.name?.trim() || "—"}
+                      </span>
+                    </DetailField>
+                    <DetailField label="Email id">
+                      <a
+                        href={`mailto:${encodeURIComponent(detailUser.email)}`}
+                        className="break-all text-sm font-medium text-[#008B8B] no-underline hover:underline"
+                      >
+                        {detailUser.email}
+                      </a>
+                    </DetailField>
+                    <DetailField label="Role">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize",
+                          detailUser.role === "admin"
+                            ? "bg-purple-100 text-purple-800"
+                            : "bg-blue-100 text-blue-800"
+                        )}
+                      >
+                        <Shield className="h-3.5 w-3.5" aria-hidden />
+                        {detailUser.role}
+                      </span>
+                    </DetailField>
+                    <DetailField label="Created">
+                      {detailUser.created_at ? (
+                        <time
+                          className="block text-sm font-medium text-foreground"
+                          dateTime={detailUser.created_at}
+                        >
+                          {new Date(detailUser.created_at).toLocaleString(
+                            undefined,
+                            {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            }
+                          )}
+                        </time>
+                      ) : (
+                        <span className="text-sm font-medium text-foreground">
+                          —
+                        </span>
+                      )}
+                    </DetailField>
+                  </dl>
+                </div>
+              </section>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

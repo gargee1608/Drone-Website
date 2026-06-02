@@ -1,6 +1,12 @@
 "use client";
 
-import { CheckCircle2, ClipboardList, Clock, PackageCheck } from "lucide-react";
+import {
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  PackageCheck,
+  X,
+} from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   useEffect,
@@ -16,7 +22,10 @@ import {
   type UserRequestDetailPayload,
 } from "@/components/dashboard/user-request-detail-modal";
 import { UserRequestTable } from "@/components/dashboard/user-request-table";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  ADMIN_PAGE_TITLE_CLASS,
+  ADMIN_PAGE_TOP_PADDING_CLASS,
+} from "@/lib/page-heading";
 import {
   setAssignInspectRow,
   userRequestAdminRowToAssignPilotRow,
@@ -37,6 +46,11 @@ import {
   type UserMissionRequest,
   type UserRequestAdminRow,
 } from "@/lib/user-requests";
+import {
+  type BackendDroneHireRequestRow,
+  mapBackendRequestToAdminRow,
+} from "@/lib/drone-hire-request-admin-map";
+import { isProjectRequirementRequest } from "@/lib/project-requests";
 import { cn } from "@/lib/utils";
 
 type RequestTier = "critical" | "normal" | "routine";
@@ -92,23 +106,6 @@ const REQUESTS: UserRequestRow[] = [
 
 const DEMO_ADMIN_STORAGE_KEY = "aerolaminar_user_request_demo_admin_v1";
 
-type BackendRequestRow = {
-  id?: number | string;
-  reason_or_title?: string;
-  pickup_location?: string;
-  drop_location?: string;
-  payload_weight?: number | string;
-  cargo_type?: string;
-  mission_urgency?: string;
-  admin_status?: string;
-  adminStatus?: string;
-  mission_status?: string | null;
-  missionStatus?: string | null;
-  user_name?: string | null;
-  user_email?: string | null;
-  client_request_id?: string | null;
-};
-
 type RequestEditForm = {
   reasonOrTitle: string;
   pickupLocation: string;
@@ -118,19 +115,6 @@ type RequestEditForm = {
   missionUrgency: string;
   adminStatus: UserMissionAdminStatus;
 };
-
-function pickBackendAdminStatus(r: BackendRequestRow): string | undefined {
-  if (typeof r.admin_status === "string") return r.admin_status;
-  if (typeof r.adminStatus === "string") return r.adminStatus;
-  return undefined;
-}
-
-function pickBackendMissionStatus(r: BackendRequestRow): string | null | undefined {
-  if (typeof r.mission_status === "string") return r.mission_status;
-  if (typeof r.missionStatus === "string") return r.missionStatus;
-  if (r.mission_status === null || r.missionStatus === null) return null;
-  return undefined;
-}
 
 function staticRequestToAdminRow(
   r: UserRequestRow,
@@ -170,57 +154,6 @@ function staticRequestToAdminRow(
     barColor: "#008B8B",
     desc,
     adminStatus,
-  };
-}
-
-function mapBackendRequestToAdminRow(r: BackendRequestRow): UserRequestAdminRow {
-  const urgency = String(r.mission_urgency ?? "")
-    .trim()
-    .toLowerCase();
-  let badge: UserRequestAdminRow["badge"] = "NORMAL";
-  let badgeClass =
-    "bg-[#cde5ff] text-[#001d32] dark:bg-blue-950/50 dark:text-blue-200";
-  let barColor = "#006195";
-
-  if (urgency === "critical" || urgency === "urgent") {
-    badge = "CRITICAL";
-    badgeClass =
-      "bg-[#ffdad6] text-[#93000a] dark:bg-red-950/50 dark:text-red-200";
-    barColor = "#ba1a1a";
-  } else if (urgency === "standard" || urgency === "routine") {
-    badge = "ROUTINE";
-    badgeClass = "bg-[#008B8B]/14 text-[#0a3030]";
-    barColor = "#008B8B";
-  }
-
-  const payloadWeight = String(r.payload_weight ?? "").trim();
-  const cargoType = String(r.cargo_type ?? "").trim();
-  const pickupLocation = String(r.pickup_location ?? "").trim();
-  const dropLocation = String(r.drop_location ?? "").trim();
-
-  return {
-    key: String(r.id ?? `${Date.now()}-${Math.random()}`),
-    title: String(r.reason_or_title ?? "").trim() || "Mission request",
-    badge,
-    badgeClass,
-    barColor,
-    desc: `Payload: ${cargoType || "General cargo"} (${payloadWeight || "0"}kg) | Target: ${
-      dropLocation || pickupLocation || "—"
-    }`,
-    adminStatus: normalizeUserMissionAdminStatus(pickBackendAdminStatus(r)),
-    missionStatus: pickBackendMissionStatus(r) ?? null,
-    userName: String(r.user_name ?? "").trim() || undefined,
-    userEmail: String(r.user_email ?? "").trim().toLowerCase() || undefined,
-    backendRequest: {
-      id: String(r.id ?? ""),
-      reasonOrTitle: String(r.reason_or_title ?? "").trim(),
-      pickupLocation,
-      dropLocation,
-      payloadWeight,
-      cargoType,
-      missionUrgency: String(r.mission_urgency ?? "").trim() || "normal",
-      adminStatus: normalizeUserMissionAdminStatus(pickBackendAdminStatus(r)),
-    },
   };
 }
 
@@ -278,10 +211,17 @@ export function UserRequestsView({
         if (!response.ok) return;
         const payload: unknown = await response.json();
         const data = Array.isArray((payload as { data?: unknown[] })?.data)
-          ? ((payload as { data?: unknown[] }).data as BackendRequestRow[])
+          ? ((payload as { data?: unknown[] }).data as BackendDroneHireRequestRow[])
           : [];
         if (!cancelled) {
-          setBackendRequests(data.map(mapBackendRequestToAdminRow));
+          setBackendRequests(
+            data
+              .filter(
+                (row) =>
+                  !isProjectRequirementRequest(row.client_request_id)
+              )
+              .map(mapBackendRequestToAdminRow)
+          );
         }
       } catch {
         if (!cancelled) {
@@ -550,7 +490,12 @@ export function UserRequestsView({
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div
+      className={cn(
+        "mx-auto w-full max-w-6xl",
+        showPageTitle && ADMIN_PAGE_TOP_PADDING_CLASS
+      )}
+    >
       {showPageTitle ? <h1 className={ADMIN_PAGE_TITLE_CLASS}>User Request</h1> : null}
       <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
         {pilotTables ? (
@@ -640,7 +585,7 @@ export function UserRequestsView({
             aria-label="Close edit request dialog"
             onClick={() => setEditingRequest(null)}
           />
-          <div className="relative z-10 max-h-[min(92dvh,44rem)] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-border bg-card p-5 shadow-2xl sm:rounded-2xl sm:p-6">
+          <div className="relative z-10 max-h-[min(92dvh,44rem)] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-border bg-white p-5 text-foreground shadow-2xl sm:rounded-2xl sm:p-6 dark:border-white/20 dark:bg-black dark:text-white">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-bold text-foreground">Edit User Request</h2>
@@ -651,9 +596,10 @@ export function UserRequestsView({
               <button
                 type="button"
                 onClick={() => setEditingRequest(null)}
-                className="rounded-lg border border-border px-2 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-muted"
+                className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted dark:text-white/80 dark:hover:bg-white/10"
+                aria-label="Close edit request dialog"
               >
-                Close
+                <X className="size-4" aria-hidden />
               </button>
             </div>
 
@@ -705,7 +651,7 @@ export function UserRequestsView({
                       missionUrgency: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+                  className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:bg-black"
                 >
                   <option value="critical">Critical</option>
                   <option value="normal">Normal</option>
@@ -724,7 +670,7 @@ export function UserRequestsView({
                       adminStatus: event.target.value as UserMissionAdminStatus,
                     }))
                   }
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+                  className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:bg-black"
                 >
                   <option value="pending">Pending</option>
                   <option value="accepted">Accepted</option>
@@ -750,7 +696,7 @@ export function UserRequestsView({
                 type="button"
                 disabled={requestSaving}
                 onClick={() => void saveRequestEdit()}
-                className="rounded-lg bg-[#008B8B] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#007373] disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border border-[#008B8B] bg-transparent px-4 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/8 disabled:cursor-not-allowed disabled:opacity-60 dark:border-primary dark:text-primary"
               >
                 {requestSaving ? "Saving..." : "Save changes"}
               </button>
@@ -779,7 +725,7 @@ function RequestField({
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+        className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/30 dark:bg-black dark:text-white"
       />
     </label>
   );

@@ -135,6 +135,8 @@ export type PilotDashboardShellProps = {
   pageSubtitle?: ReactNode;
   pageTitleClassName?: string;
   pageTitleBarClassName?: string;
+  /** When true, hide the compact mobile header title text. */
+  hideMobilePageTitle?: boolean;
   /** When true, skip the large visible page title (use sr-only for a11y). */
   omitPageTitle?: boolean;
   children: ReactNode;
@@ -145,6 +147,7 @@ export function PilotDashboardShell({
   pageSubtitle,
   pageTitleClassName,
   pageTitleBarClassName,
+  hideMobilePageTitle = false,
   omitPageTitle = false,
   children,
 }: PilotDashboardShellProps) {
@@ -214,14 +217,16 @@ export function PilotDashboardShell({
         >
           <Menu className="size-5" strokeWidth={2.25} aria-hidden />
         </button>
-        <span
-          className={cn(
-            "font-bold text-[#191c1d] dark:text-white",
-            pageTitleBarClassName ?? "text-sm"
-          )}
-        >
-          {pageTitle}
-        </span>
+        {!hideMobilePageTitle ? (
+          <span
+            className={cn(
+              "font-bold text-[#191c1d] dark:text-white",
+              pageTitleBarClassName ?? "text-sm"
+            )}
+          >
+            {pageTitle}
+          </span>
+        ) : null}
       </div>
 
       {mobileNavOpen ? (
@@ -307,14 +312,28 @@ export function PilotDashboardShell({
             <div
               className={cn(omitPageTitle ? "mb-6 sm:mb-8" : "mb-10 sm:mb-12")}
             >
-              {pilotWelcome && isMainPilotDashboard ? (
-                <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
-                  Welcome, {pilotWelcome} 
-                </h2>
-              ) : null}
               {omitPageTitle ? (
                 <>
-                  <h1 className="sr-only">{pageTitle}</h1>
+                  {isMainPilotDashboard ? (
+                    <>
+                      <h1 className="sr-only lg:hidden">{pageTitle}</h1>
+                      <h1
+                        className={cn(
+                          ADMIN_PAGE_TITLE_CLASS,
+                          "mb-4 hidden lg:block sm:mb-5"
+                        )}
+                      >
+                        {pageTitle}
+                      </h1>
+                      {pilotWelcome ? (
+                        <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
+                          Welcome, {pilotWelcome}
+                        </h2>
+                      ) : null}
+                    </>
+                  ) : (
+                    <h1 className="sr-only">{pageTitle}</h1>
+                  )}
                   {children}
                 </>
               ) : pageSubtitle ? (
@@ -347,6 +366,11 @@ export function PilotDashboardShell({
                       {pageTitle}
                     </h1>
                   </div>
+                  {pilotWelcome && isMainPilotDashboard ? (
+                    <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
+                      Welcome, {pilotWelcome}
+                    </h2>
+                  ) : null}
                   {children}
                 </>
               )}

@@ -5,6 +5,9 @@
 export const ADMIN_PAGE_TITLE_CLASS =
   "text-2xl font-bold tracking-tight text-foreground sm:text-3xl";
 
+/** Space between the fixed site header and the page title on admin dashboard pages. */
+export const ADMIN_PAGE_TOP_PADDING_CLASS = "pt-6 sm:pt-8";
+
 /** Typeface + tracking shared with admin page `<h1>` titles (no size/weight). */
 export const ADMIN_PAGE_TYPE_CLASS = "font-sans tracking-tight";
 

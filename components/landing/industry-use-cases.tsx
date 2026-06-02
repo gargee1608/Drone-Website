@@ -1,14 +1,44 @@
 import {
+  AlertTriangle,
+  BarChart3,
   Building2,
+  CalendarClock,
   Clapperboard,
+  CloudRain,
+  Droplets,
+  Factory,
+  Flame,
   HardHat,
   Heart,
+  HeartPulse,
+  Home,
+  Layers,
+  LifeBuoy,
   Map,
+  MapPinned,
+  Megaphone,
+  Package,
   Radar,
+  Radio,
   ScanLine,
+  Search,
+  Sprout,
+  Sun,
   Tractor,
+  Truck,
+  Video,
   Weight,
+  Zap,
+  type LucideIcon,
 } from "lucide-react";
+
+type DescriptionListItem = string | { text: string; icon: LucideIcon };
+
+function isIconListItem(
+  item: DescriptionListItem,
+): item is { text: string; icon: LucideIcon } {
+  return typeof item === "object";
+}
 
 const cases = [
   {
@@ -19,27 +49,53 @@ const cases = [
   {
     icon: Tractor,
     title: "Agriculture & Spraying",
-    description: "Crop health, precision spraying & field mapping.",
+    description: [
+      { text: "Crop monitoring", icon: Sprout },
+      { text: "Spraying pesticides and fertilizers", icon: Droplets },
+      { text: "Irrigation management", icon: CloudRain },
+      { text: "Yield analysis", icon: BarChart3 },
+    ],
   },
   {
     icon: Clapperboard,
-    title: "Filming & Cinematography",
-    description: "Commercial spots, TV & cinematic aerial sequences.",
+    title: "Media & Film Production",
+    description: [
+      { text: "Aerial videography", icon: Video },
+      { text: "Movie production", icon: Clapperboard },
+      { text: "Event coverage", icon: CalendarClock },
+      { text: "Tourism promotion", icon: MapPinned },
+      { text: "Weddings & Events Shoots", icon: Heart },
+    ],
   },
   {
-    icon: Weight,
-    title: "Heavy Lifting & Industry Work",
-    description: "Industrial payloads, logistics & on-site aerial lifts.",
+    icon: LifeBuoy,
+    title: "Search & Rescue",
+    description: [
+      { text: "Disaster assessment", icon: AlertTriangle },
+      { text: "Missing person searches", icon: Search },
+      { text: "Fire monitoring", icon: Flame },
+      { text: "Emergency response", icon: Zap },
+    ],
   },
   {
     icon: Building2,
     title: "Real Estate & Property Shoots",
-    description: "Listings, developments & polished property marketing.",
+    description: [
+      { text: "Property showcases", icon: Home },
+      { text: "Virtual tours", icon: Video },
+      { text: "Land visualization", icon: Layers },
+      { text: "Marketing content", icon: Megaphone },
+    ],
   },
   {
-    icon: Heart,
-    title: "Weddings & Events",
-    description: "Ceremonies, venues & live celebrations from above.",
+    icon: Truck,
+    title: "Delivery & Logistics",
+    description: [
+      { text: "Parcel delivery", icon: Package },
+      { text: "Medical supply transport", icon: HeartPulse },
+      { text: "Emergency deliveries", icon: Zap },
+      { text: "Last-mile logistics", icon: Truck },
+    ],
   },
   {
     icon: Map,
@@ -49,12 +105,23 @@ const cases = [
   {
     icon: ScanLine,
     title: "Inspection (Solar, Tower, Infra)",
-    description: "Solar arrays, towers & critical infrastructure checks.",
+    description: [
+      { text: "Solar Panel Inspection", icon: Sun },
+      { text: "Telecom Tower Inspection", icon: Radio },
+      { text: "Power Line Inspection", icon: Zap },
+      { text: "Bridge & Infrastructure Inspection", icon: Building2 },
+      { text: "Industrial Facility Inspection", icon: Factory },
+    ],
   },
   {
     icon: HardHat,
-    title: "Construction Progress Tracking",
-    description: "Site documentation, milestones & stakeholder updates.",
+    title: "Construction Monitoring",
+    description: [
+      { text: "Site inspections", icon: ScanLine },
+      { text: "Progress tracking", icon: BarChart3 },
+      { text: "Safety monitoring", icon: HardHat },
+      { text: "Volume measurements", icon: Layers },
+    ],
   },
 ] as const;
 
@@ -80,9 +147,45 @@ export function IndustryUseCases() {
               <h3 className="font-heading text-base font-bold leading-snug text-[#0f172a]">
                 {title}
               </h3>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600 sm:text-sm">
-                {description}
-              </p>
+              {Array.isArray(description) ? (
+                <ul className="mt-1.5 space-y-1.5 text-[13px] leading-relaxed text-slate-600 sm:text-sm">
+                  {description.map((item) => {
+                    if (isIconListItem(item)) {
+                      const ItemIcon = item.icon;
+
+                      return (
+                        <li
+                          key={item.text}
+                          className="flex items-start gap-2"
+                        >
+                          <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md border border-[#008B8B]/20 bg-[#f4fbfb]">
+                            <ItemIcon
+                              className="size-3 text-[#008B8B]"
+                              strokeWidth={1.75}
+                              aria-hidden
+                            />
+                          </div>
+                          <span>{item.text}</span>
+                        </li>
+                      );
+                    }
+
+                    return (
+                      <li key={item} className="flex items-start gap-2">
+                        <span
+                          className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#008B8B]"
+                          aria-hidden
+                        />
+                        <span>{item}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600 sm:text-sm">
+                  {description}
+                </p>
+              )}
             </div>
           ))}
         </div>

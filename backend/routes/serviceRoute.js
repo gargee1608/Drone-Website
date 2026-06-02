@@ -23,6 +23,39 @@ router.get("/", async (req, res) => {
   }
 });
 
+// ✅ Slugs admin removed from the built-in catalog (must be before /:id)
+router.get("/suppressed", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT slug FROM catalog_seed_suppressed"
+    );
+    res.json(
+      result.rows
+        .map((r) => String(r.slug ?? "").trim())
+        .filter(Boolean)
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/suppress", async (req, res) => {
+  const slug = String(req.body?.slug ?? "").trim();
+  if (!slug) {
+    return res.status(400).json({ error: "slug is required" });
+  }
+  try {
+    await pool.query(
+      `INSERT INTO catalog_seed_suppressed (slug) VALUES ($1)
+       ON CONFLICT (slug) DO NOTHING`,
+      [slug]
+    );
+    res.json({ ok: true, slug });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ✅ GET single service
 router.get("/:id", async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);

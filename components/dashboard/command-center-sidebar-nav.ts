@@ -3,10 +3,10 @@ import {
   Activity,
   BadgeCheck,
   BookOpen,
-  Briefcase,
   CheckCircle2,
   ClipboardList,
   Drone,
+  FolderKanban,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -16,6 +16,8 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
+
+import { ServiceIcon } from "@/components/icons/service-icon";
 
 export type CommandCenterNavItem = {
   readonly href: string;
@@ -27,6 +29,11 @@ export type CommandCenterNavItem = {
 export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/user-requests", label: "User Request", icon: ClipboardList },
+  {
+    href: "/dashboard/project-requests",
+    label: "Project Requests",
+    icon: FolderKanban,
+  },
   { href: "/dashboard/assign", label: "Assign To", icon: Plane },
   {
     href: "/dashboard/available-missions",
@@ -54,8 +61,8 @@ export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
     icon: Users,
   },
     { href: "/dashboard/pilot-status", label: "Pilot Status", icon: BadgeCheck },
-  { href: "/dashboard/blogs", label: "Add New Blogs", icon: BookOpen },
-  { href: "/dashboard/services", label: "Add New Services", icon: Briefcase },
+  { href: "/dashboard/blogs", label: "Add Blogs", icon: BookOpen },
+  { href: "/dashboard/services", label: "Add Services", icon: ServiceIcon },
   {
     href: "/dashboard/contact-inquiries",
     label: "Contact inquiries",
@@ -88,6 +95,33 @@ export const userCommandCenterNavMain: readonly CommandCenterNavItem[] = [
 export function commandCenterNavHrefPath(href: string): string {
   const q = href.indexOf("?");
   return q === -1 ? href : href.slice(0, q);
+}
+
+/** Mobile header title under the global nav (matches User Dashboard shell). */
+export function adminMobilePageTitle(pathname: string | null): string {
+  if (!pathname) return "Admin Dashboard";
+  if (
+    pathname === "/settings" ||
+    pathname === "/settings/" ||
+    pathname.startsWith("/settings/")
+  ) {
+    return "Settings";
+  }
+  if (pathname === "/dashboard" || pathname === "/dashboard/") {
+    return "Admin Dashboard";
+  }
+  if (
+    pathname === "/dashboard/profile" ||
+    pathname.startsWith("/dashboard/profile/")
+  ) {
+    return "My Profile";
+  }
+  const match = commandCenterNavMain.find(
+    (item) =>
+      item.href !== "/dashboard" &&
+      commandCenterNavItemIsActive(pathname, item.href)
+  );
+  return match?.label ?? "Admin Dashboard";
 }
 
 export function commandCenterNavItemIsActive(

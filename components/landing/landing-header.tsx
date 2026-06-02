@@ -36,7 +36,6 @@ import {
   readStoredUserSession,
   type StoredUserSession,
 } from "@/lib/user-session-browser";
-import { PilotLoginLanguageSelector } from "@/components/pilot-login/pilot-login-language-selector";
 import { isPilotRegistrationFromAdmin } from "@/lib/pilot-registration-from-admin";
 import { usePilotLoginLanguage } from "@/lib/pilot-login-i18n";
 import { cn } from "@/lib/utils";
@@ -108,7 +107,6 @@ export function LandingHeader() {
     isPilotDashboard ||
     isSettingsPage;
   const isHomePage = pathname === "/" || pathname === "";
-  const centerMarketingHeaderNav = isPilotLoginPage || isPilotRegistration;
   const isMatchingHub = pathname === "/matching-hub";
   const {
     sidebarExpanded: adminSidebarExpanded,
@@ -400,12 +398,7 @@ export function LandingHeader() {
         )}
         aria-label="Primary"
       >
-        <div
-          className={cn(
-            "flex min-w-0 items-center gap-1 sm:gap-8 lg:gap-12",
-            !centerMarketingHeaderNav && "flex-1"
-          )}
-        >
+        <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-8 lg:gap-12">
           <div className="flex min-w-0 items-center gap-1 sm:gap-2">
             {isAdminCommandCenterShell ? (
               <button
@@ -477,13 +470,7 @@ export function LandingHeader() {
             </Link>
           </div>
           {showMarketingHeaderNav ? (
-            <div
-              className={cn(
-                "hidden shrink-0 items-center gap-6 xl:flex xl:gap-8",
-                centerMarketingHeaderNav &&
-                  "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-              )}
-            >
+            <div className="hidden shrink-0 items-center gap-6 xl:flex xl:gap-8">
               <Link href="/" className={linkClass("/")}>
                 {isAuthLoginPage ? pilotLoginCopy.nav.home : "Home"}
               </Link>
@@ -509,7 +496,6 @@ export function LandingHeader() {
         </div>
 
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 sm:gap-3 lg:gap-6">
-          {isAuthLoginPage ? <PilotLoginLanguageSelector /> : null}
           {showHeaderSearchBar ? (
             <div className="hidden min-w-0 items-center rounded-full border border-border bg-card py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5 xl:flex">
               <Search
@@ -818,9 +804,6 @@ export function LandingHeader() {
           open ? "block" : "hidden"
         )}
       >
-        {isAuthLoginPage ? (
-          <PilotLoginLanguageSelector variant="drawer" className="xl:hidden" />
-        ) : null}
         {showHeaderSearchBar ? (
           <div className="mb-3 flex min-w-0 items-center rounded-full border border-slate-200 bg-white py-2 pl-3 pr-2 dark:border-white/20 dark:bg-white/5">
             <Search

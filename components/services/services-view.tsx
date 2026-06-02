@@ -16,6 +16,8 @@ import { RequestServiceModalTrigger } from "@/components/services/request-servic
 import { apiUrl } from "@/lib/api-url";
 import type { AdminService } from "@/lib/admin-services";
 import { useAdminServicesCatalog } from "@/hooks/use-admin-services-catalog";
+import { fetchSuppressedServiceSlugs } from "@/lib/fetch-suppressed-service-slugs";
+import { suppressedSlugSet } from "@/lib/admin-services-merge";
 import {
   formatRupeePrice,
   getCatalogPriceLabel,
@@ -67,7 +69,8 @@ function dbRowSlug(row: Record<string, unknown>): string | null {
 
 function buildListedServices(
   adminExtras: AdminService[],
-  dbRows: Record<string, unknown>[]
+  dbRows: Record<string, unknown>[],
+  suppressed: Set<string>
 ): ListedService[] {
   const out: ListedService[] = [];
 
@@ -80,11 +83,14 @@ function buildListedServices(
   /** Offline fallback: show built-in catalog only when the API returned nothing. */
   if (dbRows.length === 0) {
     for (const item of serviceCatalogItems) {
+      if (suppressed.has(item.slug.toLowerCase())) continue;
       out.push({ kind: "static", key: `static:${item.slug}`, item });
     }
   }
 
   for (const item of adminExtras) {
+    const slug = serviceSlugFromTitle(item.title);
+    if (suppressed.has(slug.toLowerCase())) continue;
     out.push({ kind: "admin", key: `admin:${item.id}`, item });
   }
 
@@ -615,8 +621,20 @@ export function ServicesView({
 }: ServicesViewProps = {}) {
   const adminExtras = useAdminServicesCatalog();
   const [dbServices, setDbServices] = useState<Record<string, unknown>[]>([]);
+  const [suppressedSlugs, setSuppressedSlugs] = useState<string[]>([]);
   const persistedSelection = useFeaturedServiceSelection();
   const persistedSlug = useFeaturedServiceSlug();
+
+  useEffect(() => {
+    void fetchSuppressedServiceSlugs()
+      .then(setSuppressedSlugs)
+      .catch(() => setSuppressedSlugs([]));
+  }, []);
+
+  const suppressed = useMemo(
+    () => suppressedSlugSet(suppressedSlugs),
+    [suppressedSlugs]
+  );
 
   useEffect(() => {
     let disposed = false;
@@ -665,8 +683,8 @@ export function ServicesView({
   }, []);
 
   const allListed = useMemo(
-    () => buildListedServices(adminExtras, dbServices),
-    [adminExtras, dbServices]
+    () => buildListedServices(adminExtras, dbServices, suppressed),
+    [adminExtras, dbServices, suppressed]
   );
 
   const displayEntry = useMemo(

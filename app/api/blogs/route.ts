@@ -18,7 +18,13 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { title?: string; content?: string; image?: string };
+  let body: {
+    title?: string;
+    content?: string;
+    image?: string;
+    author?: string;
+    status?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -27,6 +33,8 @@ export async function POST(req: NextRequest) {
   const title = body.title != null ? String(body.title).trim() : "";
   const content = body.content != null ? String(body.content) : "";
   const image = body.image != null ? String(body.image).trim() : "";
+  const author = body.author != null ? String(body.author).trim() : "";
+  const status = body.status;
 
   if (!title) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -37,6 +45,8 @@ export async function POST(req: NextRequest) {
       title,
       content,
       image: image || "https://via.placeholder.com/400",
+      author: author || "Hire A Drone",
+      status,
     });
     return NextResponse.json(row, { status: 201 });
   } catch (err) {

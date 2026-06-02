@@ -6,6 +6,7 @@ import {
   Briefcase,
   Eye,
   MapPin,
+  Search,
   SlidersHorizontal,
   Star,
   X,
@@ -18,7 +19,6 @@ import {
   getPilotById,
   getPilots,
 } from "@/app/services/pilotServices";
-import { apiUrl } from "@/lib/api-url";
 import {
   experienceSubtitleFromPilotRow,
   missionsCompletedFromPilotRow,
@@ -30,11 +30,211 @@ import {
   type MissionRequestRow,
 } from "@/lib/mission-requests-api";
 import { subscribeMissionRequestsUpdated } from "@/lib/mission-requests-updated";
-import { readResponseJson } from "@/lib/read-response-json";
+import {
+  fetchPilotRegisteredHubDrones,
+  hubDroneSummary,
+  type HubDroneRow,
+} from "@/lib/drones-api";
+import { subscribeAdminFleetUpdated } from "@/lib/admin-fleet-updated";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { notifyMissionsDbUpdated } from "@/lib/user-requests";
 
 type HubTab = "missions" | "pilots";
+
+type HubPayloadClass = "any" | "l1" | "l3" | "l5";
+
+type HubAppliedFilters = {
+  globalQuery: string;
+  payloadClass: HubPayloadClass;
+  region: string;
+};
+
+function payloadClassFromOption(option: string): HubPayloadClass {
+  if (option.includes("L-1")) return "l1";
+  if (option.includes("L-3")) return "l3";
+  if (option.includes("L-5")) return "l5";
+  return "any";
+}
+
+function extractKgFromText(text: string): number | null {
+  const match = text.match(/(\d+(?:\.\d+)?)\s*kg/i);
+  return match ? Number.parseFloat(match[1]) : null;
+}
+
+function textMatchesPayloadClass(text: string, payloadClass: HubPayloadClass): boolean {
+  if (payloadClass === "any") return true;
+  const lower = text.toLowerCase();
+  const kg = extractKgFromText(text);
+  if (kg != null) {
+    if (payloadClass === "l1") return kg < 5;
+    if (payloadClass === "l3") return kg >= 5 && kg <= 20;
+    return kg > 20;
+  }
+  if (payloadClass === "l1") {
+    return lower.includes("l-1") || lower.includes("light") || lower.includes("< 5");
+  }
+  if (payloadClass === "l3") {
+    return lower.includes("l-3") || lower.includes("5-20") || lower.includes("5–20");
+  }
+  return lower.includes("l-5") || lower.includes("heavy") || lower.includes("20kg+");
+}
+
+/** Text variants so global search can match values like `80`, `80km`, or `80 km`. */
+function kmValuesForSearch(km: number | null | undefined): string {
+  if (km == null || !Number.isFinite(km)) return "";
+  return `${km} ${km}km ${km} km`;
+}
+
+function matchesGlobalQuery(
+  query: string,
+  parts: (string | number | null | undefined)[]
+): boolean {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+
+  const haystack = parts
+    .flatMap((part) => {
+      if (part == null || part === "") return [];
+      if (typeof part === "number") {
+        return [String(part), kmValuesForSearch(part)];
+      }
+      return [String(part)];
+    })
+    .join(" ")
+    .toLowerCase();
+
+  if (haystack.includes(normalized)) return true;
+
+  const kmNumMatch = normalized.match(/(\d+(?:\.\d+)?)\s*k?m?/);
+  if (kmNumMatch) {
+    const qKm = Number.parseFloat(kmNumMatch[1]);
+    if (Number.isFinite(qKm)) {
+      for (const part of parts) {
+        if (typeof part === "number" && Math.abs(part - qKm) < 0.01) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+function missionMatchesFilters(mission: HubMission, filters: HubAppliedFilters): boolean {
+  const query = filters.globalQuery.trim().toLowerCase();
+  if (query) {
+    if (
+      !matchesGlobalQuery(query, [
+        mission.id,
+        mission.title,
+        mission.description,
+        mission.payload,
+        mission.aircraftClass,
+        mission.distance,
+        mission.requirements,
+      ])
+    ) {
+      return false;
+    }
+  }
+
+  const payloadText = `${mission.payload} ${mission.aircraftClass}`;
+  if (!textMatchesPayloadClass(payloadText, filters.payloadClass)) return false;
+
+  if (filters.region !== "India") {
+    const regionHaystack = [
+      mission.id,
+      mission.title,
+      mission.description,
+      mission.requirements,
+      mission.distance,
+    ]
+      .join(" ")
+      .toLowerCase();
+    if (!regionHaystack.includes(filters.region.toLowerCase())) return false;
+  }
+
+  return true;
+}
+
+function pilotMatchesFilters(pilot: HubPilotCard, filters: HubAppliedFilters): boolean {
+  const query = filters.globalQuery.trim().toLowerCase();
+  if (query) {
+    const haystack = [
+      pilot.id,
+      pilot.name,
+      pilot.role,
+      pilot.ratingLabel,
+      pilot.location,
+      pilot.droneSummary,
+      pilot.useCases,
+      pilot.certLevel,
+    ]
+      .join(" ")
+      .toLowerCase();
+    if (!haystack.includes(query)) return false;
+  }
+
+  if (!textMatchesPayloadClass(pilot.droneSummary, filters.payloadClass)) return false;
+
+  if (filters.region !== "India") {
+    if (!pilot.location.toLowerCase().includes(filters.region.toLowerCase())) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function droneMatchesFilters(
+  drone: HubDroneRow,
+  filters: HubAppliedFilters,
+  pilotLocationById: Record<string, string>
+): boolean {
+  const query = filters.globalQuery.trim().toLowerCase();
+  if (query) {
+    if (
+      !matchesGlobalQuery(query, [
+        drone.id,
+        drone.modelName,
+        drone.type,
+        drone.camera,
+        drone.pilotName,
+        drone.pilotId,
+        drone.serialNumber,
+        drone.status,
+        drone.subtitle,
+        drone.firmware,
+        drone.maxRangeKm,
+        kmValuesForSearch(drone.maxRangeKm),
+        hubDroneSummary(drone),
+        ...drone.useCases,
+      ])
+    ) {
+      return false;
+    }
+  }
+
+  if (filters.payloadClass !== "any") {
+    const summary = hubDroneSummary(drone);
+    if (drone.maxPayloadKg != null) {
+      const kg = drone.maxPayloadKg;
+      if (filters.payloadClass === "l1" && kg >= 5) return false;
+      if (filters.payloadClass === "l3" && (kg < 5 || kg > 20)) return false;
+      if (filters.payloadClass === "l5" && kg <= 20) return false;
+    } else if (!textMatchesPayloadClass(summary, filters.payloadClass)) {
+      return false;
+    }
+  }
+
+  if (filters.region !== "India") {
+    const location = (pilotLocationById[drone.pilotId] ?? "").toLowerCase();
+    if (!location.includes(filters.region.toLowerCase())) return false;
+  }
+
+  return true;
+}
 
 const MATCHING_HUB_REGION_CITIES = [
   "Mumbai",
@@ -189,30 +389,60 @@ function mapApiRowToHubPilotCard(
   };
 }
 
+function dronesForPilot(
+  drones: HubDroneRow[],
+  pilotId: string
+): HubDroneRow[] {
+  if (!pilotId) return drones;
+  return drones.filter(
+    (d) => !d.pilotId || d.pilotId === pilotId
+  );
+}
+
 function MissionDetailDialog({
   mission,
   pilots,
   pilotsLoading,
   pilotsError,
+  drones,
+  dronesLoading,
+  dronesError,
   onClose,
 }: {
   mission: HubMission;
   pilots: HubPilotCard[];
   pilotsLoading: boolean;
   pilotsError: string | null;
+  drones: HubDroneRow[];
+  dronesLoading: boolean;
+  dronesError: string | null;
   onClose: () => void;
 }) {
   const [selectedPilotId, setSelectedPilotId] = useState("");
+  const [selectedDroneId, setSelectedDroneId] = useState("");
   const [selectFeedback, setSelectFeedback] = useState<string | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
   const [assignSubmitting, setAssignSubmitting] = useState(false);
 
   useEffect(() => {
     setSelectedPilotId("");
+    setSelectedDroneId("");
     setSelectFeedback(null);
     setAssignError(null);
     setAssignSubmitting(false);
   }, [mission.id]);
+
+  const dronesForAssign = useMemo(
+    () => dronesForPilot(drones, selectedPilotId),
+    [drones, selectedPilotId]
+  );
+
+  useEffect(() => {
+    if (!selectedDroneId) return;
+    if (!dronesForAssign.some((d) => d.id === selectedDroneId)) {
+      setSelectedDroneId("");
+    }
+  }, [dronesForAssign, selectedDroneId]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -243,6 +473,7 @@ function MissionDetailDialog({
     if (!selectedPilotId || assignSubmitting) return;
     const p = pilots.find((x) => x.id === selectedPilotId);
     if (!p) return;
+    const drone = dronesForAssign.find((d) => d.id === selectedDroneId);
 
     setAssignError(null);
     setSelectFeedback(null);
@@ -261,7 +492,7 @@ function MissionDetailDialog({
         pilotName: p.name,
         pilotBadgeId: p.id,
         pilotSub: p.id,
-        droneModel: "—",
+        droneModel: drone ? hubDroneSummary(drone) : "—",
         assignedAt: new Date().toISOString(),
       });
       setAssignSubmitting(false);
@@ -420,6 +651,7 @@ function MissionDetailDialog({
                 value={selectedPilotId}
                 onChange={(ev) => {
                   setSelectedPilotId(ev.target.value);
+                  setSelectedDroneId("");
                   setSelectFeedback(null);
                   setAssignError(null);
                 }}
@@ -429,6 +661,31 @@ function MissionDetailDialog({
                 {sortedPilots.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} — {p.role}
+                  </option>
+                ))}
+              </select>
+              <label
+                htmlFor="mission-assign-drone"
+                className="mt-3 block text-xs font-semibold text-slate-700 dark:text-white/85"
+              >
+                Drone (optional)
+              </label>
+              <select
+                id="mission-assign-drone"
+                value={selectedDroneId}
+                onChange={(ev) => {
+                  setSelectedDroneId(ev.target.value);
+                  setSelectFeedback(null);
+                  setAssignError(null);
+                }}
+                disabled={dronesLoading || dronesForAssign.length === 0}
+                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-[#191c1d] outline-none ring-[#0D9488]/25 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15 dark:bg-[#111315] dark:text-white"
+              >
+                <option value="">No drone selected</option>
+                {dronesForAssign.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {hubDroneSummary(d)}
+                    {d.pilotName ? ` — ${d.pilotName}` : ""}
                   </option>
                 ))}
               </select>
@@ -650,15 +907,183 @@ function PilotDetailDialog({
   );
 }
 
+function hubDroneField(value: string | number | null | undefined): string {
+  if (value == null || value === "") return "—";
+  return String(value);
+}
+
+function HubDroneDetailGrid({ drone }: { drone: HubDroneRow }) {
+  return (
+    <dl className="mt-2.5 grid grid-cols-2 gap-x-2.5 gap-y-2 border-t border-slate-100 pt-2.5 text-xs sm:text-sm">
+      <div className="col-span-2">
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Model
+        </dt>
+        <dd className="font-medium text-slate-800">{hubDroneField(drone.modelName)}</dd>
+      </div>
+      <div>
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Drone ID
+        </dt>
+        <dd className="font-medium text-slate-800">{drone.id}</dd>
+      </div>
+      <div>
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Serial
+        </dt>
+        <dd className="font-medium text-slate-800">{hubDroneField(drone.serialNumber)}</dd>
+      </div>
+      <div>
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Type
+        </dt>
+        <dd className="font-medium text-slate-800">{hubDroneField(drone.type)}</dd>
+      </div>
+      <div>
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Status
+        </dt>
+        <dd className="font-medium uppercase text-slate-800">{drone.status}</dd>
+      </div>
+      <div>
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Payload
+        </dt>
+        <dd className="font-medium text-slate-800">
+          {drone.maxPayloadKg != null ? `${drone.maxPayloadKg} kg` : "—"}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Range
+        </dt>
+        <dd className="font-medium text-slate-800">
+          {drone.maxRangeKm != null ? `${drone.maxRangeKm} km` : "—"}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Flight time
+        </dt>
+        <dd className="font-medium text-slate-800">
+          {drone.flightTimeMin != null ? `${drone.flightTimeMin} min` : "—"}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Battery
+        </dt>
+        <dd className="font-medium text-slate-800">
+          {drone.batteryPercent != null ? `${drone.batteryPercent}%` : "—"}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Camera
+        </dt>
+        <dd className="font-medium text-slate-800">{hubDroneField(drone.camera)}</dd>
+      </div>
+      <div>
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Firmware
+        </dt>
+        <dd className="font-medium text-slate-800">{hubDroneField(drone.firmware)}</dd>
+      </div>
+      <div className="col-span-2">
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Pilot
+        </dt>
+        <dd className="font-medium text-slate-800">
+          {drone.pilotName
+            ? `${drone.pilotName}${drone.pilotId ? ` (#${drone.pilotId})` : ""}`
+            : "—"}
+        </dd>
+      </div>
+      <div className="col-span-2">
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Subtitle
+        </dt>
+        <dd className="font-medium text-slate-800">{hubDroneField(drone.subtitle)}</dd>
+      </div>
+      <div className="col-span-2">
+        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
+          Use cases
+        </dt>
+        <dd className="font-medium text-slate-800">
+          {drone.useCases.length > 0 ? drone.useCases.join(", ") : "—"}
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
+function FleetDroneCards({
+  drones,
+  loading,
+  errorMessage,
+  emptyMessage = "No pilots have registered drones yet.",
+}: {
+  drones: HubDroneRow[];
+  loading: boolean;
+  errorMessage: string | null;
+  emptyMessage?: string;
+}) {
+  if (loading) {
+    return (
+      <p className="text-sm text-slate-500" role="status">
+        Loading drones registered by pilots…
+      </p>
+    );
+  }
+  if (errorMessage) {
+    return (
+      <p className="text-sm text-red-600" role="alert">
+        {errorMessage}
+      </p>
+    );
+  }
+  if (drones.length === 0) {
+    return <p className="text-sm text-slate-500">{emptyMessage}</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {drones.map((drone) => (
+        <article
+          key={drone.id}
+          className="rounded-lg border border-slate-200 bg-white/80 p-3 shadow-sm backdrop-blur-sm sm:p-3.5"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0058bc] sm:text-xs">
+                {drone.type || "Drone"}
+              </p>
+              <h3 className="mt-0.5 text-base font-semibold leading-snug text-[#191c1d] sm:text-lg">
+                {drone.modelName}
+              </h3>
+            </div>
+            <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold uppercase text-slate-600 sm:text-xs">
+              {drone.status}
+            </span>
+          </div>
+          <HubDroneDetailGrid drone={drone} />
+        </article>
+      ))}
+    </div>
+  );
+}
+
 function PilotCards({
   pilots,
   loading,
   errorMessage,
+  emptyMessage = "No active pilots are listed yet. Check back soon.",
   onPilotClick,
 }: {
   pilots: HubPilotCard[];
   loading: boolean;
   errorMessage: string | null;
+  emptyMessage?: string;
   onPilotClick?: (pilot: HubPilotCard) => void;
 }) {
   if (loading) {
@@ -676,11 +1101,7 @@ function PilotCards({
     );
   }
   if (pilots.length === 0) {
-    return (
-      <p className="text-sm text-slate-500">
-        No active pilots are listed yet. Check back soon.
-      </p>
-    );
+    return <p className="text-sm text-slate-500">{emptyMessage}</p>;
   }
 
   return (
@@ -731,10 +1152,50 @@ export function MatchingHubView() {
   const [missionRows, setMissionRows] = useState<HubMission[]>([]);
   const [missionsLoading, setMissionsLoading] = useState(true);
   const [missionsError, setMissionsError] = useState<string | null>(null);
+  const [hubDrones, setHubDrones] = useState<HubDroneRow[]>([]);
+  const [dronesLoading, setDronesLoading] = useState(true);
+  const [dronesError, setDronesError] = useState<string | null>(null);
   const [detailMission, setDetailMission] = useState<HubMission | null>(null);
   const [detailPilot, setDetailPilot] = useState<HubPilotCard | null>(null);
   const [detailPilotLoading, setDetailPilotLoading] = useState(false);
   const [detailPilotError, setDetailPilotError] = useState<string | null>(null);
+  const [globalQueryDraft, setGlobalQueryDraft] = useState("");
+  const [payloadClassDraft, setPayloadClassDraft] = useState("Any Weight");
+  const [regionDraft, setRegionDraft] = useState("India");
+  const [appliedFilters, setAppliedFilters] = useState<HubAppliedFilters>({
+    globalQuery: "",
+    payloadClass: "any",
+    region: "India",
+  });
+
+  const syncAppliedFiltersFromDrafts = useCallback(
+    (globalQuery: string) => {
+      setAppliedFilters({
+        globalQuery: globalQuery.trim(),
+        payloadClass: payloadClassFromOption(payloadClassDraft),
+        region: regionDraft,
+      });
+    },
+    [payloadClassDraft, regionDraft]
+  );
+
+  const handleGlobalQueryChange = useCallback((value: string) => {
+    setGlobalQueryDraft(value);
+    if (value.trim() === "") {
+      setAppliedFilters((prev) => ({
+        ...prev,
+        globalQuery: "",
+      }));
+    }
+  }, []);
+
+  const applyHubFilters = useCallback(
+    (event?: FormEvent) => {
+      event?.preventDefault();
+      syncAppliedFiltersFromDrafts(globalQueryDraft);
+    },
+    [globalQueryDraft, syncAppliedFiltersFromDrafts]
+  );
 
   const closeMissionDetail = useCallback(() => setDetailMission(null), []);
   const closePilotDetail = useCallback(() => {
@@ -783,27 +1244,51 @@ export function MatchingHubView() {
     setMissionsLoading(false);
   }, []);
 
+  const loadHubDrones = useCallback(async () => {
+    setDronesLoading(true);
+    setDronesError(null);
+    const result = await fetchPilotRegisteredHubDrones();
+    if (result.ok) {
+      setHubDrones(result.data);
+    } else {
+      setDronesError(result.error ?? "Could not load pilot-registered drones.");
+      setHubDrones([]);
+    }
+    setDronesLoading(false);
+  }, []);
+
+  const loadAvailableMissionsSection = useCallback(async () => {
+    await Promise.all([loadMissionRows(), loadHubDrones()]);
+  }, [loadMissionRows, loadHubDrones]);
+
   useEffect(() => {
-    void loadMissionRows();
-    return subscribeMissionRequestsUpdated(() => {
-      void loadMissionRows();
+    if (activeTab !== "missions") return;
+    void loadAvailableMissionsSection();
+    return subscribeAdminFleetUpdated(() => {
+      void loadHubDrones();
     });
-  }, [loadMissionRows]);
+  }, [activeTab, loadAvailableMissionsSection, loadHubDrones]);
+
+  useEffect(() => {
+    return subscribeMissionRequestsUpdated(() => {
+      if (activeTab === "missions") void loadAvailableMissionsSection();
+    });
+  }, [activeTab, loadAvailableMissionsSection]);
 
   useEffect(() => {
     if (pathname !== "/matching-hub") return;
-    void loadMissionRows();
-  }, [pathname, loadMissionRows]);
+    if (activeTab === "missions") void loadAvailableMissionsSection();
+  }, [pathname, activeTab, loadAvailableMissionsSection]);
 
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        void loadMissionRows();
+      if (document.visibilityState === "visible" && activeTab === "missions") {
+        void loadAvailableMissionsSection();
       }
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [loadMissionRows]);
+  }, [activeTab, loadAvailableMissionsSection]);
 
   useEffect(() => {
     if (!detailMission) return;
@@ -845,12 +1330,39 @@ export function MatchingHubView() {
     };
   }, []);
 
+  const filteredMissionRows = useMemo(() => {
+    return missionRows.filter((mission) =>
+      missionMatchesFilters(mission, appliedFilters)
+    );
+  }, [missionRows, appliedFilters]);
+
   const topRatedPilots = useMemo(() => {
-    return [...hubPilots].sort((a, b) => {
-      if (b.safetyScore !== a.safetyScore) return b.safetyScore - a.safetyScore;
-      return b.missionCount - a.missionCount;
-    });
+    return [...hubPilots]
+      .filter((pilot) => pilotMatchesFilters(pilot, appliedFilters))
+      .sort((a, b) => {
+        if (b.safetyScore !== a.safetyScore) return b.safetyScore - a.safetyScore;
+        return b.missionCount - a.missionCount;
+      });
+  }, [hubPilots, appliedFilters]);
+
+  const pilotLocationById = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const pilot of hubPilots) {
+      if (pilot.id) map[pilot.id] = pilot.location;
+    }
+    return map;
   }, [hubPilots]);
+
+  const filteredHubDrones = useMemo(() => {
+    return hubDrones.filter((drone) =>
+      droneMatchesFilters(drone, appliedFilters, pilotLocationById)
+    );
+  }, [hubDrones, appliedFilters, pilotLocationById]);
+
+  const hasActiveHubFilters =
+    appliedFilters.globalQuery !== "" ||
+    appliedFilters.payloadClass !== "any" ||
+    appliedFilters.region !== "India";
 
   return (
     <div className="min-h-dvh bg-white text-[#191c1d]">
@@ -893,18 +1405,29 @@ export function MatchingHubView() {
         </header>
 
         <section className="mb-6 rounded-lg border border-slate-200 bg-white/80 p-3 shadow-sm backdrop-blur-sm">
-          <div className="flex flex-wrap items-end gap-3">
+          <form
+            className="flex flex-wrap items-end gap-3"
+            onSubmit={applyHubFilters}
+          >
             <div className="min-w-[180px] max-w-md flex-1">
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+              <label
+                htmlFor="matching-hub-global-filter"
+                className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500"
+              >
                 Global Filter
               </label>
               <div className="relative">
                 <SlidersHorizontal className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
                 <input
-                  type="text"
+                  id="matching-hub-global-filter"
+                  type="search"
+                  value={globalQueryDraft}
+                  onChange={(event) =>
+                    handleGlobalQueryChange(event.target.value)
+                  }
                   placeholder={
                     activeTab === "missions"
-                      ? "Search by ID, Region, or Drone Class..."
+                      ? "Search by ID, region, class, or range (km)..."
                       : "Search pilot, rating, class, or region..."
                   }
                   className="w-full rounded-md border border-slate-300 bg-white py-1.5 pl-9 pr-3 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
@@ -912,10 +1435,18 @@ export function MatchingHubView() {
               </div>
             </div>
             <div className="min-w-[130px] sm:min-w-[140px]">
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+              <label
+                htmlFor="matching-hub-payload-class"
+                className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500"
+              >
                 Payload Class
               </label>
-              <select className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm">
+              <select
+                id="matching-hub-payload-class"
+                value={payloadClassDraft}
+                onChange={(event) => setPayloadClassDraft(event.target.value)}
+                className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
+              >
                 <option>Any Weight</option>
                 <option>L-1 (&lt; 5kg)</option>
                 <option>L-3 (5-20kg)</option>
@@ -923,11 +1454,16 @@ export function MatchingHubView() {
               </select>
             </div>
             <div className="min-w-[130px] sm:min-w-[140px]">
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+              <label
+                htmlFor="matching-hub-region"
+                className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500"
+              >
                 Region
               </label>
               <select
-                defaultValue="India"
+                id="matching-hub-region"
+                value={regionDraft}
+                onChange={(event) => setRegionDraft(event.target.value)}
                 className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
               >
                 <option value="India">India</option>
@@ -938,7 +1474,20 @@ export function MatchingHubView() {
                 ))}
               </select>
             </div>
-          </div>
+            <div className="min-w-[100px]">
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                Search
+              </span>
+              <Button
+                type="submit"
+                variant="outline"
+                className="h-[34px] w-full gap-1.5 rounded-md border border-slate-300 bg-transparent px-4 text-xs font-semibold text-[#0D9488] shadow-none hover:bg-slate-50 sm:text-sm"
+              >
+                <Search className="size-3.5" aria-hidden />
+                Search
+              </Button>
+            </div>
+          </form>
         </section>
 
         <div className="overflow-hidden">
@@ -949,14 +1498,12 @@ export function MatchingHubView() {
             )}
           >
             <section className="w-1/2 pr-0 lg:pr-2">
-              {/*
-                Missions are shown full width; pilots live in their own Top Rated Pilots tab.
-              */}
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start lg:gap-x-4 lg:gap-y-3">
                 <h2 className="order-1 min-w-0 text-base font-semibold tracking-tight sm:text-lg lg:col-span-12">
                   Available Missions
                 </h2>
-                <div className="order-2 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5 lg:order-3 lg:col-span-12 xl:grid-cols-3">
+
+                <div className="order-2 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5 lg:order-2 lg:col-span-12 xl:grid-cols-3">
                   {missionsLoading ? (
                     <p className="col-span-full text-sm text-slate-600">
                       Loading missions…
@@ -965,15 +1512,17 @@ export function MatchingHubView() {
                     <p className="col-span-full text-sm text-red-600">
                       {missionsError}
                     </p>
-                  ) : missionRows.length === 0 ? (
+                  ) : filteredMissionRows.length === 0 ? (
                     <div className="col-span-full rounded-lg border border-dashed border-slate-200 bg-white/60 px-6 py-10 text-center">
                       <p className="text-sm font-semibold text-slate-700">
-                        No Available Mission
+                        {missionRows.length === 0
+                          ? "No Available Mission"
+                          : "No missions match your search."}
                       </p>
                     </div>
                   ) : null}
                   {!missionsLoading && !missionsError
-                    ? missionRows.map((mission) => (
+                    ? filteredMissionRows.map((mission) => (
                     <button
                       key={mission.id}
                       type="button"
@@ -1020,6 +1569,26 @@ export function MatchingHubView() {
                   ))
                     : null}
                 </div>
+
+                <div className="order-3 lg:order-3 lg:col-span-12">
+                  <div className="mt-3 border-t border-slate-200 pt-5">
+                    <h3 className="text-base font-semibold tracking-tight text-[#191c1d] sm:text-lg">
+                      Drone Details
+                    </h3>
+                    <div className="mt-4">
+                      <FleetDroneCards
+                        drones={filteredHubDrones}
+                        loading={dronesLoading}
+                        errorMessage={dronesError}
+                        emptyMessage={
+                          hasActiveHubFilters && hubDrones.length > 0
+                            ? "No drones match your search."
+                            : undefined
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -1033,6 +1602,11 @@ export function MatchingHubView() {
                     pilots={topRatedPilots}
                     loading={pilotsLoading}
                     errorMessage={pilotsError}
+                    emptyMessage={
+                      hasActiveHubFilters && hubPilots.length > 0
+                        ? "No pilots match your search."
+                        : undefined
+                    }
                     onPilotClick={openPilotDetail}
                   />
                 </div>
@@ -1047,6 +1621,9 @@ export function MatchingHubView() {
             pilots={hubPilots}
             pilotsLoading={pilotsLoading}
             pilotsError={pilotsError}
+            drones={filteredHubDrones}
+            dronesLoading={dronesLoading}
+            dronesError={dronesError}
             onClose={closeMissionDetail}
           />
         ) : null}

@@ -56,6 +56,7 @@ function ConditionalSiteFooterInner() {
     pathname?.startsWith("/blogs/") ||
     pathname === "/contact" ||
     pathname?.startsWith("/contact/") ||
+    pathname === "/post-your-requirement" ||
     pathname === "/matching-hub" ||
     pathname === "/dashboard" ||
     pathname?.startsWith("/dashboard/");
@@ -71,13 +72,7 @@ function ConditionalSiteFooterInner() {
   if (isDashboardShellFooter) {
     return (
       <>
-        <div
-          className={cn(
-            "h-px w-full shrink-0",
-            "bg-slate-200 dark:bg-white/15"
-          )}
-          aria-hidden
-        />
+        <div className="admin-shell-footer-rule" aria-hidden />
         <SiteFooter
           className={cn(
             isPilotDashboard ? "bg-transparent" : "bg-background",
