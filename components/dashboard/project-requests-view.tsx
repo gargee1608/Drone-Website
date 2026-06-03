@@ -264,6 +264,7 @@ export function ProjectRequestsView() {
           row={detailRow}
           contact={detailContact}
           onClose={() => setDetailRow(null)}
+          onAssigned={() => setBackendRefresh((n) => n + 1)}
         />
       ) : null}
 
