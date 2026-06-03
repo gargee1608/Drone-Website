@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { insertDroneHireRequest } from "@/lib/drone-hire-requests-db";
 import { expressBackendOrigin } from "@/lib/express-backend-origin";
+import {
+  DEFAULT_SUBMITTED_REQUIREMENT_STATUS,
+  isProjectRequirementRequest,
+  normalizeRequirementStatus,
+} from "@/lib/project-requests";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +21,7 @@ type SubmitBody = {
   user_name?: string;
   user_email?: string;
   client_request_id?: string;
+  requirement_status?: string;
 };
 
 function parseSubmitBody(body: SubmitBody) {
@@ -42,6 +48,18 @@ function parseSubmitBody(body: SubmitBody) {
     return { error: "Priority is required." as const };
   }
 
+  const clientRequestId = String(body.client_request_id ?? "").trim() || null;
+  const requirementStatusRaw = String(body.requirement_status ?? "").trim();
+  let requirementStatus = requirementStatusRaw
+    ? normalizeRequirementStatus(requirementStatusRaw)
+    : null;
+  if (isProjectRequirementRequest(clientRequestId)) {
+    requirementStatus =
+      requirementStatus ?? DEFAULT_SUBMITTED_REQUIREMENT_STATUS;
+  } else if (requirementStatusRaw && !requirementStatus) {
+    return { error: "Invalid requirement status." as const };
+  }
+
   const weight = Number(payload_weight);
   if (!Number.isFinite(weight) || weight <= 0) {
     return { error: "Payload weight must be greater than 0 kg." as const };
@@ -58,7 +76,8 @@ function parseSubmitBody(body: SubmitBody) {
       user_id: String(body.user_id ?? "").trim() || null,
       user_name: String(body.user_name ?? "").trim() || null,
       user_email: String(body.user_email ?? "").trim().toLowerCase() || null,
-      client_request_id: String(body.client_request_id ?? "").trim() || null,
+      client_request_id: clientRequestId,
+      requirement_status: requirementStatus,
     },
   };
 }

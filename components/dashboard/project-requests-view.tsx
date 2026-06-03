@@ -156,7 +156,16 @@ export function ProjectRequestsView() {
       return;
     }
     setEditingRequest(row);
-    setRequestEditForm(row.backendRequest);
+    const backend = row.backendRequest;
+    setRequestEditForm({
+      reasonOrTitle: backend.reasonOrTitle,
+      pickupLocation: backend.pickupLocation,
+      dropLocation: backend.dropLocation,
+      payloadWeight: backend.payloadWeight,
+      cargoType: backend.cargoType,
+      missionUrgency: backend.missionUrgency,
+      adminStatus: backend.adminStatus,
+    });
     setRequestEditError(null);
   };
 
@@ -329,7 +338,7 @@ export function ProjectRequestsView() {
                   setRequestEditForm((form) => ({ ...form, missionUrgency: value }))
                 }
               />
-              <label className="block text-sm sm:col-span-2">
+              <label className="block text-sm">
                 <span className="mb-1 block text-xs font-semibold text-muted-foreground">
                   Admin status
                 </span>

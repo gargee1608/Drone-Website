@@ -52,7 +52,6 @@ export function PostYourRequirementView() {
       setSubmitError("Please select type and priority.");
       return;
     }
-
     const weightRaw = payloadWeightKg.trim();
     const weight = Number(weightRaw);
     if (!weightRaw || !Number.isFinite(weight) || weight <= 0) {
