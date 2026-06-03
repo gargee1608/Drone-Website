@@ -232,6 +232,8 @@ export type UserRequestTableProps = {
   showTitle?: boolean;
   /** Show count subtitle under title. */
   showTotalSubtitle?: boolean;
+  /** Drop outer card border/shadow (Project Requests page). */
+  omitOuterBorder?: boolean;
   /** Pilot dashboard: User Id, User Name, User Requirement, Payload, Destinations. */
   columnPreset?: "admin" | "pilot";
 };
@@ -244,6 +246,7 @@ export function UserRequestTable({
   title = "User Request",
   showTitle = true,
   showTotalSubtitle = false,
+  omitOuterBorder = false,
   columnPreset = "admin",
 }: UserRequestTableProps) {
   const isPilot = columnPreset === "pilot";
@@ -268,7 +271,11 @@ export function UserRequestTable({
 
   return (
     <div
-      className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm sm:p-6"
+      className={cn(
+        omitOuterBorder
+          ? ""
+          : "rounded-2xl border border-border/60 bg-card p-5 shadow-sm sm:p-6"
+      )}
       data-status-sync={statusSync}
     >
       {showTitle ? (

@@ -253,6 +253,7 @@ export function ProjectRequestsView() {
           rows={rows}
           showTitle
           showTotalSubtitle
+          omitOuterBorder
           onViewDetails={setDetailRow}
           onEditRequest={openRequestEdit}
           onDeleteRequest={deleteRequest}
