@@ -1,10 +1,17 @@
 "use client";
 
-import { X } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import {
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  PackageCheck,
+  X,
+} from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ProjectRequestDetailModal } from "@/components/dashboard/project-request-detail-modal";
+import { UserRequestStatCard } from "@/components/dashboard/user-request-stat-card";
 import { UserRequestTable } from "@/components/dashboard/user-request-table";
 import { apiUrl } from "@/lib/api-url";
 import {
@@ -21,6 +28,7 @@ import {
   PROJECT_REQUESTS_UPDATED_EVENT,
 } from "@/lib/project-requests";
 import {
+  isUserRequestCompletedDelivery,
   MISSIONS_DB_UPDATED_EVENT,
   normalizeUserMissionAdminStatus,
   type UserMissionAdminStatus,
@@ -74,7 +82,6 @@ function projectRequestContact(row: UserRequestAdminRow) {
 }
 
 export function ProjectRequestsView() {
-  const router = useRouter();
   const pathname = usePathname();
   const prevPathnameRef = useRef<string | null>(null);
   const [rows, setRows] = useState<UserRequestAdminRow[]>([]);
@@ -149,6 +156,34 @@ export function ProjectRequestsView() {
     () => (detailRow ? projectRequestContact(detailRow) : null),
     [detailRow]
   );
+
+  const stats = useMemo(() => {
+    let pending = 0;
+    let activeAssigned = 0;
+    let completedDeliveries = 0;
+    for (const row of rows) {
+      const s = normalizeUserMissionAdminStatus(
+        typeof row.adminStatus === "string" ? row.adminStatus : undefined
+      );
+      const delivered = isUserRequestCompletedDelivery(row);
+
+      if (s === "rejected") {
+        /* excluded from workflow buckets; still in total */
+      } else if (delivered) {
+        completedDeliveries += 1;
+      } else if (s === "accepted") {
+        activeAssigned += 1;
+      } else {
+        pending += 1;
+      }
+    }
+    return {
+      total: rows.length,
+      pending,
+      activeAssigned,
+      completedDeliveries,
+    };
+  }, [rows]);
 
   const openRequestEdit = (row: UserRequestAdminRow) => {
     if (!row.backendRequest?.id) {
@@ -235,23 +270,46 @@ export function ProjectRequestsView() {
       )}
     >
       <h1 className={ADMIN_PAGE_TITLE_CLASS}>Project Requests</h1>
-      <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
-        Requirements submitted from{" "}
-        <button
-          type="button"
-          className="font-semibold text-[#008B8B] underline-offset-2 hover:underline"
-          onClick={() => router.push("/post-your-requirement")}
-        >
-          Post Your Requirement
-        </button>{" "}
-        appear here for review.
-      </p>
+
+      <section
+        className="mt-6 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4"
+        aria-label="Project request summary: total, pending, active or assigned, and completed deliveries"
+      >
+        <UserRequestStatCard
+          label="Total requests"
+          value={stats.total}
+          icon={ClipboardList}
+          iconClassName="text-[#008B8B]"
+          iconWrapClassName="bg-[#008B8B]/10"
+        />
+        <UserRequestStatCard
+          label="Pending Request"
+          value={stats.pending}
+          icon={Clock}
+          iconClassName="text-amber-700"
+          iconWrapClassName="bg-amber-100"
+        />
+        <UserRequestStatCard
+          label="Active / Assigned"
+          value={stats.activeAssigned}
+          icon={CheckCircle2}
+          iconClassName="text-emerald-700"
+          iconWrapClassName="bg-emerald-100"
+        />
+        <UserRequestStatCard
+          label="Completed Deliveries"
+          value={stats.completedDeliveries}
+          icon={PackageCheck}
+          iconClassName="text-sky-800"
+          iconWrapClassName="bg-sky-100"
+        />
+      </section>
 
       <div className="mt-6 sm:mt-8">
         <UserRequestTable
           title="Project requests"
           rows={rows}
-          showTitle
+          showTitle={false}
           showTotalSubtitle
           omitOuterBorder
           onViewDetails={setDetailRow}
