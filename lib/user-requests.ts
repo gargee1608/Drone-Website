@@ -1,4 +1,5 @@
 import { jwtPayloadSub } from "@/lib/pilot-display-name";
+import type { RequirementStatus } from "@/lib/project-requests";
 import { readStoredUserSession } from "@/lib/user-session-browser";
 
 export const USER_REQUESTS_STORAGE_KEY = "aerolaminar_user_requests_v1";
@@ -585,6 +586,8 @@ export type UserRequestAdminRow = {
   userEmail?: string;
   /** Shown in Request ID column (e.g. `#PR-…` from Post Your Requirement). */
   queueDisplayId?: string;
+  /** Assigned / Unassigned / Undereview (Post Your Requirement submissions). */
+  requirementStatus?: RequirementStatus;
   /** Editable backend fields for admin User Request rows. */
   backendRequest?: {
     id: string;
@@ -595,6 +598,7 @@ export type UserRequestAdminRow = {
     cargoType: string;
     missionUrgency: string;
     adminStatus: UserMissionAdminStatus;
+    requirementStatus?: RequirementStatus;
   };
 };
 

@@ -1,6 +1,8 @@
 import {
   isProjectRequirementRequest,
   parseRequirementReasonWithPhone,
+  resolveRequirementStatus,
+  type RequirementStatus,
 } from "@/lib/project-requests";
 import {
   normalizeUserMissionAdminStatus,
@@ -23,6 +25,8 @@ export type BackendDroneHireRequestRow = {
   user_name?: string | null;
   user_email?: string | null;
   client_request_id?: string | null;
+  requirement_status?: string | null;
+  requirementStatus?: string | null;
 };
 
 function pickBackendAdminStatus(
@@ -69,6 +73,10 @@ export function mapBackendRequestToAdminRow(
   const pickupLocation = String(r.pickup_location ?? "").trim();
   const dropLocation = String(r.drop_location ?? "").trim();
   const clientRequestId = String(r.client_request_id ?? "").trim();
+  const requirementStatus = resolveRequirementStatus(
+    r.requirement_status ?? r.requirementStatus,
+    clientRequestId
+  );
 
   const reasonRaw = String(r.reason_or_title ?? "").trim();
   const { title: projectTitle } = isProjectRequirementRequest(clientRequestId)
@@ -91,6 +99,7 @@ export function mapBackendRequestToAdminRow(
     missionStatus: pickBackendMissionStatus(r) ?? null,
     userName: String(r.user_name ?? "").trim() || undefined,
     userEmail: String(r.user_email ?? "").trim().toLowerCase() || undefined,
+    requirementStatus: requirementStatus ?? undefined,
     backendRequest: {
       id: String(r.id ?? ""),
       reasonOrTitle: reasonRaw,
@@ -102,6 +111,8 @@ export function mapBackendRequestToAdminRow(
       adminStatus: normalizeUserMissionAdminStatus(
         pickBackendAdminStatus(r)
       ) as UserMissionAdminStatus,
+      requirementStatus: (requirementStatus ??
+        undefined) as RequirementStatus | undefined,
     },
   };
 }

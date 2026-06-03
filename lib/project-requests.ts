@@ -30,6 +30,64 @@ export function parseRequirementReasonWithPhone(reason: string): {
   };
 }
 
+/** Set automatically when a requirement is submitted via Post Your Requirement. */
+export const DEFAULT_SUBMITTED_REQUIREMENT_STATUS = "Undereview" as const;
+
+/** Admin-managed status for submitted project requirements. */
+export const REQUIREMENT_STATUS_OPTIONS = [
+  "Assigned",
+  "Unassigned",
+  "Undereview",
+] as const;
+
+export type RequirementStatus = (typeof REQUIREMENT_STATUS_OPTIONS)[number];
+
+export function normalizeRequirementStatus(
+  value: string
+): RequirementStatus | null {
+  const trimmed = value.trim();
+  if (
+    (REQUIREMENT_STATUS_OPTIONS as readonly string[]).includes(trimmed)
+  ) {
+    return trimmed as RequirementStatus;
+  }
+  const lower = trimmed.toLowerCase();
+  if (
+    lower === "under review" ||
+    lower === "underreview" ||
+    lower === "undereview" ||
+    lower === "unreview"
+  ) {
+    return "Undereview";
+  }
+  return null;
+}
+
+export function resolveRequirementStatus(
+  raw: string | null | undefined,
+  clientRequestId?: string | null
+): RequirementStatus | null {
+  const normalized = normalizeRequirementStatus(String(raw ?? ""));
+  if (normalized) return normalized;
+  if (isProjectRequirementRequest(clientRequestId)) {
+    return DEFAULT_SUBMITTED_REQUIREMENT_STATUS;
+  }
+  return null;
+}
+
+export function requirementStatusBadgeClass(
+  status: RequirementStatus
+): string {
+  switch (status) {
+    case "Assigned":
+      return "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200";
+    case "Unassigned":
+      return "bg-amber-100 text-amber-950 dark:bg-amber-950/50 dark:text-amber-200";
+    case "Undereview":
+      return "bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200";
+  }
+}
+
 export function notifyProjectRequestsUpdated(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(PROJECT_REQUESTS_UPDATED_EVENT));

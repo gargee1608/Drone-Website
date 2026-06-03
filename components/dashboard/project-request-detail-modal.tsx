@@ -8,12 +8,22 @@ import {
   Package,
   Phone,
   User,
+  UserRound,
   X,
 } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
+import { getPilots, assignHubMissionToPilot } from "@/app/services/pilotServices";
 import { DetailField } from "@/components/dashboard/user-request-detail-modal";
+import { apiUrl } from "@/lib/api-url";
+import { pushPilotMissionNotification } from "@/lib/pilot-mission-notifications";
 import {
+  getUserMissionTrackingEntryForRequest,
+  recordUserMissionAssignment,
+} from "@/lib/user-mission-tracking";
+import {
+  missionOwnerFieldsForRequestRef,
+  notifyMissionsDbUpdated,
   userMissionAdminStatusLabel,
   type UserRequestAdminRow,
 } from "@/lib/user-requests";
@@ -89,14 +99,44 @@ export type ProjectRequestDetailContact = {
   email: string;
 };
 
+type PilotOption = {
+  id: string;
+  name: string;
+  badgeId: string;
+};
+
+function normalizePilotOption(row: unknown): PilotOption | null {
+  if (!row || typeof row !== "object" || Array.isArray(row)) return null;
+  const record = row as Record<string, unknown>;
+  const id = String(record.id ?? "").trim();
+  if (!id) return null;
+  const name = String(record.name ?? "").trim() || `Pilot #${id}`;
+  const duty = String(record.duty_status ?? record.dutyStatus ?? "ACTIVE")
+    .trim()
+    .toUpperCase();
+  if (duty !== "ACTIVE") return null;
+  const badgeId =
+    String(record.license_number ?? record.licenseNumber ?? "").trim() ||
+    `PLT-${id}`;
+  return { id, name, badgeId };
+}
+
+function projectRequestMissionRef(row: UserRequestAdminRow): string {
+  const clientId = row.queueDisplayId?.trim();
+  if (clientId) return clientId;
+  return row.backendRequest?.id?.trim() || row.key.trim();
+}
+
 export function ProjectRequestDetailModal({
   row,
   contact,
   onClose,
+  onAssigned,
 }: {
   row: UserRequestAdminRow;
   contact: ProjectRequestDetailContact;
   onClose: () => void;
+  onAssigned?: () => void;
 }) {
   const requestId = row.queueDisplayId ?? row.key;
   const backend = row.backendRequest;
@@ -106,6 +146,139 @@ export function ProjectRequestDetailModal({
   const pickup = backend?.pickupLocation?.trim() || "—";
   const drop = backend?.dropLocation?.trim() || "—";
   const adminStatus = backend?.adminStatus;
+  const missionRef = projectRequestMissionRef(row);
+
+  const [pilots, setPilots] = useState<PilotOption[]>([]);
+  const [pilotsLoading, setPilotsLoading] = useState(true);
+  const [pilotsError, setPilotsError] = useState<string | null>(null);
+  const [selectedPilotId, setSelectedPilotId] = useState("");
+  const [assigning, setAssigning] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [assignFeedback, setAssignFeedback] = useState<string | null>(null);
+
+  const sortedPilots = useMemo(
+    () =>
+      [...pilots].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+      ),
+    [pilots]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPilots() {
+      setPilotsLoading(true);
+      setPilotsError(null);
+      const data = await getPilots();
+      if (cancelled) return;
+      if (!Array.isArray(data)) {
+        setPilots([]);
+        setPilotsError("Could not load pilots right now.");
+        setPilotsLoading(false);
+        return;
+      }
+      setPilots(
+        data
+          .map(normalizePilotOption)
+          .filter((pilot): pilot is PilotOption => pilot != null)
+      );
+      setPilotsLoading(false);
+    }
+    void loadPilots();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const tracking = getUserMissionTrackingEntryForRequest(missionRef);
+    if (tracking?.pilotSub?.trim()) {
+      setSelectedPilotId(tracking.pilotSub.trim());
+    }
+  }, [missionRef]);
+
+  const handleAssignPilot = async () => {
+    if (!selectedPilotId || assigning) return;
+    const pilot = pilots.find((item) => item.id === selectedPilotId);
+    if (!pilot) return;
+
+    setAssigning(true);
+    setAssignError(null);
+    setAssignFeedback(null);
+
+    const ownerFields = missionOwnerFieldsForRequestRef(missionRef);
+    const res = await assignHubMissionToPilot({
+      requestRef: missionRef,
+      customer: contact.title.trim() || row.title.trim() || "Project request",
+      service: cargoType === "—" ? row.title.trim() || "Requirement" : cargoType,
+      dropoff: drop === "—" ? pickup : drop,
+      pilotName: pilot.name,
+      pilotBadgeId: pilot.badgeId,
+      pilotSub: pilot.id,
+      droneModel: "—",
+      userName: ownerFields.userName || contact.name.trim(),
+      userEmail: ownerFields.userEmail || contact.email.trim(),
+      assignedAt: new Date().toISOString(),
+    });
+
+    if (!res?.ok) {
+      setAssigning(false);
+      setAssignError(
+        typeof res?.detail === "string" && res.detail
+          ? res.detail
+          : "Could not assign pilot. Is the backend running?"
+      );
+      return;
+    }
+
+    if (backend?.id) {
+      try {
+        await fetch(apiUrl(`/api/requests/${encodeURIComponent(backend.id)}`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ admin_status: "accepted" }),
+        });
+      } catch {
+        /* optional sync */
+      }
+    }
+
+    pushPilotMissionNotification({
+      requestRef: missionRef,
+      customer: contact.title.trim() || row.title.trim() || "Project request",
+      service: cargoType === "—" ? row.title.trim() || "Requirement" : cargoType,
+      dropoff: drop === "—" ? pickup : drop,
+      pilotName: pilot.name,
+      pilotBadgeId: pilot.badgeId,
+      pilotSub: pilot.id,
+      droneModel: "—",
+    });
+
+    recordUserMissionAssignment({
+      requestRef: missionRef,
+      pilotSub: pilot.id,
+      pilotName: pilot.name,
+      pilotBadgeId: pilot.badgeId,
+      droneModel: "—",
+      userStatus: "in_progress",
+      storedUserRequest: undefined,
+      assignRowFallback: {
+        customer: contact.title.trim() || row.title.trim() || "Project request",
+        service: cargoType === "—" ? row.title.trim() || "Requirement" : cargoType,
+        dropoff: drop === "—" ? pickup : drop,
+        sectorLine: row.desc,
+      },
+    });
+
+    notifyMissionsDbUpdated();
+    onAssigned?.();
+    setAssigning(false);
+    setAssignFeedback(
+      res.alreadyAssigned
+        ? `${pilot.name} is already assigned to this request.`
+        : `${pilot.name} has been assigned to this project request.`
+    );
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -285,6 +458,80 @@ export function ProjectRequestDetailModal({
                     </dd>
                   </div>
                 </dl>
+              </section>
+
+              <section className="mt-4 space-y-2" aria-label="Assign pilot">
+                <SectionHeading>Assign pilot</SectionHeading>
+                <div className={cn("space-y-3", innerBoxClass)}>
+                  <div className="flex items-start gap-2">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/10 text-[#008B8B] dark:bg-[#008B8B]/20 dark:text-[#5eead4]">
+                      <UserRound className="size-3.5" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <label
+                        htmlFor="project-request-assign-pilot"
+                        className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground"
+                      >
+                        Assign pilot
+                      </label>
+                      {pilotsLoading ? (
+                        <p className="mt-1 text-xs text-muted-foreground" role="status">
+                          Loading pilots…
+                        </p>
+                      ) : pilotsError ? (
+                        <p className="mt-1 text-xs text-red-600" role="alert">
+                          {pilotsError}
+                        </p>
+                      ) : sortedPilots.length === 0 ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          No active pilots are available to assign yet.
+                        </p>
+                      ) : (
+                        <select
+                          id="project-request-assign-pilot"
+                          value={selectedPilotId}
+                          onChange={(e) => {
+                            setSelectedPilotId(e.target.value);
+                            setAssignError(null);
+                            setAssignFeedback(null);
+                          }}
+                          className="mt-1 w-full rounded-lg border border-border bg-white px-2.5 py-2 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35 dark:border-white/20 dark:bg-black dark:text-white"
+                        >
+                          <option value="">Choose a pilot…</option>
+                          {sortedPilots.map((pilot) => (
+                            <option key={pilot.id} value={pilot.id}>
+                              {pilot.name}
+                              {pilot.badgeId ? ` · ${pilot.badgeId}` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                  {!pilotsLoading && sortedPilots.length > 0 ? (
+                    <button
+                      type="button"
+                      disabled={!selectedPilotId || assigning}
+                      onClick={() => void handleAssignPilot()}
+                      className="w-full rounded-lg bg-[#008B8B] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#007474] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {assigning ? "Assigning…" : "Assign pilot"}
+                    </button>
+                  ) : null}
+                  {assignError ? (
+                    <p className="text-xs font-medium text-red-600" role="alert">
+                      {assignError}
+                    </p>
+                  ) : null}
+                  {assignFeedback ? (
+                    <p
+                      className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-medium text-emerald-900 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100"
+                      role="status"
+                    >
+                      {assignFeedback}
+                    </p>
+                  ) : null}
+                </div>
               </section>
 
               <section className="mt-4">

@@ -29,12 +29,12 @@ export type CommandCenterNavItem = {
 export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/user-requests", label: "User Request", icon: ClipboardList },
+  { href: "/dashboard/assign", label: "Assign To", icon: Plane },
   {
     href: "/dashboard/project-requests",
     label: "Project Requests",
     icon: FolderKanban,
   },
-  { href: "/dashboard/assign", label: "Assign To", icon: Plane },
   {
     href: "/dashboard/available-missions",
     label: "Available Mission",

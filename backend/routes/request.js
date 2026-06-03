@@ -31,6 +31,10 @@ async function ensureRequestSchema() {
     ALTER TABLE drone_hire_requests
     ADD COLUMN IF NOT EXISTS client_request_id TEXT
   `);
+  await pool.query(`
+    ALTER TABLE drone_hire_requests
+    ADD COLUMN IF NOT EXISTS requirement_status VARCHAR(32)
+  `);
   requestSchemaEnsured = true;
 }
 
@@ -76,13 +80,24 @@ router.post("/submit-request", async (req, res) => {
       user_name,
       user_email,
       client_request_id,
+      requirement_status,
     } = req.body;
+
+    const clientRequestId = toTrimmed(client_request_id) || null;
+    let requirementStatus = toTrimmed(requirement_status);
+    if (
+      !requirementStatus &&
+      clientRequestId &&
+      clientRequestId.startsWith("#PR-")
+    ) {
+      requirementStatus = "Under review";
+    }
 
     const result = await pool.query(
       `INSERT INTO drone_hire_requests 
       (reason_or_title, pickup_location, drop_location, payload_weight, cargo_type, mission_urgency,
-       user_id, user_name, user_email, client_request_id)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       user_id, user_name, user_email, client_request_id, requirement_status)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
       RETURNING *`,
       [
         reason_or_title,
@@ -94,7 +109,8 @@ router.post("/submit-request", async (req, res) => {
         toTrimmed(user_id) || null,
         toTrimmed(user_name) || null,
         toTrimmed(user_email).toLowerCase() || null,
-        toTrimmed(client_request_id) || null,
+        clientRequestId,
+        requirementStatus || null,
       ]
     );
 
@@ -121,6 +137,7 @@ router.put("/requests/:id", async (req, res) => {
       cargo_type,
       mission_urgency,
       admin_status,
+      requirement_status,
     } = req.body ?? {};
 
     const result = await pool.query(
@@ -131,8 +148,9 @@ router.put("/requests/:id", async (req, res) => {
            payload_weight = COALESCE($4, payload_weight),
            cargo_type = COALESCE($5, cargo_type),
            mission_urgency = COALESCE($6, mission_urgency),
-           admin_status = COALESCE($7, admin_status)
-       WHERE id = $8
+           admin_status = COALESCE($7, admin_status),
+           requirement_status = COALESCE($8, requirement_status)
+       WHERE id = $9
        RETURNING *`,
       [
         reason_or_title ?? null,
@@ -142,6 +160,7 @@ router.put("/requests/:id", async (req, res) => {
         cargo_type ?? null,
         mission_urgency ?? null,
         admin_status ?? null,
+        toTrimmed(requirement_status) || null,
         id,
       ]
     );

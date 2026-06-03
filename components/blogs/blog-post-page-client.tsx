@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useLayoutEffect, useState } from "react";
 
 import type { BlogPost } from "@/components/blogs/blog-data";
@@ -21,6 +23,9 @@ import {
 } from "@/lib/blog-merge";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
+
+const headline = "font-[family-name:var(--font-landing-headline)]";
+const body = "font-[family-name:var(--font-landing-body)]";
 
 export function BlogPostPageClient({
   slug,
@@ -170,35 +175,118 @@ export function BlogPostPageClient({
     <div
       className={cn(
         landingFontClassName,
-        "blogs-hud-grid min-h-0 flex-1 bg-background pt-22 text-foreground sm:pt-24"
+        "min-h-0 flex-1 bg-white dark:bg-background pt-22 text-foreground sm:pt-24"
       )}
-      style={{
-        backgroundImage:
-          "radial-gradient(circle at 50% 50%, var(--color-background-100) 0%, var(--color-background-50) 100%)",
-      }}
     >
-      <div className="mx-auto max-w-3xl px-6 py-12">
-        <p className="text-xs font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9]">
-          {post.category}
-        </p>
-        <h1 className={cn("mt-3", ADMIN_PAGE_TITLE_CLASS)}>{post.title}</h1>
-        <p className="mt-2 text-sm text-[#41474d] dark:text-slate-300">
-          {post.date} · By {post.author}
-        </p>
-        <div className="mt-10 space-y-6 font-[family-name:var(--font-landing-body)] text-base leading-relaxed text-[#41474d] dark:text-slate-200">
-          {post.body.map((paragraph, i) => (
-            <p key={i}>{paragraph}</p>
-          ))}
-        </div>
-        <Link
-          href="/blogs"
-          className={cn(
-            "mt-12 inline-block font-[family-name:var(--font-landing-headline)] text-sm font-bold uppercase tracking-widest text-[#008B8B] dark:text-[#4ddbd9] transition-colors hover:text-[#006b6b] dark:hover:text-[#7ce8e5]"
-          )}
+      <main className="mx-auto min-w-0 max-w-5xl px-4 pb-16 pt-6 sm:px-6 sm:pb-20 sm:pt-8 lg:max-w-6xl lg:pb-24">
+        <nav
+          className="mb-8 flex flex-wrap items-center gap-1.5 text-sm"
+          aria-label="Breadcrumb"
         >
-          ← Back to Flight Log
-        </Link>
-      </div>
+          <Link
+            href="/blogs"
+            className={cn(
+              body,
+              "font-medium text-[#008B8B] dark:text-[#4ddbd9] transition-colors hover:text-[#006b6b] dark:hover:text-[#7ce8e5]"
+            )}
+          >
+            Flight Log
+          </Link>
+          <ChevronRight
+            className="size-4 shrink-0 text-slate-400 dark:text-slate-500"
+            aria-hidden
+          />
+          <span
+            className={cn(body, "max-w-[min(100%,28rem)] truncate text-foreground")}
+          >
+            {post.title}
+          </span>
+        </nav>
+
+        <div className="mb-10 grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,17.5rem)] md:items-start md:gap-10 lg:gap-12">
+          <div className="order-2 min-w-0 md:order-1">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9]">
+              {post.category}
+            </p>
+            <h1 className={cn("mt-3", ADMIN_PAGE_TITLE_CLASS)}>{post.title}</h1>
+            <div className="mt-8 space-y-4">
+              {post.body.map((paragraph, i) => (
+                <p
+                  key={i}
+                  className={cn(
+                    body,
+                    "text-[0.9375rem] leading-relaxed text-foreground sm:text-base"
+                  )}
+                >
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+            <Link
+              href="/blogs"
+              className={cn(
+                headline,
+                "mt-10 inline-block text-sm font-bold uppercase tracking-widest text-[#008B8B] dark:text-[#4ddbd9] transition-colors hover:text-[#006b6b] dark:hover:text-[#7ce8e5]"
+              )}
+            >
+              ← Back to Flight Log
+            </Link>
+          </div>
+
+          <aside className="order-1 mx-auto w-full max-w-[17.5rem] md:order-2 md:mx-0 md:max-w-none md:justify-self-end md:sticky md:top-28 md:w-full">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-card shadow-sm dark:border-slate-700">
+              <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                <Image
+                  src={post.image}
+                  alt={post.imageAlt || post.title}
+                  fill
+                  priority
+                  unoptimized
+                  className="object-cover object-center"
+                  sizes="(max-width: 768px) 280px, 320px"
+                />
+              </div>
+
+              <div className="space-y-4 border-t border-slate-200 p-4 dark:border-slate-700 sm:p-5">
+                <h2
+                  className={cn(
+                    headline,
+                    "text-base font-bold leading-snug text-foreground sm:text-lg"
+                  )}
+                >
+                  {post.title}
+                </h2>
+                <div>
+                  <p
+                    className={cn(
+                      headline,
+                      "text-[11px] font-semibold uppercase tracking-wide text-[#006a6e] dark:text-[#4ddbd9]"
+                    )}
+                  >
+                    Published
+                  </p>
+                  <p className={cn(body, "mt-1 text-sm leading-relaxed text-foreground")}>
+                    {post.date}
+                  </p>
+                </div>
+                <div>
+                  <p
+                    className={cn(
+                      headline,
+                      "text-[11px] font-semibold uppercase tracking-wide text-[#006a6e] dark:text-[#4ddbd9]"
+                    )}
+                  >
+                    Author
+                  </p>
+                  <p className={cn(body, "mt-1 text-sm leading-relaxed text-foreground")}>
+                    {post.author}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
     </div>
   );
 }

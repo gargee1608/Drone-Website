@@ -36,6 +36,7 @@ async function ensureRequestSchema(): Promise<void> {
     `ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS user_name TEXT`,
     `ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS user_email TEXT`,
     `ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS client_request_id TEXT`,
+    `ALTER TABLE drone_hire_requests ADD COLUMN IF NOT EXISTS requirement_status VARCHAR(32)`,
   ];
   for (const sql of alters) {
     try {
@@ -61,6 +62,7 @@ export type DroneHireRequestRow = {
   user_name: string | null;
   user_email: string | null;
   client_request_id: string | null;
+  requirement_status: string | null;
 };
 
 export type InsertDroneHireRequestInput = {
@@ -74,6 +76,7 @@ export type InsertDroneHireRequestInput = {
   user_name?: string | null;
   user_email?: string | null;
   client_request_id?: string | null;
+  requirement_status?: string | null;
 };
 
 export async function insertDroneHireRequest(
@@ -83,8 +86,8 @@ export async function insertDroneHireRequest(
   const result = await getPgPool().query(
     `INSERT INTO drone_hire_requests
       (reason_or_title, pickup_location, drop_location, payload_weight, cargo_type, mission_urgency,
-       user_id, user_name, user_email, client_request_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       user_id, user_name, user_email, client_request_id, requirement_status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING *`,
     [
       input.reason_or_title,
@@ -97,6 +100,7 @@ export async function insertDroneHireRequest(
       toTrimmed(input.user_name) || null,
       toTrimmed(input.user_email).toLowerCase() || null,
       toTrimmed(input.client_request_id) || null,
+      toTrimmed(input.requirement_status) || null,
     ]
   );
   return result.rows[0] as DroneHireRequestRow;
