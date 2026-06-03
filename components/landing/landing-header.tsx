@@ -108,6 +108,11 @@ export function LandingHeader() {
     isSettingsPage;
   const isHomePage = pathname === "/" || pathname === "";
   const isMatchingHub = pathname === "/matching-hub";
+  const isPostYourRequirementPage =
+    pathname === "/post-your-requirement" ||
+    pathname === "/post-your-requirement/";
+  const lightHeaderChrome =
+    isSignupPage || isPilotRegistration || isPostYourRequirementPage;
   const {
     sidebarExpanded: adminSidebarExpanded,
     setSidebarExpanded: setAdminSidebarExpanded,
@@ -135,6 +140,7 @@ export function LandingHeader() {
     pathname === "/settings" ||
     pathname?.startsWith("/settings/") ||
     isMatchingHub ||
+    isPostYourRequirementPage ||
     isAdminDashboard ||
     isUserDashboard ||
     isPilotDashboard;
@@ -143,6 +149,7 @@ export function LandingHeader() {
     isAdminLoginPage ||
     pathname === "/pilot-login" ||
     pathname === "/pilot-registration" ||
+    isPostYourRequirementPage ||
     showHeaderLoginButton;
 
   const hideNotificationsAndSettings =
@@ -151,7 +158,8 @@ export function LandingHeader() {
     pathname === "/blogs" ||
     (pathname?.startsWith("/blogs/") ?? false) ||
     pathname === "/contact" ||
-    isMatchingHub;
+    isMatchingHub ||
+    isPostYourRequirementPage;
 
   const settingsHref =
     isPilotDashboard || isPilotSettingsContext
@@ -383,8 +391,7 @@ export function LandingHeader() {
     <header
       className={cn(
         "fixed top-0 z-50 w-full border-b border-border bg-background text-foreground",
-        (isSignupPage || isPilotRegistration) &&
-          "light-header bg-white text-[#191c1d]",
+        lightHeaderChrome && "light-header bg-white text-[#191c1d]",
         appDashboardShell && "dark:border-border dark:bg-background dark:text-foreground",
         !appDashboardShell && "dark:text-white"
       )}
@@ -800,7 +807,10 @@ export function LandingHeader() {
       <div
         id="landing-mobile-nav"
         className={cn(
-          "max-h-[calc(100svh-4.5rem)] overflow-y-auto border-t border-border bg-background px-4 py-4 shadow-lg xl:hidden",
+          "max-h-[calc(100svh-4.5rem)] overflow-y-auto border-t px-4 py-4 shadow-lg xl:hidden",
+          lightHeaderChrome
+            ? "border-slate-200 bg-white"
+            : "border-border bg-background",
           open ? "block" : "hidden"
         )}
       >
@@ -922,6 +932,7 @@ export function LandingHeader() {
               </div>
             ) : !isMatchingHub &&
               !isAdminLoginPage &&
+              !isPostYourRequirementPage &&
               !hideMarketingRegisterAndLogin ? (
               <Link
                 href="/pilot-login"

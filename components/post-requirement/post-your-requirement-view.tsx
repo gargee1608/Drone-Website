@@ -1,13 +1,15 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { apiUrl } from "@/lib/api-url";
 import { notifyProjectRequestsUpdated } from "@/lib/project-requests";
-import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
+import {
+  ADMIN_PAGE_TITLE_CLASS,
+  ADMIN_PAGE_TOP_PADDING_CLASS,
+} from "@/lib/page-heading";
 import { readResponseJson } from "@/lib/read-response-json";
 import { cn } from "@/lib/utils";
 
@@ -109,27 +111,20 @@ export function PostYourRequirementView() {
     <div
       className={cn(
         landingFontClassName,
-        "relative flex min-h-dvh flex-col bg-gradient-to-br from-white via-[#f5fbfb] to-white pt-20 font-[family-name:var(--font-landing-body)] text-foreground antialiased sm:pt-24"
+        "relative flex min-h-dvh flex-col bg-white pt-22 font-[family-name:var(--font-landing-body)] text-foreground antialiased sm:pt-24"
       )}
     >
-      <div className="mx-auto w-full max-w-3xl px-4 pb-16 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[#008B8B] transition-colors hover:text-[#006b6b]"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          Back to home
-        </Link>
-
+      <div
+        className={cn(
+          "mx-auto w-full max-w-3xl px-4 pb-16 sm:px-6 lg:px-8",
+          ADMIN_PAGE_TOP_PADDING_CLASS
+        )}
+      >
         <header className="mb-8">
           <h1 className={ADMIN_PAGE_TITLE_CLASS}>Post Your Requirement</h1>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
-            Describe your drone mission needs and our operations team will
-            review your request and connect you with verified pilots.
-          </p>
         </header>
 
-        <div className="rounded-xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm sm:p-8">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
           {submitSuccess ? (
             <div
               role="status"
