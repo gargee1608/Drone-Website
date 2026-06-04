@@ -41,10 +41,7 @@ import {
   saveBlogOverrides,
   type AdminBlogExtra,
 } from "@/lib/blog-admin-storage";
-import {
-  getAdminCatalogBlogPostsList,
-  isBlogSlugHiddenFromCatalog,
-} from "@/lib/blog-merge";
+import { getMergedBlogPostsList } from "@/lib/blog-merge";
 import {
   ADMIN_PAGE_TITLE_CLASS,
   ADMIN_PAGE_TOP_PADDING_CLASS,
@@ -148,7 +145,7 @@ function buildAdminBlogRows(
   const dbPosts = mapApiRowsToDbPosts(apiRows);
   const dbSlugs = new Set(dbPosts.map((p) => p.slug));
   const catalogPosts = useLocalCatalog
-    ? getAdminCatalogBlogPostsList()
+    ? getMergedBlogPostsList()
     : blogPosts;
   const merged = catalogPosts.filter((p) => !dbSlugs.has(p.slug));
   return [...dbPosts, ...merged];
@@ -872,7 +869,6 @@ export function AdminBlogsView({
               const isDb = typeof post.dbId === "number";
               const isBuiltIn = builtinSlugs.has(post.slug);
               const extra = extras.find((e) => e.slug === post.slug);
-              const isHidden = isBlogSlugHiddenFromCatalog(post.slug);
               const typeLabel = isDb
                 ? "Database"
                 : extra
@@ -917,11 +913,6 @@ export function AdminBlogsView({
                         {post.status === "draft" ? (
                           <span className="rounded-full border border-amber-600/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
                             Draft
-                          </span>
-                        ) : null}
-                        {isHidden ? (
-                          <span className="rounded-full border border-red-600/30 bg-red-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-900">
-                            Hidden
                           </span>
                         ) : null}
                       </div>
