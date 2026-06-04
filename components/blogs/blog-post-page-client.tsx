@@ -38,14 +38,16 @@ export function BlogPostPageClient({
   const [ready, setReady] = useState(false);
 
   useLayoutEffect(() => {
-    if (isBlogSlugHiddenFromCatalog(slug)) {
+    const id = parseBlogDbSlug(slug);
+    const isDbSlug = id != null;
+
+    if (!isDbSlug && isBlogSlugHiddenFromCatalog(slug)) {
       setPost(null);
       setReady(true);
       return;
     }
 
-    const id = parseBlogDbSlug(slug);
-    if (id != null) {
+    if (isDbSlug) {
       if (
         initialPost &&
         isBlogPostPublished(initialPost) &&
@@ -60,11 +62,6 @@ export function BlogPostPageClient({
       fetchBlogByIdFromApi(id)
         .then((row) => {
           if (cancelled) return;
-          if (isBlogSlugHiddenFromCatalog(slug)) {
-            setPost(null);
-            setReady(true);
-            return;
-          }
           const mapped = row ? mapApiRowToBlogPost(row) : null;
           setPost(mapped && isBlogPostPublished(mapped) ? mapped : null);
           setReady(true);
@@ -88,20 +85,17 @@ export function BlogPostPageClient({
 
   useEffect(() => {
     const sync = () => {
-      if (isBlogSlugHiddenFromCatalog(slug)) {
+      const id = parseBlogDbSlug(slug);
+      const isDbSlug = id != null;
+
+      if (!isDbSlug && isBlogSlugHiddenFromCatalog(slug)) {
         setPost(null);
         setReady(true);
         return;
       }
-      const id = parseBlogDbSlug(slug);
-      if (id != null) {
+      if (isDbSlug) {
         void fetchBlogByIdFromApi(id)
           .then((row) => {
-            if (isBlogSlugHiddenFromCatalog(slug)) {
-              setPost(null);
-              setReady(true);
-              return;
-            }
             const mapped = row ? mapApiRowToBlogPost(row) : null;
             setPost(mapped && isBlogPostPublished(mapped) ? mapped : null);
             setReady(true);

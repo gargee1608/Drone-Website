@@ -15,9 +15,11 @@ import { landingFontClassName } from "@/components/landing/landing-fonts";
 import {
   fetchBlogsFromApi,
   mapApiRowToBlogPost,
+  blogDbSlug,
 } from "@/lib/blog-api";
 import {
   BLOG_ADMIN_UPDATED_EVENT,
+  reconcileDeletedSlugsWithLiveApi,
   subscribeBlogCatalogBroadcast,
 } from "@/lib/blog-admin-storage";
 import {
@@ -79,6 +81,9 @@ export function BlogsView({
           if (!cancelled) {
             apiMapped = rows.map(mapApiRowToBlogPost);
             initialApiRef.current = apiMapped;
+            reconcileDeletedSlugsWithLiveApi(
+              rows.map((row) => blogDbSlug(row.id))
+            );
           }
         } catch {
           if (!cancelled) apiMapped = initialApiRef.current;

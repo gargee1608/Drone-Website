@@ -105,3 +105,84 @@ export async function insertDroneHireRequest(
   );
   return result.rows[0] as DroneHireRequestRow;
 }
+
+export type DroneHireRequestRowWithMission = DroneHireRequestRow & {
+  mission_status?: string | null;
+};
+
+export async function listDroneHireRequests(): Promise<
+  DroneHireRequestRowWithMission[]
+> {
+  await ensureRequestSchema();
+  const result = await getPgPool().query(
+    `SELECT r.*,
+        (
+          SELECT m.status
+          FROM missions m
+          WHERE TRIM(COALESCE(m.request_ref, '')) = TRIM(r.id::text)
+             OR (
+               NULLIF(TRIM(COALESCE(r.client_request_id, '')), '') IS NOT NULL
+               AND TRIM(COALESCE(m.request_ref, '')) = TRIM(r.client_request_id)
+             )
+          ORDER BY m.id DESC NULLS LAST
+          LIMIT 1
+        ) AS mission_status
+     FROM drone_hire_requests r
+     ORDER BY r.id DESC`
+  );
+  return result.rows as DroneHireRequestRowWithMission[];
+}
+
+export type UpdateDroneHireRequestInput = {
+  reason_or_title?: string;
+  pickup_location?: string;
+  drop_location?: string;
+  payload_weight?: string;
+  cargo_type?: string;
+  mission_urgency?: string;
+  admin_status?: string;
+  requirement_status?: string | null;
+};
+
+export async function updateDroneHireRequest(
+  id: string,
+  input: UpdateDroneHireRequestInput
+): Promise<DroneHireRequestRow | null> {
+  await ensureRequestSchema();
+  const result = await getPgPool().query(
+    `UPDATE drone_hire_requests
+     SET reason_or_title = COALESCE($1, reason_or_title),
+         pickup_location = COALESCE($2, pickup_location),
+         drop_location = COALESCE($3, drop_location),
+         payload_weight = COALESCE($4, payload_weight),
+         cargo_type = COALESCE($5, cargo_type),
+         mission_urgency = COALESCE($6, mission_urgency),
+         admin_status = COALESCE($7, admin_status),
+         requirement_status = COALESCE($8, requirement_status)
+     WHERE id = $9
+     RETURNING *`,
+    [
+      input.reason_or_title ?? null,
+      input.pickup_location ?? null,
+      input.drop_location ?? null,
+      input.payload_weight ?? null,
+      input.cargo_type ?? null,
+      input.mission_urgency ?? null,
+      input.admin_status ?? null,
+      toTrimmed(input.requirement_status) || null,
+      id,
+    ]
+  );
+  return (result.rows[0] as DroneHireRequestRow) ?? null;
+}
+
+export async function deleteDroneHireRequest(
+  id: string
+): Promise<boolean> {
+  await ensureRequestSchema();
+  const result = await getPgPool().query(
+    `DELETE FROM drone_hire_requests WHERE id = $1 RETURNING id`,
+    [id]
+  );
+  return result.rows.length > 0;
+}

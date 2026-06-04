@@ -6,6 +6,7 @@ import {
   type BlogPost,
 } from "@/components/blogs/blog-data";
 import { isBlogPostPublished } from "@/lib/blog-api";
+import { parseBlogDbSlug } from "@/lib/blog-api";
 import {
   loadBlogDeletedBuiltins,
   loadBlogExtras,
@@ -33,21 +34,32 @@ export function getMergedPostBySlug(slug: string): BlogPost | undefined {
   return mergeBuiltin(slug);
 }
 
-export function getMergedBlogPostsList(): BlogPost[] {
-  if (typeof window === "undefined") return [...blogPosts];
-  const deleted = new Set(loadBlogDeletedBuiltins());
+function listAdminExtrasPosts(): BlogPost[] {
   const builtinSlugs = new Set(blogPosts.map((p) => p.slug));
-  /** Admin-created posts not tied to a built-in slug — newest first so they surface on the main blog page. */
-  const adminExtras = loadBlogExtras()
+  return loadBlogExtras()
     .filter((e) => !builtinSlugs.has(e.slug))
     .sort((a, b) => b.createdAt - a.createdAt)
     .map((e) => {
       const { internalId: _i, createdAt: _c, ...post } = e;
       return post;
     });
+}
+
+export function getMergedBlogPostsList(): BlogPost[] {
+  if (typeof window === "undefined") return [...blogPosts];
+  const deleted = new Set(loadBlogDeletedBuiltins());
+  const adminExtras = listAdminExtrasPosts();
   const builtinMerged = blogPosts
     .filter((p) => !deleted.has(p.slug))
     .map((p) => mergeBuiltin(p.slug) ?? p);
+  return [...adminExtras, ...builtinMerged];
+}
+
+/** Admin dashboard: keep suppressed built-ins visible so they can be published again. */
+export function getAdminCatalogBlogPostsList(): BlogPost[] {
+  if (typeof window === "undefined") return [...blogPosts];
+  const adminExtras = listAdminExtrasPosts();
+  const builtinMerged = blogPosts.map((p) => mergeBuiltin(p.slug) ?? p);
   return [...adminExtras, ...builtinMerged];
 }
 
@@ -82,5 +94,6 @@ export function resolvePublicFeaturedPost(): BlogPost | null {
 
 export function isBlogSlugHiddenFromCatalog(slug: string): boolean {
   if (typeof window === "undefined") return false;
+  if (parseBlogDbSlug(slug) != null) return false;
   return new Set(loadBlogDeletedBuiltins()).has(slug);
 }

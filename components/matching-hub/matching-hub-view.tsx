@@ -4,8 +4,13 @@ import Image from "next/image";
 import {
   ArrowRight,
   Briefcase,
+  Camera,
+  Clock,
+  Drone,
   Eye,
   MapPin,
+  Navigation,
+  Package,
   Search,
   SlidersHorizontal,
   Star,
@@ -37,6 +42,14 @@ import {
 } from "@/lib/drones-api";
 import { subscribeAdminFleetUpdated } from "@/lib/admin-fleet-updated";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { notifyMissionsDbUpdated } from "@/lib/user-requests";
 
@@ -86,6 +99,36 @@ function kmValuesForSearch(km: number | null | undefined): string {
   return `${km} ${km}km ${km} km`;
 }
 
+/** Text variants so global search can match values like `8`, `8kg`, or `8 kg`. */
+function kgValuesForSearch(kg: number | null | undefined): string {
+  if (kg == null || !Number.isFinite(kg)) return "";
+  return `${kg} ${kg}kg ${kg} kg`;
+}
+
+/** Text variants so global search can match values like `28`, `28min`, or `28 min`. */
+function minValuesForSearch(min: number | null | undefined): string {
+  if (min == null || !Number.isFinite(min)) return "";
+  return `${min} ${min}min ${min} min`;
+}
+
+function numericParts(parts: (string | number | null | undefined)[]): number[] {
+  return parts.filter(
+    (part): part is number => typeof part === "number" && Number.isFinite(part)
+  );
+}
+
+function matchesNumericQuery(
+  normalized: string,
+  pattern: RegExp,
+  numbers: number[]
+): boolean {
+  const match = normalized.match(pattern);
+  if (!match) return false;
+  const value = Number.parseFloat(match[1]);
+  if (!Number.isFinite(value)) return false;
+  return numbers.some((n) => Math.abs(n - value) < 0.01);
+}
+
 function matchesGlobalQuery(
   query: string,
   parts: (string | number | null | undefined)[]
@@ -96,9 +139,6 @@ function matchesGlobalQuery(
   const haystack = parts
     .flatMap((part) => {
       if (part == null || part === "") return [];
-      if (typeof part === "number") {
-        return [String(part), kmValuesForSearch(part)];
-      }
       return [String(part)];
     })
     .join(" ")
@@ -106,15 +146,21 @@ function matchesGlobalQuery(
 
   if (haystack.includes(normalized)) return true;
 
-  const kmNumMatch = normalized.match(/(\d+(?:\.\d+)?)\s*k?m?/);
-  if (kmNumMatch) {
-    const qKm = Number.parseFloat(kmNumMatch[1]);
-    if (Number.isFinite(qKm)) {
-      for (const part of parts) {
-        if (typeof part === "number" && Math.abs(part - qKm) < 0.01) {
-          return true;
-        }
-      }
+  const numbers = numericParts(parts);
+
+  if (
+    matchesNumericQuery(normalized, /(\d+(?:\.\d+)?)\s*kg\b/, numbers) ||
+    matchesNumericQuery(normalized, /(\d+(?:\.\d+)?)\s*min\b/, numbers) ||
+    matchesNumericQuery(normalized, /(\d+(?:\.\d+)?)\s*km\b/, numbers)
+  ) {
+    return true;
+  }
+
+  const bareNumberMatch = normalized.match(/^(\d+(?:\.\d+)?)$/);
+  if (bareNumberMatch) {
+    const value = Number.parseFloat(bareNumberMatch[1]);
+    if (Number.isFinite(value)) {
+      return numbers.some((n) => Math.abs(n - value) < 0.01);
     }
   }
 
@@ -206,8 +252,12 @@ function droneMatchesFilters(
         drone.status,
         drone.subtitle,
         drone.firmware,
+        drone.maxPayloadKg,
+        kgValuesForSearch(drone.maxPayloadKg),
         drone.maxRangeKm,
         kmValuesForSearch(drone.maxRangeKm),
+        drone.flightTimeMin,
+        minValuesForSearch(drone.flightTimeMin),
         hubDroneSummary(drone),
         ...drone.useCases,
       ])
@@ -817,12 +867,6 @@ function PilotDetailDialog({
         <dl className="mt-5 grid gap-3 border-t border-slate-100 pt-4 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
-              Location
-            </dt>
-            <dd className="mt-0.5 font-medium text-[#191c1d]">{pilot.location}</dd>
-          </div>
-          <div>
-            <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
               Status
             </dt>
             <dd className="mt-0.5 font-medium text-[#191c1d]">
@@ -912,108 +956,202 @@ function hubDroneField(value: string | number | null | undefined): string {
   return String(value);
 }
 
-function HubDroneDetailGrid({ drone }: { drone: HubDroneRow }) {
+function hubDronePilotLabel(drone: HubDroneRow): string {
+  if (!drone.pilotName) return "—";
+  return drone.pilotId
+    ? `${drone.pilotName} (#${drone.pilotId})`
+    : drone.pilotName;
+}
+
+function hubDroneStatusStyles(status: string): {
+  badge: string;
+  accent: string;
+  dot: string;
+} {
+  const normalized = status.trim().toLowerCase();
+  if (
+    normalized === "ready" ||
+    normalized === "active" ||
+    normalized === "available"
+  ) {
+    return {
+      accent: "from-[#0D9488] to-[#0f7669]",
+      badge:
+        "bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-600/15",
+      dot: "bg-emerald-500",
+    };
+  }
+  if (normalized === "charging" || normalized === "maintenance") {
+    return {
+      accent: "from-amber-500 to-amber-600",
+      badge: "bg-amber-50 text-amber-900 ring-1 ring-inset ring-amber-600/15",
+      dot: "bg-amber-500",
+    };
+  }
+  if (
+    normalized === "offline" ||
+    normalized === "inactive" ||
+    normalized === "unavailable"
+  ) {
+    return {
+      accent: "from-slate-400 to-slate-500",
+      badge: "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-300/80",
+      dot: "bg-slate-400",
+    };
+  }
+  return {
+    accent: "from-[#0058bc] to-[#004494]",
+    badge: "bg-sky-50 text-sky-800 ring-1 ring-inset ring-sky-600/15",
+    dot: "bg-sky-500",
+  };
+}
+
+function hubDronePilotInitials(name: string): string {
+  return initialsFromName(name || "Pilot");
+}
+
+function HubDroneMetric({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Package;
+  label: string;
+  value: string;
+}) {
   return (
-    <dl className="mt-2.5 grid grid-cols-2 gap-x-2.5 gap-y-2 border-t border-slate-100 pt-2.5 text-xs sm:text-sm">
-      <div className="col-span-2">
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Model
-        </dt>
-        <dd className="font-medium text-slate-800">{hubDroneField(drone.modelName)}</dd>
+    <div className="flex min-w-0 flex-1 flex-col items-center px-1 text-center">
+      <Icon
+        className="size-3.5 text-[#0D9488]/80"
+        strokeWidth={2.25}
+        aria-hidden
+      />
+      <p className="mt-1 truncate text-sm font-bold tabular-nums text-[#191c1d]">
+        {value}
+      </p>
+      <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function HubDroneCard({ drone }: { drone: HubDroneRow }) {
+  const statusStyles = hubDroneStatusStyles(drone.status || "ready");
+  const displayStatus = (drone.status || "Ready").trim() || "Ready";
+  const pilotInitials = hubDronePilotInitials(drone.pilotName);
+
+  return (
+    <article className="group relative flex overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#0D9488]/40 hover:shadow-[0_8px_24px_rgba(13,148,136,0.12)]">
+      <div
+        className={cn(
+          "w-1 shrink-0 bg-gradient-to-b",
+          statusStyles.accent
+        )}
+        aria-hidden
+      />
+
+      <div className="min-w-0 flex-1">
+        <header className="flex items-start gap-3 border-b border-slate-100/90 px-4 py-3.5">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0058bc]/10 to-[#0D9488]/10 text-[#0058bc] ring-1 ring-[#0D9488]/15">
+            <Drone className="size-5" strokeWidth={2} aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="truncate text-base font-bold leading-tight tracking-tight text-[#191c1d] sm:text-[17px]">
+                  {hubDroneField(drone.modelName)}
+                </h3>
+                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
+                  <span className="font-semibold text-[#0058bc]">
+                    {hubDroneField(drone.type)}
+                  </span>
+                  <span className="text-slate-300" aria-hidden>
+                    ·
+                  </span>
+                  <span className="tabular-nums">ID {drone.id}</span>
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide",
+                  statusStyles.badge
+                )}
+              >
+                <span
+                  className={cn("size-1.5 shrink-0 rounded-full", statusStyles.dot)}
+                  aria-hidden
+                />
+                {displayStatus}
+              </span>
+            </div>
+            {drone.subtitle ? (
+              <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                {drone.subtitle}
+              </p>
+            ) : null}
+          </div>
+        </header>
+
+        <div className="mx-4 my-3.5 flex divide-x divide-slate-100 rounded-xl bg-slate-50/80 px-1 py-3 ring-1 ring-slate-100/90">
+          <HubDroneMetric
+            icon={Package}
+            label="Payload"
+            value={
+              drone.maxPayloadKg != null ? `${drone.maxPayloadKg} kg` : "—"
+            }
+          />
+          <HubDroneMetric
+            icon={Navigation}
+            label="Range"
+            value={drone.maxRangeKm != null ? `${drone.maxRangeKm} km` : "—"}
+          />
+          <HubDroneMetric
+            icon={Clock}
+            label="Flight"
+            value={
+              drone.flightTimeMin != null ? `${drone.flightTimeMin} min` : "—"
+            }
+          />
+          <HubDroneMetric
+            icon={Camera}
+            label="Camera"
+            value={hubDroneField(drone.camera)}
+          />
+        </div>
+
+        <footer className="border-t border-slate-100/90 bg-slate-50/40 px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <span
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#0D9488] text-xs font-bold text-white shadow-sm"
+              aria-hidden
+            >
+              {pilotInitials}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                Assigned pilot
+              </p>
+              <p className="truncate text-sm font-semibold text-[#191c1d]">
+                {hubDronePilotLabel(drone)}
+              </p>
+            </div>
+          </div>
+
+          {drone.useCases.length > 0 ? (
+            <ul className="mt-2.5 flex flex-wrap gap-1.5 border-t border-slate-200/60 pt-2.5">
+              {drone.useCases.map((useCase) => (
+                <li key={useCase}>
+                  <span className="inline-flex items-center rounded-md bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 ring-1 ring-slate-200/90">
+                    {useCase}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </footer>
       </div>
-      <div>
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Drone ID
-        </dt>
-        <dd className="font-medium text-slate-800">{drone.id}</dd>
-      </div>
-      <div>
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Serial
-        </dt>
-        <dd className="font-medium text-slate-800">{hubDroneField(drone.serialNumber)}</dd>
-      </div>
-      <div>
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Type
-        </dt>
-        <dd className="font-medium text-slate-800">{hubDroneField(drone.type)}</dd>
-      </div>
-      <div>
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Status
-        </dt>
-        <dd className="font-medium uppercase text-slate-800">{drone.status}</dd>
-      </div>
-      <div>
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Payload
-        </dt>
-        <dd className="font-medium text-slate-800">
-          {drone.maxPayloadKg != null ? `${drone.maxPayloadKg} kg` : "—"}
-        </dd>
-      </div>
-      <div>
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Range
-        </dt>
-        <dd className="font-medium text-slate-800">
-          {drone.maxRangeKm != null ? `${drone.maxRangeKm} km` : "—"}
-        </dd>
-      </div>
-      <div>
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Flight time
-        </dt>
-        <dd className="font-medium text-slate-800">
-          {drone.flightTimeMin != null ? `${drone.flightTimeMin} min` : "—"}
-        </dd>
-      </div>
-      <div>
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Battery
-        </dt>
-        <dd className="font-medium text-slate-800">
-          {drone.batteryPercent != null ? `${drone.batteryPercent}%` : "—"}
-        </dd>
-      </div>
-      <div>
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Camera
-        </dt>
-        <dd className="font-medium text-slate-800">{hubDroneField(drone.camera)}</dd>
-      </div>
-      <div>
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Firmware
-        </dt>
-        <dd className="font-medium text-slate-800">{hubDroneField(drone.firmware)}</dd>
-      </div>
-      <div className="col-span-2">
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Pilot
-        </dt>
-        <dd className="font-medium text-slate-800">
-          {drone.pilotName
-            ? `${drone.pilotName}${drone.pilotId ? ` (#${drone.pilotId})` : ""}`
-            : "—"}
-        </dd>
-      </div>
-      <div className="col-span-2">
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Subtitle
-        </dt>
-        <dd className="font-medium text-slate-800">{hubDroneField(drone.subtitle)}</dd>
-      </div>
-      <div className="col-span-2">
-        <dt className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400 sm:text-[10px]">
-          Use cases
-        </dt>
-        <dd className="font-medium text-slate-800">
-          {drone.useCases.length > 0 ? drone.useCases.join(", ") : "—"}
-        </dd>
-      </div>
-    </dl>
+    </article>
   );
 }
 
@@ -1047,33 +1185,26 @@ function FleetDroneCards({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 2xl:grid-cols-3">
       {drones.map((drone) => (
-        <article
-          key={drone.id}
-          className="rounded-lg border border-slate-200 bg-white/80 p-3 shadow-sm backdrop-blur-sm sm:p-3.5"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0058bc] sm:text-xs">
-                {drone.type || "Drone"}
-              </p>
-              <h3 className="mt-0.5 text-base font-semibold leading-snug text-[#191c1d] sm:text-lg">
-                {drone.modelName}
-              </h3>
-            </div>
-            <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold uppercase text-slate-600 sm:text-xs">
-              {drone.status}
-            </span>
-          </div>
-          <HubDroneDetailGrid drone={drone} />
-        </article>
+        <HubDroneCard key={drone.id} drone={drone} />
       ))}
     </div>
   );
 }
 
-function PilotCards({
+function hubPilotDutyStatusClass(status: string): string {
+  const normalized = status.trim().toUpperCase();
+  if (normalized === "ACTIVE" || normalized === "AVAILABLE" || normalized === "ON_DUTY") {
+    return "bg-emerald-50 text-emerald-800 ring-emerald-600/15";
+  }
+  if (normalized === "BUSY" || normalized === "ON_MISSION") {
+    return "bg-amber-50 text-amber-900 ring-amber-600/15";
+  }
+  return "bg-slate-100 text-slate-700 ring-slate-300/80";
+}
+
+function PilotTable({
   pilots,
   loading,
   errorMessage,
@@ -1105,40 +1236,113 @@ function PilotCards({
   }
 
   return (
-    <div className="space-y-2">
-      {pilots.map((pilot) => (
-        <button
-          key={pilot.id}
-          type="button"
-          onClick={() => onPilotClick?.(pilot)}
-          aria-label={`View details for ${pilot.name}`}
-          className="group flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-transparent bg-white/80 p-2 text-left shadow-sm backdrop-blur-sm transition-all hover:border-[#0058bc] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0D9488]/40"
-        >
-          <Image
-            src={pilot.imageSrc}
-            alt={pilot.name}
-            width={48}
-            height={48}
-            className="size-12 shrink-0 rounded-md object-cover"
-          />
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold leading-tight">{pilot.name}</h3>
-            <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#0058bc]">
-              {pilot.role}
-            </p>
-            <p className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-700">
-              <Star className="size-3 fill-yellow-400 text-yellow-400" />
-              {pilot.ratingLabel}
-            </p>
-          </div>
-          <span
-            className="flex size-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-[#0058bc] transition-colors group-hover:bg-[#0058bc]/10 group-hover:text-[#0D9488]"
-            aria-hidden
-          >
-            <Eye className="size-4" strokeWidth={2} />
-          </span>
-        </button>
-      ))}
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <Table className="min-w-[760px]">
+        <TableHeader>
+          <TableRow className="border-slate-200 bg-slate-50 hover:bg-slate-50">
+            <TableHead className="h-10 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+              Pilot
+            </TableHead>
+            <TableHead className="h-10 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+              Role
+            </TableHead>
+            <TableHead className="h-10 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+              Rating
+            </TableHead>
+            <TableHead className="h-10 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+              Drone
+            </TableHead>
+            <TableHead className="h-10 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+              Certification
+            </TableHead>
+            <TableHead className="h-10 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+              Status
+            </TableHead>
+            <TableHead className="h-10 w-[72px] px-3 text-right text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+              View
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {pilots.map((pilot) => (
+            <TableRow
+              key={pilot.id}
+              className="cursor-pointer border-slate-100 hover:bg-[#0D9488]/5"
+              onClick={() => onPilotClick?.(pilot)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onPilotClick?.(pilot);
+                }
+              }}
+              tabIndex={0}
+              role="button"
+              aria-label={`View details for ${pilot.name}`}
+            >
+              <TableCell className="px-3 py-2.5">
+                <div className="flex items-center gap-2.5">
+                  <Image
+                    src={pilot.imageSrc}
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="size-10 shrink-0 rounded-md object-cover"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[#191c1d]">
+                      {pilot.name}
+                    </p>
+                    <p className="text-[11px] text-slate-500">ID {pilot.id}</p>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell className="max-w-[140px] px-3 py-2.5">
+                <span className="line-clamp-2 text-xs font-medium uppercase tracking-wide text-[#0058bc]">
+                  {pilot.role}
+                </span>
+              </TableCell>
+              <TableCell className="px-3 py-2.5">
+                <span className="inline-flex items-center gap-1 text-xs text-slate-700">
+                  <Star
+                    className="size-3 shrink-0 fill-yellow-400 text-yellow-400"
+                    aria-hidden
+                  />
+                  {pilot.ratingLabel}
+                </span>
+              </TableCell>
+              <TableCell className="max-w-[200px] px-3 py-2.5 text-xs text-slate-700">
+                <span className="line-clamp-2">{pilot.droneSummary}</span>
+              </TableCell>
+              <TableCell className="px-3 py-2.5 text-xs text-slate-700">
+                {pilot.certLevel}
+              </TableCell>
+              <TableCell className="px-3 py-2.5">
+                <span
+                  className={cn(
+                    "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset",
+                    hubPilotDutyStatusClass(pilot.dutyStatus)
+                  )}
+                >
+                  {pilot.dutyStatus}
+                </span>
+              </TableCell>
+              <TableCell className="px-3 py-2.5 text-right">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onPilotClick?.(pilot);
+                  }}
+                  className="inline-flex size-8 items-center justify-center rounded-md bg-slate-100 text-[#0058bc] transition-colors hover:bg-[#0058bc]/10 hover:text-[#0D9488]"
+                  aria-label={`View details for ${pilot.name}`}
+                >
+                  <Eye className="size-4" strokeWidth={2} aria-hidden />
+                </button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -1427,10 +1631,10 @@ export function MatchingHubView() {
                   }
                   placeholder={
                     activeTab === "missions"
-                      ? "Search by ID, region, class, or range (km)..."
+                      ? "Search payload (kg), flight time (min), range (km), ID..."
                       : "Search pilot, rating, class, or region..."
                   }
-                  className="w-full rounded-md border border-slate-300 bg-white py-1.5 pl-9 pr-3 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
+                  className="w-full rounded-md border border-slate-300 bg-white py-1.5 pl-9 pr-3 text-xs font-normal text-black outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
                 />
               </div>
             </div>
@@ -1445,12 +1649,12 @@ export function MatchingHubView() {
                 id="matching-hub-payload-class"
                 value={payloadClassDraft}
                 onChange={(event) => setPayloadClassDraft(event.target.value)}
-                className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
+                className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs font-normal text-black outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
               >
-                <option>Any Weight</option>
-                <option>L-1 (&lt; 5kg)</option>
-                <option>L-3 (5-20kg)</option>
-                <option>L-5 Heavy (20kg+)</option>
+                <option className="font-normal text-black">Any Weight</option>
+                <option className="font-normal text-black">L-1 (&lt; 5kg)</option>
+                <option className="font-normal text-black">L-3 (5-20kg)</option>
+                <option className="font-normal text-black">L-5 Heavy (20kg+)</option>
               </select>
             </div>
             <div className="min-w-[130px] sm:min-w-[140px]">
@@ -1464,11 +1668,13 @@ export function MatchingHubView() {
                 id="matching-hub-region"
                 value={regionDraft}
                 onChange={(event) => setRegionDraft(event.target.value)}
-                className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
+                className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs font-normal text-black outline-none ring-[#0058bc]/25 focus:ring-2 sm:text-sm"
               >
-                <option value="India">India</option>
+                <option className="font-normal text-black" value="India">
+                  India
+                </option>
                 {MATCHING_HUB_REGION_CITIES.map((city) => (
-                  <option key={city} value={city}>
+                  <option key={city} className="font-normal text-black" value={city}>
                     {city}
                   </option>
                 ))}
@@ -1481,9 +1687,9 @@ export function MatchingHubView() {
               <Button
                 type="submit"
                 variant="outline"
-                className="h-[34px] w-full gap-1.5 rounded-md border border-slate-300 bg-transparent px-4 text-xs font-semibold text-[#0D9488] shadow-none hover:bg-slate-50 sm:text-sm"
+                className="h-[34px] w-full gap-1.5 rounded-md border border-slate-300 bg-transparent px-4 text-xs font-normal text-black shadow-none hover:bg-slate-50 sm:text-sm"
               >
-                <Search className="size-3.5" aria-hidden />
+                <Search className="size-3.5 text-black" aria-hidden />
                 Search
               </Button>
             </div>
@@ -1571,11 +1777,21 @@ export function MatchingHubView() {
                 </div>
 
                 <div className="order-3 lg:order-3 lg:col-span-12">
-                  <div className="mt-3 border-t border-slate-200 pt-5">
-                    <h3 className="text-base font-semibold tracking-tight text-[#191c1d] sm:text-lg">
-                      Drone Details
-                    </h3>
-                    <div className="mt-4">
+                  <div className="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 pt-5 sm:p-5 sm:pt-6">
+                    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200/80 pb-4">
+                      <div>
+                        <h3 className="text-base font-semibold tracking-tight text-[#191c1d] sm:text-lg">
+                          Drone Details
+                        </h3>
+                      </div>
+                      {!dronesLoading && !dronesError ? (
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#0D9488] ring-1 ring-[#0D9488]/20 tabular-nums">
+                          {filteredHubDrones.length}{" "}
+                          {filteredHubDrones.length === 1 ? "drone" : "drones"}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-5">
                       <FleetDroneCards
                         drones={filteredHubDrones}
                         loading={dronesLoading}
@@ -1598,7 +1814,7 @@ export function MatchingHubView() {
                   Available Pilots
                 </h2>
                 <div className="order-2 min-w-0 lg:order-3 lg:col-span-12">
-                  <PilotCards
+                  <PilotTable
                     pilots={topRatedPilots}
                     loading={pilotsLoading}
                     errorMessage={pilotsError}

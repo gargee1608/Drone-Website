@@ -141,6 +141,26 @@ export function saveBlogDeletedBuiltins(slugs: string[]): void {
   notifyBlogCatalogUpdated();
 }
 
+/** Undo local suppression so a post can appear on the public catalog again. */
+export function restoreBlogSlugInCatalog(slug: string): void {
+  if (typeof window === "undefined") return;
+  const trimmed = slug.trim();
+  if (!trimmed) return;
+  const deleted = loadBlogDeletedBuiltins();
+  if (!deleted.includes(trimmed)) return;
+  saveBlogDeletedBuiltins(deleted.filter((s) => s !== trimmed));
+}
+
+/** Live database slugs override stale local deletion markers (delete → re-add / publish). */
+export function reconcileDeletedSlugsWithLiveApi(liveSlugs: string[]): void {
+  if (typeof window === "undefined" || liveSlugs.length === 0) return;
+  const live = new Set(liveSlugs.map((s) => s.trim()).filter(Boolean));
+  const deleted = loadBlogDeletedBuiltins();
+  const next = deleted.filter((slug) => !live.has(slug));
+  if (next.length === deleted.length) return;
+  saveBlogDeletedBuiltins(next);
+}
+
 /** Hide a built-in post everywhere the merged list is used; clears overrides for that slug. */
 export function deleteBuiltinFromCatalog(slug: string): void {
   if (typeof window === "undefined") return;
