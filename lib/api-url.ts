@@ -39,8 +39,12 @@ export function apiUrl(path: string): string {
   if (normalized.startsWith("/api/missions-requests")) {
     return normalized;
   }
-  /** Service hire requests — Next route handler writes to PostgreSQL (same as blogs). */
-  if (normalized === "/api/submit-request") {
+  /** Service hire / project requests — Next route handlers use PostgreSQL (same DB). */
+  if (
+    normalized === "/api/submit-request" ||
+    normalized === "/api/requests" ||
+    normalized.startsWith("/api/requests/")
+  ) {
     return normalized;
   }
   /** Admin-deleted built-in catalog slugs (Next route handler, same DB as Express). */

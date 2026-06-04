@@ -23,7 +23,25 @@ import {
 } from "@/lib/user-requests";
 import { cn } from "@/lib/utils";
 
+import { parsePostRequirementDesc } from "@/lib/post-requirement-parse";
+
 import { USER_REQUEST_DEMO_MISSIONS } from "./user-request-demos";
+
+function projectTableCells(m: UserRequestAdminRow): {
+  service: string;
+  location: string;
+  budget: string;
+} {
+  const p = m.projectRequirement;
+  if (p) {
+    return {
+      service: p.serviceCategory.trim() || "—",
+      location: p.preferredLocation.trim() || "—",
+      budget: p.budgetRange.trim() || "—",
+    };
+  }
+  return parsePostRequirementDesc(m.desc);
+}
 
 export function parsePayloadAndTarget(desc: string): {
   payload: string;
@@ -173,14 +191,14 @@ function displayFromMissionDb(raw: string): {
     return {
       label: "In process",
       dotClass: "bg-amber-500",
-      textClass: "text-amber-800 dark:text-amber-300",
+      textClass: "text-amber-700 dark:text-amber-400",
     };
   }
   if (s === "pending") {
     return {
-      label: "Pending Request",
-      dotClass: "bg-muted-foreground/50",
-      textClass: "text-muted-foreground",
+      label: "Pending",
+      dotClass: "bg-slate-400 dark:bg-slate-500",
+      textClass: "text-foreground/80",
     };
   }
   if (s === "rejected" || s === "cancelled" || s === "canceled") {
@@ -213,8 +231,8 @@ function statusDisplayForAdminRow(m: UserRequestAdminRow): {
 
   return {
     label: "Pending",
-    dotClass: "bg-muted-foreground/50",
-    textClass: "text-muted-foreground",
+    dotClass: "bg-slate-400 dark:bg-slate-500",
+    textClass: "text-foreground/80",
   };
 }
 
@@ -235,7 +253,7 @@ export type UserRequestTableProps = {
   /** Drop outer card border/shadow (Project Requests page). */
   omitOuterBorder?: boolean;
   /** Pilot dashboard: User Id, User Name, User Requirement, Payload, Destinations. */
-  columnPreset?: "admin" | "pilot";
+  columnPreset?: "admin" | "pilot" | "project";
 };
 
 export function UserRequestTable({
@@ -250,6 +268,7 @@ export function UserRequestTable({
   columnPreset = "admin",
 }: UserRequestTableProps) {
   const isPilot = columnPreset === "pilot";
+  const isProject = columnPreset === "project";
   const [statusSync, setStatusSync] = useState(0);
 
   useEffect(() => {
@@ -301,13 +320,14 @@ export function UserRequestTable({
       <div
         className={cn(
           "rounded-xl border border-border/90",
-          isPilot ? "overflow-x-auto" : "overflow-hidden"
+          isPilot || isProject ? "overflow-x-auto" : "overflow-hidden"
         )}
       >
         <table
           className={cn(
             "w-full table-fixed border-collapse text-left text-[10px] leading-snug sm:text-[11px]",
-            isPilot && "min-w-[640px]"
+            isPilot && "min-w-[640px]",
+            isProject && "min-w-[52rem]"
           )}
         >
           {isPilot ? (
@@ -317,6 +337,16 @@ export function UserRequestTable({
               <col className="w-[25%]" />
               <col className="w-[12%]" />
               <col className="w-[38%]" />
+            </colgroup>
+          ) : isProject ? (
+            <colgroup>
+              <col className="w-[12%]" />
+              <col className="w-[24%]" />
+              <col className="w-[14%]" />
+              <col className="w-[12%]" />
+              <col className="w-[14%]" />
+              <col className="w-[11%]" />
+              <col className="w-[13%]" />
             </colgroup>
           ) : (
             <colgroup>
@@ -347,6 +377,30 @@ export function UserRequestTable({
                   </th>
                   <th scope="col" className={cn(thBase, "text-left")}>
                     Destinations
+                  </th>
+                </>
+              ) : isProject ? (
+                <>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    Request ID
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    Project title
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    Service
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    Location
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    Budget
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-left")}>
+                    Status
+                  </th>
+                  <th scope="col" className={cn(thBase, "text-right pr-4 sm:pr-5")}>
+                    Actions
                   </th>
                 </>
               ) : (
@@ -383,7 +437,9 @@ export function UserRequestTable({
               const ReqIcon = requirementTypeIcon(m.title);
               const highlightRow = m.title === "Industrial Part Delivery";
               const pilotCells = isPilot ? pilotTableCells(m) : null;
-              const adminStatusUi = !isPilot ? statusDisplayForAdminRow(m) : null;
+              const projectCells = isProject ? projectTableCells(m) : null;
+              const adminStatusUi =
+                !isPilot ? statusDisplayForAdminRow(m) : null;
 
               if (isPilot && pilotCells) {
                 return (
@@ -442,6 +498,119 @@ export function UserRequestTable({
                       <div className="break-words leading-snug font-medium">
                         {pilotCells.destinations}
                       </div>
+                    </td>
+                  </tr>
+                );
+              }
+
+              if (isProject && projectCells) {
+                return (
+                  <tr
+                    key={m.key}
+                    className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+                  >
+                    <td className={cn(tdBase, "text-left")}>
+                      <span
+                        className="inline-block max-w-full font-mono text-[10px] font-medium leading-snug tracking-tight text-muted-foreground [overflow-wrap:anywhere] sm:text-[11px]"
+                        title={tableRequestId(m)}
+                      >
+                        {tableRequestId(m)}
+                      </span>
+                    </td>
+                    <td className={cn(tdBase, "text-left")}>
+                      {onViewDetails ? (
+                        <button
+                          type="button"
+                          className="group flex min-w-0 w-full cursor-pointer items-center gap-2.5 rounded-md py-0.5 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
+                          aria-label={`View project request: ${m.title}`}
+                          onClick={() => onViewDetails(m)}
+                        >
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12 text-[#008B8B]">
+                            <ReqIcon className="size-3.5 shrink-0" aria-hidden />
+                          </span>
+                          <span className="min-w-0 break-words leading-snug font-semibold text-[#006767] underline decoration-[#008B8B]/35 underline-offset-2 group-hover:text-[#005a5a] dark:text-primary">
+                            {m.title}
+                          </span>
+                        </button>
+                      ) : (
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12 text-[#008B8B]">
+                            <ReqIcon className="size-3.5 shrink-0" aria-hidden />
+                          </span>
+                          <span className="break-words font-medium">{m.title}</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className={cn(tdBase, "text-left")}>
+                      <span className="break-words">{projectCells.service}</span>
+                    </td>
+                    <td className={cn(tdBase, "text-left")}>
+                      <span className="break-words">{projectCells.location}</span>
+                    </td>
+                    <td className={cn(tdBase, "text-left")}>
+                      <span className="break-words">{projectCells.budget}</span>
+                    </td>
+                    <td className={cn(tdBase, "text-left")}>
+                      {adminStatusUi ? (
+                        <span
+                          className={cn(
+                            "inline-flex min-w-0 max-w-full items-center gap-2 text-[10px] font-medium leading-snug sm:text-[11px]",
+                            adminStatusUi.textClass
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "size-2 shrink-0 rounded-full",
+                              adminStatusUi.dotClass
+                            )}
+                            aria-hidden
+                          />
+                          <span className="min-w-0 whitespace-nowrap">
+                            {adminStatusUi.label}
+                          </span>
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className={cn(tdBase, "text-right")}>
+                      {onViewDetails || onEditRequest || onDeleteRequest ? (
+                        <div className="inline-flex items-center justify-end gap-1.5">
+                          {onViewDetails ? (
+                            <button
+                              type="button"
+                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#008B8B]/35 bg-[#008B8B]/8 text-[#006767] transition-colors hover:bg-[#008B8B]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
+                              title="View"
+                              aria-label={`View: ${m.title}`}
+                              onClick={() => onViewDetails(m)}
+                            >
+                              <Eye className="size-3.5" aria-hidden />
+                            </button>
+                          ) : null}
+                          {onEditRequest ? (
+                            <button
+                              type="button"
+                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-blue-500/25 bg-blue-500/8 text-blue-700 transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                              title="Edit"
+                              aria-label={`Edit: ${m.title}`}
+                              onClick={() => onEditRequest(m)}
+                            >
+                              <Pencil className="size-3.5" aria-hidden />
+                            </button>
+                          ) : null}
+                          {onDeleteRequest ? (
+                            <button
+                              type="button"
+                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-red-500/25 bg-red-500/8 text-red-700 transition-colors hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
+                              title="Delete"
+                              aria-label={`Delete: ${m.title}`}
+                              onClick={() => onDeleteRequest(m)}
+                            >
+                              <Trash2 className="size-3.5" aria-hidden />
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                   </tr>
                 );

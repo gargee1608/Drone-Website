@@ -1,4 +1,5 @@
 import { jwtPayloadSub } from "@/lib/pilot-display-name";
+import type { ParsedPostRequirement } from "@/lib/post-requirement-parse";
 import type { RequirementStatus } from "@/lib/project-requests";
 import { readStoredUserSession } from "@/lib/user-session-browser";
 
@@ -588,6 +589,8 @@ export type UserRequestAdminRow = {
   queueDisplayId?: string;
   /** Assigned / Unassigned / Undereview (Post Your Requirement submissions). */
   requirementStatus?: RequirementStatus;
+  /** Parsed fields from Post Your Requirement form (when `queueDisplayId` is `#PR-…`). */
+  projectRequirement?: ParsedPostRequirement;
   /** Editable backend fields for admin User Request rows. */
   backendRequest?: {
     id: string;

@@ -1,12 +1,10 @@
 "use client";
 
 import {
-  ArrowRight,
+  Calendar,
   FolderKanban,
   Mail,
   MapPin,
-  Package,
-  Phone,
   User,
   UserRound,
   X,
@@ -17,6 +15,7 @@ import { getPilots, assignHubMissionToPilot } from "@/app/services/pilotServices
 import { DetailField } from "@/components/dashboard/user-request-detail-modal";
 import { apiUrl } from "@/lib/api-url";
 import { pushPilotMissionNotification } from "@/lib/pilot-mission-notifications";
+import type { ParsedPostRequirement } from "@/lib/post-requirement-parse";
 import {
   getUserMissionTrackingEntryForRequest,
   recordUserMissionAssignment,
@@ -29,20 +28,6 @@ import {
 } from "@/lib/user-requests";
 import { cn } from "@/lib/utils";
 
-const PRIORITY_LABEL: Record<string, string> = {
-  urgent: "Urgent",
-  express: "Express",
-  standard: "Standard",
-  critical: "Critical",
-  normal: "Normal",
-  routine: "Routine",
-};
-
-function priorityLabel(raw: string): string {
-  const key = raw.trim().toLowerCase();
-  return PRIORITY_LABEL[key] ?? (raw.trim() || "—");
-}
-
 const innerBoxClass =
   "rounded-lg border border-border/80 bg-muted/25 px-2.5 py-2 dark:border-white/10 dark:bg-white/5";
 
@@ -51,6 +36,20 @@ function SectionHeading({ children }: { children: ReactNode }) {
     <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#008B8B] dark:text-[#5eead4]">
       {children}
     </h3>
+  );
+}
+
+function DetailBox({ label, value }: { label: string; value: string }) {
+  const display = value.trim() || "—";
+  return (
+    <div className={innerBoxClass}>
+      <p className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-0.5 break-words text-xs font-medium leading-snug text-foreground">
+        {display}
+      </p>
+    </div>
   );
 }
 
@@ -97,6 +96,7 @@ export type ProjectRequestDetailContact = {
   phone: string | null;
   name: string;
   email: string;
+  project: ParsedPostRequirement | null;
 };
 
 type PilotOption = {
@@ -140,11 +140,7 @@ export function ProjectRequestDetailModal({
 }) {
   const requestId = row.queueDisplayId ?? row.key;
   const backend = row.backendRequest;
-  const urgencyRaw = backend?.missionUrgency ?? "";
-  const cargoType = backend?.cargoType?.trim() || "—";
-  const payloadWeight = backend?.payloadWeight?.trim();
-  const pickup = backend?.pickupLocation?.trim() || "—";
-  const drop = backend?.dropLocation?.trim() || "—";
+  const project = contact.project;
   const adminStatus = backend?.adminStatus;
   const missionRef = projectRequestMissionRef(row);
 
@@ -198,7 +194,7 @@ export function ProjectRequestDetailModal({
   }, [missionRef]);
 
   const handleAssignPilot = async () => {
-    if (!selectedPilotId || assigning) return;
+    if (!selectedPilotId || assigning || !project) return;
     const pilot = pilots.find((item) => item.id === selectedPilotId);
     if (!pilot) return;
 
@@ -207,11 +203,17 @@ export function ProjectRequestDetailModal({
     setAssignFeedback(null);
 
     const ownerFields = missionOwnerFieldsForRequestRef(missionRef);
+    const service = project.serviceCategory.trim() || contact.title;
+    const location =
+      project.preferredLocation.trim() ||
+      project.areaOfCoverage.trim() ||
+      "—";
+
     const res = await assignHubMissionToPilot({
       requestRef: missionRef,
       customer: contact.title.trim() || row.title.trim() || "Project request",
-      service: cargoType === "—" ? row.title.trim() || "Requirement" : cargoType,
-      dropoff: drop === "—" ? pickup : drop,
+      service,
+      dropoff: location,
       pilotName: pilot.name,
       pilotBadgeId: pilot.badgeId,
       pilotSub: pilot.id,
@@ -246,8 +248,8 @@ export function ProjectRequestDetailModal({
     pushPilotMissionNotification({
       requestRef: missionRef,
       customer: contact.title.trim() || row.title.trim() || "Project request",
-      service: cargoType === "—" ? row.title.trim() || "Requirement" : cargoType,
-      dropoff: drop === "—" ? pickup : drop,
+      service,
+      dropoff: location,
       pilotName: pilot.name,
       pilotBadgeId: pilot.badgeId,
       pilotSub: pilot.id,
@@ -264,8 +266,8 @@ export function ProjectRequestDetailModal({
       storedUserRequest: undefined,
       assignRowFallback: {
         customer: contact.title.trim() || row.title.trim() || "Project request",
-        service: cargoType === "—" ? row.title.trim() || "Requirement" : cargoType,
-        dropoff: drop === "—" ? pickup : drop,
+        service,
+        dropoff: location,
         sectorLine: row.desc,
       },
     });
@@ -305,7 +307,7 @@ export function ProjectRequestDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="project-request-detail-title"
-        className="relative z-10 flex max-h-[min(90dvh,38rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl border border-border bg-white text-foreground shadow-2xl sm:rounded-2xl dark:border-white/20 dark:bg-black dark:text-white"
+        className="relative z-10 flex max-h-[min(90dvh,40rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl border border-border bg-white text-foreground shadow-2xl sm:rounded-2xl dark:border-white/20 dark:bg-black dark:text-white"
       >
         <div className="shrink-0 border-b border-border bg-gradient-to-r from-[#008B8B]/8 via-transparent to-transparent px-5 py-4 sm:px-6 dark:border-white/10 dark:from-[#008B8B]/15">
           <div className="flex items-start justify-between gap-3">
@@ -326,26 +328,11 @@ export function ProjectRequestDetailModal({
                 >
                   {requestId}
                 </p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-                      row.badgeClass
-                    )}
-                  >
-                    {row.badge}
+                {adminStatus ? (
+                  <span className="mt-2 inline-flex items-center rounded-full border border-[#008B8B]/25 bg-[#008B8B]/8 px-2.5 py-0.5 text-[10px] font-semibold text-[#0a3030] dark:border-[#5eead4]/30 dark:bg-[#008B8B]/20 dark:text-[#5eead4]">
+                    {userMissionAdminStatusLabel(adminStatus)}
                   </span>
-                  {urgencyRaw ? (
-                    <span className="inline-flex items-center rounded-full border border-border bg-white px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground dark:border-white/15 dark:bg-white/5">
-                      {priorityLabel(urgencyRaw)}
-                    </span>
-                  ) : null}
-                  {adminStatus ? (
-                    <span className="inline-flex items-center rounded-full border border-[#008B8B]/25 bg-[#008B8B]/8 px-2.5 py-0.5 text-[10px] font-semibold text-[#0a3030] dark:border-[#5eead4]/30 dark:bg-[#008B8B]/20 dark:text-[#5eead4]">
-                      {userMissionAdminStatusLabel(adminStatus)}
-                    </span>
-                  ) : null}
-                </div>
+                ) : null}
               </div>
             </div>
             <button
@@ -362,109 +349,118 @@ export function ProjectRequestDetailModal({
         <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-6">
           <div className="rounded-lg border border-[#008B8B]/20 bg-[#008B8B]/5 px-2.5 py-2 dark:border-[#5eead4]/25 dark:bg-[#008B8B]/10">
             <p className="text-[9px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#5eead4]">
-              Requirement
+              Project title
             </p>
             <p className="mt-0.5 text-xs font-semibold leading-snug text-foreground">
               {contact.title || "—"}
             </p>
           </div>
 
-          <section className="mt-4 space-y-2" aria-label="Contact information">
-            <SectionHeading>Contact</SectionHeading>
-            <div className="grid gap-1.5 sm:grid-cols-2">
-              <ContactRow icon={User} label="Name" value={contact.name} />
-              <ContactRow
-                icon={Mail}
-                label="Email"
-                value={contact.email}
-                href={
-                  contact.email.includes("@")
-                    ? `mailto:${contact.email}`
-                    : undefined
-                }
-              />
-              {contact.phone ? (
-                <div className="sm:col-span-2">
-                  <ContactRow
-                    icon={Phone}
-                    label="Phone"
-                    value={contact.phone}
-                    href={`tel:${contact.phone.replace(/\s/g, "")}`}
-                  />
-                </div>
-              ) : null}
-            </div>
-          </section>
-
-          {backend ? (
+          {project ? (
             <>
-              <section className="mt-4 space-y-2" aria-label="Route">
-                <SectionHeading>Route</SectionHeading>
-                <div className="grid gap-1.5 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+              <section className="mt-4 space-y-2" aria-label="Project information">
+                <SectionHeading>1. Project information</SectionHeading>
+                <dl className="grid gap-1.5 sm:grid-cols-2">
+                  <DetailBox
+                    label="Service category"
+                    value={project.serviceCategory}
+                  />
+                  <DetailBox label="Project type" value={project.projectType} />
+                  <div className="sm:col-span-2">
+                    <DetailBox
+                      label="Preferred location"
+                      value={project.preferredLocation}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <div className={innerBoxClass}>
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                        Project description
+                      </p>
+                      <p className="mt-0.5 whitespace-pre-wrap break-words text-xs font-medium leading-snug">
+                        {project.projectDescription.trim() || "—"}
+                      </p>
+                    </div>
+                  </div>
+                </dl>
+              </section>
+
+              <section className="mt-4 space-y-2" aria-label="Project details">
+                <SectionHeading>2. Project details</SectionHeading>
+                <dl className="grid gap-1.5 sm:grid-cols-2">
                   <div className={innerBoxClass}>
                     <p className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                      <MapPin className="size-2.5 shrink-0" aria-hidden />
-                      Pickup
+                      <Calendar className="size-2.5" aria-hidden />
+                      Expected start
                     </p>
-                    <p className="mt-0.5 text-xs font-medium leading-snug">
-                      {pickup}
-                    </p>
-                  </div>
-                  <div className="hidden items-center justify-center sm:flex">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-[#008B8B]/10 text-[#008B8B] dark:bg-[#008B8B]/25 dark:text-[#5eead4]">
-                      <ArrowRight className="size-3.5" aria-hidden />
-                    </span>
-                  </div>
-                  <div className={innerBoxClass}>
-                    <p className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                      <MapPin className="size-2.5 shrink-0" aria-hidden />
-                      Drop
-                    </p>
-                    <p className="mt-0.5 text-xs font-medium leading-snug">
-                      {drop}
+                    <p className="mt-0.5 text-xs font-medium">
+                      {project.expectedStartDate.trim() || "—"}
                     </p>
                   </div>
-                  <p className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground sm:hidden">
-                    <ArrowRight className="size-3.5" aria-hidden />
-                    Delivery route
+                  <DetailBox
+                    label="Expected duration"
+                    value={project.expectedDuration}
+                  />
+                  <DetailBox label="Budget (INR)" value={project.budgetRange} />
+                  <DetailBox
+                    label="Area of coverage"
+                    value={project.areaOfCoverage}
+                  />
+                  <div className="sm:col-span-2">
+                    <DetailBox
+                      label="Purpose of project"
+                      value={project.purposeOfProject}
+                    />
+                  </div>
+                </dl>
+              </section>
+
+              <section className="mt-4 space-y-2" aria-label="Additional information">
+                <SectionHeading>3. Additional information</SectionHeading>
+                {project.referenceFileNames.length > 0 ? (
+                  <DetailBox
+                    label="Reference files"
+                    value={project.referenceFileNames.join(", ")}
+                  />
+                ) : null}
+                <div className={innerBoxClass}>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                    Additional notes
+                  </p>
+                  <p className="mt-0.5 whitespace-pre-wrap break-words text-xs font-medium leading-snug">
+                    {project.additionalNotes.trim() || "—"}
                   </p>
                 </div>
               </section>
 
-              <section className="mt-4 space-y-2" aria-label="Mission details">
-                <SectionHeading>Mission details</SectionHeading>
-                <dl className="grid gap-1.5 sm:grid-cols-3">
-                  <div className={innerBoxClass}>
-                    <dt className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                      <Package className="size-2.5" aria-hidden />
-                      Payload
-                    </dt>
-                    <dd className="mt-0.5 text-xs font-semibold tabular-nums">
-                      {payloadWeight ? `${payloadWeight} kg` : "—"}
-                    </dd>
-                  </div>
-                  <div className={innerBoxClass}>
-                    <dt className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                      Type
-                    </dt>
-                    <dd className="mt-0.5 text-xs font-semibold">{cargoType}</dd>
-                  </div>
-                  <div className={innerBoxClass}>
-                    <dt className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                      Priority
-                    </dt>
-                    <dd className="mt-0.5 text-xs font-semibold">
-                      {priorityLabel(urgencyRaw)}
-                    </dd>
-                  </div>
-                </dl>
+              <section className="mt-4 space-y-2" aria-label="Contact details">
+                <SectionHeading>4. Contact details</SectionHeading>
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                  <ContactRow
+                    icon={User}
+                    label="Name"
+                    value={project.contactName.trim() || contact.name}
+                  />
+                  <ContactRow
+                    icon={Mail}
+                    label="Email id"
+                    value={project.contactEmail.trim() || contact.email}
+                    href={(() => {
+                      const email =
+                        project.contactEmail.trim() || contact.email;
+                      return email.includes("@")
+                        ? `mailto:${email}`
+                        : undefined;
+                    })()}
+                  />
+                </div>
               </section>
 
               <section className="mt-4 space-y-2" aria-label="Assign pilot">
                 <SectionHeading>Assign pilot</SectionHeading>
                 <div className={cn("space-y-3", innerBoxClass)}>
                   <div className="flex items-start gap-2">
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/10 text-[#008B8B] dark:bg-[#008B8B]/20 dark:text-[#5eead4]">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/10 text-[#008B8B]">
                       <UserRound className="size-3.5" aria-hidden />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -531,19 +527,23 @@ export function ProjectRequestDetailModal({
                       {assignFeedback}
                     </p>
                   ) : null}
+                  <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <MapPin className="size-3 shrink-0" aria-hidden />
+                    {project.preferredLocation.trim() || "Location TBC"}
+                  </p>
                 </div>
               </section>
-
-              <section className="mt-4">
-                <dl className={innerBoxClass}>
-                  <DetailField label="Summary">
-                    <span className="text-[11px] leading-snug text-muted-foreground">
-                      {row.desc}
-                    </span>
-                  </DetailField>
-                </dl>
-              </section>
             </>
+          ) : backend ? (
+            <section className="mt-4">
+              <dl className={innerBoxClass}>
+                <DetailField label="Summary">
+                  <span className="text-[11px] leading-snug text-muted-foreground">
+                    {row.desc}
+                  </span>
+                </DetailField>
+              </dl>
+            </section>
           ) : null}
         </div>
       </div>

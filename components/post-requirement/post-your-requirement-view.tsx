@@ -1,16 +1,29 @@
 "use client";
 
 import { CheckCircle2 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { apiUrl } from "@/lib/api-url";
-import { notifyProjectRequestsUpdated } from "@/lib/project-requests";
+import {
+  POST_REQUIREMENT_BUDGET_OPTIONS,
+  POST_REQUIREMENT_DESCRIPTION_MAX,
+  POST_REQUIREMENT_DURATION_OPTIONS,
+  POST_REQUIREMENT_MAX_FILE_BYTES,
+  POST_REQUIREMENT_NOTES_MAX,
+  POST_REQUIREMENT_PROJECT_TYPE_OPTIONS,
+  POST_REQUIREMENT_PURPOSE_OPTIONS,
+  POST_REQUIREMENT_SERVICE_OPTIONS,
+} from "@/lib/post-requirement-options";
+import { mapPostRequirementToSubmitPayload } from "@/lib/post-requirement-submit";
 import {
   ADMIN_PAGE_TITLE_CLASS,
   ADMIN_PAGE_TOP_PADDING_CLASS,
 } from "@/lib/page-heading";
+import { notifyProjectRequestsUpdated } from "@/lib/project-requests";
 import { readResponseJson } from "@/lib/read-response-json";
+import { resolveRequestOwnerSnapshot } from "@/lib/user-requests";
 import { cn } from "@/lib/utils";
 
 const fieldClass =
@@ -19,84 +32,139 @@ const fieldClass =
 const labelClass =
   "mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#43484e]";
 
+const sectionLegendClass =
+  "flex items-center gap-2 font-[family-name:var(--font-landing-headline)] text-lg font-bold text-[#191c1d]";
+
+function SectionLegend({ number, title }: { number: number; title: string }) {
+  return (
+    <legend className={sectionLegendClass}>
+      <span
+        className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#008B8B] text-sm font-bold text-white"
+        aria-hidden
+      >
+        {number}
+      </span>
+      {title}
+    </legend>
+  );
+}
+
+const initialForm = {
+  contactName: "",
+  contactEmail: "",
+  projectTitle: "",
+  serviceCategory: "",
+  projectType: "",
+  preferredLocation: "",
+  projectDescription: "",
+  expectedStartDate: "",
+  expectedDuration: "",
+  budgetRange: "",
+  areaOfCoverage: "",
+  purposeOfProject: "",
+  additionalNotes: "",
+};
+
 export function PostYourRequirementView() {
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [reasonOrTitle, setReasonOrTitle] = useState("");
-  const [pickupLocation, setPickupLocation] = useState("");
-  const [dropLocation, setDropLocation] = useState("");
-  const [payloadWeightKg, setPayloadWeightKg] = useState("");
-  const [requestType, setRequestType] = useState("");
-  const [requestPriority, setRequestPriority] = useState("");
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [form, setForm] = useState(initialForm);
+  const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  function update(key: keyof typeof initialForm, value: string) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  useEffect(() => {
+    const owner = resolveRequestOwnerSnapshot();
+    if (!owner.ownerName && !owner.ownerEmail) return;
+    setForm((prev) => ({
+      ...prev,
+      contactName: prev.contactName || owner.ownerName,
+      contactEmail: prev.contactEmail || owner.ownerEmail,
+    }));
+  }, []);
+
+  function resetForm() {
+    setForm(initialForm);
+    setReferenceFiles([]);
+    setSubmitError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
     setSubmitSuccess(false);
 
-    const name = fullName.trim();
-    const emailTrimmed = email.trim();
-    const reason = reasonOrTitle.trim();
-    const pickup = pickupLocation.trim();
-    const drop = dropLocation.trim();
+    const email = form.contactEmail.trim();
+    if (!form.contactName.trim() || !email) {
+      setSubmitError("Please enter your name and email.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setSubmitError("Please enter a valid email address.");
+      return;
+    }
 
-    if (!name || !emailTrimmed || !reason || !pickup || !drop) {
+    if (
+      !form.projectTitle.trim() ||
+      !form.serviceCategory.trim() ||
+      !form.projectType.trim() ||
+      !form.preferredLocation.trim() ||
+      !form.projectDescription.trim() ||
+      !form.expectedStartDate.trim() ||
+      !form.budgetRange.trim() ||
+      !form.purposeOfProject.trim()
+    ) {
       setSubmitError("Please fill in all required fields.");
       return;
     }
-    if (!requestType.trim() || !requestPriority.trim()) {
-      setSubmitError("Please select type and priority.");
-      return;
-    }
-    const weightRaw = payloadWeightKg.trim();
-    const weight = Number(weightRaw);
-    if (!weightRaw || !Number.isFinite(weight) || weight <= 0) {
-      setSubmitError("Enter a valid payload weight in kg.");
+
+    if (form.preferredLocation.trim().length < 3) {
+      setSubmitError("Preferred location must be at least 3 characters.");
       return;
     }
 
     setSubmitting(true);
     try {
+      const owner = resolveRequestOwnerSnapshot();
       const clientRequestId = `#PR-${Date.now().toString(36).toUpperCase()}`;
-      const reasonWithPhone = phone.trim()
-        ? `${reason} — Phone: ${phone.trim()}`
-        : reason;
+      const payload = mapPostRequirementToSubmitPayload(
+        {
+          ...form,
+          referenceFileNames: referenceFiles.map((f) => f.name),
+        },
+        {
+          clientRequestId,
+          userId: owner.ownerUserId || undefined,
+          userName: owner.ownerName || undefined,
+          userEmail: owner.ownerEmail || undefined,
+        }
+      );
+
       const response = await fetch(apiUrl("/api/submit-request"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reason_or_title: reasonWithPhone,
-          pickup_location: pickup,
-          drop_location: drop,
-          payload_weight: weightRaw,
-          cargo_type: requestType.trim(),
-          mission_urgency: requestPriority.trim(),
-          user_name: name,
-          user_email: emailTrimmed,
-          client_request_id: clientRequestId,
-        }),
+        body: JSON.stringify(payload),
       });
       const body = await readResponseJson(response);
       if (!body.okParse || !response.ok) {
-        setSubmitError("Could not submit your requirement. Please try again.");
+        let message = "Could not submit your requirement. Please try again.";
+        if (body.okParse && body.data && typeof body.data === "object") {
+          const err = (body.data as { error?: string }).error;
+          if (typeof err === "string" && err.trim()) message = err.trim();
+        }
+        setSubmitError(message);
         return;
       }
 
       notifyProjectRequestsUpdated();
       setSubmitSuccess(true);
-      setFullName("");
-      setEmail("");
-      setPhone("");
-      setReasonOrTitle("");
-      setPickupLocation("");
-      setDropLocation("");
-      setPayloadWeightKg("");
-      setRequestType("");
-      setRequestPriority("");
+      resetForm();
     } catch {
       setSubmitError(
         "Could not connect to the server. Please try again in a moment."
@@ -115,7 +183,7 @@ export function PostYourRequirementView() {
     >
       <div
         className={cn(
-          "mx-auto w-full max-w-3xl px-4 pb-16 sm:px-6 lg:px-8",
+          "mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6 lg:px-10 xl:px-12",
           ADMIN_PAGE_TOP_PADDING_CLASS
         )}
       >
@@ -152,136 +220,257 @@ export function PostYourRequirementView() {
           ) : (
             <form className="space-y-6" onSubmit={handleSubmit}>
               <fieldset className="space-y-4">
-                <legend className="font-[family-name:var(--font-landing-headline)] text-lg font-bold text-[#191c1d]">
-                  Your details
-                </legend>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <label className="block sm:col-span-2">
-                    <span className={labelClass}>Full name *</span>
-                    <input
-                      type="text"
-                      required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className={fieldClass}
-                      placeholder="Jane Doe"
-                      autoComplete="name"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className={labelClass}>Email *</span>
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={fieldClass}
-                      placeholder="you@company.com"
-                      autoComplete="email"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className={labelClass}>Phone (optional)</span>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className={fieldClass}
-                      placeholder="+91 98765 43210"
-                      autoComplete="tel"
-                    />
-                  </label>
-                </div>
-              </fieldset>
-
-              <fieldset className="space-y-4 border-t border-slate-100 pt-6">
-                <legend className="font-[family-name:var(--font-landing-headline)] text-lg font-bold text-[#191c1d]">
-                  Mission details
-                </legend>
+                <SectionLegend number={1} title="Project information" />
                 <label className="block">
-                  <span className={labelClass}>Requirement title *</span>
+                  <span className={labelClass}>Project title *</span>
                   <input
                     type="text"
                     required
-                    value={reasonOrTitle}
-                    onChange={(e) => setReasonOrTitle(e.target.value)}
+                    value={form.projectTitle}
+                    onChange={(e) => update("projectTitle", e.target.value)}
                     className={fieldClass}
-                    placeholder="e.g. Agricultural survey in Pune"
+                    placeholder="Enter a short title for your project"
                   />
                 </label>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <label className="block">
-                    <span className={labelClass}>Pickup location *</span>
-                    <input
-                      type="text"
+                    <span className={labelClass}>Service category *</span>
+                    <select
                       required
-                      value={pickupLocation}
-                      onChange={(e) => setPickupLocation(e.target.value)}
+                      value={form.serviceCategory}
+                      onChange={(e) =>
+                        update("serviceCategory", e.target.value)
+                      }
+                      className={cn(
+                        fieldClass,
+                        !form.serviceCategory && "text-slate-500"
+                      )}
+                    >
+                      <option value="">Select a service</option>
+                      {POST_REQUIREMENT_SERVICE_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className={labelClass}>Project type *</span>
+                    <select
+                      required
+                      value={form.projectType}
+                      onChange={(e) => update("projectType", e.target.value)}
+                      className={cn(
+                        fieldClass,
+                        !form.projectType && "text-slate-500"
+                      )}
+                    >
+                      <option value="">Select project type</option>
+                      {POST_REQUIREMENT_PROJECT_TYPE_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label className="block">
+                  <span className={labelClass}>Preferred location *</span>
+                  <input
+                    type="text"
+                    required
+                    value={form.preferredLocation}
+                    onChange={(e) =>
+                      update("preferredLocation", e.target.value)
+                    }
+                    className={fieldClass}
+                    placeholder="Enter city, state or area"
+                  />
+                </label>
+                <label className="block">
+                  <span className={labelClass}>Project description *</span>
+                  <p className="mb-1.5 text-xs text-slate-500">
+                    Please provide details about your requirement, objectives,
+                    and expected deliverables.
+                  </p>
+                  <textarea
+                    required
+                    maxLength={POST_REQUIREMENT_DESCRIPTION_MAX}
+                    value={form.projectDescription}
+                    onChange={(e) =>
+                      update("projectDescription", e.target.value)
+                    }
+                    className={cn(fieldClass, "min-h-[120px] resize-y")}
+                    placeholder="Describe your project in detail..."
+                  />
+                  <p className="mt-1 text-right text-xs text-slate-500">
+                    {form.projectDescription.length}/
+                    {POST_REQUIREMENT_DESCRIPTION_MAX}
+                  </p>
+                </label>
+              </fieldset>
+
+              <fieldset className="space-y-4 border-t border-slate-100 pt-6">
+                <SectionLegend number={2} title="Project details" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className={labelClass}>Expected start date *</span>
+                    <input
+                      type="date"
+                      required
+                      value={form.expectedStartDate}
+                      onChange={(e) =>
+                        update("expectedStartDate", e.target.value)
+                      }
                       className={fieldClass}
-                      placeholder="Hangar or coordinates"
                     />
                   </label>
                   <label className="block">
-                    <span className={labelClass}>Drop location *</span>
+                    <span className={labelClass}>Expected duration</span>
+                    <select
+                      value={form.expectedDuration}
+                      onChange={(e) =>
+                        update("expectedDuration", e.target.value)
+                      }
+                      className={cn(
+                        fieldClass,
+                        !form.expectedDuration && "text-slate-500"
+                      )}
+                    >
+                      <option value="">Select duration</option>
+                      {POST_REQUIREMENT_DURATION_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className={labelClass}>Budget range (INR) *</span>
+                    <select
+                      required
+                      value={form.budgetRange}
+                      onChange={(e) => update("budgetRange", e.target.value)}
+                      className={cn(
+                        fieldClass,
+                        !form.budgetRange && "text-slate-500"
+                      )}
+                    >
+                      <option value="">Select your budget range</option>
+                      {POST_REQUIREMENT_BUDGET_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className={labelClass}>Area of coverage</span>
                     <input
                       type="text"
-                      required
-                      value={dropLocation}
-                      onChange={(e) => setDropLocation(e.target.value)}
+                      value={form.areaOfCoverage}
+                      onChange={(e) =>
+                        update("areaOfCoverage", e.target.value)
+                      }
                       className={fieldClass}
-                      placeholder="Destination"
+                      placeholder="e.g. 10 Acres, 5 sq. km, 1 km Route etc."
                     />
                   </label>
                 </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <label className="block">
+                  <span className={labelClass}>Purpose of project *</span>
+                  <select
+                    required
+                    value={form.purposeOfProject}
+                    onChange={(e) =>
+                      update("purposeOfProject", e.target.value)
+                    }
+                    className={cn(
+                      fieldClass,
+                      !form.purposeOfProject && "text-slate-500"
+                    )}
+                  >
+                    <option value="">Select purpose</option>
+                    {POST_REQUIREMENT_PURPOSE_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </fieldset>
+
+              <fieldset className="space-y-4 border-t border-slate-100 pt-6">
+                <SectionLegend number={3} title="Additional information" />
+                <label className="block">
+                  <span className={labelClass}>
+                    Upload reference files (optional)
+                  </span>
+                  <p className="mb-1.5 text-xs text-slate-500">
+                    PDF, JPG, PNG, DOC (max. 10MB each)
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    className={fieldClass}
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files ?? []).filter(
+                        (f) => f.size <= POST_REQUIREMENT_MAX_FILE_BYTES
+                      );
+                      setReferenceFiles(files);
+                    }}
+                  />
+                  {referenceFiles.length > 0 ? (
+                    <p className="mt-1 text-xs text-slate-600">
+                      {referenceFiles.map((f) => f.name).join(", ")}
+                    </p>
+                  ) : null}
+                </label>
+                <label className="block">
+                  <span className={labelClass}>Additional notes (optional)</span>
+                  <textarea
+                    maxLength={POST_REQUIREMENT_NOTES_MAX}
+                    value={form.additionalNotes}
+                    onChange={(e) =>
+                      update("additionalNotes", e.target.value)
+                    }
+                    className={cn(fieldClass, "min-h-[96px] resize-y")}
+                    placeholder="Any additional information you would like to share..."
+                  />
+                  <p className="mt-1 text-right text-xs text-slate-500">
+                    {form.additionalNotes.length}/{POST_REQUIREMENT_NOTES_MAX}
+                  </p>
+                </label>
+              </fieldset>
+
+              <fieldset className="space-y-4 border-t border-slate-100 pt-6">
+                <SectionLegend number={4} title="Contact details" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <label className="block">
-                    <span className={labelClass}>Payload weight (kg) *</span>
+                    <span className={labelClass}>Name *</span>
                     <input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      step={0.1}
+                      type="text"
                       required
-                      value={payloadWeightKg}
-                      onChange={(e) => setPayloadWeightKg(e.target.value)}
+                      value={form.contactName}
+                      onChange={(e) => update("contactName", e.target.value)}
                       className={fieldClass}
-                      placeholder="0.0"
+                      placeholder="Your full name"
+                      autoComplete="name"
                     />
                   </label>
                   <label className="block">
-                    <span className={labelClass}>Type *</span>
-                    <select
+                    <span className={labelClass}>Email id *</span>
+                    <input
+                      type="email"
                       required
-                      value={requestType}
-                      onChange={(e) => setRequestType(e.target.value)}
-                      className={cn(
-                        fieldClass,
-                        requestType === "" && "text-slate-500"
-                      )}
-                    >
-                      <option value="">Select type</option>
-                      <option value="Medical">Medical</option>
-                      <option value="Industrial">Industrial</option>
-                      <option value="Cargo">Cargo</option>
-                      <option value="Emergency">Emergency</option>
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className={labelClass}>Priority *</span>
-                    <select
-                      required
-                      value={requestPriority}
-                      onChange={(e) => setRequestPriority(e.target.value)}
-                      className={cn(
-                        fieldClass,
-                        requestPriority === "" && "text-slate-500"
-                      )}
-                    >
-                      <option value="">Select priority</option>
-                      <option value="urgent">Urgent</option>
-                      <option value="express">Express</option>
-                      <option value="standard">Standard</option>
-                    </select>
+                      value={form.contactEmail}
+                      onChange={(e) => update("contactEmail", e.target.value)}
+                      className={fieldClass}
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                    />
                   </label>
                 </div>
               </fieldset>
@@ -292,16 +481,25 @@ export function PostYourRequirementView() {
                 </p>
               ) : null}
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className={cn(
-                  "w-full rounded-xl bg-[#008B8B] px-6 py-3.5 font-[family-name:var(--font-landing-headline)] text-sm font-black text-white shadow-[0_14px_35px_rgba(0,139,139,0.25)] transition-all hover:bg-[#007474] sm:w-auto sm:min-w-[220px]",
-                  submitting && "cursor-not-allowed opacity-70"
-                )}
-              >
-                {submitting ? "Submitting…" : "Submit requirement"}
-              </button>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  onClick={() => router.push("/")}
+                  className="rounded-lg border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className={cn(
+                    "rounded-xl bg-[#008B8B] px-6 py-3.5 font-[family-name:var(--font-landing-headline)] text-sm font-black text-white shadow-[0_14px_35px_rgba(0,139,139,0.25)] transition-all hover:bg-[#007474]",
+                    submitting && "cursor-not-allowed opacity-70"
+                  )}
+                >
+                  {submitting ? "Submitting…" : "Submit requirement"}
+                </button>
+              </div>
             </form>
           )}
         </div>

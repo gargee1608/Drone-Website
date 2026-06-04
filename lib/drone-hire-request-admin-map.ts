@@ -1,4 +1,8 @@
 import {
+  formatPostRequirementDesc,
+  parsePostRequirementBackend,
+} from "@/lib/post-requirement-parse";
+import {
   isProjectRequirementRequest,
   parseRequirementReasonWithPhone,
   resolveRequirementStatus,
@@ -79,22 +83,36 @@ export function mapBackendRequestToAdminRow(
   );
 
   const reasonRaw = String(r.reason_or_title ?? "").trim();
-  const { title: projectTitle } = isProjectRequirementRequest(clientRequestId)
+  const isProjectReq = isProjectRequirementRequest(clientRequestId);
+  const projectRequirement = isProjectReq
+    ? parsePostRequirementBackend({
+        reason_or_title: reasonRaw,
+        pickup_location: pickupLocation,
+        drop_location: dropLocation,
+        cargo_type: cargoType,
+        user_name: r.user_name,
+        user_email: r.user_email,
+      })
+    : undefined;
+  const { title: legacyTitle } = isProjectReq
     ? parseRequirementReasonWithPhone(reasonRaw)
     : { title: reasonRaw };
+  const displayTitle =
+    projectRequirement?.projectTitle.trim() || legacyTitle || "Mission request";
 
   return {
     key: String(r.id ?? `${Date.now()}-${Math.random()}`),
-    queueDisplayId: isProjectRequirementRequest(clientRequestId)
-      ? clientRequestId
-      : undefined,
-    title: projectTitle || "Mission request",
+    queueDisplayId: isProjectReq ? clientRequestId : undefined,
+    title: displayTitle,
     badge,
     badgeClass,
     barColor,
-    desc: `Payload: ${cargoType || "General cargo"} (${payloadWeight || "0"}kg) | Target: ${
-      dropLocation || pickupLocation || "—"
-    }`,
+    desc: projectRequirement
+      ? formatPostRequirementDesc(projectRequirement)
+      : `Payload: ${cargoType || "General cargo"} (${payloadWeight || "0"}kg) | Target: ${
+          dropLocation || pickupLocation || "—"
+        }`,
+    projectRequirement,
     adminStatus: normalizeUserMissionAdminStatus(pickBackendAdminStatus(r)),
     missionStatus: pickBackendMissionStatus(r) ?? null,
     userName: String(r.user_name ?? "").trim() || undefined,

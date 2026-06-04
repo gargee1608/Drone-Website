@@ -27,7 +27,7 @@ type SubmitBody = {
 function parseSubmitBody(body: SubmitBody) {
   const reason_or_title = String(body.reason_or_title ?? "").trim();
   const pickup_location = String(body.pickup_location ?? "").trim();
-  const drop_location = String(body.drop_location ?? "").trim();
+  let drop_location = String(body.drop_location ?? "").trim();
   const payload_weight = String(body.payload_weight ?? "").trim() || "0";
   const cargo_type = String(body.cargo_type ?? "").trim();
   const mission_urgency = String(body.mission_urgency ?? "").trim();
@@ -35,11 +35,18 @@ function parseSubmitBody(body: SubmitBody) {
   if (!reason_or_title) {
     return { error: "Reason or title is required." as const };
   }
+  const clientRequestId = String(body.client_request_id ?? "").trim() || null;
+  const isProjectReq = isProjectRequirementRequest(clientRequestId);
+
   if (!pickup_location || pickup_location.length < 3) {
-    return { error: "Pickup location is required." as const };
+    return { error: "Preferred location is required (at least 3 characters)." as const };
   }
   if (!drop_location || drop_location.length < 3) {
-    return { error: "Drop location is required." as const };
+    if (isProjectReq && pickup_location.length >= 3) {
+      drop_location = pickup_location;
+    } else {
+      return { error: "Project location details are required." as const };
+    }
   }
   if (!cargo_type) {
     return { error: "Request type is required." as const };
@@ -48,7 +55,6 @@ function parseSubmitBody(body: SubmitBody) {
     return { error: "Priority is required." as const };
   }
 
-  const clientRequestId = String(body.client_request_id ?? "").trim() || null;
   const requirementStatusRaw = String(body.requirement_status ?? "").trim();
   let requirementStatus = requirementStatusRaw
     ? normalizeRequirementStatus(requirementStatusRaw)
