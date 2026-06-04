@@ -196,7 +196,7 @@ function displayFromMissionDb(raw: string): {
   }
   if (s === "pending") {
     return {
-      label: "Pending",
+      label: "Pending Request",
       dotClass: "bg-slate-400 dark:bg-slate-500",
       textClass: "text-foreground/80",
     };
@@ -230,7 +230,7 @@ function statusDisplayForAdminRow(m: UserRequestAdminRow): {
   }
 
   return {
-    label: "Pending",
+    label: "Pending Request",
     dotClass: "bg-slate-400 dark:bg-slate-500",
     textClass: "text-foreground/80",
   };
