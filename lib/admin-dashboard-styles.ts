@@ -9,3 +9,10 @@ export const ADMIN_DASH_AVATAR_RING =
 /** Section dividers inside panels — barely visible. */
 export const ADMIN_DASH_DIVIDER_BORDER =
   "border-b border-neutral-100/80 dark:border-white/[0.06]";
+
+/** Summary stat cards — light border with elevated shadow (admin, user, pilot dashboards). */
+export const ADMIN_DASH_STAT_CARD_SURFACE =
+  "border border-neutral-200/90 shadow-[0_8px_24px_rgba(15,23,42,0.14),0_4px_10px_rgba(15,23,42,0.08)] dark:border-white/10 dark:shadow-[0_8px_28px_rgba(0,0,0,0.45),0_4px_12px_rgba(0,0,0,0.28)]";
+
+/** @alias ADMIN_DASH_STAT_CARD_SURFACE */
+export const DASH_STAT_CARD_SURFACE = ADMIN_DASH_STAT_CARD_SURFACE;

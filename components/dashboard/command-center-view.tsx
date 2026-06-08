@@ -10,7 +10,7 @@ import { PROFILE_INFO_POPUP_SHELL_CLASS } from "@/lib/profile-popup-styles";
 import { type PilotRegCard } from "@/lib/admin-pilot-registration-storage";
 import {
   ADMIN_DASH_AVATAR_RING,
-  ADMIN_DASH_PANEL_BORDER,
+  ADMIN_DASH_STAT_CARD_SURFACE,
 } from "@/lib/admin-dashboard-styles";
 import {
   ADMIN_PROFILE_UPDATED_EVENT,
@@ -335,7 +335,7 @@ function KpiCard({
     <div
       className={cn(
         "cc-glass-card flex items-center justify-between rounded-2xl p-5",
-        ADMIN_DASH_PANEL_BORDER
+        ADMIN_DASH_STAT_CARD_SURFACE
       )}
     >
       <div>

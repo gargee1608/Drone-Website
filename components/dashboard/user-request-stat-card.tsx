@@ -2,6 +2,7 @@
 
 import type { ComponentType } from "react";
 
+import { DASH_STAT_CARD_SURFACE } from "@/lib/admin-dashboard-styles";
 import { cn } from "@/lib/utils";
 
 export function UserRequestStatCard({
@@ -18,7 +19,12 @@ export function UserRequestStatCard({
   iconWrapClassName: string;
 }) {
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-border/60 bg-card px-4 py-4 text-center shadow-sm sm:px-5 sm:py-5">
+    <div
+      className={cn(
+        "flex flex-col items-center rounded-2xl bg-card px-4 py-4 text-center sm:px-5 sm:py-5",
+        DASH_STAT_CARD_SURFACE
+      )}
+    >
       <span
         className={cn(
           "flex size-9 items-center justify-center rounded-lg sm:size-10",

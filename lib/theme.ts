@@ -1,7 +1,7 @@
 /** Used when global dark mode is re-enabled (ThemeProvider + layout script). */
 export const THEME_STORAGE_KEY = "drone-hire-theme";
 
-/** Inline theme bootstrap — injected via `next/script` `beforeInteractive` in root layout. */
+/** Inline theme bootstrap — injected in root layout `<head>` before hydration. */
 export const THEME_INIT_INLINE_SCRIPT = `(function(){try{var k="${THEME_STORAGE_KEY}",v=localStorage.getItem(k),d=v==="dark"||(v!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})();`;
 
 export type AppTheme = "light" | "dark";
