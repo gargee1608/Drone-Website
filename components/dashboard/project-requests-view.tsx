@@ -25,7 +25,6 @@ import {
 import {
   POST_REQUIREMENT_BUDGET_OPTIONS,
   POST_REQUIREMENT_DESCRIPTION_MAX,
-  POST_REQUIREMENT_DURATION_OPTIONS,
   POST_REQUIREMENT_NOTES_MAX,
   POST_REQUIREMENT_PROJECT_TYPE_OPTIONS,
   POST_REQUIREMENT_PURPOSE_OPTIONS,
@@ -555,21 +554,15 @@ export function ProjectRequestsView({
                     />
                   </label>
                   <label className="block text-sm">
-                    <span className={editLabelClass}>Expected duration</span>
-                    <select
+                    <span className={editLabelClass}>Expected end date</span>
+                    <input
+                      type="date"
                       value={requestEditForm.expectedDuration}
                       onChange={(e) =>
                         updateEditForm("expectedDuration", e.target.value)
                       }
                       className={editFieldClass}
-                    >
-                      <option value="">Select duration</option>
-                      {POST_REQUIREMENT_DURATION_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </label>
                   <label className="block text-sm">
                     <span className={editLabelClass}>Budget range (INR) *</span>

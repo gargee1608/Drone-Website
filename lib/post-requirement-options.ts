@@ -17,15 +17,6 @@ export const POST_REQUIREMENT_PROJECT_TYPE_OPTIONS = [
   "Recurring / Ongoing",
 ] as const;
 
-export const POST_REQUIREMENT_DURATION_OPTIONS = [
-  "Less than 1 day",
-  "1–3 days",
-  "1 week",
-  "2–4 weeks",
-  "1–3 months",
-  "More than 3 months",
-] as const;
-
 export const POST_REQUIREMENT_BUDGET_OPTIONS = [
   "Under ₹25,000",
   "₹25,000 – ₹50,000",

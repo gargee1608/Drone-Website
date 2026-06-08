@@ -408,7 +408,7 @@ export function ProjectRequestDetailModal({
                     </p>
                   </div>
                   <DetailBox
-                    label="Expected duration"
+                    label="Expected end date"
                     value={project.expectedDuration}
                   />
                   <DetailBox label="Budget (INR)" value={project.budgetRange} />

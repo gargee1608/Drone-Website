@@ -9,7 +9,6 @@ import { apiUrl } from "@/lib/api-url";
 import {
   POST_REQUIREMENT_BUDGET_OPTIONS,
   POST_REQUIREMENT_DESCRIPTION_MAX,
-  POST_REQUIREMENT_DURATION_OPTIONS,
   POST_REQUIREMENT_MAX_FILE_BYTES,
   POST_REQUIREMENT_NOTES_MAX,
   POST_REQUIREMENT_PROJECT_TYPE_OPTIONS,
@@ -326,24 +325,15 @@ export function PostYourRequirementView() {
                     />
                   </label>
                   <label className="block">
-                    <span className={labelClass}>Expected duration</span>
-                    <select
+                    <span className={labelClass}>Expected end date</span>
+                    <input
+                      type="date"
                       value={form.expectedDuration}
                       onChange={(e) =>
                         update("expectedDuration", e.target.value)
                       }
-                      className={cn(
-                        fieldClass,
-                        !form.expectedDuration && "text-slate-500"
-                      )}
-                    >
-                      <option value="">Select duration</option>
-                      {POST_REQUIREMENT_DURATION_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
+                      className={fieldClass}
+                    />
                   </label>
                   <label className="block">
                     <span className={labelClass}>Budget range (INR) *</span>
@@ -493,7 +483,7 @@ export function PostYourRequirementView() {
                   type="submit"
                   disabled={submitting}
                   className={cn(
-                    "rounded-xl bg-[#008B8B] px-6 py-3.5 font-[family-name:var(--font-landing-headline)] text-sm font-black text-white shadow-[0_14px_35px_rgba(0,139,139,0.25)] transition-all hover:bg-[#007474]",
+                    "rounded-xl border border-[#008B8B] bg-transparent px-6 py-3.5 font-[family-name:var(--font-landing-headline)] text-sm font-black text-[#008B8B] transition-all hover:bg-[#008B8B]/5",
                     submitting && "cursor-not-allowed opacity-70"
                   )}
                 >
