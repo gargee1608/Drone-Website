@@ -45,6 +45,21 @@ async function ensureRequestSchema(): Promise<void> {
       /* column may already exist with incompatible type in legacy DBs */
     }
   }
+  const widenColumns = [
+    `ALTER TABLE drone_hire_requests ALTER COLUMN reason_or_title TYPE TEXT USING reason_or_title::text`,
+    `ALTER TABLE drone_hire_requests ALTER COLUMN pickup_location TYPE TEXT USING pickup_location::text`,
+    `ALTER TABLE drone_hire_requests ALTER COLUMN drop_location TYPE TEXT USING drop_location::text`,
+    `ALTER TABLE drone_hire_requests ALTER COLUMN payload_weight TYPE TEXT USING payload_weight::text`,
+    `ALTER TABLE drone_hire_requests ALTER COLUMN cargo_type TYPE TEXT USING cargo_type::text`,
+    `ALTER TABLE drone_hire_requests ALTER COLUMN mission_urgency TYPE TEXT USING mission_urgency::text`,
+  ];
+  for (const sql of widenColumns) {
+    try {
+      await pool.query(sql);
+    } catch {
+      /* column may already be TEXT */
+    }
+  }
   requestSchemaEnsured = true;
 }
 
@@ -142,6 +157,8 @@ export type UpdateDroneHireRequestInput = {
   mission_urgency?: string;
   admin_status?: string;
   requirement_status?: string | null;
+  user_name?: string | null;
+  user_email?: string | null;
 };
 
 export async function updateDroneHireRequest(
@@ -158,8 +175,10 @@ export async function updateDroneHireRequest(
          cargo_type = COALESCE($5, cargo_type),
          mission_urgency = COALESCE($6, mission_urgency),
          admin_status = COALESCE($7, admin_status),
-         requirement_status = COALESCE($8, requirement_status)
-     WHERE id = $9
+         requirement_status = COALESCE($8, requirement_status),
+         user_name = COALESCE($9, user_name),
+         user_email = COALESCE($10, user_email)
+     WHERE id = $11
      RETURNING *`,
     [
       input.reason_or_title ?? null,
@@ -170,6 +189,8 @@ export async function updateDroneHireRequest(
       input.mission_urgency ?? null,
       input.admin_status ?? null,
       toTrimmed(input.requirement_status) || null,
+      toTrimmed(input.user_name) || null,
+      toTrimmed(input.user_email).toLowerCase() || null,
       id,
     ]
   );

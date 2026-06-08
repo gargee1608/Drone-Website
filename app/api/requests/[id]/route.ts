@@ -11,19 +11,20 @@ export const dynamic = "force-dynamic";
 type RouteCtx = { params: Promise<{ id: string }> };
 
 async function proxyToExpress(
-  req: NextRequest,
   id: string,
-  method: "PUT" | "DELETE"
+  method: "PUT" | "DELETE",
+  bodyText?: string
 ) {
   const url = `${expressBackendOrigin()}/api/requests/${encodeURIComponent(id)}`;
   const headers = new Headers();
-  const ct = req.headers.get("content-type");
-  if (ct) headers.set("content-type", ct);
+  if (method === "PUT") {
+    headers.set("content-type", "application/json");
+  }
 
   const upstream = await fetch(url, {
     method,
     headers,
-    body: method === "PUT" ? await req.text() : undefined,
+    body: method === "PUT" ? bodyText : undefined,
     cache: "no-store",
   });
   const text = await upstream.text();
@@ -41,8 +42,10 @@ async function proxyToExpress(
 export async function PUT(req: NextRequest, ctx: RouteCtx) {
   const { id } = await ctx.params;
   let body: Record<string, unknown>;
+  let bodyText: string;
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    bodyText = await req.text();
+    body = JSON.parse(bodyText) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -60,6 +63,10 @@ export async function PUT(req: NextRequest, ctx: RouteCtx) {
         body.requirement_status != null
           ? String(body.requirement_status).trim()
           : undefined,
+      user_name:
+        body.user_name != null ? String(body.user_name).trim() : undefined,
+      user_email:
+        body.user_email != null ? String(body.user_email).trim() : undefined,
     });
     if (!row) {
       return NextResponse.json({ error: "Request not found" }, { status: 404 });
@@ -68,7 +75,7 @@ export async function PUT(req: NextRequest, ctx: RouteCtx) {
   } catch (err) {
     console.error("[api/requests] update failed, trying Express:", err);
     try {
-      return await proxyToExpress(req, id, "PUT");
+      return await proxyToExpress(id, "PUT", bodyText);
     } catch (proxyErr) {
       console.error("[api/requests] Express proxy failed:", proxyErr);
       return NextResponse.json({ error: "Could not update request." }, { status: 500 });
@@ -87,7 +94,7 @@ export async function DELETE(_req: NextRequest, ctx: RouteCtx) {
   } catch (err) {
     console.error("[api/requests] delete failed, trying Express:", err);
     try {
-      return await proxyToExpress(_req, id, "DELETE");
+      return await proxyToExpress(id, "DELETE");
     } catch (proxyErr) {
       console.error("[api/requests] Express proxy failed:", proxyErr);
       return NextResponse.json({ error: "Could not delete request." }, { status: 500 });

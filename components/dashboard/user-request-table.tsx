@@ -269,6 +269,13 @@ export function UserRequestTable({
 }: UserRequestTableProps) {
   const isPilot = columnPreset === "pilot";
   const isProject = columnPreset === "project";
+  const isAdmin = columnPreset === "admin";
+  const tableShellBorder = isAdmin
+    ? "border border-slate-400 dark:border-white/20"
+    : "border border-border/90";
+  const tableRowBorder = isAdmin
+    ? "border-b border-slate-400 dark:border-white/20"
+    : "border-b border-border";
   const [statusSync, setStatusSync] = useState(0);
 
   useEffect(() => {
@@ -319,7 +326,8 @@ export function UserRequestTable({
       ) : null}
       <div
         className={cn(
-          "rounded-xl border border-border/90",
+          "rounded-xl",
+          tableShellBorder,
           isPilot || isProject ? "overflow-x-auto" : "overflow-hidden"
         )}
       >
@@ -360,7 +368,7 @@ export function UserRequestTable({
             </colgroup>
           )}
           <thead>
-            <tr className="border-b border-border bg-muted/60">
+            <tr className={cn(tableRowBorder, "bg-muted/60")}>
               {isPilot ? (
                 <>
                   <th scope="col" className={cn(thBase, "text-left")}>
@@ -446,7 +454,10 @@ export function UserRequestTable({
                   <tr
                     key={m.key}
                     className={cn(
-                      "border-b border-border transition-colors last:border-0 hover:bg-muted/50",
+                      cn(
+                        tableRowBorder,
+                        "transition-colors last:border-0 hover:bg-muted/50"
+                      ),
                       highlightRow && "bg-[#008B8B]/8 hover:bg-[#008B8B]/12"
                     )}
                   >
@@ -507,7 +518,10 @@ export function UserRequestTable({
                 return (
                   <tr
                     key={m.key}
-                    className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+                    className={cn(
+                      tableRowBorder,
+                      "transition-colors last:border-0 hover:bg-muted/50"
+                    )}
                   >
                     <td className={cn(tdBase, "text-left")}>
                       <span
@@ -620,7 +634,10 @@ export function UserRequestTable({
                 <tr
                   key={m.key}
                   className={cn(
-                    "border-b border-border transition-colors last:border-0 hover:bg-muted/50",
+                    cn(
+                      tableRowBorder,
+                      "transition-colors last:border-0 hover:bg-muted/50"
+                    ),
                     highlightRow && "bg-[#008B8B]/8 hover:bg-[#008B8B]/12"
                   )}
                 >
