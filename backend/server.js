@@ -502,6 +502,12 @@ async function ensureServicesSchema() {
   try {
     await pool.query("ALTER TABLE services ADD COLUMN IF NOT EXISTS slug TEXT");
     await pool.query(
+      "ALTER TABLE services ADD COLUMN IF NOT EXISTS detail_sections JSONB"
+    );
+    await pool.query(
+      "ALTER TABLE services ADD COLUMN IF NOT EXISTS highlights JSONB"
+    );
+    await pool.query(
       "CREATE UNIQUE INDEX IF NOT EXISTS services_slug_unique ON services (slug) WHERE slug IS NOT NULL"
     );
     await pool.query(`

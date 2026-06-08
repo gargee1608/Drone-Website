@@ -133,7 +133,48 @@ type BackendServiceRow = {
   description?: string;
   price?: number | string;
   image?: string;
+  detail_sections?: unknown;
+  highlights?: unknown;
 };
+
+export function parseServiceStringArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const lines = value
+    .map((entry) => String(entry ?? "").trim())
+    .filter(Boolean);
+  return lines.length > 0 ? lines : null;
+}
+
+export function overviewParagraphsFromText(text: string): string[] {
+  return text
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
+export function overviewTextFromParagraphs(paragraphs: string[]): string {
+  return paragraphs.join("\n\n");
+}
+
+export function highlightLinesFromText(text: string): string[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+export function highlightTextFromLines(lines: string[]): string {
+  return lines.join("\n");
+}
+
+export const DEFAULT_SERVICE_DETAIL_TAIL =
+  "Mission scope, route, payload, and turnaround are finalized after request submission.";
+
+export const DEFAULT_SERVICE_HIGHLIGHTS = [
+  "Configured and published from admin services",
+  "Suitable for custom mission requirements",
+  "Request this service to receive a tailored quote",
+];
 
 function nextAppOriginForServerFetch(): string | null {
   if (process.env.VERCEL_URL) {
@@ -196,20 +237,19 @@ function mapBackendServiceToCatalogItem(row: BackendServiceRow): ServiceCatalogI
   const priceText = Number.isFinite(priceRaw)
     ? formatRupeePrice(priceRaw)
     : "Custom";
+  const storedDetailSections = parseServiceStringArray(row.detail_sections);
+  const storedHighlights = parseServiceStringArray(row.highlights);
+  const fallbackDescription =
+    description || "Custom drone service added from the admin dashboard.";
   return {
     slug: slugForBackendRow(row, title),
     title,
-    description:
-      description || "Custom drone service added from the admin dashboard.",
-    detailSections: [
-      description || "Custom drone service added from the admin dashboard.",
-      "Mission scope, route, payload, and turnaround are finalized after request submission.",
+    description: fallbackDescription,
+    detailSections: storedDetailSections ?? [
+      fallbackDescription,
+      DEFAULT_SERVICE_DETAIL_TAIL,
     ],
-    highlights: [
-      "Configured and published from admin services",
-      "Suitable for custom mission requirements",
-      "Request this service to receive a tailored quote",
-    ],
+    highlights: storedHighlights ?? DEFAULT_SERVICE_HIGHLIGHTS,
     image: row.image?.trim() || "/service-added-default.png",
     imageAlt: title,
     topBadge: { text: priceText, variant: "light" },
@@ -218,15 +258,18 @@ function mapBackendServiceToCatalogItem(row: BackendServiceRow): ServiceCatalogI
 
 function enrichCatalogFromStatic(
   mapped: ServiceCatalogItem,
-  slug: string
+  slug: string,
+  row?: BackendServiceRow
 ): ServiceCatalogItem {
   const staticItem = getServiceBySlug(slug);
   if (!staticItem) return mapped;
+  const hasCustomDetail = parseServiceStringArray(row?.detail_sections);
+  const hasCustomHighlights = parseServiceStringArray(row?.highlights);
   return {
     ...mapped,
     topBadge: staticItem.topBadge,
-    detailSections: staticItem.detailSections,
-    highlights: staticItem.highlights,
+    detailSections: hasCustomDetail ?? staticItem.detailSections,
+    highlights: hasCustomHighlights ?? staticItem.highlights,
     imageAlt: staticItem.imageAlt,
   };
 }
@@ -242,7 +285,7 @@ export async function getServiceBySlugExtended(
     const mapped = mapBackendServiceToCatalogItem(row);
     if (!mapped) continue;
     if (mapped.slug === normalized) {
-      return enrichCatalogFromStatic(mapped, normalized);
+      return enrichCatalogFromStatic(mapped, normalized, row);
     }
   }
 

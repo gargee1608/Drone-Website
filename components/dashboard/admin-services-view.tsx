@@ -31,7 +31,15 @@ import {
   ADMIN_PAGE_TOP_PADDING_CLASS,
 } from "@/lib/page-heading";
 import { fetchSuppressedServiceSlugs } from "@/lib/fetch-suppressed-service-slugs";
-import { serviceSlugFromTitle } from "@/lib/service-catalog";
+import {
+  DEFAULT_SERVICE_DETAIL_TAIL,
+  DEFAULT_SERVICE_HIGHLIGHTS,
+  highlightLinesFromText,
+  highlightTextFromLines,
+  overviewParagraphsFromText,
+  overviewTextFromParagraphs,
+  serviceSlugFromTitle,
+} from "@/lib/service-catalog";
 import { cn } from "@/lib/utils";
 
 const MAX_SERVICE_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -103,6 +111,8 @@ export function AdminServicesView({
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [overviewText, setOverviewText] = useState("");
+  const [highlightsText, setHighlightsText] = useState("");
   const [price, setPrice] = useState("");
   const [image, setImage] = useState("");
 
@@ -234,9 +244,34 @@ export function AdminServicesView({
   }, []);
 
   // ================= RESET =================
+  function detailFieldsForForm(item: AdminServiceRow) {
+    const overview =
+      item.detailSections.length > 0
+        ? overviewTextFromParagraphs(item.detailSections)
+        : overviewTextFromParagraphs([
+            item.description ||
+              "Custom drone service added from the admin dashboard.",
+            DEFAULT_SERVICE_DETAIL_TAIL,
+          ]);
+    const highlights =
+      item.highlights.length > 0
+        ? highlightTextFromLines(item.highlights)
+        : highlightTextFromLines(DEFAULT_SERVICE_HIGHLIGHTS);
+    return { overview, highlights };
+  }
+
+  function detailPayloadFromForm() {
+    return {
+      detail_sections: overviewParagraphsFromText(overviewText),
+      highlights: highlightLinesFromText(highlightsText),
+    };
+  }
+
   const resetForm = () => {
     setTitle("");
     setDescription("");
+    setOverviewText("");
+    setHighlightsText("");
     setPrice("");
     setImage("");
     setEditId(null);
@@ -270,6 +305,7 @@ export function AdminServicesView({
           description,
           price: priceNum,
           image,
+          ...detailPayloadFromForm(),
         }),
       });
       const body = await readResponseJson(res);
@@ -306,6 +342,9 @@ export function AdminServicesView({
     }
     setTitle(item.title);
     setDescription(item.description);
+    const { overview, highlights } = detailFieldsForForm(item);
+    setOverviewText(overview);
+    setHighlightsText(highlights);
     setPrice(String(item.price));
     setImage(item.image);
   };
@@ -339,6 +378,7 @@ export function AdminServicesView({
         description,
         price: priceNum,
         image,
+        ...detailPayloadFromForm(),
         ...(slug ? { slug } : {}),
       };
 
@@ -554,15 +594,56 @@ export function AdminServicesView({
                   htmlFor="admin-service-details"
                   className="mb-1.5 block text-xs font-semibold text-foreground"
                 >
-                  Details
+                  Short summary
                 </label>
                 <textarea
                   id="admin-service-details"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  placeholder="Shown under the title on the service detail page."
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label
+                  htmlFor="admin-service-overview"
+                  className="mb-1.5 block text-xs font-semibold text-foreground"
+                >
+                  Overview
+                </label>
+                <textarea
+                  id="admin-service-overview"
+                  value={overviewText}
+                  onChange={(e) => setOverviewText(e.target.value)}
+                  rows={5}
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  placeholder="One paragraph per block. Separate paragraphs with a blank line."
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Appears in the Overview section when visitors open this
+                  service.
+                </p>
+              </div>
+              <div className="sm:col-span-2">
+                <label
+                  htmlFor="admin-service-highlights"
+                  className="mb-1.5 block text-xs font-semibold text-foreground"
+                >
+                  What you get
+                </label>
+                <textarea
+                  id="admin-service-highlights"
+                  value={highlightsText}
+                  onChange={(e) => setHighlightsText(e.target.value)}
                   rows={4}
                   className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  placeholder="One bullet per line."
                 />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Each line becomes a bullet under What you get on the detail
+                  page.
+                </p>
               </div>
               <div className="sm:col-span-2 space-y-2">
                 <label className="mb-1.5 block text-xs font-semibold text-foreground">
