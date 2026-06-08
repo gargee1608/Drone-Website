@@ -1,7 +1,9 @@
 import { serviceCatalogItems } from "@/lib/service-catalog";
 
 export const POST_REQUIREMENT_SERVICE_OPTIONS = [
-  ...serviceCatalogItems.map((item) => item.title),
+  ...serviceCatalogItems.map((item) =>
+    item.title === "Medical Logistics" ? "Logistics" : item.title
+  ),
   "Agricultural Services",
   "Aerial Photography & Videography",
   "Mapping & Surveying",
