@@ -144,6 +144,12 @@ export function ProjectRequestDetailModal({
   const project = contact.project;
   const adminStatus = backend?.adminStatus;
   const missionRef = projectRequestMissionRef(row);
+  const trackingEntry = getUserMissionTrackingEntryForRequest(missionRef);
+  const isPilotAssigned = Boolean(trackingEntry?.pilotSub?.trim());
+  const assignedPilotDisplay = (() => {
+    if (!isPilotAssigned || !trackingEntry) return null;
+    return trackingEntry.pilotName.trim() || "Assigned pilot";
+  })();
 
   const [pilots, setPilots] = useState<PilotOption[]>([]);
   const [pilotsLoading, setPilotsLoading] = useState(true);
@@ -151,7 +157,6 @@ export function ProjectRequestDetailModal({
   const [selectedPilotId, setSelectedPilotId] = useState("");
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
-  const [assignFeedback, setAssignFeedback] = useState<string | null>(null);
 
   const sortedPilots = useMemo(
     () =>
@@ -162,7 +167,7 @@ export function ProjectRequestDetailModal({
   );
 
   useEffect(() => {
-    if (hideAssignPilot) {
+    if (hideAssignPilot || isPilotAssigned) {
       setPilots([]);
       setPilotsLoading(false);
       setPilotsError(null);
@@ -192,15 +197,7 @@ export function ProjectRequestDetailModal({
     return () => {
       cancelled = true;
     };
-  }, [hideAssignPilot]);
-
-  useEffect(() => {
-    if (hideAssignPilot) return;
-    const tracking = getUserMissionTrackingEntryForRequest(missionRef);
-    if (tracking?.pilotSub?.trim()) {
-      setSelectedPilotId(tracking.pilotSub.trim());
-    }
-  }, [hideAssignPilot, missionRef]);
+  }, [hideAssignPilot, isPilotAssigned]);
 
   const handleAssignPilot = async () => {
     if (!selectedPilotId || assigning || !project) return;
@@ -209,7 +206,6 @@ export function ProjectRequestDetailModal({
 
     setAssigning(true);
     setAssignError(null);
-    setAssignFeedback(null);
 
     const ownerFields = missionOwnerFieldsForRequestRef(missionRef);
     const service = project.serviceCategory.trim() || contact.title;
@@ -285,11 +281,6 @@ export function ProjectRequestDetailModal({
     notifyProjectRequestsUpdated();
     onAssigned?.();
     setAssigning(false);
-    setAssignFeedback(
-      res.alreadyAssigned
-        ? `${pilot.name} is already assigned to this request.`
-        : `${pilot.name} has been assigned to this project request.`
-    );
   };
 
   useEffect(() => {
@@ -467,77 +458,94 @@ export function ProjectRequestDetailModal({
               </section>
 
               {!hideAssignPilot ? (
-                <section className="mt-4 space-y-2" aria-label="Assign pilot">
-                  <SectionHeading>Assign pilot</SectionHeading>
+                <section
+                  className="mt-4 space-y-2"
+                  aria-label={isPilotAssigned ? "Assigned pilot" : "Assign pilot"}
+                >
+                  <SectionHeading>
+                    {isPilotAssigned ? "Assigned pilot" : "Assign pilot"}
+                  </SectionHeading>
                   <div className={cn("space-y-3", innerBoxClass)}>
-                    <div className="flex items-start gap-2">
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/10 text-[#008B8B]">
-                        <UserRound className="size-3.5" aria-hidden />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <label
-                          htmlFor="project-request-assign-pilot"
-                          className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground"
-                        >
-                          Assign pilot
-                        </label>
-                        {pilotsLoading ? (
-                          <p className="mt-1 text-xs text-muted-foreground" role="status">
-                            Loading pilots…
+                    {isPilotAssigned ? (
+                      <div className="flex items-start gap-2">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/10 text-[#008B8B] dark:bg-[#008B8B]/20 dark:text-[#5eead4]">
+                          <UserRound className="size-3.5" aria-hidden />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                            Assigned pilot
                           </p>
-                        ) : pilotsError ? (
-                          <p className="mt-1 text-xs text-red-600" role="alert">
-                            {pilotsError}
+                          <p className="mt-px text-xs font-medium text-foreground">
+                            {assignedPilotDisplay}
                           </p>
-                        ) : sortedPilots.length === 0 ? (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            No active pilots are available to assign yet.
-                          </p>
-                        ) : (
-                          <select
-                            id="project-request-assign-pilot"
-                            value={selectedPilotId}
-                            onChange={(e) => {
-                              setSelectedPilotId(e.target.value);
-                              setAssignError(null);
-                              setAssignFeedback(null);
-                            }}
-                            className="mt-1 w-full rounded-lg border border-border bg-white px-2.5 py-2 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35 dark:border-white/20 dark:bg-black dark:text-white"
-                          >
-                            <option value="">Choose a pilot…</option>
-                            {sortedPilots.map((pilot) => (
-                              <option key={pilot.id} value={pilot.id}>
-                                {pilot.name}
-                                {pilot.badgeId ? ` · ${pilot.badgeId}` : ""}
-                              </option>
-                            ))}
-                          </select>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                    {!pilotsLoading && sortedPilots.length > 0 ? (
-                      <button
-                        type="button"
-                        disabled={!selectedPilotId || assigning}
-                        onClick={() => void handleAssignPilot()}
-                        className="w-full rounded-lg bg-[#008B8B] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#007474] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {assigning ? "Assigning…" : "Assign pilot"}
-                      </button>
-                    ) : null}
-                    {assignError ? (
-                      <p className="text-xs font-medium text-red-600" role="alert">
-                        {assignError}
-                      </p>
-                    ) : null}
-                    {assignFeedback ? (
-                      <p
-                        className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-medium text-emerald-900 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100"
-                        role="status"
-                      >
-                        {assignFeedback}
-                      </p>
-                    ) : null}
+                    ) : (
+                      <>
+                        <div className="flex items-start gap-2">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/10 text-[#008B8B]">
+                            <UserRound className="size-3.5" aria-hidden />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <label
+                              htmlFor="project-request-assign-pilot"
+                              className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground"
+                            >
+                              Assign pilot
+                            </label>
+                            {pilotsLoading ? (
+                              <p
+                                className="mt-1 text-xs text-muted-foreground"
+                                role="status"
+                              >
+                                Loading pilots…
+                              </p>
+                            ) : pilotsError ? (
+                              <p className="mt-1 text-xs text-red-600" role="alert">
+                                {pilotsError}
+                              </p>
+                            ) : sortedPilots.length === 0 ? (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                No active pilots are available to assign yet.
+                              </p>
+                            ) : (
+                              <select
+                                id="project-request-assign-pilot"
+                                value={selectedPilotId}
+                                onChange={(e) => {
+                                  setSelectedPilotId(e.target.value);
+                                  setAssignError(null);
+                                }}
+                                className="mt-1 w-full rounded-lg border border-border bg-white px-2.5 py-2 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35 dark:border-white/20 dark:bg-black dark:text-white"
+                              >
+                                <option value="">Choose a pilot…</option>
+                                {sortedPilots.map((pilot) => (
+                                  <option key={pilot.id} value={pilot.id}>
+                                    {pilot.name}
+                                    {pilot.badgeId ? ` · ${pilot.badgeId}` : ""}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        </div>
+                        {!pilotsLoading && sortedPilots.length > 0 ? (
+                          <button
+                            type="button"
+                            disabled={!selectedPilotId || assigning}
+                            onClick={() => void handleAssignPilot()}
+                            className="w-full rounded-lg bg-[#008B8B] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#007474] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {assigning ? "Assigning…" : "Assign pilot"}
+                          </button>
+                        ) : null}
+                        {assignError ? (
+                          <p className="text-xs font-medium text-red-600" role="alert">
+                            {assignError}
+                          </p>
+                        ) : null}
+                      </>
+                    )}
                     <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
                       <MapPin className="size-3 shrink-0" aria-hidden />
                       {project.preferredLocation.trim() || "Location TBC"}
