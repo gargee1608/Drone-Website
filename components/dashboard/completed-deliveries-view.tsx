@@ -1,9 +1,22 @@
 "use client";
 
-import { Download, Pencil, Trash2 } from "lucide-react";
+import {
+  ClipboardList,
+  Clock,
+  Download,
+  PackageCheck,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { UserRequestStatCard } from "@/components/dashboard/user-request-stat-card";
 import { apiUrl } from "@/lib/api-url";
+import {
+  type BackendDroneHireRequestRow,
+  mapBackendRequestToAdminRow,
+} from "@/lib/drone-hire-request-admin-map";
+import { isProjectRequirementRequest } from "@/lib/project-requests";
 import { jwtPayloadPilotFullName, jwtPayloadSub } from "@/lib/pilot-display-name";
 import {
   ADMIN_PAGE_TITLE_CLASS,
@@ -13,9 +26,14 @@ import { cn } from "@/lib/utils";
 import {
   buildRequestOwnerLookup,
   findStoredUserRequestByAdminRef,
+  isUserRequestCompletedDelivery,
+  MISSIONS_DB_UPDATED_EVENT,
+  normalizeUserMissionAdminStatus,
   notifyMissionsDbUpdated,
   type RequestOwnerInfo,
   resolveRequestOwnerDisplay,
+  USER_REQUESTS_UPDATED_EVENT,
+  type UserRequestAdminRow,
 } from "@/lib/user-requests";
 
 const COMPLETED_MISSION_PREVIEW_KEY = "aerolaminar_completed_mission_preview_v1";
@@ -78,10 +96,6 @@ function formatDateTime(value: string): string {
   });
 }
 
-function formatNumber(value: number) {
-  return value.toLocaleString("en-US");
-}
-
 function parseCountPayload(payload: unknown): number | null {
   const raw =
     payload &&
@@ -90,10 +104,6 @@ function parseCountPayload(payload: unknown): number | null {
     (payload as { count: unknown }).count;
   const n = typeof raw === "number" ? raw : Number(raw);
   return Number.isFinite(n) ? n : null;
-}
-
-function formatStatCount(value: number | null): string {
-  return value === null ? "—" : formatNumber(value);
 }
 
 function toDateTimeLocalInput(value: string): string {
@@ -283,9 +293,8 @@ export function CompletedDeliveriesView({
   const [completedDeliveriesDbCount, setCompletedDeliveriesDbCount] = useState<
     number | null
   >(null);
-  /** `pilots` table count (`duty_status` ACTIVE); null until loaded or on error. */
-  const [activePilotsDbCount, setActivePilotsDbCount] = useState<number | null>(
-    null
+  const [backendRequests, setBackendRequests] = useState<UserRequestAdminRow[]>(
+    []
   );
   const [refreshTick, setRefreshTick] = useState(0);
   const [editingDelivery, setEditingDelivery] = useState<DeliveryRow | null>(null);
@@ -309,7 +318,11 @@ export function CompletedDeliveriesView({
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     const currentPilotSub = pilotScoped && token ? jwtPayloadSub(token) : null;
     const currentPilotName = pilotScoped && token ? jwtPayloadPilotFullName(token) : null;
-    const preview = readCompletedMissionPreview(currentPilotSub);
+    const previewRaw = readCompletedMissionPreview(currentPilotSub);
+    const preview =
+      previewRaw && !isProjectRequirementRequest(previewRaw.missionId)
+        ? previewRaw
+        : null;
     if (preview) {
       setRows((prev) => dedupeDeliveryRows([preview, ...prev]));
     }
@@ -364,9 +377,12 @@ export function CompletedDeliveriesView({
           ? ((payload as { data?: unknown[] }).data as BackendMissionRow[])
           : [];
         if (cancelled) return;
-        const apiRows = list.map((row, i) =>
-          mapBackendMissionToDeliveryRow(row, i, ownerLookup)
-        );
+        const apiRows = list
+          .filter(
+            (row) =>
+              !isProjectRequirementRequest(String(row.request_ref ?? ""))
+          )
+          .map((row, i) => mapBackendMissionToDeliveryRow(row, i, ownerLookup));
         setRows((prev) => {
           const optimisticRows = prev.filter((row) => !row.id && !row.rowCtid);
           return dedupeDeliveryRows([
@@ -450,27 +466,91 @@ export function CompletedDeliveriesView({
 
   useEffect(() => {
     let cancelled = false;
-    async function loadActivePilotsCount() {
+    const loadBackendRequests = async () => {
       try {
-        const response = await fetch(apiUrl("/api/pilots/active-count"), {
+        const response = await fetch(apiUrl("/api/requests"), {
           cache: "no-store",
         });
-        if (cancelled) return;
-        if (response.ok) {
-          const payload: unknown = await response.json();
-          setActivePilotsDbCount(parseCountPayload(payload));
-        } else {
-          setActivePilotsDbCount(null);
+        if (!response.ok) return;
+        const payload: unknown = await response.json();
+        const data = Array.isArray((payload as { data?: unknown[] })?.data)
+          ? ((payload as { data?: unknown[] }).data as BackendDroneHireRequestRow[])
+          : [];
+        if (!cancelled) {
+          setBackendRequests(
+            data
+              .filter(
+                (row) => !isProjectRequirementRequest(row.client_request_id)
+              )
+              .map(mapBackendRequestToAdminRow)
+          );
         }
       } catch {
-        if (!cancelled) setActivePilotsDbCount(null);
+        if (!cancelled) setBackendRequests([]);
       }
-    }
-    void loadActivePilotsCount();
+    };
+    void loadBackendRequests();
     return () => {
       cancelled = true;
     };
   }, [refreshTick]);
+
+  useEffect(() => {
+    const bump = () => setRefreshTick((n) => n + 1);
+    window.addEventListener(USER_REQUESTS_UPDATED_EVENT, bump);
+    window.addEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
+    return () => {
+      window.removeEventListener(USER_REQUESTS_UPDATED_EVENT, bump);
+      window.removeEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
+    };
+  }, []);
+
+  const requestStats = useMemo(() => {
+    let pending = 0;
+    let completedDeliveries = 0;
+    for (const row of backendRequests) {
+      const s = normalizeUserMissionAdminStatus(
+        typeof row.adminStatus === "string" ? row.adminStatus : undefined
+      );
+      const delivered = isUserRequestCompletedDelivery(row);
+
+      if (s === "rejected") {
+        /* excluded from workflow buckets; still in total */
+      } else if (delivered) {
+        completedDeliveries += 1;
+      } else if (s === "accepted") {
+        /* active / assigned — not shown on this page */
+      } else {
+        pending += 1;
+      }
+    }
+    return {
+      total: backendRequests.length,
+      pending,
+      completedDeliveries,
+    };
+  }, [backendRequests]);
+
+  const stats = useMemo(() => {
+    if (!pilotScoped) return requestStats;
+    const total = totalDeliveriesDbCount ?? 0;
+    const completed = completedDeliveriesDbCount ?? 0;
+    return {
+      total,
+      pending: 0,
+      completedDeliveries: completed,
+    };
+  }, [
+    pilotScoped,
+    requestStats,
+    totalDeliveriesDbCount,
+    completedDeliveriesDbCount,
+  ]);
+
+  const completedDeliveriesDisplay =
+    !pilotScoped && completedDeliveriesDbCount !== null
+      ? completedDeliveriesDbCount
+      : stats.completedDeliveries;
 
   const filteredRows = useMemo(() => rows, [rows]);
 
@@ -646,34 +726,32 @@ export function CompletedDeliveriesView({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
-          <article className="mx-auto w-full max-w-[200px] rounded-lg border border-border bg-card px-3 py-2.5 text-center shadow-sm dark:border-white/20">
-            <p className="text-[10px] font-bold tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
-              Total Deliveries
-            </p>
-            <p className="mt-1 font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-              {formatStatCount(totalDeliveriesDbCount)}
-            </p>
-          </article>
-
-          <article className="mx-auto w-full max-w-[200px] rounded-lg border border-border bg-card px-3 py-2.5 text-center shadow-sm dark:border-white/20">
-            <p className="text-[10px] font-bold tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
-              Completed Deliveries
-            </p>
-            <p className="mt-1 font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-              {formatStatCount(completedDeliveriesDbCount)}
-            </p>
-          </article>
-
-          <article className="mx-auto w-full max-w-[200px] rounded-lg border border-border bg-card px-3 py-2.5 text-center shadow-sm dark:border-white/20">
-            <p className="text-[10px] font-bold tracking-[0.2em] text-muted-foreground/80 dark:text-white/90">
-              Active Pilots
-            </p>
-            <p className="mt-1 font-[family-name:var(--font-landing-headline)] text-4xl font-bold text-[#1a1c1e] dark:text-white">
-              {formatStatCount(activePilotsDbCount)}
-            </p>
-          </article>
-        </div>
+        <section
+          className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3"
+          aria-label="Request summary: total, pending requests, and completed deliveries"
+        >
+          <UserRequestStatCard
+            label="Total requests"
+            value={stats.total}
+            icon={ClipboardList}
+            iconClassName="text-[#008B8B]"
+            iconWrapClassName="bg-[#008B8B]/10"
+          />
+          <UserRequestStatCard
+            label="Pending Request"
+            value={stats.pending}
+            icon={Clock}
+            iconClassName="text-amber-700"
+            iconWrapClassName="bg-amber-100"
+          />
+          <UserRequestStatCard
+            label="Completed Deliveries"
+            value={completedDeliveriesDisplay}
+            icon={PackageCheck}
+            iconClassName="text-sky-800"
+            iconWrapClassName="bg-sky-100"
+          />
+        </section>
       </header>
 
       <section className="space-y-4">

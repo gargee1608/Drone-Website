@@ -37,13 +37,19 @@ import {
 } from "@/lib/post-requirement-parse";
 import { mapPostRequirementToSubmitPayload } from "@/lib/post-requirement-submit";
 import {
+  computeProjectRequestStats,
+  fetchPilotProjectMissionRefs,
+  filterPilotAssignedProjectRows,
+} from "@/lib/pilot-project-request-scope";
+import { PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT } from "@/lib/pilot-mission-notifications";
+import {
+  isCompletedProjectRequest,
   isProjectRequirementRequest,
+  notifyProjectRequestsUpdated,
   PROJECT_REQUESTS_UPDATED_EVENT,
 } from "@/lib/project-requests";
 import {
-  isUserRequestCompletedDelivery,
   MISSIONS_DB_UPDATED_EVENT,
-  normalizeUserMissionAdminStatus,
   type UserMissionAdminStatus,
   type UserRequestAdminRow,
 } from "@/lib/user-requests";
@@ -127,10 +133,21 @@ function rowToEditForm(row: UserRequestAdminRow): ProjectEditForm {
   };
 }
 
-export function ProjectRequestsView() {
+export function ProjectRequestsView({
+  showPageTitle = true,
+  pilotScoped = false,
+}: {
+  showPageTitle?: boolean;
+  /** Pilot dashboard: only show project requests assigned to the signed-in pilot. */
+  pilotScoped?: boolean;
+} = {}) {
   const pathname = usePathname();
   const prevPathnameRef = useRef<string | null>(null);
   const [rows, setRows] = useState<UserRequestAdminRow[]>([]);
+  const [pilotMissionRefs, setPilotMissionRefs] = useState<Set<string> | null>(
+    null
+  );
+  const [pilotSub, setPilotSub] = useState<string | null>(null);
   const [backendRefresh, setBackendRefresh] = useState(0);
   const [detailRow, setDetailRow] = useState<UserRequestAdminRow | null>(null);
   const [editingRequest, setEditingRequest] = useState<UserRequestAdminRow | null>(
@@ -174,19 +191,63 @@ export function ProjectRequestsView() {
   }, [backendRefresh]);
 
   useEffect(() => {
+    if (!pilotScoped) {
+      setPilotMissionRefs(null);
+      setPilotSub(null);
+      return;
+    }
+
+    let cancelled = false;
+    async function loadPilotMissions() {
+      try {
+        const { pilotSub: currentPilotSub, refs } =
+          await fetchPilotProjectMissionRefs();
+        if (!cancelled) {
+          setPilotSub(currentPilotSub);
+          setPilotMissionRefs(refs);
+        }
+      } catch {
+        if (!cancelled) {
+          setPilotSub(null);
+          setPilotMissionRefs(new Set());
+        }
+      }
+    }
+
+    void loadPilotMissions();
+    return () => {
+      cancelled = true;
+    };
+  }, [pilotScoped, backendRefresh]);
+
+  useEffect(() => {
     const bump = () => setBackendRefresh((n) => n + 1);
     window.addEventListener(PROJECT_REQUESTS_UPDATED_EVENT, bump);
     window.addEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
+    if (pilotScoped) {
+      window.addEventListener(PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT, bump);
+    }
     return () => {
       window.removeEventListener(PROJECT_REQUESTS_UPDATED_EVENT, bump);
       window.removeEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
+      if (pilotScoped) {
+        window.removeEventListener(
+          PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT,
+          bump
+        );
+      }
     };
-  }, []);
+  }, [pilotScoped]);
 
   useEffect(() => {
     const prev = prevPathnameRef.current;
     prevPathnameRef.current = pathname;
-    if (pathname !== "/dashboard/project-requests") return;
+    if (
+      pathname !== "/dashboard/project-requests" &&
+      pathname !== "/pilot-dashboard/project-requests"
+    ) {
+      return;
+    }
     if (prev !== null && prev !== pathname) {
       setBackendRefresh((n) => n + 1);
     }
@@ -197,33 +258,20 @@ export function ProjectRequestsView() {
     [detailRow]
   );
 
-  const stats = useMemo(() => {
-    let pending = 0;
-    let activeAssigned = 0;
-    let completedDeliveries = 0;
-    for (const row of rows) {
-      const s = normalizeUserMissionAdminStatus(
-        typeof row.adminStatus === "string" ? row.adminStatus : undefined
-      );
-      const delivered = isUserRequestCompletedDelivery(row);
+  const scopedRows = useMemo(() => {
+    if (!pilotScoped) return rows;
+    return filterPilotAssignedProjectRows(rows, pilotMissionRefs, pilotSub);
+  }, [rows, pilotScoped, pilotMissionRefs, pilotSub]);
 
-      if (s === "rejected") {
-        /* excluded from workflow buckets; still in total */
-      } else if (delivered) {
-        completedDeliveries += 1;
-      } else if (s === "accepted") {
-        activeAssigned += 1;
-      } else {
-        pending += 1;
-      }
-    }
-    return {
-      total: rows.length,
-      pending,
-      activeAssigned,
-      completedDeliveries,
-    };
-  }, [rows]);
+  const openProjectRows = useMemo(
+    () => scopedRows.filter((row) => !isCompletedProjectRequest(row)),
+    [scopedRows]
+  );
+
+  const stats = useMemo(
+    () => computeProjectRequestStats(scopedRows),
+    [scopedRows]
+  );
 
   const openRequestEdit = (row: UserRequestAdminRow) => {
     if (!row.backendRequest?.id) {
@@ -289,6 +337,7 @@ export function ProjectRequestsView() {
       setEditingRequest(null);
       setRequestEditForm(null);
       setBackendRefresh((n) => n + 1);
+      notifyProjectRequestsUpdated();
     } catch (error) {
       setRequestEditError(
         error instanceof Error ? error.message : "Could not update request."
@@ -314,6 +363,7 @@ export function ProjectRequestsView() {
         throw new Error("Could not delete request.");
       }
       setBackendRefresh((n) => n + 1);
+      notifyProjectRequestsUpdated();
     } catch (error) {
       alert(error instanceof Error ? error.message : "Could not delete request.");
     }
@@ -326,7 +376,9 @@ export function ProjectRequestsView() {
         ADMIN_PAGE_TOP_PADDING_CLASS
       )}
     >
-      <h1 className={ADMIN_PAGE_TITLE_CLASS}>Project Requests</h1>
+      {showPageTitle ? (
+        <h1 className={ADMIN_PAGE_TITLE_CLASS}>Project Requests</h1>
+      ) : null}
 
       <section
         className="mt-6 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4"
@@ -354,7 +406,7 @@ export function ProjectRequestsView() {
           iconWrapClassName="bg-emerald-100"
         />
         <UserRequestStatCard
-          label="Completed Deliveries"
+          label="Completed Projects"
           value={stats.completedDeliveries}
           icon={PackageCheck}
           iconClassName="text-sky-800"
@@ -365,14 +417,14 @@ export function ProjectRequestsView() {
       <div className="mt-6 sm:mt-8">
         <UserRequestTable
           title="Project requests"
-          rows={rows}
+          rows={openProjectRows}
           showTitle={false}
           showTotalSubtitle
           omitOuterBorder
           columnPreset="project"
           onViewDetails={setDetailRow}
-          onEditRequest={openRequestEdit}
-          onDeleteRequest={deleteRequest}
+          onEditRequest={pilotScoped ? undefined : openRequestEdit}
+          onDeleteRequest={pilotScoped ? undefined : deleteRequest}
         />
       </div>
 
@@ -382,10 +434,11 @@ export function ProjectRequestsView() {
           contact={detailContact}
           onClose={() => setDetailRow(null)}
           onAssigned={() => setBackendRefresh((n) => n + 1)}
+          hideAssignPilot={pilotScoped}
         />
       ) : null}
 
-      {editingRequest && requestEditForm ? (
+      {!pilotScoped && editingRequest && requestEditForm ? (
         <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
           <button
             type="button"
@@ -589,6 +642,7 @@ export function ProjectRequestsView() {
                   >
                     <option value="pending">Pending</option>
                     <option value="accepted">Accepted</option>
+                    <option value="completed">Completed</option>
                     <option value="rejected">Rejected</option>
                   </select>
                 </label>

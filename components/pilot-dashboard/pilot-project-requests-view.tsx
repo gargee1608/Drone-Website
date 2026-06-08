@@ -5,9 +5,9 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock,
+  FolderKanban,
   MapPin,
   MessageSquareText,
-  Plane,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -16,12 +16,20 @@ import {
   incrementPilotMissionsCompleted,
   saveCompletedMission,
 } from "@/app/services/pilotServices";
-import { UserRequestStatCard } from "@/components/dashboard/user-request-stat-card";
+import { apiUrl } from "@/lib/api-url";
+import {
+  type BackendDroneHireRequestRow,
+  mapBackendRequestToAdminRow,
+} from "@/lib/drone-hire-request-admin-map";
 import { jwtPayloadSub } from "@/lib/pilot-display-name";
 import {
-  missionOwnerFieldsForRequestRef,
-  missionRequestRefForSave,
-} from "@/lib/user-requests";
+  fetchPilotProjectMissionRefs,
+  filterPilotAssignedProjectRows,
+} from "@/lib/pilot-project-request-scope";
+import {
+  PILOT_COMMENT_WEATHER_PRESET,
+  pilotMissionCommentForDisplay,
+} from "@/lib/pilot-mission-comment-display";
 import {
   notificationsVisibleToPilot,
   PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT,
@@ -30,18 +38,25 @@ import {
 } from "@/lib/pilot-mission-notifications";
 import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
 import {
-  PILOT_COMMENT_WEATHER_PRESET,
-  pilotMissionCommentForDisplay,
-} from "@/lib/pilot-mission-comment-display";
-import {
+  isCompletedProjectRequest,
   isProjectRequirementRequest,
   notifyProjectRequestsUpdated,
+  PROJECT_REQUESTS_UPDATED_EVENT,
+  projectRequestMissionRef,
+  projectRequestRefAliases,
 } from "@/lib/project-requests";
-import { notifyMissionsDbUpdated } from "@/lib/user-requests";
-import { updateUserMissionTrackingStatusToCompleted } from "@/lib/user-mission-tracking";
-import { cn } from "@/lib/utils";
+import {
+  getUserMissionTrackingEntryForRequest,
+  updateUserMissionTrackingStatusToCompleted,
+} from "@/lib/user-mission-tracking";
+import { UserRequestStatCard } from "@/components/dashboard/user-request-stat-card";
+import {
+  missionOwnerFieldsForRequestRef,
+  MISSIONS_DB_UPDATED_EVENT,
+  notifyMissionsDbUpdated,
+  type UserRequestAdminRow,
+} from "@/lib/user-requests";
 
-const COMPLETED_MISSION_PREVIEW_KEY = "aerolaminar_completed_mission_preview_v1";
 const PILOT_MISSION_COMMENTS_KEY = "aerolaminar_pilot_mission_comments_v1";
 
 function loadPilotMissionCommentText(requestRef: string): string {
@@ -100,15 +115,15 @@ function assignmentKey(n: PilotMissionNotification): string {
   return `${(n.pilotSub ?? "").trim()}::${n.requestRef.trim()}`;
 }
 
-function pilotMissionCardDomId(requestRef: string): string {
-  return `pilot-mission-${requestRef.trim().replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+function pilotProjectCardDomId(requestRef: string): string {
+  return `pilot-project-${requestRef.trim().replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 }
 
 function dbMissionRowToNotification(
   row: Record<string, unknown>
 ): PilotMissionNotification | null {
   const requestRef = String(row.request_ref ?? row.requestRef ?? "").trim();
-  if (!requestRef) return null;
+  if (!requestRef || !isProjectRequirementRequest(requestRef)) return null;
   const idRaw = row.id;
   const id = `db:${String(idRaw ?? "")}`;
   const assignedRaw = row.assigned_at ?? row.assignedAt;
@@ -143,6 +158,42 @@ function mergePilotMissionRows(
   );
 }
 
+function rowToProjectNotification(
+  row: UserRequestAdminRow,
+  pilotSub: string | null
+): PilotMissionNotification {
+  const requestRef = projectRequestMissionRef(row);
+  const tracking = getUserMissionTrackingEntryForRequest(requestRef);
+  const project = row.projectRequirement;
+  return {
+    id: `row:${row.key}`,
+    requestRef,
+    customer: project?.projectTitle?.trim() || row.title,
+    service: project?.serviceCategory?.trim() || "—",
+    dropoff:
+      project?.preferredLocation?.trim() ||
+      project?.areaOfCoverage?.trim() ||
+      "—",
+    pilotName: tracking?.pilotName || "",
+    pilotBadgeId: tracking?.pilotBadgeId || "",
+    pilotSub: tracking?.pilotSub?.trim() || pilotSub || undefined,
+    droneModel: tracking?.droneModel || "—",
+    assignedAt: tracking?.assignedAt || new Date().toISOString(),
+  };
+}
+
+function findProjectRowForRef(
+  requestRef: string,
+  rows: UserRequestAdminRow[]
+): UserRequestAdminRow | undefined {
+  const norm = requestRef.trim().toLowerCase();
+  return rows.find(
+    (row) =>
+      projectRequestRefAliases(row).includes(norm) ||
+      projectRequestMissionRef(row).toLowerCase() === norm
+  );
+}
+
 function NoSSR({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
@@ -151,7 +202,7 @@ function NoSSR({ children }: { children: React.ReactNode }) {
   return isMounted ? <>{children}</> : null;
 }
 
-function AssignMissionField({ label, value }: { label: string; value: string }) {
+function ProjectRequestField({ label, value }: { label: string; value: string }) {
   return (
     <p className="min-w-0 text-xs leading-snug text-muted-foreground">
       <span className="font-semibold text-foreground">{label}</span>
@@ -161,32 +212,32 @@ function AssignMissionField({ label, value }: { label: string; value: string }) 
   );
 }
 
-function AssignedMissionCard({
+function AssignedProjectCard({
   row,
-  isCompleted,
+  projectType,
   isSaving,
   savedCommentDisplay,
   onOpenComments,
   onComplete,
 }: {
   row: PilotMissionNotification;
-  isCompleted: boolean;
+  projectType: string;
   isSaving: boolean;
   savedCommentDisplay: string;
   onOpenComments: () => void;
   onComplete: () => void;
 }) {
-  const title = row.customer || row.requestRef || "Mission";
+  const title = row.customer || row.requestRef || "Project request";
 
   return (
     <article
-      id={pilotMissionCardDomId(row.requestRef)}
+      id={pilotProjectCardDomId(row.requestRef)}
       className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm dark:border-white/20"
     >
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-muted/30 px-4 py-3 sm:px-5">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            {isCompleted ? "Completed mission" : "Assigned mission"}
+            Assigned project
           </p>
           <h3 className="mt-1 truncate text-sm font-semibold text-foreground sm:text-base">
             {title}
@@ -196,51 +247,39 @@ function AssignedMissionCard({
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
-            {!isCompleted ? (
-              <button
-                type="button"
-                onClick={onOpenComments}
-                disabled={isSaving}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#008B8B] px-3 text-xs font-medium text-[#008B8B] transition hover:bg-[#008B8B]/10 disabled:opacity-50 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
-              >
-                <MessageSquareText className="size-3.5 shrink-0" aria-hidden />
-                Comments
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={onComplete}
-              disabled={isSaving || isCompleted}
-              className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition disabled:opacity-50",
-                isCompleted
-                  ? "border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/30 dark:text-sky-300"
-                  : "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-700 dark:hover:bg-emerald-600"
-              )}
-            >
-              {isCompleted ? (
-                <>
-                  <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
-                  Mission completed
-                </>
-              ) : isSaving ? (
-                "Saving..."
-              ) : (
-                <>
-                  <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
-                  Completed
-                </>
-              )}
-            </button>
+          <button
+            type="button"
+            onClick={onOpenComments}
+            disabled={isSaving}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#008B8B] px-3 text-xs font-medium text-[#008B8B] transition hover:bg-[#008B8B]/10 disabled:opacity-50 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+          >
+            <MessageSquareText className="size-3.5 shrink-0" aria-hidden />
+            Comments
+          </button>
+          <button
+            type="button"
+            onClick={onComplete}
+            disabled={isSaving}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-600 bg-emerald-600 px-3 text-xs font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50 dark:border-emerald-500 dark:bg-emerald-700 dark:hover:bg-emerald-600"
+          >
+            {isSaving ? (
+              "Saving..."
+            ) : (
+              <>
+                <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+                Completed
+              </>
+            )}
+          </button>
         </div>
       </div>
 
       <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
         <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
-          <AssignMissionField label="Request ID" value={row.requestRef} />
-          <AssignMissionField label="Service" value={row.service || "—"} />
-          <AssignMissionField label="Drone" value={row.droneModel || "—"} />
-          <AssignMissionField
+          <ProjectRequestField label="Request ID" value={row.requestRef} />
+          <ProjectRequestField label="Service" value={row.service || "—"} />
+          <ProjectRequestField label="Project type" value={projectType} />
+          <ProjectRequestField
             label="Assigned at"
             value={formatAssignedAt(row.assignedAt)}
           />
@@ -250,9 +289,9 @@ function AssignedMissionCard({
           <MapPin className="mt-0.5 size-4 shrink-0 text-[#008B8B]" aria-hidden />
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Destination
+              Location
             </p>
-            <p className="mt-0.5 break-words">{row.dropoff || "Destination TBD"}</p>
+            <p className="mt-0.5 break-words">{row.dropoff || "Location TBC"}</p>
           </div>
         </div>
 
@@ -268,58 +307,78 @@ function AssignedMissionCard({
         ) : null}
 
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
-          <CheckCircle2
-            className={cn(
-              "size-4 shrink-0",
-              isCompleted ? "text-sky-600" : "text-[#008B8B]"
-            )}
-            aria-hidden
-          />
-          {isCompleted
-            ? "Mission completed successfully."
-            : "Complete this mission to update delivery status."}
+          <CheckCircle2 className="size-4 shrink-0 text-[#008B8B]" aria-hidden />
+          Complete this project to update delivery status.
         </p>
       </div>
     </article>
   );
 }
 
-export function AssignMissionView() {
+export function PilotProjectRequestsView() {
   const router = useRouter();
   const [apiRows, setApiRows] = useState<PilotMissionNotification[]>([]);
+  const [projectRows, setProjectRows] = useState<UserRequestAdminRow[]>([]);
+  const [pilotMissionRefs, setPilotMissionRefs] = useState<Set<string> | null>(
+    null
+  );
+  const [pilotSub, setPilotSub] = useState<string | null>(null);
+  const [backendRefresh, setBackendRefresh] = useState(0);
   const [localVers, setLocalVers] = useState(0);
   const [loading, setLoading] = useState(true);
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
   const [commentDraft, setCommentDraft] = useState("");
-  const [commentsForRow, setCommentsForRow] = useState<PilotMissionNotification | null>(null);
-  const [completedMissionIds, setCompletedMissionIds] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try {
-      const stored = localStorage.getItem("aerolaminar_completed_mission_ids");
-      return stored ? new Set(JSON.parse(stored)) : new Set();
-    } catch {
-      return new Set();
-    }
-  });
+  const [commentsForRow, setCommentsForRow] =
+    useState<PilotMissionNotification | null>(null);
   const [commentsDisplayVers, setCommentsDisplayVers] = useState(0);
+  const scopedProjectRows = useMemo(() => {
+    return filterPilotAssignedProjectRows(
+      projectRows,
+      pilotMissionRefs,
+      pilotSub
+    );
+  }, [projectRows, pilotMissionRefs, pilotSub]);
 
-  const rows = useMemo(
-    () =>
-      mergePilotMissionRows(apiRows, notificationsVisibleToPilot()).filter(
-        (row) => !isProjectRequirementRequest(row.requestRef)
-      ),
-    [apiRows, localVers]
+  const openProjectRows = useMemo(
+    () => scopedProjectRows.filter((row) => !isCompletedProjectRequest(row)),
+    [scopedProjectRows]
   );
 
-  const stats = useMemo(() => {
-    const active = rows.filter((row) => !completedMissionIds.has(row.id)).length;
-    const completed = rows.filter((row) => completedMissionIds.has(row.id)).length;
-    return {
+  const rows = useMemo(() => {
+    const localProjectNotifications = notificationsVisibleToPilot().filter(
+      (row) => isProjectRequirementRequest(row.requestRef)
+    );
+    const merged = mergePilotMissionRows(apiRows, localProjectNotifications);
+    const seen = new Set(
+      merged.map((row) => row.requestRef.trim().toLowerCase())
+    );
+    const supplemental = openProjectRows
+      .filter(
+        (row) => !seen.has(projectRequestMissionRef(row).toLowerCase())
+      )
+      .map((row) => rowToProjectNotification(row, pilotSub));
+    return [...merged, ...supplemental].sort(
+      (a, b) =>
+        new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime()
+    );
+  }, [apiRows, localVers, openProjectRows, pilotSub]);
+
+  const stats = useMemo(
+    () => ({
       total: rows.length,
-      active,
-      completed,
-    };
-  }, [rows, completedMissionIds]);
+      active: rows.length,
+      projectTypes: new Set(
+        rows
+          .map(
+            (row) =>
+              findProjectRowForRef(row.requestRef, openProjectRows)
+                ?.projectRequirement?.projectType
+          )
+          .filter((type): type is string => Boolean(type?.trim()))
+      ).size,
+    }),
+    [rows, openProjectRows]
+  );
 
   const loadFromApi = useCallback(async () => {
     const token =
@@ -338,8 +397,10 @@ export function AssignMissionView() {
       }
       const mapped = data
         .map((r: Record<string, unknown>) => dbMissionRowToNotification(r))
-        .filter((x: PilotMissionNotification | null): x is PilotMissionNotification => x != null)
-        .filter((row) => !isProjectRequirementRequest(row.requestRef));
+        .filter(
+          (x: PilotMissionNotification | null): x is PilotMissionNotification =>
+            x != null
+        );
       setApiRows(mapped);
     } finally {
       setLoading(false);
@@ -347,17 +408,78 @@ export function AssignMissionView() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const response = await fetch(apiUrl("/api/requests"), {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const payload: unknown = await response.json();
+        const data = Array.isArray((payload as { data?: unknown[] })?.data)
+          ? ((payload as { data?: unknown[] }).data as BackendDroneHireRequestRow[])
+          : [];
+        if (!cancelled) {
+          setProjectRows(
+            data
+              .filter((row) =>
+                isProjectRequirementRequest(row.client_request_id)
+              )
+              .map(mapBackendRequestToAdminRow)
+          );
+        }
+      } catch {
+        if (!cancelled) setProjectRows([]);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [backendRefresh]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPilotMissions() {
+      try {
+        const { pilotSub: currentPilotSub, refs } =
+          await fetchPilotProjectMissionRefs();
+        if (!cancelled) {
+          setPilotSub(currentPilotSub);
+          setPilotMissionRefs(refs);
+        }
+      } catch {
+        if (!cancelled) {
+          setPilotSub(null);
+          setPilotMissionRefs(new Set());
+        }
+      }
+    }
+    void loadPilotMissions();
+    return () => {
+      cancelled = true;
+    };
+  }, [backendRefresh]);
+
+  useEffect(() => {
     void loadFromApi();
     const onFocus = () => void loadFromApi();
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [loadFromApi]);
+  }, [loadFromApi, backendRefresh]);
 
   useEffect(() => {
-    const bump = () => setLocalVers((v) => v + 1);
+    const bump = () => {
+      setBackendRefresh((n) => n + 1);
+      setLocalVers((v) => v + 1);
+    };
+    window.addEventListener(PROJECT_REQUESTS_UPDATED_EVENT, bump);
+    window.addEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
     window.addEventListener(PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT, bump);
     window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, bump);
     return () => {
+      window.removeEventListener(PROJECT_REQUESTS_UPDATED_EVENT, bump);
+      window.removeEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
       window.removeEventListener(
         PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT,
         bump
@@ -365,29 +487,6 @@ export function AssignMissionView() {
       window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, bump);
     };
   }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const focus = params.get("focus");
-    if (!focus || rows.length === 0) return;
-    const trimmed = focus.trim();
-    if (!rows.some((r) => r.requestRef.trim() === trimmed)) return;
-    const el = document.getElementById(pilotMissionCardDomId(trimmed));
-    if (!el) return;
-    requestAnimationFrame(() => {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-    const url = new URL(window.location.href);
-    if (url.searchParams.get("focus") === focus) {
-      url.searchParams.delete("focus");
-      window.history.replaceState(
-        null,
-        "",
-        url.pathname + (url.search ? url.search : "")
-      );
-    }
-  }, [rows]);
 
   useEffect(() => {
     if (!commentsForRow) return;
@@ -399,8 +498,8 @@ export function AssignMissionView() {
   }, [commentsForRow]);
 
   function openCommentsDialog(row: PilotMissionNotification) {
-    setCommentDraft(loadPilotMissionCommentText(row.requestRef));
     setCommentsForRow(row);
+    setCommentDraft(loadPilotMissionCommentText(row.requestRef));
   }
 
   function saveCommentsDialog() {
@@ -408,6 +507,7 @@ export function AssignMissionView() {
     savePilotMissionCommentText(commentsForRow.requestRef, commentDraft);
     setCommentsForRow(null);
     setCommentsDisplayVers((v) => v + 1);
+    setLocalVers((v) => v + 1);
     try {
       window.dispatchEvent(new Event("aerolaminar-pilot-mission-comment-saved"));
     } catch {
@@ -415,47 +515,16 @@ export function AssignMissionView() {
     }
   }
 
-  async function handleCompletedMission(row: PilotMissionNotification) {
+  async function handleCompletedProject(row: PilotMissionNotification) {
     if (savingRowId) return;
     setSavingRowId(row.id);
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const currentPilotSub = token ? jwtPayloadSub(token) : null;
       const effectivePilotSub = row.pilotSub?.trim() || currentPilotSub || "";
-
-      const missionRef = isProjectRequirementRequest(row.requestRef)
-        ? row.requestRef.trim()
-        : missionRequestRefForSave(row.requestRef);
+      const missionRef = row.requestRef.trim();
       const ownerFields = missionOwnerFieldsForRequestRef(row.requestRef);
-      const ownerDisplay =
-        ownerFields.userName || ownerFields.userEmail
-          ? {
-              userName: ownerFields.userName || "—",
-              userEmail: ownerFields.userEmail || "—",
-            }
-          : { userName: "—", userEmail: "—" };
-
-      try {
-        sessionStorage.setItem(
-          COMPLETED_MISSION_PREVIEW_KEY,
-          JSON.stringify({
-            missionId: row.requestRef,
-            pilotSub: effectivePilotSub,
-            assignedAt: row.assignedAt,
-            completedAt: new Date().toISOString(),
-            userName: ownerDisplay.userName,
-            userEmail: ownerDisplay.userEmail,
-            customer: row.customer,
-            service: row.service,
-            dropoff: row.dropoff,
-            pilot: row.pilotName,
-            droneUnit: row.droneModel,
-            status: "completed",
-          })
-        );
-      } catch {
-        /* ignore */
-      }
 
       const saveResult = await saveCompletedMission({
         requestRef: missionRef,
@@ -474,15 +543,10 @@ export function AssignMissionView() {
       if (!saveResult?.success) {
         removePilotMissionNotificationById(row.id);
         setLocalVers((v) => v + 1);
-        const failHref = isProjectRequirementRequest(row.requestRef)
-          ? "/pilot-dashboard/completed-projects"
-          : "/pilot-dashboard/completed-deliveries";
         alert(
-          isProjectRequirementRequest(row.requestRef)
-            ? "Could not save mission to database. Redirecting to Completed Project."
-            : "Could not save mission to database. Redirecting to Completed Deliveries."
+          "Could not save project to database. Redirecting to Completed Project."
         );
-        router.push(failHref);
+        router.push("/pilot-dashboard/completed-projects");
         return;
       }
 
@@ -491,35 +555,16 @@ export function AssignMissionView() {
       }
 
       notifyMissionsDbUpdated();
-      if (isProjectRequirementRequest(row.requestRef)) {
-        notifyProjectRequestsUpdated();
-      }
-
+      notifyProjectRequestsUpdated();
       updateUserMissionTrackingStatusToCompleted(row.requestRef);
-
-      setCompletedMissionIds((prev) => {
-        const newSet = new Set(prev).add(row.id);
-        try {
-          localStorage.setItem(
-            "aerolaminar_completed_mission_ids",
-            JSON.stringify([...newSet])
-          );
-        } catch {
-          /* ignore */
-        }
-        return newSet;
-      });
 
       if (!row.id.startsWith("db:")) {
         removePilotMissionNotificationById(row.id);
       }
       await loadFromApi();
       setLocalVers((v) => v + 1);
-      router.push(
-        isProjectRequirementRequest(row.requestRef)
-          ? "/pilot-dashboard/completed-projects"
-          : "/pilot-dashboard/completed-deliveries"
-      );
+      setBackendRefresh((n) => n + 1);
+      router.push("/pilot-dashboard/completed-projects");
     } finally {
       setSavingRowId(null);
     }
@@ -537,10 +582,10 @@ export function AssignMissionView() {
         <header className="mb-5">
           <section
             className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3"
-            aria-label="Mission assignment summary"
+            aria-label="Project request summary"
           >
             <UserRequestStatCard
-              label="Assigned missions"
+              label="Assigned projects"
               value={stats.total}
               icon={ClipboardList}
               iconClassName="text-[#008B8B]"
@@ -554,9 +599,9 @@ export function AssignMissionView() {
               iconWrapClassName="bg-amber-100"
             />
             <UserRequestStatCard
-              label="Marked complete"
-              value={stats.completed}
-              icon={Plane}
+              label="Project types"
+              value={stats.projectTypes}
+              icon={FolderKanban}
               iconClassName="text-sky-800"
               iconWrapClassName="bg-sky-100"
             />
@@ -566,19 +611,19 @@ export function AssignMissionView() {
         <section className="space-y-4">
           {loading ? (
             <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground dark:border-white/20">
-              Loading assigned missions...
+              Loading project requests...
             </div>
           ) : rows.length === 0 ? (
             <article className="rounded-xl border border-dashed border-border bg-card p-8 text-center shadow-sm sm:p-10">
               <span className="mx-auto inline-flex size-12 items-center justify-center rounded-xl bg-[#008B8B]/10 text-[#008B8B]">
-                <Plane className="size-6" aria-hidden />
+                <FolderKanban className="size-6" aria-hidden />
               </span>
               <h2 className="mt-4 text-base font-semibold text-foreground">
-                No assigned missions yet
+                No assigned project requests yet
               </h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-                When an admin assigns you a delivery mission, it will appear here
-                with request details, destination, and actions to add notes or mark
+                When an admin assigns you a project request, it will appear here
+                with request details, location, and actions to add notes or mark
                 complete.
               </p>
             </article>
@@ -587,17 +632,19 @@ export function AssignMissionView() {
               const savedComment = loadPilotMissionCommentText(row.requestRef);
               const savedCommentDisplay =
                 pilotMissionCommentForDisplay(savedComment);
-              const isCompleted = completedMissionIds.has(row.id);
+              const projectType =
+                findProjectRowForRef(row.requestRef, openProjectRows)
+                  ?.projectRequirement?.projectType || "—";
 
               return (
-                <AssignedMissionCard
+                <AssignedProjectCard
                   key={`${row.id}-${commentsDisplayVers}`}
                   row={row}
-                  isCompleted={isCompleted}
+                  projectType={projectType}
                   isSaving={savingRowId === row.id}
                   savedCommentDisplay={savedCommentDisplay}
                   onOpenComments={() => openCommentsDialog(row)}
-                  onComplete={() => void handleCompletedMission(row)}
+                  onComplete={() => void handleCompletedProject(row)}
                 />
               );
             })
@@ -610,7 +657,7 @@ export function AssignMissionView() {
           className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="pilot-comments-dialog-title"
+          aria-labelledby="pilot-project-comments-dialog-title"
         >
           <button
             type="button"
@@ -624,18 +671,19 @@ export function AssignMissionView() {
           >
             <div className="border-b border-border bg-muted/30 px-5 py-4 sm:px-6">
               <h2
-                id="pilot-comments-dialog-title"
+                id="pilot-project-comments-dialog-title"
                 className="text-base font-bold text-foreground"
               >
-                Mission comments
+                Project comments
               </h2>
               <p className="mt-1 text-xs text-muted-foreground">
-                {commentsForRow.customer || "Mission"} · {commentsForRow.requestRef}
+                {commentsForRow.customer || "Project request"} ·{" "}
+                {commentsForRow.requestRef}
               </p>
             </div>
             <div className="px-5 py-4 sm:px-6">
               <label
-                htmlFor="pilot-mission-comment"
+                htmlFor="pilot-project-comment"
                 className="mb-2 block text-xs font-semibold text-muted-foreground"
               >
                 Your comment
@@ -651,7 +699,7 @@ export function AssignMissionView() {
                 </button>
               </p>
               <textarea
-                id="pilot-mission-comment"
+                id="pilot-project-comment"
                 rows={5}
                 value={commentDraft}
                 onChange={(e) => setCommentDraft(e.target.value)}

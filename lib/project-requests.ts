@@ -1,3 +1,5 @@
+import { isUserRequestCompletedDelivery, type UserRequestAdminRow } from "@/lib/user-requests";
+
 /** Client id prefix for Post Your Requirement (`/post-your-requirement`). */
 export const PROJECT_REQUEST_CLIENT_ID_PREFIX = "#PR-";
 
@@ -92,3 +94,33 @@ export function notifyProjectRequestsUpdated(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(PROJECT_REQUESTS_UPDATED_EVENT));
 }
+
+/** Project requirement rows that are fulfilled (admin or linked mission completed). */
+export function isCompletedProjectRequest(row: {
+  adminStatus?: string;
+  missionStatus?: string | null;
+}): boolean {
+  return isUserRequestCompletedDelivery(row);
+}
+
+/** Mission `request_ref` for admin-assigned project requests (prefer `#PR-…`). */
+export function projectRequestMissionRef(row: UserRequestAdminRow): string {
+  const clientId = row.queueDisplayId?.trim();
+  if (clientId) return clientId;
+  return row.backendRequest?.id?.trim() || row.key.trim();
+}
+
+/** All refs that identify the same project request row in missions / tracking. */
+export function projectRequestRefAliases(row: UserRequestAdminRow): string[] {
+  const aliases = new Set<string>();
+  for (const ref of [
+    row.queueDisplayId,
+    row.backendRequest?.id,
+    row.key,
+  ]) {
+    const trimmed = String(ref ?? "").trim();
+    if (trimmed) aliases.add(trimmed.toLowerCase());
+  }
+  return [...aliases];
+}
+

@@ -7,6 +7,23 @@ function toTrimmed(value) {
   return String(value).trim();
 }
 
+/** When a mission is finalized, mirror completion on the linked hire request row. */
+async function syncRequestAdminStatusCompleted(requestRef) {
+  const ref = toTrimmed(requestRef);
+  if (!ref) return;
+  try {
+    await pool.query(
+      `UPDATE drone_hire_requests
+       SET admin_status = 'completed'
+       WHERE TRIM(id::text) = $1
+          OR TRIM(COALESCE(client_request_id, '')) = $1`,
+      [ref]
+    );
+  } catch (err) {
+    console.warn("[missions] sync request completed:", err?.message ?? err);
+  }
+}
+
 function jsonSafeMissionRow(row) {
   if (!row || typeof row !== "object") return row;
   const out = { ...row };
@@ -550,6 +567,7 @@ router.post("/", async (req, res) => {
         ]
       );
       if (updated.rowCount > 0) {
+        await syncRequestAdminStatusCompleted(requestRef);
         return res.status(200).json({
           success: true,
           data: jsonSafeMissionRow(updated.rows[0]),
@@ -615,6 +633,10 @@ router.post("/", async (req, res) => {
         status,
       ]
     );
+
+    if (status === "completed") {
+      await syncRequestAdminStatusCompleted(requestRef);
+    }
 
     return res.status(201).json({
       success: true,
