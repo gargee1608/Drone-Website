@@ -13,8 +13,11 @@ const pool = require("./db");
 
 const app = express();
 
+/** Admin service/blog covers are sent as base64 data URLs (max 2 MB file ≈ 2.7 MB encoded). */
+const JSON_BODY_LIMIT = "4mb";
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: JSON_BODY_LIMIT }));
 
 
 /** Extract password string from user row (handles legacy fields). */
