@@ -2,18 +2,14 @@
 
 import { CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { apiUrl } from "@/lib/api-url";
 import {
-  POST_REQUIREMENT_BUDGET_OPTIONS,
   POST_REQUIREMENT_DESCRIPTION_MAX,
-  POST_REQUIREMENT_MAX_FILE_BYTES,
-  POST_REQUIREMENT_NOTES_MAX,
-  POST_REQUIREMENT_PROJECT_TYPE_OPTIONS,
+  POST_REQUIREMENT_DURATION_OPTIONS,
   POST_REQUIREMENT_PURPOSE_OPTIONS,
-  POST_REQUIREMENT_SERVICE_OPTIONS,
 } from "@/lib/post-requirement-options";
 import { mapPostRequirementToSubmitPayload } from "@/lib/post-requirement-submit";
 import {
@@ -52,23 +48,16 @@ const initialForm = {
   contactName: "",
   contactEmail: "",
   projectTitle: "",
-  serviceCategory: "",
-  projectType: "",
   preferredLocation: "",
   projectDescription: "",
   expectedStartDate: "",
   expectedDuration: "",
-  budgetRange: "",
-  areaOfCoverage: "",
   purposeOfProject: "",
-  additionalNotes: "",
 };
 
 export function PostYourRequirementView() {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState(initialForm);
-  const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -89,9 +78,7 @@ export function PostYourRequirementView() {
 
   function resetForm() {
     setForm(initialForm);
-    setReferenceFiles([]);
     setSubmitError(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -100,8 +87,8 @@ export function PostYourRequirementView() {
     setSubmitSuccess(false);
 
     const email = form.contactEmail.trim();
-    if (!form.contactName.trim() || !email) {
-      setSubmitError("Please enter your name and email.");
+    if (!email) {
+      setSubmitError("Please enter your email.");
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -111,12 +98,9 @@ export function PostYourRequirementView() {
 
     if (
       !form.projectTitle.trim() ||
-      !form.serviceCategory.trim() ||
-      !form.projectType.trim() ||
       !form.preferredLocation.trim() ||
       !form.projectDescription.trim() ||
       !form.expectedStartDate.trim() ||
-      !form.budgetRange.trim() ||
       !form.purposeOfProject.trim()
     ) {
       setSubmitError("Please fill in all required fields.");
@@ -124,7 +108,7 @@ export function PostYourRequirementView() {
     }
 
     if (form.preferredLocation.trim().length < 3) {
-      setSubmitError("Preferred location must be at least 3 characters.");
+      setSubmitError("Location must be at least 3 characters.");
       return;
     }
 
@@ -132,18 +116,12 @@ export function PostYourRequirementView() {
     try {
       const owner = resolveRequestOwnerSnapshot();
       const clientRequestId = `#PR-${Date.now().toString(36).toUpperCase()}`;
-      const payload = mapPostRequirementToSubmitPayload(
-        {
-          ...form,
-          referenceFileNames: referenceFiles.map((f) => f.name),
-        },
-        {
-          clientRequestId,
-          userId: owner.ownerUserId || undefined,
-          userName: owner.ownerName || undefined,
-          userEmail: owner.ownerEmail || undefined,
-        }
-      );
+      const payload = mapPostRequirementToSubmitPayload(form, {
+        clientRequestId,
+        userId: owner.ownerUserId || undefined,
+        userName: owner.ownerName || undefined,
+        userEmail: owner.ownerEmail || undefined,
+      });
 
       const response = await fetch(apiUrl("/api/submit-request"), {
         method: "POST",
@@ -231,50 +209,8 @@ export function PostYourRequirementView() {
                     placeholder="Enter a short title for your project"
                   />
                 </label>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <label className="block">
-                    <span className={labelClass}>Service category *</span>
-                    <select
-                      required
-                      value={form.serviceCategory}
-                      onChange={(e) =>
-                        update("serviceCategory", e.target.value)
-                      }
-                      className={cn(
-                        fieldClass,
-                        !form.serviceCategory && "text-slate-500"
-                      )}
-                    >
-                      <option value="">Select a service</option>
-                      {POST_REQUIREMENT_SERVICE_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className={labelClass}>Project type *</span>
-                    <select
-                      required
-                      value={form.projectType}
-                      onChange={(e) => update("projectType", e.target.value)}
-                      className={cn(
-                        fieldClass,
-                        !form.projectType && "text-slate-500"
-                      )}
-                    >
-                      <option value="">Select project type</option>
-                      {POST_REQUIREMENT_PROJECT_TYPE_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
                 <label className="block">
-                  <span className={labelClass}>Preferred location *</span>
+                  <span className={labelClass}>Location *</span>
                   <input
                     type="text"
                     required
@@ -325,46 +261,24 @@ export function PostYourRequirementView() {
                     />
                   </label>
                   <label className="block">
-                    <span className={labelClass}>Expected end date</span>
-                    <input
-                      type="date"
+                    <span className={labelClass}>Expected duration</span>
+                    <select
                       value={form.expectedDuration}
                       onChange={(e) =>
                         update("expectedDuration", e.target.value)
                       }
-                      className={fieldClass}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className={labelClass}>Budget range (INR) *</span>
-                    <select
-                      required
-                      value={form.budgetRange}
-                      onChange={(e) => update("budgetRange", e.target.value)}
                       className={cn(
                         fieldClass,
-                        !form.budgetRange && "text-slate-500"
+                        !form.expectedDuration && "text-slate-500"
                       )}
                     >
-                      <option value="">Select your budget range</option>
-                      {POST_REQUIREMENT_BUDGET_OPTIONS.map((opt) => (
+                      <option value="">Select duration</option>
+                      {POST_REQUIREMENT_DURATION_OPTIONS.map((opt) => (
                         <option key={opt} value={opt}>
                           {opt}
                         </option>
                       ))}
                     </select>
-                  </label>
-                  <label className="block">
-                    <span className={labelClass}>Area of coverage</span>
-                    <input
-                      type="text"
-                      value={form.areaOfCoverage}
-                      onChange={(e) =>
-                        update("areaOfCoverage", e.target.value)
-                      }
-                      className={fieldClass}
-                      placeholder="e.g. 10 Acres, 5 sq. km, 1 km Route etc."
-                    />
                   </label>
                 </div>
                 <label className="block">
@@ -391,62 +305,16 @@ export function PostYourRequirementView() {
               </fieldset>
 
               <fieldset className="space-y-4 border-t border-slate-100 pt-6">
-                <SectionLegend number={3} title="Additional information" />
-                <label className="block">
-                  <span className={labelClass}>
-                    Upload reference files (optional)
-                  </span>
-                  <p className="mb-1.5 text-xs text-slate-500">
-                    PDF, JPG, PNG, DOC (max. 10MB each)
-                  </p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                    className={fieldClass}
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files ?? []).filter(
-                        (f) => f.size <= POST_REQUIREMENT_MAX_FILE_BYTES
-                      );
-                      setReferenceFiles(files);
-                    }}
-                  />
-                  {referenceFiles.length > 0 ? (
-                    <p className="mt-1 text-xs text-slate-600">
-                      {referenceFiles.map((f) => f.name).join(", ")}
-                    </p>
-                  ) : null}
-                </label>
-                <label className="block">
-                  <span className={labelClass}>Additional notes (optional)</span>
-                  <textarea
-                    maxLength={POST_REQUIREMENT_NOTES_MAX}
-                    value={form.additionalNotes}
-                    onChange={(e) =>
-                      update("additionalNotes", e.target.value)
-                    }
-                    className={cn(fieldClass, "min-h-[96px] resize-y")}
-                    placeholder="Any additional information you would like to share..."
-                  />
-                  <p className="mt-1 text-right text-xs text-slate-500">
-                    {form.additionalNotes.length}/{POST_REQUIREMENT_NOTES_MAX}
-                  </p>
-                </label>
-              </fieldset>
-
-              <fieldset className="space-y-4 border-t border-slate-100 pt-6">
-                <SectionLegend number={4} title="Contact details" />
+                <SectionLegend number={3} title="Contact details" />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <label className="block">
-                    <span className={labelClass}>Name *</span>
+                    <span className={labelClass}>Name / Company (Optional)</span>
                     <input
                       type="text"
-                      required
                       value={form.contactName}
                       onChange={(e) => update("contactName", e.target.value)}
                       className={fieldClass}
-                      placeholder="Your full name"
+                      placeholder="Your name or company"
                       autoComplete="name"
                     />
                   </label>
