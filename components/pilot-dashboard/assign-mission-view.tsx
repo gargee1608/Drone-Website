@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   ClipboardList,
-  Clock,
   MapPin,
   MessageSquareText,
   Plane,
@@ -128,6 +127,7 @@ function dbMissionRowToNotification(
     pilotSub: String(row.pilot_sub ?? row.pilotSub ?? "").trim() || undefined,
     droneModel: String(row.drone_model ?? row.droneModel ?? ""),
     assignedAt,
+    status: String(row.status ?? "assigned").trim() || "assigned",
   };
 }
 
@@ -312,11 +312,18 @@ export function AssignMissionView() {
   );
 
   const stats = useMemo(() => {
-    const active = rows.filter((row) => !completedMissionIds.has(row.id)).length;
-    const completed = rows.filter((row) => completedMissionIds.has(row.id)).length;
+    let assigned = 0;
+    let completed = 0;
+    for (const row of rows) {
+      if (completedMissionIds.has(row.id)) {
+        completed += 1;
+      } else {
+        assigned += 1;
+      }
+    }
     return {
       total: rows.length,
-      active,
+      assigned,
       completed,
     };
   }, [rows, completedMissionIds]);
@@ -540,23 +547,23 @@ export function AssignMissionView() {
             aria-label="Mission assignment summary"
           >
             <UserRequestStatCard
-              label="Assigned missions"
+              label="Total Mission"
               value={stats.total}
               icon={ClipboardList}
               iconClassName="text-[#008B8B]"
               iconWrapClassName="bg-[#008B8B]/10"
             />
             <UserRequestStatCard
-              label="Active"
-              value={stats.active}
-              icon={Clock}
-              iconClassName="text-amber-700"
-              iconWrapClassName="bg-amber-100"
+              label="Assigned Missions"
+              value={stats.assigned}
+              icon={Plane}
+              iconClassName="text-[#008B8B]"
+              iconWrapClassName="bg-[#008B8B]/10"
             />
             <UserRequestStatCard
-              label="Marked complete"
+              label="Completed Mission"
               value={stats.completed}
-              icon={Plane}
+              icon={CheckCircle2}
               iconClassName="text-sky-800"
               iconWrapClassName="bg-sky-100"
             />
