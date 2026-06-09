@@ -208,11 +208,8 @@ export function ProjectRequestDetailModal({
     setAssignError(null);
 
     const ownerFields = missionOwnerFieldsForRequestRef(missionRef);
-    const service = project.serviceCategory.trim() || contact.title;
-    const location =
-      project.preferredLocation.trim() ||
-      project.areaOfCoverage.trim() ||
-      "—";
+    const service = project.purposeOfProject.trim() || contact.title;
+    const location = project.preferredLocation.trim() || "—";
 
     const res = await assignHubMissionToPilot({
       requestRef: missionRef,
@@ -359,18 +356,29 @@ export function ProjectRequestDetailModal({
 
           {project ? (
             <>
-              <section className="mt-4 space-y-2" aria-label="Project information">
-                <SectionHeading>1. Project information</SectionHeading>
+              <section className="mt-4 space-y-2" aria-label="Project Information">
+                <SectionHeading>1. Project Information</SectionHeading>
                 <dl className="grid gap-1.5 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <DetailBox label="Location" value={project.preferredLocation} />
+                  </div>
+                  <div className={innerBoxClass}>
+                    <p className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                      <Calendar className="size-2.5" aria-hidden />
+                      Expected start date
+                    </p>
+                    <p className="mt-0.5 text-xs font-medium">
+                      {project.expectedStartDate.trim() || "—"}
+                    </p>
+                  </div>
                   <DetailBox
-                    label="Service category"
-                    value={project.serviceCategory}
+                    label="Expected duration"
+                    value={project.expectedDuration}
                   />
-                  <DetailBox label="Project type" value={project.projectType} />
                   <div className="sm:col-span-2">
                     <DetailBox
-                      label="Preferred location"
-                      value={project.preferredLocation}
+                      label="Purpose of project"
+                      value={project.purposeOfProject}
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -386,60 +394,12 @@ export function ProjectRequestDetailModal({
                 </dl>
               </section>
 
-              <section className="mt-4 space-y-2" aria-label="Project details">
-                <SectionHeading>2. Project details</SectionHeading>
-                <dl className="grid gap-1.5 sm:grid-cols-2">
-                  <div className={innerBoxClass}>
-                    <p className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                      <Calendar className="size-2.5" aria-hidden />
-                      Expected start
-                    </p>
-                    <p className="mt-0.5 text-xs font-medium">
-                      {project.expectedStartDate.trim() || "—"}
-                    </p>
-                  </div>
-                  <DetailBox
-                    label="Expected end date"
-                    value={project.expectedDuration}
-                  />
-                  <DetailBox label="Budget (INR)" value={project.budgetRange} />
-                  <DetailBox
-                    label="Area of coverage"
-                    value={project.areaOfCoverage}
-                  />
-                  <div className="sm:col-span-2">
-                    <DetailBox
-                      label="Purpose of project"
-                      value={project.purposeOfProject}
-                    />
-                  </div>
-                </dl>
-              </section>
-
-              <section className="mt-4 space-y-2" aria-label="Additional information">
-                <SectionHeading>3. Additional information</SectionHeading>
-                {project.referenceFileNames.length > 0 ? (
-                  <DetailBox
-                    label="Reference files"
-                    value={project.referenceFileNames.join(", ")}
-                  />
-                ) : null}
-                <div className={innerBoxClass}>
-                  <p className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                    Additional notes
-                  </p>
-                  <p className="mt-0.5 whitespace-pre-wrap break-words text-xs font-medium leading-snug">
-                    {project.additionalNotes.trim() || "—"}
-                  </p>
-                </div>
-              </section>
-
               <section className="mt-4 space-y-2" aria-label="Contact details">
-                <SectionHeading>4. Contact details</SectionHeading>
+                <SectionHeading>2. Contact details</SectionHeading>
                 <div className="grid gap-1.5 sm:grid-cols-2">
                   <ContactRow
                     icon={User}
-                    label="Name"
+                    label="Name / Company (optional)"
                     value={project.contactName.trim() || contact.name}
                   />
                   <ContactRow

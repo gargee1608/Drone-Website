@@ -43,30 +43,19 @@ import {
 import { cn } from "@/lib/utils";
 
 function projectTableCells(m: UserRequestAdminRow): {
-  service: string;
-  location: string;
-  budget: string;
-  projectType: string;
   purpose: string;
+  location: string;
+  duration: string;
 } {
   const p = m.projectRequirement;
   if (p) {
     return {
-      service: p.serviceCategory.trim() || "—",
-      location: p.preferredLocation.trim() || "—",
-      budget: p.budgetRange.trim() || "—",
-      projectType: p.projectType.trim() || "—",
       purpose: p.purposeOfProject.trim() || "—",
+      location: p.preferredLocation.trim() || "—",
+      duration: p.expectedDuration.trim() || "—",
     };
   }
-  const parsed = parsePostRequirementDesc(m.desc);
-  return {
-    service: parsed.service,
-    location: parsed.location,
-    budget: parsed.budget,
-    projectType: "—",
-    purpose: parsed.purpose,
-  };
+  return parsePostRequirementDesc(m.desc);
 }
 
 function projectRequestContact(row: UserRequestAdminRow) {
@@ -248,11 +237,9 @@ export function CompletedProjectsView({
       "Project Title",
       "User Name",
       "User Email Id",
-      "Service",
-      "Location",
-      "Budget",
-      "Project Type",
       "Purpose",
+      "Location",
+      "Duration",
       "Status",
     ];
     const body = rows.map((row) => {
@@ -263,11 +250,9 @@ export function CompletedProjectsView({
         contact.title,
         contact.name,
         contact.email,
-        cells.service,
-        cells.location,
-        cells.budget,
-        cells.projectType,
         cells.purpose,
+        cells.location,
+        cells.duration,
         projectStatusLabel(row),
       ];
     });
@@ -436,14 +421,12 @@ function CompletedProjectDetailCard({
       <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
         <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
           <InlineProjectField label="Request ID" value={requestId} />
-          <InlineProjectField label="Service" value={cells.service} />
+          <InlineProjectField label="Purpose" value={cells.purpose} />
           <InlineProjectField label="Location" value={cells.location} />
-          <InlineProjectField label="Budget" value={cells.budget} />
+          <InlineProjectField label="Duration" value={cells.duration} />
         </div>
         <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
-          <InlineProjectField label="Project type" value={cells.projectType} />
           <InlineProjectField label="Status" value={status} />
-          <InlineProjectField label="Purpose" value={cells.purpose} />
           <InlineProjectField label="Project title" value={title} />
         </div>
       </div>

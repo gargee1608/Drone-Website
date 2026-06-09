@@ -169,11 +169,8 @@ function rowToProjectNotification(
     id: `row:${row.key}`,
     requestRef,
     customer: project?.projectTitle?.trim() || row.title,
-    service: project?.serviceCategory?.trim() || "—",
-    dropoff:
-      project?.preferredLocation?.trim() ||
-      project?.areaOfCoverage?.trim() ||
-      "—",
+    service: project?.purposeOfProject?.trim() || "—",
+    dropoff: project?.preferredLocation?.trim() || "—",
     pilotName: tracking?.pilotName || "",
     pilotBadgeId: tracking?.pilotBadgeId || "",
     pilotSub: tracking?.pilotSub?.trim() || pilotSub || undefined,
@@ -214,14 +211,14 @@ function ProjectRequestField({ label, value }: { label: string; value: string })
 
 function AssignedProjectCard({
   row,
-  projectType,
+  expectedDuration,
   isSaving,
   savedCommentDisplay,
   onOpenComments,
   onComplete,
 }: {
   row: PilotMissionNotification;
-  projectType: string;
+  expectedDuration: string;
   isSaving: boolean;
   savedCommentDisplay: string;
   onOpenComments: () => void;
@@ -277,8 +274,8 @@ function AssignedProjectCard({
       <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
         <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
           <ProjectRequestField label="Request ID" value={row.requestRef} />
-          <ProjectRequestField label="Service" value={row.service || "—"} />
-          <ProjectRequestField label="Project type" value={projectType} />
+          <ProjectRequestField label="Purpose" value={row.service || "—"} />
+          <ProjectRequestField label="Duration" value={expectedDuration} />
           <ProjectRequestField
             label="Assigned at"
             value={formatAssignedAt(row.assignedAt)}
@@ -367,14 +364,14 @@ export function PilotProjectRequestsView() {
     () => ({
       total: rows.length,
       active: rows.length,
-      projectTypes: new Set(
+      purposes: new Set(
         rows
           .map(
             (row) =>
               findProjectRowForRef(row.requestRef, openProjectRows)
-                ?.projectRequirement?.projectType
+                ?.projectRequirement?.purposeOfProject
           )
-          .filter((type): type is string => Boolean(type?.trim()))
+          .filter((purpose): purpose is string => Boolean(purpose?.trim()))
       ).size,
     }),
     [rows, openProjectRows]
@@ -599,8 +596,8 @@ export function PilotProjectRequestsView() {
               iconWrapClassName="bg-amber-100"
             />
             <UserRequestStatCard
-              label="Project types"
-              value={stats.projectTypes}
+              label="Purposes"
+              value={stats.purposes}
               icon={FolderKanban}
               iconClassName="text-sky-800"
               iconWrapClassName="bg-sky-100"
@@ -632,15 +629,15 @@ export function PilotProjectRequestsView() {
               const savedComment = loadPilotMissionCommentText(row.requestRef);
               const savedCommentDisplay =
                 pilotMissionCommentForDisplay(savedComment);
-              const projectType =
+              const expectedDuration =
                 findProjectRowForRef(row.requestRef, openProjectRows)
-                  ?.projectRequirement?.projectType || "—";
+                  ?.projectRequirement?.expectedDuration || "—";
 
               return (
                 <AssignedProjectCard
                   key={`${row.id}-${commentsDisplayVers}`}
                   row={row}
-                  projectType={projectType}
+                  expectedDuration={expectedDuration}
                   isSaving={savingRowId === row.id}
                   savedCommentDisplay={savedCommentDisplay}
                   onOpenComments={() => openCommentsDialog(row)}

@@ -23,12 +23,9 @@ import {
   ADMIN_PAGE_TOP_PADDING_CLASS,
 } from "@/lib/page-heading";
 import {
-  POST_REQUIREMENT_BUDGET_OPTIONS,
   POST_REQUIREMENT_DESCRIPTION_MAX,
-  POST_REQUIREMENT_NOTES_MAX,
-  POST_REQUIREMENT_PROJECT_TYPE_OPTIONS,
+  POST_REQUIREMENT_DURATION_OPTIONS,
   POST_REQUIREMENT_PURPOSE_OPTIONS,
-  POST_REQUIREMENT_SERVICE_OPTIONS,
 } from "@/lib/post-requirement-options";
 import {
   parsePostRequirementBackend,
@@ -49,6 +46,7 @@ import {
 } from "@/lib/project-requests";
 import {
   MISSIONS_DB_UPDATED_EVENT,
+  normalizeUserMissionAdminStatus,
   type UserMissionAdminStatus,
   type UserRequestAdminRow,
 } from "@/lib/user-requests";
@@ -294,19 +292,17 @@ export function ProjectRequestsView({
     const form = requestEditForm;
     if (!id || !form) return;
 
-    if (!form.contactName.trim() || !form.contactEmail.trim()) {
-      setRequestEditError("Name and email are required.");
+    if (!form.contactEmail.trim()) {
+      setRequestEditError("Email is required.");
       return;
     }
 
     if (
       !form.projectTitle.trim() ||
-      !form.serviceCategory.trim() ||
-      !form.projectType.trim() ||
       !form.preferredLocation.trim() ||
       !form.projectDescription.trim() ||
       !form.expectedStartDate.trim() ||
-      !form.budgetRange.trim() ||
+      !form.expectedDuration.trim() ||
       !form.purposeOfProject.trim()
     ) {
       setRequestEditError("Please fill in all required project fields.");
@@ -474,7 +470,7 @@ export function ProjectRequestsView({
             <div className="mt-5 space-y-6">
               <fieldset className="space-y-3">
                 <legend className="text-sm font-bold text-foreground">
-                  1. Project information
+                  1. Project Information
                 </legend>
                 <EditField
                   label="Project title"
@@ -482,65 +478,12 @@ export function ProjectRequestsView({
                   value={requestEditForm.projectTitle}
                   onChange={(v) => updateEditForm("projectTitle", v)}
                 />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block text-sm">
-                    <span className={editLabelClass}>Service category *</span>
-                    <select
-                      value={requestEditForm.serviceCategory}
-                      onChange={(e) =>
-                        updateEditForm("serviceCategory", e.target.value)
-                      }
-                      className={editFieldClass}
-                    >
-                      <option value="">Select a service</option>
-                      {POST_REQUIREMENT_SERVICE_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block text-sm">
-                    <span className={editLabelClass}>Project type *</span>
-                    <select
-                      value={requestEditForm.projectType}
-                      onChange={(e) =>
-                        updateEditForm("projectType", e.target.value)
-                      }
-                      className={editFieldClass}
-                    >
-                      <option value="">Select project type</option>
-                      {POST_REQUIREMENT_PROJECT_TYPE_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
                 <EditField
-                  label="Preferred location"
+                  label="Location"
                   required
                   value={requestEditForm.preferredLocation}
                   onChange={(v) => updateEditForm("preferredLocation", v)}
                 />
-                <label className="block text-sm">
-                  <span className={editLabelClass}>Project description *</span>
-                  <textarea
-                    value={requestEditForm.projectDescription}
-                    maxLength={POST_REQUIREMENT_DESCRIPTION_MAX}
-                    onChange={(e) =>
-                      updateEditForm("projectDescription", e.target.value)
-                    }
-                    className={cn(editFieldClass, "min-h-[88px] resize-y")}
-                  />
-                </label>
-              </fieldset>
-
-              <fieldset className="space-y-3 border-t border-border pt-5">
-                <legend className="text-sm font-bold text-foreground">
-                  2. Project details
-                </legend>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block text-sm">
                     <span className={editLabelClass}>Expected start date *</span>
@@ -554,38 +497,22 @@ export function ProjectRequestsView({
                     />
                   </label>
                   <label className="block text-sm">
-                    <span className={editLabelClass}>Expected end date</span>
-                    <input
-                      type="date"
+                    <span className={editLabelClass}>Expected duration *</span>
+                    <select
                       value={requestEditForm.expectedDuration}
                       onChange={(e) =>
                         updateEditForm("expectedDuration", e.target.value)
                       }
                       className={editFieldClass}
-                    />
-                  </label>
-                  <label className="block text-sm">
-                    <span className={editLabelClass}>Budget range (INR) *</span>
-                    <select
-                      value={requestEditForm.budgetRange}
-                      onChange={(e) =>
-                        updateEditForm("budgetRange", e.target.value)
-                      }
-                      className={editFieldClass}
                     >
-                      <option value="">Select budget</option>
-                      {POST_REQUIREMENT_BUDGET_OPTIONS.map((opt) => (
+                      <option value="">Select duration</option>
+                      {POST_REQUIREMENT_DURATION_OPTIONS.map((opt) => (
                         <option key={opt} value={opt}>
                           {opt}
                         </option>
                       ))}
                     </select>
                   </label>
-                  <EditField
-                    label="Area of coverage"
-                    value={requestEditForm.areaOfCoverage}
-                    onChange={(v) => updateEditForm("areaOfCoverage", v)}
-                  />
                 </div>
                 <label className="block text-sm">
                   <span className={editLabelClass}>Purpose of project *</span>
@@ -604,21 +531,15 @@ export function ProjectRequestsView({
                     ))}
                   </select>
                 </label>
-              </fieldset>
-
-              <fieldset className="space-y-3 border-t border-border pt-5">
-                <legend className="text-sm font-bold text-foreground">
-                  3. Additional information
-                </legend>
                 <label className="block text-sm">
-                  <span className={editLabelClass}>Additional notes</span>
+                  <span className={editLabelClass}>Project description *</span>
                   <textarea
-                    value={requestEditForm.additionalNotes}
-                    maxLength={POST_REQUIREMENT_NOTES_MAX}
+                    value={requestEditForm.projectDescription}
+                    maxLength={POST_REQUIREMENT_DESCRIPTION_MAX}
                     onChange={(e) =>
-                      updateEditForm("additionalNotes", e.target.value)
+                      updateEditForm("projectDescription", e.target.value)
                     }
-                    className={cn(editFieldClass, "min-h-[72px] resize-y")}
+                    className={cn(editFieldClass, "min-h-[88px] resize-y")}
                   />
                 </label>
                 <label className="block text-sm">
@@ -643,12 +564,11 @@ export function ProjectRequestsView({
 
               <fieldset className="space-y-3 border-t border-border pt-5">
                 <legend className="text-sm font-bold text-foreground">
-                  4. Contact details
+                  2. Contact details
                 </legend>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <EditField
-                    label="Name"
-                    required
+                    label="Name / Company (optional)"
                     value={requestEditForm.contactName}
                     onChange={(v) => updateEditForm("contactName", v)}
                   />

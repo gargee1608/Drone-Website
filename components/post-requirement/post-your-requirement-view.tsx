@@ -101,6 +101,7 @@ export function PostYourRequirementView() {
       !form.preferredLocation.trim() ||
       !form.projectDescription.trim() ||
       !form.expectedStartDate.trim() ||
+      !form.expectedDuration.trim() ||
       !form.purposeOfProject.trim()
     ) {
       setSubmitError("Please fill in all required fields.");
@@ -197,7 +198,7 @@ export function PostYourRequirementView() {
           ) : (
             <form className="space-y-6" onSubmit={handleSubmit}>
               <fieldset className="space-y-4">
-                <SectionLegend number={1} title="Project information" />
+                <SectionLegend number={1} title="Project Information" />
                 <label className="block">
                   <span className={labelClass}>Project title *</span>
                   <input
@@ -222,31 +223,6 @@ export function PostYourRequirementView() {
                     placeholder="Enter city, state or area"
                   />
                 </label>
-                <label className="block">
-                  <span className={labelClass}>Project description *</span>
-                  <p className="mb-1.5 text-xs text-slate-500">
-                    Please provide details about your requirement, objectives,
-                    and expected deliverables.
-                  </p>
-                  <textarea
-                    required
-                    maxLength={POST_REQUIREMENT_DESCRIPTION_MAX}
-                    value={form.projectDescription}
-                    onChange={(e) =>
-                      update("projectDescription", e.target.value)
-                    }
-                    className={cn(fieldClass, "min-h-[120px] resize-y")}
-                    placeholder="Describe your project in detail..."
-                  />
-                  <p className="mt-1 text-right text-xs text-slate-500">
-                    {form.projectDescription.length}/
-                    {POST_REQUIREMENT_DESCRIPTION_MAX}
-                  </p>
-                </label>
-              </fieldset>
-
-              <fieldset className="space-y-4 border-t border-slate-100 pt-6">
-                <SectionLegend number={2} title="Project details" />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <label className="block">
                     <span className={labelClass}>Expected start date *</span>
@@ -261,8 +237,9 @@ export function PostYourRequirementView() {
                     />
                   </label>
                   <label className="block">
-                    <span className={labelClass}>Expected duration</span>
+                    <span className={labelClass}>Expected duration *</span>
                     <select
+                      required
                       value={form.expectedDuration}
                       onChange={(e) =>
                         update("expectedDuration", e.target.value)
@@ -302,13 +279,30 @@ export function PostYourRequirementView() {
                     ))}
                   </select>
                 </label>
+                <label className="block">
+                  <span className={labelClass}>Project description *</span>
+                  <textarea
+                    required
+                    maxLength={POST_REQUIREMENT_DESCRIPTION_MAX}
+                    value={form.projectDescription}
+                    onChange={(e) =>
+                      update("projectDescription", e.target.value)
+                    }
+                    className={cn(fieldClass, "min-h-[120px] resize-y")}
+                    placeholder="Describe your project in detail..."
+                  />
+                  <p className="mt-1 text-right text-xs text-slate-500">
+                    {form.projectDescription.length}/
+                    {POST_REQUIREMENT_DESCRIPTION_MAX}
+                  </p>
+                </label>
               </fieldset>
 
               <fieldset className="space-y-4 border-t border-slate-100 pt-6">
-                <SectionLegend number={3} title="Contact details" />
+                <SectionLegend number={2} title="Contact details" />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <label className="block">
-                    <span className={labelClass}>Name / Company (Optional)</span>
+                    <span className={labelClass}>Name / Company (optional)</span>
                     <input
                       type="text"
                       value={form.contactName}

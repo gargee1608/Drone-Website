@@ -28,19 +28,20 @@ import { parsePostRequirementDesc } from "@/lib/post-requirement-parse";
 import { USER_REQUEST_DEMO_MISSIONS } from "./user-request-demos";
 
 function projectTableCells(m: UserRequestAdminRow): {
-  service: string;
+  purpose: string;
   location: string;
-  budget: string;
+  duration: string;
 } {
   const p = m.projectRequirement;
   if (p) {
     return {
-      service: p.serviceCategory.trim() || "—",
+      purpose: p.purposeOfProject.trim() || "—",
       location: p.preferredLocation.trim() || "—",
-      budget: p.budgetRange.trim() || "—",
+      duration: p.expectedDuration.trim() || "—",
     };
   }
-  return parsePostRequirementDesc(m.desc);
+  const parsed = parsePostRequirementDesc(m.desc);
+  return parsed;
 }
 
 export function parsePayloadAndTarget(desc: string): {
@@ -407,13 +408,13 @@ export function UserRequestTable({
                     Project title
                   </th>
                   <th scope="col" className={thBase}>
-                    Service
+                    Purpose
                   </th>
                   <th scope="col" className={thBase}>
                     Location
                   </th>
                   <th scope="col" className={thBase}>
-                    Budget
+                    Duration
                   </th>
                   <th scope="col" className={thCenter}>
                     Status
@@ -568,13 +569,13 @@ export function UserRequestTable({
                       )}
                     </td>
                     <td className={tdBase}>
-                      <span className="break-words">{projectCells.service}</span>
+                      <span className="break-words">{projectCells.purpose}</span>
                     </td>
                     <td className={tdBase}>
                       <span className="break-words">{projectCells.location}</span>
                     </td>
                     <td className={tdBase}>
-                      <span className="break-words">{projectCells.budget}</span>
+                      <span className="break-words">{projectCells.duration}</span>
                     </td>
                     <td className={tdCenter}>
                       {adminStatusUi ? (
