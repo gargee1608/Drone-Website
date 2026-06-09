@@ -19,8 +19,6 @@ import { useAdminServicesCatalog } from "@/hooks/use-admin-services-catalog";
 import { fetchSuppressedServiceSlugs } from "@/lib/fetch-suppressed-service-slugs";
 import { suppressedSlugSet } from "@/lib/admin-services-merge";
 import {
-  formatRupeePrice,
-  getCatalogPriceLabel,
   serviceCatalogItems,
   serviceSlugFromTitle,
 } from "@/lib/service-catalog";
@@ -143,11 +141,6 @@ function ServiceGridCard({
               sizes="(max-width:768px) 100vw, 33vw"
             />
           </Link>
-          <div className="pointer-events-none absolute left-3 top-3">
-            <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
-              {formatRupeePrice(item.topBadge.text)}
-            </span>
-          </div>
         </div>
         <div className="flex flex-1 flex-col p-4 sm:p-5">
           <h3
@@ -212,11 +205,6 @@ function ServiceGridCard({
               sizes="(max-width:768px) 100vw, 33vw"
             />
           </Link>
-          <div className="pointer-events-none absolute left-3 top-3">
-            <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
-              {formatRupeePrice(item.priceLabel)}
-            </span>
-          </div>
         </div>
         <div className="flex flex-1 flex-col p-4 sm:p-5">
           <h3
@@ -257,10 +245,6 @@ function ServiceGridCard({
     typeof service.slug === "string" && service.slug.trim()
       ? service.slug.trim()
       : serviceSlugFromTitle(title);
-  const priceLabel = getCatalogPriceLabel(
-    slug,
-    service.price as string | number | null | undefined
-  );
   const detailHref = `/services/${slug}`;
 
   return (
@@ -294,13 +278,6 @@ function ServiceGridCard({
             No image
           </div>
         )}
-        {priceLabel ? (
-          <div className="pointer-events-none absolute left-3 top-3">
-            <span className="rounded border border-[#c1c7cf]/30 bg-card px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] shadow-sm backdrop-blur-md sm:px-2.5 sm:text-[10px]">
-              {priceLabel}
-            </span>
-          </div>
-        ) : null}
       </div>
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <h3
@@ -341,33 +318,6 @@ const featuredBtnOutline =
 
 const featuredBtnPrimary =
   "inline-flex w-fit items-center justify-center rounded-md border-2 border-[#006a6e] bg-transparent px-5 py-2 text-center font-[family-name:var(--font-landing-headline)] text-[11px] font-bold uppercase tracking-widest text-[#006a6e] dark:text-[#4ddbd9] shadow-sm transition-all hover:border-[#005a5d] hover:bg-[#006a6e]/10 active:scale-95 sm:px-6 sm:py-2.5 sm:text-xs";
-
-function FeaturedPriceRow({
-  prefix = "Starting at",
-  value,
-}: {
-  prefix?: string;
-  value: string;
-}) {
-  const showPrefix = Boolean(prefix?.trim());
-  return (
-    <div className="mb-4 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 sm:mb-5">
-      {showPrefix ? (
-        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground sm:text-[11px]">
-          {prefix}
-        </span>
-      ) : null}
-      <span
-        className={cn(
-          headline,
-          "text-lg font-bold tabular-nums text-foreground sm:text-xl"
-        )}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
 
 function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) {
   const blockNav = (e: MouseEvent<HTMLElement>) => stopSelectNav(e);
@@ -425,7 +375,6 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         >
           {catalogExcerpt(item.description)}
         </p>
-        <FeaturedPriceRow value={formatRupeePrice(item.topBadge.text)} />
         <div onClick={blockNav} className="flex flex-wrap items-center gap-2.5">
           <Link
             href={`/services/${item.slug}`}
@@ -491,7 +440,6 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         >
           {catalogExcerpt(item.description)}
         </p>
-        <FeaturedPriceRow prefix="Rate" value={formatRupeePrice(item.priceLabel)} />
         <div onClick={blockNav} className="flex flex-wrap items-center gap-2.5">
           <Link
             href={href}
@@ -528,10 +476,6 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         ? String(entry.item.slug).trim()
         : serviceSlugFromTitle(title);
     const href = `/services/${slug}`;
-    const featuredPriceLabel = getCatalogPriceLabel(
-      slug,
-      entry.item.price as string | number | null | undefined
-    );
     const img =
       typeof entry.item.image === "string" ? entry.item.image.trim() : "";
     left = (
@@ -561,12 +505,6 @@ function SelectedServiceFeaturedBox({ entry }: { entry: ListedService | null }) 
         >
           {desc}
         </p>
-        {featuredPriceLabel ? (
-          <FeaturedPriceRow
-            prefix="Starting at"
-            value={featuredPriceLabel}
-          />
-        ) : null}
         <div onClick={blockNav} className="flex flex-wrap items-center gap-2.5">
           <Link
             href={href}

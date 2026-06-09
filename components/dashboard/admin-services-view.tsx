@@ -116,7 +116,6 @@ export function AdminServicesView({
   const [description, setDescription] = useState("");
   const [overviewText, setOverviewText] = useState("");
   const [highlightsText, setHighlightsText] = useState("");
-  const [price, setPrice] = useState("");
   const [image, setImage] = useState("");
 
   const [formError, setFormError] = useState<string | null>(null);
@@ -275,7 +274,6 @@ export function AdminServicesView({
     setDescription("");
     setOverviewText("");
     setHighlightsText("");
-    setPrice("");
     setImage("");
     setEditId(null);
     setEditSlug(null);
@@ -286,13 +284,8 @@ export function AdminServicesView({
 
   // ================= ADD =================
   const addService = async () => {
-    if (!title.trim() || !price.trim()) {
-      setFormError("Title and Price are required");
-      return;
-    }
-    const priceNum = Number(price);
-    if (!Number.isFinite(priceNum)) {
-      setFormError("Enter a valid price");
+    if (!title.trim()) {
+      setFormError("Title is required");
       return;
     }
 
@@ -306,7 +299,6 @@ export function AdminServicesView({
         body: JSON.stringify({
           title: title.trim(),
           description,
-          price: priceNum,
           image,
           ...detailPayloadFromForm(),
         }),
@@ -348,20 +340,14 @@ export function AdminServicesView({
     const { overview, highlights } = detailFieldsForForm(item);
     setOverviewText(overview);
     setHighlightsText(highlights);
-    setPrice(String(item.price));
     setImage(item.image);
   };
 
   // ================= UPDATE =================
   const updateService = async () => {
     if (!catalogOnlyEdit && !editId) return;
-    if (!title.trim() || !price.trim()) {
-      setFormError("Title and Price are required");
-      return;
-    }
-    const priceNum = Number(price);
-    if (!Number.isFinite(priceNum)) {
-      setFormError("Enter a valid price");
+    if (!title.trim()) {
+      setFormError("Title is required");
       return;
     }
 
@@ -379,7 +365,6 @@ export function AdminServicesView({
       const payload = {
         title: title.trim(),
         description,
-        price: priceNum,
         image,
         ...detailPayloadFromForm(),
         ...(slug ? { slug } : {}),
@@ -588,21 +573,6 @@ export function AdminServicesView({
                   ) : null}
                 </div>
               )}
-              <div>
-                <label
-                  htmlFor="admin-service-price"
-                  className="mb-1.5 block text-xs font-semibold text-foreground"
-                >
-                  Price (Rs.)
-                </label>
-                <Input
-                  id="admin-service-price"
-                  inputMode="decimal"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className={cn("h-11 rounded-lg border", ADMIN_DASH_LIGHT_BOX_BORDER)}
-                />
-              </div>
               <div className="sm:col-span-2">
                 <label
                   htmlFor="admin-service-details"
@@ -857,9 +827,6 @@ export function AdminServicesView({
                   </h3>
                   <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                     {row.description}
-                  </p>
-                  <p className="text-sm font-semibold text-foreground">
-                    Rs. {row.price}
                   </p>
 
                   <div
