@@ -461,14 +461,12 @@ function pilotRegistrationStatusPill(variant: "pending" | "approved"): {
   if (variant === "pending") {
     return {
       label: "Review Pending",
-      className:
-        "bg-amber-50 text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-800/50",
+      className: "bg-amber-100 text-amber-800",
     };
   }
   return {
     label: "Approved Pilot",
-    className:
-      "bg-green-50 text-green-800 ring-1 ring-green-200/80 dark:bg-green-950/40 dark:text-green-300 dark:ring-green-800/50",
+    className: "bg-green-100 text-green-800",
   };
 }
 
@@ -485,16 +483,18 @@ function PilotRegistrationsTable({
 }) {
   const isPending = variant === "pending";
   const detailColumns = isPending ? PENDING_TABLE_COLUMNS : APPROVED_TABLE_COLUMNS;
-  const columnCount = detailColumns.length + 2;
   const thBase =
-    "whitespace-nowrap px-2 py-2.5 align-middle text-center text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-2.5 sm:py-3 sm:text-[10px]";
+    "whitespace-nowrap px-5 py-4 text-left align-middle text-sm font-semibold text-slate-700";
+  const thActions =
+    "whitespace-nowrap px-5 py-4 text-right align-middle text-sm font-semibold text-slate-700";
   const tdBase =
-    "min-w-0 px-2 py-2.5 align-middle text-center text-[10px] leading-snug text-foreground sm:px-2.5 sm:py-3 sm:text-[11px]";
+    "min-w-0 px-5 py-4 align-middle text-left text-sm text-slate-600";
+  const tdActions = "min-w-0 px-5 py-4 align-middle text-right text-sm";
 
   if (pilots.length === 0) {
     return (
-      <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
-        <p className="text-sm font-medium text-muted-foreground">
+      <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+        <p className="text-sm font-medium text-slate-500">
           {isPending
             ? "No pending pilot registrations at this time."
             : "No registered pilots at this time."}
@@ -506,16 +506,11 @@ function PilotRegistrationsTable({
   const statusPill = pilotRegistrationStatusPill(variant);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full table-fixed border-collapse text-[10px] leading-snug sm:text-[11px]">
-          <colgroup>
-            {Array.from({ length: columnCount }, (_, index) => (
-              <col key={index} style={{ width: `${100 / columnCount}%` }} />
-            ))}
-          </colgroup>
+        <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-border bg-muted/60">
+            <tr className="border-b border-slate-200 bg-slate-50">
               <th scope="col" className={thBase}>
                 Pilot Name
               </th>
@@ -524,7 +519,7 @@ function PilotRegistrationsTable({
                   {col}
                 </th>
               ))}
-              <th scope="col" className={thBase}>
+              <th scope="col" className={thActions}>
                 Actions
               </th>
             </tr>
@@ -533,10 +528,13 @@ function PilotRegistrationsTable({
             {pilots.map((p) => (
               <tr
                 key={p.id}
-                className="border-b border-border/60 transition-colors last:border-b-0 hover:bg-muted/30"
+                className="border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/60"
               >
-                <td className={cn(tdBase, "font-semibold")}>
-                  <span className="block truncate" title={p.name}>
+                <td className={tdBase}>
+                  <span
+                    className="block truncate font-medium text-slate-900"
+                    title={p.name}
+                  >
                     {p.name}
                   </span>
                 </td>
@@ -546,7 +544,7 @@ function PilotRegistrationsTable({
                       <td key={col} className={tdBase}>
                         <span
                           className={cn(
-                            "inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-semibold normal-case leading-tight sm:text-[11px]",
+                            "inline-flex max-w-full items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium",
                             statusPill.className
                           )}
                         >
@@ -557,7 +555,7 @@ function PilotRegistrationsTable({
                   }
                   const { v, vClass } = pilotRowValue(p, col);
                   return (
-                    <td key={col} className={cn(tdBase, "font-medium")}>
+                    <td key={col} className={tdBase}>
                       <span
                         className={cn(
                           "block truncate",
@@ -571,7 +569,7 @@ function PilotRegistrationsTable({
                     </td>
                   );
                 })}
-                <td className={tdBase}>
+                <td className={tdActions}>
                   {isPending ? (
                     <Button
                       type="button"
