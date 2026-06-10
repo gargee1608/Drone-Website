@@ -336,6 +336,9 @@ async function ensureMissionSchema() {
   await pool.query(
     "ALTER TABLE missions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'completed'"
   );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS pilot_comment TEXT"
+  );
 }
 
 async function ensureDroneHireRequestsSchema() {

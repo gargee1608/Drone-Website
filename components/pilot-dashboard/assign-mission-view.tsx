@@ -7,6 +7,7 @@ import {
   MapPin,
   MessageSquareText,
   Plane,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -29,9 +30,15 @@ import {
 } from "@/lib/pilot-mission-notifications";
 import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
 import {
-  PILOT_COMMENT_WEATHER_PRESET,
-  pilotMissionCommentForDisplay,
+  formatCommentTimestamp,
 } from "@/lib/pilot-mission-comment-display";
+import {
+  appendPilotMissionComment,
+  deletePilotMissionComment,
+  loadPilotMissionComments,
+  loadPilotMissionCommentText,
+  type PilotMissionCommentEntry,
+} from "@/lib/pilot-mission-comments-storage";
 import {
   isProjectRequirementRequest,
   notifyProjectRequestsUpdated,
@@ -41,45 +48,11 @@ import { updateUserMissionTrackingStatusToCompleted } from "@/lib/user-mission-t
 import { cn } from "@/lib/utils";
 
 const COMPLETED_MISSION_PREVIEW_KEY = "aerolaminar_completed_mission_preview_v1";
-const PILOT_MISSION_COMMENTS_KEY = "aerolaminar_pilot_mission_comments_v1";
 
-function loadPilotMissionCommentText(requestRef: string): string {
-  if (typeof window === "undefined") return "";
-  try {
-    const raw = localStorage.getItem(PILOT_MISSION_COMMENTS_KEY);
-    if (!raw) return "";
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return "";
-    const row = (parsed as Record<string, unknown>)[requestRef.trim()];
-    if (row && typeof row === "object" && "text" in row) {
-      return typeof (row as { text: unknown }).text === "string"
-        ? (row as { text: string }).text
-        : "";
-    }
-    return "";
-  } catch {
-    return "";
-  }
-}
-
-function savePilotMissionCommentText(requestRef: string, text: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    const key = requestRef.trim();
-    const raw = localStorage.getItem(PILOT_MISSION_COMMENTS_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : {};
-    const next =
-      parsed && typeof parsed === "object" && !Array.isArray(parsed)
-        ? { ...parsed }
-        : {};
-    (next as Record<string, { text: string; updatedAt: string }>)[key] = {
-      text: text.trim(),
-      updatedAt: new Date().toISOString(),
-    };
-    localStorage.setItem(PILOT_MISSION_COMMENTS_KEY, JSON.stringify(next));
-  } catch {
-    /* ignore */
-  }
+function missionDbIdFromNotification(row: PilotMissionNotification): string | undefined {
+  if (!row.id.startsWith("db:")) return undefined;
+  const id = row.id.slice(3).trim();
+  return id || undefined;
 }
 
 function formatAssignedAt(iso: string): string {
@@ -165,15 +138,19 @@ function AssignedMissionCard({
   row,
   isCompleted,
   isSaving,
-  savedCommentDisplay,
+  savedComments,
+  deletingCommentAt,
   onOpenComments,
+  onDeleteComment,
   onComplete,
 }: {
   row: PilotMissionNotification;
   isCompleted: boolean;
   isSaving: boolean;
-  savedCommentDisplay: string;
+  savedComments: PilotMissionCommentEntry[];
+  deletingCommentAt: string | null;
   onOpenComments: () => void;
+  onDeleteComment: (createdAt: string) => void;
   onComplete: () => void;
 }) {
   const title = row.customer || row.requestRef || "Mission";
@@ -256,14 +233,46 @@ function AssignedMissionCard({
           </div>
         </div>
 
-        {savedCommentDisplay ? (
+        {savedComments.length > 0 ? (
           <div className="rounded-lg border border-border/70 bg-background px-3 py-2.5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Pilot comment
+              Pilot comments
             </p>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
-              {savedCommentDisplay}
-            </p>
+            <ul className="mt-2 space-y-2">
+              {savedComments.map((comment, index) => {
+                const timestamp = formatCommentTimestamp(comment.createdAt);
+                const isDeleting = deletingCommentAt === comment.createdAt;
+                return (
+                  <li
+                    key={`${comment.createdAt}-${index}`}
+                    className="rounded-md border border-border/60 bg-muted/20 px-3 py-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="min-w-0 flex-1 whitespace-pre-wrap text-sm text-foreground">
+                        {comment.text}
+                      </p>
+                      {!isCompleted ? (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteComment(comment.createdAt)}
+                          disabled={Boolean(deletingCommentAt) || isSaving}
+                          aria-label="Delete comment"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-[11px] font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/30"
+                        >
+                          <Trash2 className="size-3" aria-hidden />
+                          {isDeleting ? "Deleting..." : "Delete"}
+                        </button>
+                      ) : null}
+                    </div>
+                    {timestamp ? (
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {timestamp}
+                      </p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         ) : null}
 
@@ -291,7 +300,10 @@ export function AssignMissionView() {
   const [loading, setLoading] = useState(true);
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
   const [commentDraft, setCommentDraft] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
+  const [deletingCommentAt, setDeletingCommentAt] = useState<string | null>(null);
   const [commentsForRow, setCommentsForRow] = useState<PilotMissionNotification | null>(null);
+  const [dialogComments, setDialogComments] = useState<PilotMissionCommentEntry[]>([]);
   const [completedMissionIds, setCompletedMissionIds] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     try {
@@ -406,19 +418,59 @@ export function AssignMissionView() {
   }, [commentsForRow]);
 
   function openCommentsDialog(row: PilotMissionNotification) {
-    setCommentDraft(loadPilotMissionCommentText(row.requestRef));
+    setCommentDraft("");
+    setDialogComments(loadPilotMissionComments(row.requestRef));
     setCommentsForRow(row);
   }
 
-  function saveCommentsDialog() {
-    if (!commentsForRow) return;
-    savePilotMissionCommentText(commentsForRow.requestRef, commentDraft);
-    setCommentsForRow(null);
+  function refreshDialogComments(requestRef: string) {
+    setDialogComments(loadPilotMissionComments(requestRef));
     setCommentsDisplayVers((v) => v + 1);
-    try {
-      window.dispatchEvent(new Event("aerolaminar-pilot-mission-comment-saved"));
-    } catch {
-      /* ignore */
+  }
+
+  async function addCommentInDialog() {
+    if (!commentsForRow || commentSaving) return;
+    const trimmed = commentDraft.trim();
+    if (!trimmed) return;
+
+    setCommentSaving(true);
+    const ok = await appendPilotMissionComment(
+      {
+        requestRef: commentsForRow.requestRef,
+        id: missionDbIdFromNotification(commentsForRow),
+        pilotSub: commentsForRow.pilotSub,
+      },
+      trimmed
+    );
+    setCommentSaving(false);
+    if (!ok) return;
+
+    setCommentDraft("");
+    refreshDialogComments(commentsForRow.requestRef);
+  }
+
+  async function deleteComment(
+    row: PilotMissionNotification,
+    createdAt: string
+  ) {
+    if (deletingCommentAt) return;
+
+    setDeletingCommentAt(createdAt);
+    const ok = await deletePilotMissionComment(
+      {
+        requestRef: row.requestRef,
+        id: missionDbIdFromNotification(row),
+        pilotSub: row.pilotSub,
+      },
+      createdAt
+    );
+    setDeletingCommentAt(null);
+    if (!ok) return;
+
+    if (commentsForRow?.requestRef.trim() === row.requestRef.trim()) {
+      refreshDialogComments(row.requestRef);
+    } else {
+      setCommentsDisplayVers((v) => v + 1);
     }
   }
 
@@ -476,6 +528,7 @@ export function AssignMissionView() {
         userName: ownerFields.userName,
         userEmail: ownerFields.userEmail,
         assignedAt: row.assignedAt,
+        pilotComment: loadPilotMissionCommentText(row.requestRef),
       });
 
       if (!saveResult?.success) {
@@ -591,9 +644,7 @@ export function AssignMissionView() {
             </article>
           ) : (
             rows.map((row) => {
-              const savedComment = loadPilotMissionCommentText(row.requestRef);
-              const savedCommentDisplay =
-                pilotMissionCommentForDisplay(savedComment);
+              const savedComments = loadPilotMissionComments(row.requestRef);
               const isCompleted = completedMissionIds.has(row.id);
 
               return (
@@ -602,8 +653,10 @@ export function AssignMissionView() {
                   row={row}
                   isCompleted={isCompleted}
                   isSaving={savingRowId === row.id}
-                  savedCommentDisplay={savedCommentDisplay}
+                  savedComments={savedComments}
+                  deletingCommentAt={deletingCommentAt}
                   onOpenComments={() => openCommentsDialog(row)}
+                  onDeleteComment={(createdAt) => void deleteComment(row, createdAt)}
                   onComplete={() => void handleCompletedMission(row)}
                 />
               );
@@ -640,30 +693,64 @@ export function AssignMissionView() {
                 {commentsForRow.customer || "Mission"} · {commentsForRow.requestRef}
               </p>
             </div>
-            <div className="px-5 py-4 sm:px-6">
+            <div className="max-h-[70vh] overflow-y-auto px-5 py-4 sm:px-6">
+              {dialogComments.length > 0 ? (
+                <div className="mb-4">
+                  <p className="mb-2 text-xs font-semibold text-muted-foreground">
+                    Comments
+                  </p>
+                  <ul className="space-y-2">
+                    {dialogComments.map((comment, index) => {
+                      const timestamp = formatCommentTimestamp(comment.createdAt);
+                      const isDeleting = deletingCommentAt === comment.createdAt;
+                      return (
+                        <li
+                          key={`${comment.createdAt}-${index}`}
+                          className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2.5"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="min-w-0 flex-1 whitespace-pre-wrap text-sm text-foreground">
+                              {comment.text}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                commentsForRow
+                                  ? void deleteComment(commentsForRow, comment.createdAt)
+                                  : undefined
+                              }
+                              disabled={Boolean(deletingCommentAt) || commentSaving}
+                              aria-label="Delete comment"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-[11px] font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/30"
+                            >
+                              <Trash2 className="size-3" aria-hidden />
+                              {isDeleting ? "Deleting..." : "Delete"}
+                            </button>
+                          </div>
+                          {timestamp ? (
+                            <p className="mt-1 text-[11px] text-muted-foreground">
+                              {timestamp}
+                            </p>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : null}
               <label
                 htmlFor="pilot-mission-comment"
                 className="mb-2 block text-xs font-semibold text-muted-foreground"
               >
-                Your comment
+                Add a comment
               </label>
-              <p className="mb-2 text-[11px] text-muted-foreground">
-                Quick preset:{" "}
-                <button
-                  type="button"
-                  className="font-medium text-[#008B8B] underline decoration-[#008B8B]/40 underline-offset-2 hover:decoration-[#008B8B] dark:text-primary"
-                  onClick={() => setCommentDraft(PILOT_COMMENT_WEATHER_PRESET)}
-                >
-                  {PILOT_COMMENT_WEATHER_PRESET}
-                </button>
-              </p>
               <textarea
                 id="pilot-mission-comment"
                 rows={5}
                 value={commentDraft}
                 onChange={(e) => setCommentDraft(e.target.value)}
-                placeholder={PILOT_COMMENT_WEATHER_PRESET}
-                className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+                placeholder="Write a new comment..."
+                className="w-full resize-y rounded-lg border border-border !bg-transparent px-3 py-2 text-sm text-foreground shadow-none outline-none placeholder:text-muted-foreground focus:border-[#008B8B] focus:bg-transparent focus:outline-none focus:ring-0"
               />
             </div>
             <div className="flex flex-wrap justify-end gap-2 border-t border-border bg-muted/30 px-5 py-3 sm:px-6">
@@ -672,14 +759,15 @@ export function AssignMissionView() {
                 onClick={() => setCommentsForRow(null)}
                 className="rounded-lg border border-border bg-transparent px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50"
               >
-                Cancel
+                Done
               </button>
               <button
                 type="button"
-                onClick={saveCommentsDialog}
-                className="rounded-lg border-2 border-[#008B8B] bg-[#008B8B] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#007a7a] dark:border-primary dark:bg-primary dark:hover:bg-primary/90"
+                onClick={() => void addCommentInDialog()}
+                disabled={commentSaving || !commentDraft.trim()}
+                className="rounded-lg border border-[#008B8B] bg-transparent px-4 py-2 text-xs font-semibold text-[#008B8B] transition-colors hover:bg-[#008B8B]/10 disabled:opacity-50 dark:border-primary dark:text-primary dark:hover:bg-primary/10"
               >
-                Save comment
+                {commentSaving ? "Adding..." : "Add comment"}
               </button>
             </div>
           </div>

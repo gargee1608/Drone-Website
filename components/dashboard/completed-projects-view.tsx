@@ -27,6 +27,10 @@ import {
   parsePostRequirementDesc,
 } from "@/lib/post-requirement-parse";
 import {
+  buildPilotCommentLookupFromMissions,
+  resolvePilotCommentForRequestRefs,
+} from "@/lib/pilot-mission-comments-storage";
+import {
   computeProjectRequestStats,
   fetchPilotProjectMissionRefs,
   filterPilotAssignedProjectRows,
@@ -34,6 +38,7 @@ import {
 import {
   isCompletedProjectRequest,
   isProjectRequirementRequest,
+  projectRequestRefAliases,
   PROJECT_REQUESTS_UPDATED_EVENT,
 } from "@/lib/project-requests";
 import {
@@ -116,6 +121,9 @@ export function CompletedProjectsView({
   const [backendRefresh, setBackendRefresh] = useState(0);
   const [loading, setLoading] = useState(true);
   const [detailRow, setDetailRow] = useState<UserRequestAdminRow | null>(null);
+  const [pilotCommentByRef, setPilotCommentByRef] = useState<Map<string, string>>(
+    () => new Map()
+  );
 
   const pilotStatsRows = useMemo(() => {
     if (!pilotScoped) return allProjectRows;
@@ -167,6 +175,38 @@ export function CompletedProjectsView({
       }
     };
     void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [backendRefresh]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadMissionComments = async () => {
+      try {
+        const response = await fetch(apiUrl("/api/missions"), { cache: "no-store" });
+        if (!response.ok) return;
+        const payload: unknown = await response.json();
+        const data = Array.isArray((payload as { data?: unknown[] })?.data)
+          ? ((payload as { data?: unknown[] }).data as Array<{
+              request_ref?: string;
+              pilot_comment?: string;
+            }>)
+          : [];
+        if (!cancelled) {
+          setPilotCommentByRef(
+            buildPilotCommentLookupFromMissions(
+              data.filter((row) =>
+                isProjectRequirementRequest(String(row.request_ref ?? ""))
+              )
+            )
+          );
+        }
+      } catch {
+        if (!cancelled) setPilotCommentByRef(new Map());
+      }
+    };
+    void loadMissionComments();
     return () => {
       cancelled = true;
     };
@@ -339,13 +379,21 @@ export function CompletedProjectsView({
             No completed projects yet.
           </div>
         ) : (
-          rows.map((row) => (
-            <CompletedProjectDetailCard
-              key={row.key}
-              row={row}
-              onView={() => setDetailRow(row)}
-            />
-          ))
+          rows.map((row) => {
+            const pilotComment = resolvePilotCommentForRequestRefs(
+              projectRequestRefAliases(row),
+              pilotCommentByRef
+            );
+
+            return (
+              <CompletedProjectDetailCard
+                key={row.key}
+                row={row}
+                pilotComment={pilotComment}
+                onView={() => setDetailRow(row)}
+              />
+            );
+          })
         )}
       </section>
 
@@ -374,9 +422,11 @@ function InlineProjectField({ label, value }: { label: string; value: string }) 
 
 function CompletedProjectDetailCard({
   row,
+  pilotComment,
   onView,
 }: {
   row: UserRequestAdminRow;
+  pilotComment: string;
   onView: () => void;
 }) {
   const contact = projectRequestContact(row);
@@ -428,6 +478,7 @@ function CompletedProjectDetailCard({
         <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
           <InlineProjectField label="Status" value={status} />
           <InlineProjectField label="Project title" value={title} />
+          <InlineProjectField label="Comment" value={pilotComment || "—"} />
         </div>
       </div>
     </section>

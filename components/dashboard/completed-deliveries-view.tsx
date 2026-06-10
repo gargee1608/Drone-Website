@@ -4,6 +4,7 @@ import {
   ClipboardList,
   Clock,
   Download,
+  MessageSquareText,
   PackageCheck,
   Pencil,
   Trash2,
@@ -18,6 +19,16 @@ import {
 } from "@/lib/drone-hire-request-admin-map";
 import { isProjectRequirementRequest } from "@/lib/project-requests";
 import { jwtPayloadPilotFullName, jwtPayloadSub } from "@/lib/pilot-display-name";
+import {
+  PILOT_COMMENT_WEATHER_PRESET,
+  pilotMissionCommentForDisplay,
+} from "@/lib/pilot-mission-comment-display";
+import {
+  loadPilotMissionCommentText,
+  PILOT_MISSION_COMMENTS_KEY,
+  PILOT_MISSION_COMMENT_SAVED_EVENT,
+  savePilotMissionComment,
+} from "@/lib/pilot-mission-comments-storage";
 import {
   ADMIN_PAGE_TITLE_CLASS,
   ADMIN_PAGE_TOP_PADDING_CLASS,
@@ -38,6 +49,17 @@ import {
 
 const COMPLETED_MISSION_PREVIEW_KEY = "aerolaminar_completed_mission_preview_v1";
 
+function resolveDeliveryCommentDisplay(
+  row: DeliveryRow,
+  pilotScoped: boolean
+): string {
+  const dbComment = row.pilotComment.trim();
+  if (!pilotScoped) return dbComment;
+  const fromDb = pilotMissionCommentForDisplay(dbComment);
+  if (fromDb) return fromDb;
+  return pilotMissionCommentForDisplay(loadPilotMissionCommentText(row.missionId));
+}
+
 type DeliveryRow = {
   id: string;
   rowCtid: string;
@@ -53,6 +75,7 @@ type DeliveryRow = {
   pilot: string;
   droneUnit: string;
   status: string;
+  pilotComment: string;
 };
 
 type BackendMissionRow = {
@@ -70,6 +93,7 @@ type BackendMissionRow = {
   assigned_at?: string;
   completed_at?: string;
   status?: string;
+  pilot_comment?: string;
 };
 
 type DeliveryEditForm = {
@@ -164,6 +188,7 @@ function mapBackendMissionToDeliveryRow(
     pilot: String(row.pilot_name ?? "").trim() || "—",
     droneUnit: String(row.drone_model ?? "").trim() || "—",
     status: String(row.status ?? "completed").trim() || "completed",
+    pilotComment: String(row.pilot_comment ?? "").trim(),
   };
 }
 
@@ -268,6 +293,7 @@ function readCompletedMissionPreview(expectedPilotSub?: string | null): Delivery
       pilot: String(parsed.pilot ?? "").trim() || "—",
       droneUnit: String(parsed.droneUnit ?? "").trim() || "—",
       status: String(parsed.status ?? "completed").trim() || "completed",
+      pilotComment: String(parsed.pilotComment ?? "").trim(),
     };
   } catch {
     return null;
@@ -313,6 +339,11 @@ export function CompletedDeliveriesView({
   });
   const [deliverySaving, setDeliverySaving] = useState(false);
   const [deliveryEditError, setDeliveryEditError] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [commentsForRow, setCommentsForRow] = useState<DeliveryRow | null>(null);
+  const [commentsDisplayVers, setCommentsDisplayVers] = useState(0);
+  const [commentSaving, setCommentSaving] = useState(false);
+  const [commentSaveError, setCommentSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -504,6 +535,62 @@ export function CompletedDeliveriesView({
       window.removeEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
     };
   }, []);
+
+  useEffect(() => {
+    if (!pilotScoped) return;
+    const bumpComments = () => setCommentsDisplayVers((v) => v + 1);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === PILOT_MISSION_COMMENTS_KEY) bumpComments();
+    };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(PILOT_MISSION_COMMENT_SAVED_EVENT, bumpComments);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(PILOT_MISSION_COMMENT_SAVED_EVENT, bumpComments);
+    };
+  }, [pilotScoped]);
+
+  useEffect(() => {
+    if (!commentsForRow) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCommentsForRow(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [commentsForRow]);
+
+  function openCommentsDialog(row: DeliveryRow) {
+    const fromDb = row.pilotComment.trim();
+    setCommentDraft(
+      fromDb || loadPilotMissionCommentText(row.missionId)
+    );
+    setCommentsForRow(row);
+    setCommentSaveError(null);
+  }
+
+  async function saveCommentsDialog() {
+    if (!commentsForRow || commentSaving) return;
+    setCommentSaving(true);
+    setCommentSaveError(null);
+    const ok = await savePilotMissionComment(
+      {
+        requestRef: commentsForRow.missionId,
+        id: commentsForRow.id || undefined,
+        rowCtid: commentsForRow.rowCtid || undefined,
+        pilotSub: commentsForRow.pilotSub || undefined,
+      },
+      commentDraft
+    );
+    setCommentSaving(false);
+    if (!ok) {
+      setCommentSaveError("Could not save comment. Please try again.");
+      return;
+    }
+    setCommentsForRow(null);
+    setCommentsDisplayVers((v) => v + 1);
+    setRefreshTick((n) => n + 1);
+    notifyMissionsDbUpdated();
+  }
 
   const requestStats = useMemo(() => {
     let pending = 0;
@@ -764,15 +851,26 @@ export function CompletedDeliveriesView({
             No completed missions yet.
           </div>
         ) : (
-          paginatedRows.map((row) => (
-            <CompletedDeliveryDetailCard
-              key={`${row.missionId}-${row.completedAt}`}
-              row={row}
-              pilotScoped={pilotScoped}
-              onEdit={() => openDeliveryEdit(row)}
-              onDelete={() => void deleteDelivery(row)}
-            />
-          ))
+          paginatedRows.map((row) => {
+            const savedCommentDisplay = resolveDeliveryCommentDisplay(
+              row,
+              pilotScoped
+            );
+
+            return (
+              <CompletedDeliveryDetailCard
+                key={`${row.missionId}-${row.completedAt}-${commentsDisplayVers}`}
+                row={row}
+                pilotScoped={pilotScoped}
+                savedCommentDisplay={savedCommentDisplay}
+                onOpenComments={
+                  pilotScoped ? () => openCommentsDialog(row) : undefined
+                }
+                onEdit={() => openDeliveryEdit(row)}
+                onDelete={() => void deleteDelivery(row)}
+              />
+            );
+          })
         )}
       </section>
 
@@ -905,6 +1003,90 @@ export function CompletedDeliveriesView({
         </div>
       ) : null}
 
+      {pilotScoped && commentsForRow ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pilot-completed-delivery-comments-dialog-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-[#191c1d]/35 backdrop-blur-[2px]"
+            aria-label="Close"
+            onClick={() => setCommentsForRow(null)}
+          />
+          <div
+            className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b border-border bg-muted/30 px-5 py-4 sm:px-6">
+              <h2
+                id="pilot-completed-delivery-comments-dialog-title"
+                className="text-base font-bold text-foreground"
+              >
+                Delivery comments
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {commentsForRow.customer !== "—"
+                  ? commentsForRow.customer
+                  : "Completed delivery"}{" "}
+                · {commentsForRow.missionId}
+              </p>
+            </div>
+            <div className="px-5 py-4 sm:px-6">
+              <label
+                htmlFor="pilot-completed-delivery-comment"
+                className="mb-2 block text-xs font-semibold text-muted-foreground"
+              >
+                Your comment
+              </label>
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                Quick preset:{" "}
+                <button
+                  type="button"
+                  className="font-medium text-[#008B8B] underline decoration-[#008B8B]/40 underline-offset-2 hover:decoration-[#008B8B] dark:text-primary"
+                  onClick={() => setCommentDraft(PILOT_COMMENT_WEATHER_PRESET)}
+                >
+                  {PILOT_COMMENT_WEATHER_PRESET}
+                </button>
+              </p>
+              <textarea
+                id="pilot-completed-delivery-comment"
+                rows={5}
+                value={commentDraft}
+                onChange={(e) => setCommentDraft(e.target.value)}
+                placeholder={PILOT_COMMENT_WEATHER_PRESET}
+                className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-[#008B8B]/30"
+              />
+              {commentSaveError ? (
+                <p className="mt-2 text-sm font-medium text-red-600">
+                  {commentSaveError}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border bg-muted/30 px-5 py-3 sm:px-6">
+              <button
+                type="button"
+                onClick={() => setCommentsForRow(null)}
+                disabled={commentSaving}
+                className="rounded-lg border border-border bg-transparent px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveCommentsDialog()}
+                disabled={commentSaving}
+                className="rounded-lg border-2 border-[#008B8B] bg-[#008B8B] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#007a7a] disabled:cursor-not-allowed disabled:opacity-60 dark:border-primary dark:bg-primary dark:hover:bg-primary/90"
+              >
+                {commentSaving ? "Saving..." : "Save comment"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
     </section>
   );
 }
@@ -922,11 +1104,15 @@ function InlineDeliveryField({ label, value }: { label: string; value: string })
 function CompletedDeliveryDetailCard({
   row,
   pilotScoped,
+  savedCommentDisplay,
+  onOpenComments,
   onEdit,
   onDelete,
 }: {
   row: DeliveryRow;
   pilotScoped: boolean;
+  savedCommentDisplay?: string;
+  onOpenComments?: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -953,26 +1139,38 @@ function CompletedDeliveryDetailCard({
             </div>
           ) : null}
         </div>
-        {!pilotScoped ? (
-          <div className="flex shrink-0 flex-wrap gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {pilotScoped && onOpenComments ? (
             <button
               type="button"
-              onClick={onEdit}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#008080] px-3 text-xs font-medium text-foreground transition hover:bg-[#008080]/10"
+              onClick={onOpenComments}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#008B8B] px-3 text-xs font-medium text-[#008B8B] transition hover:bg-[#008B8B]/10 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
             >
-              <Pencil className="size-3.5 shrink-0" aria-hidden />
-              Edit
+              <MessageSquareText className="size-3.5 shrink-0" aria-hidden />
+              Comments
             </button>
-            <button
-              type="button"
-              onClick={onDelete}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-300 bg-transparent px-3 text-xs font-medium text-red-600 transition hover:bg-red-50 hover:text-red-700"
-            >
-              <Trash2 className="size-3.5 shrink-0" aria-hidden />
-              Delete
-            </button>
-          </div>
-        ) : null}
+          ) : null}
+          {!pilotScoped ? (
+            <>
+              <button
+                type="button"
+                onClick={onEdit}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#008080] px-3 text-xs font-medium text-foreground transition hover:bg-[#008080]/10"
+              >
+                <Pencil className="size-3.5 shrink-0" aria-hidden />
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={onDelete}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-300 bg-transparent px-3 text-xs font-medium text-red-600 transition hover:bg-red-50 hover:text-red-700"
+              >
+                <Trash2 className="size-3.5 shrink-0" aria-hidden />
+                Delete
+              </button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
@@ -991,6 +1189,15 @@ function CompletedDeliveryDetailCard({
             value={row.dropoff !== "—" ? row.dropoff : "Destination TBD"}
           />
         </div>
+
+        {!pilotScoped ? (
+          <InlineDeliveryField
+            label="Comment"
+            value={savedCommentDisplay || "—"}
+          />
+        ) : savedCommentDisplay ? (
+          <InlineDeliveryField label="Comment" value={savedCommentDisplay} />
+        ) : null}
       </div>
     </section>
   );

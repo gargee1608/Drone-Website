@@ -31,6 +31,10 @@ import {
   pilotMissionCommentForDisplay,
 } from "@/lib/pilot-mission-comment-display";
 import {
+  loadPilotMissionCommentText,
+  savePilotMissionComment,
+} from "@/lib/pilot-mission-comments-storage";
+import {
   notificationsVisibleToPilot,
   PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT,
   removePilotMissionNotificationById,
@@ -57,45 +61,10 @@ import {
   type UserRequestAdminRow,
 } from "@/lib/user-requests";
 
-const PILOT_MISSION_COMMENTS_KEY = "aerolaminar_pilot_mission_comments_v1";
-
-function loadPilotMissionCommentText(requestRef: string): string {
-  if (typeof window === "undefined") return "";
-  try {
-    const raw = localStorage.getItem(PILOT_MISSION_COMMENTS_KEY);
-    if (!raw) return "";
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return "";
-    const row = (parsed as Record<string, unknown>)[requestRef.trim()];
-    if (row && typeof row === "object" && "text" in row) {
-      return typeof (row as { text: unknown }).text === "string"
-        ? (row as { text: string }).text
-        : "";
-    }
-    return "";
-  } catch {
-    return "";
-  }
-}
-
-function savePilotMissionCommentText(requestRef: string, text: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    const key = requestRef.trim();
-    const raw = localStorage.getItem(PILOT_MISSION_COMMENTS_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : {};
-    const next =
-      parsed && typeof parsed === "object" && !Array.isArray(parsed)
-        ? { ...parsed }
-        : {};
-    (next as Record<string, { text: string; updatedAt: string }>)[key] = {
-      text: text.trim(),
-      updatedAt: new Date().toISOString(),
-    };
-    localStorage.setItem(PILOT_MISSION_COMMENTS_KEY, JSON.stringify(next));
-  } catch {
-    /* ignore */
-  }
+function missionDbIdFromNotification(row: PilotMissionNotification): string | undefined {
+  if (!row.id.startsWith("db:")) return undefined;
+  const id = row.id.slice(3).trim();
+  return id || undefined;
 }
 
 function formatAssignedAt(iso: string): string {
@@ -499,17 +468,19 @@ export function PilotProjectRequestsView() {
     setCommentDraft(loadPilotMissionCommentText(row.requestRef));
   }
 
-  function saveCommentsDialog() {
+  async function saveCommentsDialog() {
     if (!commentsForRow) return;
-    savePilotMissionCommentText(commentsForRow.requestRef, commentDraft);
+    await savePilotMissionComment(
+      {
+        requestRef: commentsForRow.requestRef,
+        id: missionDbIdFromNotification(commentsForRow),
+        pilotSub: commentsForRow.pilotSub,
+      },
+      commentDraft
+    );
     setCommentsForRow(null);
     setCommentsDisplayVers((v) => v + 1);
     setLocalVers((v) => v + 1);
-    try {
-      window.dispatchEvent(new Event("aerolaminar-pilot-mission-comment-saved"));
-    } catch {
-      /* ignore */
-    }
   }
 
   async function handleCompletedProject(row: PilotMissionNotification) {
@@ -535,6 +506,7 @@ export function PilotProjectRequestsView() {
         userName: ownerFields.userName,
         userEmail: ownerFields.userEmail,
         assignedAt: row.assignedAt,
+        pilotComment: loadPilotMissionCommentText(row.requestRef),
       });
 
       if (!saveResult?.success) {
@@ -714,7 +686,7 @@ export function PilotProjectRequestsView() {
               </button>
               <button
                 type="button"
-                onClick={saveCommentsDialog}
+                onClick={() => void saveCommentsDialog()}
                 className="rounded-lg border-2 border-[#008B8B] bg-[#008B8B] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#007a7a] dark:border-primary dark:bg-primary dark:hover:bg-primary/90"
               >
                 Save comment
