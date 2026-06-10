@@ -3,7 +3,14 @@
 import {
   Activity,
   ClipboardList,
+  Clock,
+  IdCard,
+  LayoutDashboard,
+  Mail,
+  MapPin,
+  Phone,
   Plane,
+  ShieldCheck,
   User,
   UserCheck,
   Users,
@@ -340,9 +347,24 @@ function AdminDashboardHero({
       />
       <div className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
         <div className="min-w-0">
-          <h1 className={ADMIN_PAGE_TITLE_CLASS}>
-            Admin Dashboard
-          </h1>
+          <div className="flex items-center gap-3">
+            <div
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#008B8B]/25 bg-[#008B8B]/10 shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06] sm:size-11"
+              aria-hidden
+            >
+              <LayoutDashboard
+                className="size-5 text-[#008B8B] sm:size-6"
+                strokeWidth={2.25}
+              />
+            </div>
+            <div className="min-w-0">
+              <h1 className={ADMIN_PAGE_TITLE_CLASS}>Admin Dashboard</h1>
+              <span
+                className="mt-1.5 block h-1 w-10 rounded-full bg-gradient-to-r from-[#008B8B] to-[#008B8B]/40"
+                aria-hidden
+              />
+            </div>
+          </div>
           {adminWelcome ? (
             <p className="mt-2 text-sm text-muted-foreground sm:text-base">
               Welcome back,{" "}
@@ -697,21 +719,51 @@ function pilotProfileRow(
   };
 }
 
-function InlinePilotProfileField({
+function PilotProfileFieldCard({
+  icon: Icon,
   label,
   value,
   valueClass,
+  accentClass = "bg-[#008B8B]/10 text-[#008B8B]",
 }: {
+  icon: typeof User;
   label: string;
   value: string;
   valueClass?: string;
+  accentClass?: string;
 }) {
   return (
-    <p className="min-w-0 text-xs leading-snug text-muted-foreground">
-      <span className="font-semibold text-foreground">{label}</span>
-      {" : "}
-      <span className={cn("text-foreground", valueClass)}>{value}</span>
-    </p>
+    <div
+      className={cn(
+        "group flex min-w-0 items-start gap-2.5 rounded-xl border border-neutral-200/80 bg-white p-2.5 transition-colors sm:p-3",
+        "hover:border-[#008B8B]/25 hover:bg-[#008B8B]/[0.02]",
+        "dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-[#008B8B]/30"
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-7 shrink-0 items-center justify-center rounded-lg sm:size-8",
+          accentClass
+        )}
+        aria-hidden
+      >
+        <Icon className="size-3.5 sm:size-4" strokeWidth={2} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground sm:text-[10px]">
+          {label}
+        </p>
+        <p
+          className={cn(
+            "mt-0.5 truncate text-xs font-semibold leading-snug text-foreground sm:text-sm",
+            valueClass
+          )}
+          title={value}
+        >
+          {value}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -752,7 +804,7 @@ function ApprovedPilotProfileModal({
     <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-[#191c1d]/50 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-[#191c1d]/45 backdrop-blur-sm"
         aria-label="Close dialog"
         onClick={onClose}
       />
@@ -761,126 +813,177 @@ function ApprovedPilotProfileModal({
         aria-modal="true"
         aria-labelledby="approved-pilot-profile-title"
         className={cn(
-          "relative z-10 flex max-h-[min(90dvh,640px)] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-border shadow-2xl sm:rounded-2xl dark:border-white/20",
+          "relative z-10 flex w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl shadow-[0_24px_64px_rgba(15,23,42,0.18)] sm:rounded-3xl",
           PROFILE_INFO_POPUP_SHELL_CLASS
         )}
       >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border bg-muted/30 px-4 py-4 sm:px-5">
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-            <div
-              className={cn(
-                "flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/10",
-                ADMIN_DASH_AVATAR_RING
-              )}
-              aria-hidden
-            >
-              <User className="size-5 text-[#008B8B]" strokeWidth={2} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Pilot profile
-              </p>
-              <h2
-                id="approved-pilot-profile-title"
-                className="mt-1 truncate text-base font-semibold text-foreground sm:text-lg"
+        <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-[#008B8B]/12 via-[#008B8B]/5 to-transparent px-4 pb-4 pt-4 sm:px-5 sm:pb-4 sm:pt-5">
+          <div
+            className="pointer-events-none absolute -right-8 -top-10 size-40 rounded-full bg-[#008B8B]/10 blur-2xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -left-6 bottom-0 size-28 rounded-full bg-[#008B8B]/8 blur-xl"
+            aria-hidden
+          />
+          <div className="relative flex items-start justify-between gap-2 sm:gap-3">
+            <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-3.5">
+              <div
+                className={cn(
+                  "flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#008B8B] to-[#006d6d] shadow-[0_6px_16px_rgba(0,139,139,0.3)] sm:size-12 sm:rounded-2xl",
+                  ADMIN_DASH_AVATAR_RING
+                )}
+                aria-hidden
               >
-                {pilot.name}
-              </h2>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-800 dark:bg-green-950/50 dark:text-green-300">
-                  {pilot.badge}
-                </span>
-                {pilotId.value !== "—" ? (
-                  <span className="text-xs text-muted-foreground">
-                    <span className="font-semibold text-foreground">Pilot ID</span>
-                    {" : "}
-                    <span className="font-mono">{pilotId.value}</span>
+                <User className="size-5 text-white sm:size-6" strokeWidth={2} />
+              </div>
+              <div className="min-w-0 pt-0.5">
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#008B8B] sm:text-[10px]">
+                  Pilot profile
+                </p>
+                <h2
+                  id="approved-pilot-profile-title"
+                  className="mt-0.5 truncate text-lg font-bold tracking-tight text-foreground sm:text-xl"
+                >
+                  {pilot.name}
+                </h2>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-500/20 dark:text-emerald-300">
+                    <span
+                      className="size-1.5 rounded-full bg-emerald-500"
+                      aria-hidden
+                    />
+                    {pilot.badge}
                   </span>
-                ) : null}
+                  {pilotId.value !== "—" ? (
+                    <span className="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-neutral-200/80 dark:bg-white/5 dark:ring-white/10">
+                      <span className="font-semibold text-foreground">
+                        ID
+                      </span>
+                      <span className="mx-1.5 text-neutral-300 dark:text-white/20">
+                        |
+                      </span>
+                      <span className="font-mono text-foreground">
+                        {pilotId.value}
+                      </span>
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="relative shrink-0 rounded-full bg-white/70 p-2 text-muted-foreground shadow-sm ring-1 ring-neutral-200/80 transition-all hover:bg-white hover:text-foreground dark:bg-white/10 dark:ring-white/10 dark:hover:bg-white/15"
+              aria-label="Close"
+            >
+              <X className="size-5" aria-hidden />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-muted"
-            aria-label="Close"
-          >
-            <X className="size-5" aria-hidden />
-          </button>
         </div>
 
-        <div className="overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
-          <section
-            className={cn(
-              "overflow-hidden rounded-2xl border border-border bg-card shadow-sm dark:border-white/20"
-            )}
-          >
-            <div className="border-b border-border bg-muted/20 px-4 py-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <div className="overflow-hidden px-4 pb-4 pt-0 sm:px-5 sm:pb-5">
+          <section className="mt-3">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
+              <p className="shrink-0 text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">
                 Registration &amp; credentials
               </p>
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
             </div>
-            <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
-              <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
-                <InlinePilotProfileField
-                  label="License ID"
-                  value={license.value}
-                  valueClass={license.valueClass}
-                />
-                <div className="min-w-0">
-                  <p className="text-xs leading-snug text-muted-foreground">
-                    <span className="font-semibold text-foreground">Status</span>
-                    {" : "}
+            <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+              <PilotProfileFieldCard
+                icon={IdCard}
+                label="License ID"
+                value={license.value}
+                valueClass={cn("font-mono", license.valueClass)}
+              />
+              <div
+                className={cn(
+                  "group flex min-w-0 items-start gap-2.5 rounded-xl border border-neutral-200/80 bg-white p-2.5 transition-colors sm:p-3",
+                  "hover:border-[#008B8B]/25 hover:bg-[#008B8B]/[0.02]",
+                  "dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-[#008B8B]/30"
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-lg sm:size-8",
+                    isActive
+                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                      : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                  )}
+                  aria-hidden
+                >
+                  <ShieldCheck className="size-3.5 sm:size-4" strokeWidth={2} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground sm:text-[10px]">
+                    Status
+                  </p>
+                  <span
+                    className={cn(
+                      "mt-0.5 inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:text-xs",
+                      isActive
+                        ? "bg-emerald-500/15 text-emerald-800 ring-1 ring-emerald-500/20 dark:text-emerald-300"
+                        : "bg-amber-500/15 text-amber-900 ring-1 ring-amber-500/20 dark:text-amber-200"
+                    )}
+                  >
                     <span
                       className={cn(
-                        "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-                        isActive
-                          ? "bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300"
-                          : "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+                        "size-1.5 shrink-0 rounded-full",
+                        isActive ? "bg-emerald-500" : "bg-amber-500"
                       )}
-                    >
-                      {status.value}
-                    </span>
-                  </p>
+                      aria-hidden
+                    />
+                    <span className="truncate">{status.value}</span>
+                  </span>
                 </div>
-                <InlinePilotProfileField label="Region" value={region.value} />
-                <InlinePilotProfileField
-                  label="Drones registered"
-                  value={dronesRegistered.value}
-                />
               </div>
+              <PilotProfileFieldCard
+                icon={MapPin}
+                label="Region"
+                value={region.value}
+                accentClass="bg-sky-500/10 text-sky-700 dark:text-sky-300"
+              />
+              <PilotProfileFieldCard
+                icon={Plane}
+                label="Drones registered"
+                value={dronesRegistered.value}
+                accentClass="bg-violet-500/10 text-violet-700 dark:text-violet-300"
+              />
             </div>
           </section>
 
-          <section
-            className={cn(
-              "mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-sm dark:border-white/20"
-            )}
-          >
-            <div className="border-b border-border bg-muted/20 px-4 py-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <section className="mt-3 sm:mt-4">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
+              <p className="shrink-0 text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">
                 Contact &amp; experience
               </p>
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
             </div>
-            <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
-              <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-                <InlinePilotProfileField
-                  label="Email"
-                  value={email.value}
-                  valueClass="break-all"
-                />
-                <InlinePilotProfileField label="Phone" value={phone.value} />
-                <InlinePilotProfileField
-                  label="Flight experience"
-                  value={flightExperience.value}
-                />
-                <InlinePilotProfileField
-                  label="Pilot ID"
-                  value={pilotId.value}
-                  valueClass="font-mono text-xs"
-                />
-              </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5">
+              <PilotProfileFieldCard
+                icon={Mail}
+                label="Email"
+                value={email.value}
+                valueClass={email.valueClass}
+                accentClass="bg-rose-500/10 text-rose-700 dark:text-rose-300"
+              />
+              <PilotProfileFieldCard
+                icon={Phone}
+                label="Phone"
+                value={phone.value}
+                valueClass={phone.valueClass}
+                accentClass="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
+              />
+              <PilotProfileFieldCard
+                icon={Clock}
+                label="Flight experience"
+                value={flightExperience.value}
+                valueClass={cn("col-span-2 sm:col-span-1", flightExperience.valueClass)}
+                accentClass="bg-orange-500/10 text-orange-700 dark:text-orange-300"
+              />
             </div>
           </section>
         </div>
