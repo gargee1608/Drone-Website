@@ -55,14 +55,6 @@ export function getMergedBlogPostsList(): BlogPost[] {
   return [...adminExtras, ...builtinMerged];
 }
 
-/** Admin dashboard: keep suppressed built-ins visible so they can be published again. */
-export function getAdminCatalogBlogPostsList(): BlogPost[] {
-  if (typeof window === "undefined") return [...blogPosts];
-  const adminExtras = listAdminExtrasPosts();
-  const builtinMerged = blogPosts.map((p) => mergeBuiltin(p.slug) ?? p);
-  return [...adminExtras, ...builtinMerged];
-}
-
 export function getMergedGridPosts(): BlogPost[] {
   return getMergedBlogPostsList().filter((p) => p.slug !== FEATURED_SLUG);
 }

@@ -18,6 +18,7 @@ import { PilotProfileView } from "@/components/pilot-registration/pilot-profile-
 import { UserProfileView } from "@/components/user-dashboard/user-profile-view";
 import { apiUrl } from "@/lib/api-url";
 import { readResponseJson } from "@/lib/read-response-json";
+import { ADMIN_DASH_STAT_CARD_SURFACE } from "@/lib/admin-dashboard-styles";
 import { cn } from "@/lib/utils";
 import { useAppTheme } from "@/components/theme-provider";
 import { PROFILE_INFO_POPUP_SHELL_CLASS } from "@/lib/profile-popup-styles";
@@ -140,10 +141,8 @@ export function SettingsDashboard({
   }, [profileInfoPopupOpen, closeProfileInfoPopup]);
 
   const settingsSectionClass = cn(
-    "flex h-full flex-col rounded-xl bg-card p-5 shadow-sm sm:p-6",
-    settingsContext === "admin"
-      ? "border border-[#c1c7cf]/40 dark:border-white/[0.08]"
-      : "border border-border"
+    "flex h-full flex-col rounded-xl bg-card p-5 sm:p-6",
+    ADMIN_DASH_STAT_CARD_SURFACE
   );
   const settingsSectionDividerClass = cn(
     "mt-auto space-y-4 border-t pt-4",

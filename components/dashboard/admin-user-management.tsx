@@ -374,7 +374,7 @@ export function AdminUserManagement() {
       )}
 
       {/* Users Table */}
-      <div className="rounded-xl border border-border bg-card">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-muted-foreground">Loading users...</div>
@@ -396,19 +396,34 @@ export function AdminUserManagement() {
         ) : (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email id</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+              <TableHeader className="bg-slate-50">
+                <TableRow className="border-slate-200 hover:bg-slate-50">
+                  <TableHead className="h-auto px-5 py-4 text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]">
+                    ID
+                  </TableHead>
+                  <TableHead className="h-auto px-5 py-4 text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]">
+                    Name
+                  </TableHead>
+                  <TableHead className="h-auto px-5 py-4 text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]">
+                    Email id
+                  </TableHead>
+                  <TableHead className="h-auto px-5 py-4 text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]">
+                    Role
+                  </TableHead>
+                  <TableHead className="h-auto px-5 py-4 text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]">
+                    Created
+                  </TableHead>
+                  <TableHead className="h-auto px-5 py-4 text-right text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow
+                    key={user.id}
+                    className="border-slate-100 transition-colors hover:bg-slate-50/60"
+                  >
                     <TableCell className="font-medium">{user.id}</TableCell>
                     <TableCell>
                       <button

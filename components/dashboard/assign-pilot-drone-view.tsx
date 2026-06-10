@@ -75,6 +75,7 @@ import {
   ADMIN_FLEET_UPDATED_EVENT,
 } from "@/lib/admin-fleet-updated";
 import { cn } from "@/lib/utils";
+import { loadPilotMissionCommentText } from "@/lib/pilot-mission-comments-storage";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -99,22 +100,7 @@ declare global {
 }
 
 function readPilotMissionComment(requestRef: string): string {
-  if (typeof window === "undefined") return "";
-  try {
-    const raw = localStorage.getItem(PILOT_MISSION_COMMENTS_KEY);
-    if (!raw) return "";
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return "";
-    const row = (parsed as Record<string, unknown>)[requestRef.trim()];
-    if (row && typeof row === "object" && "text" in row) {
-      const t = (row as { text?: unknown }).text;
-      return typeof t === "string" ? t.trim() : "";
-    }
-    if (typeof row === "string") return row.trim();
-    return "";
-  } catch {
-    return "";
-  }
+  return loadPilotMissionCommentText(requestRef);
 }
 
 type PilotCard = {

@@ -28,6 +28,7 @@ import {
   type UserMissionRequest,
 } from "@/lib/user-requests";
 import { apiUrl } from "@/lib/api-url";
+import { DASH_STAT_CARD_SURFACE } from "@/lib/admin-dashboard-styles";
 import {
   USER_DASH_BORDER_COLOR,
   USER_DASH_CHIP,
@@ -311,12 +312,7 @@ export function UserDashboardFleetDashboard({
         className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
         style={{ gap: "24px", marginBottom: "32px" }}
       >
-        <div
-          className={cn(
-            "rounded-xl bg-card p-6",
-            USER_DASH_PANEL_BORDER
-          )}
-        >
+        <div className={cn("rounded-2xl bg-card p-6", DASH_STAT_CARD_SURFACE)}>
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Total Missions
           </p>
@@ -343,12 +339,7 @@ export function UserDashboardFleetDashboard({
           </div>
         </div>
 
-        <div
-          className={cn(
-            "rounded-xl bg-card p-6",
-            USER_DASH_PANEL_BORDER
-          )}
-        >
+        <div className={cn("rounded-2xl bg-card p-6", DASH_STAT_CARD_SURFACE)}>
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Active Missions
           </p>
@@ -376,12 +367,7 @@ export function UserDashboardFleetDashboard({
           </div>
         </div>
 
-        <div
-          className={cn(
-            "rounded-xl bg-card p-6",
-            USER_DASH_PANEL_BORDER
-          )}
-        >
+        <div className={cn("rounded-2xl bg-card p-6", DASH_STAT_CARD_SURFACE)}>
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Completed Missions
           </p>

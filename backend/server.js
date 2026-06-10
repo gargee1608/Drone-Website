@@ -13,8 +13,11 @@ const pool = require("./db");
 
 const app = express();
 
+/** Admin service/blog covers are sent as base64 data URLs (max 2 MB file ≈ 2.7 MB encoded). */
+const JSON_BODY_LIMIT = "4mb";
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: JSON_BODY_LIMIT }));
 
 
 /** Extract password string from user row (handles legacy fields). */
@@ -333,6 +336,9 @@ async function ensureMissionSchema() {
   await pool.query(
     "ALTER TABLE missions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'completed'"
   );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS pilot_comment TEXT"
+  );
 }
 
 async function ensureDroneHireRequestsSchema() {
@@ -498,6 +504,12 @@ async function ensureServicesSchema() {
   `);
   try {
     await pool.query("ALTER TABLE services ADD COLUMN IF NOT EXISTS slug TEXT");
+    await pool.query(
+      "ALTER TABLE services ADD COLUMN IF NOT EXISTS detail_sections JSONB"
+    );
+    await pool.query(
+      "ALTER TABLE services ADD COLUMN IF NOT EXISTS highlights JSONB"
+    );
     await pool.query(
       "CREATE UNIQUE INDEX IF NOT EXISTS services_slug_unique ON services (slug) WHERE slug IS NOT NULL"
     );

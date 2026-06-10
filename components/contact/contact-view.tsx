@@ -116,7 +116,7 @@ export function ContactView() {
 
       {/* Inquiry + contact details side-by-side */}
       <section className="container mx-auto mb-20 px-6 pt-2 sm:mb-24 lg:px-8">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start lg:gap-12">
           <div className="rounded-xl border border-border bg-card p-5 shadow-lg sm:p-6">
             <h2 className="mb-2 font-[family-name:var(--font-landing-headline)] text-xl font-bold tracking-tight text-foreground sm:text-2xl">
               Send an Inquiry

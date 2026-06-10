@@ -1,6 +1,16 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Trash2, X } from "lucide-react";
+import {
+  BadgeCheck,
+  ChevronDown,
+  Eye,
+  PackageCheck,
+  Pencil,
+  Trash2,
+  UserRound,
+  Users,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   deletePilotById,
@@ -9,16 +19,15 @@ import {
   patchPilotProfile,
 } from "@/app/services/pilotServices";
 import { DetailField } from "@/components/dashboard/user-request-detail-modal";
+import { UserRequestStatCard } from "@/components/dashboard/user-request-stat-card";
 import { apiUrl } from "@/lib/api-url";
 import {
   flightHoursFromPilotRow,
   missionsCompletedFromPilotRow,
 } from "@/lib/pilot-db-metrics";
 import {
-  ADMIN_PAGE_SECTION_LABEL_CLASS,
   ADMIN_PAGE_TITLE_CLASS,
   ADMIN_PAGE_TOP_PADDING_CLASS,
-  ADMIN_PAGE_TYPE_CLASS,
 } from "@/lib/page-heading";
 import {
   PROFILE_INFO_POPUP_INNER_PANEL_CLASS,
@@ -50,31 +59,11 @@ type PilotEditForm = {
   dutyStatus: DutyStatus;
 };
 
-const PAGE_SIZE = 4;
+const thBase =
+  "px-3 py-3 align-middle text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-4 sm:py-3.5 sm:text-[10px] sm:tracking-wider";
 
-const pilotStatusLabelClass = cn(
-  ADMIN_PAGE_SECTION_LABEL_CLASS,
-  "font-normal dark:text-white/90"
-);
-
-const pilotStatusKpiCardClass =
-  "flex flex-col items-center text-center rounded-xl border border-border bg-card px-4 py-4 sm:px-5 sm:py-5";
-
-const pilotStatusKpiLabelClass = cn(
-  "font-sans text-xs font-normal tracking-tight text-muted-foreground sm:text-sm",
-  "dark:text-white/90"
-);
-
-const pilotStatusTableHeaderClass = cn(
-  "font-sans text-xs font-normal tracking-tight text-muted-foreground sm:text-sm",
-  "dark:text-white/90"
-);
-
-const pilotRowEditBtnClass =
-  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[#008080] px-3 text-xs font-medium text-foreground transition hover:bg-[#008080]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008080]/30";
-
-const pilotRowDeleteBtnClass =
-  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-red-300 bg-transparent px-3 text-xs font-medium text-red-600 transition hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 dark:border-red-400/50 dark:text-red-400 dark:hover:bg-red-950/30";
+const tdBase =
+  "min-w-0 px-3 py-3 align-middle text-[10px] leading-snug text-foreground sm:px-4 sm:py-3.5 sm:text-[11px]";
 
 type FilterTab = "all" | "active" | "inactive";
 
@@ -432,7 +421,6 @@ export function PilotStatusView({
   const [totalPilotsFromDb, setTotalPilotsFromDb] = useState<number | null>(
     null
   );
-  const [page, setPage] = useState(1);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -617,35 +605,21 @@ export function PilotStatusView({
     });
   }, [apiPilots, filter]);
 
-  const totalFiltered = filteredRows.length;
-  const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
-
-  const pageNumbers = useMemo(() => {
-    const maxShow = 5;
-    if (totalPages <= maxShow) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    let start = Math.max(1, page - Math.floor(maxShow / 2));
-    const end = Math.min(totalPages, start + maxShow - 1);
-    start = Math.max(1, end - maxShow + 1);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [page, totalPages]);
-
-  const paginatedRows = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filteredRows.slice(start, start + PAGE_SIZE);
-  }, [filteredRows, page]);
-
   const kpi = useMemo(() => {
     const totalRegistered = totalPilotsFromDb ?? apiPilots.length;
     const currentlyActive = apiPilots.filter(
       (p) => p.dutyStatus === "ACTIVE"
     ).length;
     const inactiveOnLeave = Math.max(0, totalRegistered - currentlyActive);
+    const totalMissions = apiPilots.reduce(
+      (sum, pilot) => sum + pilot.flightCount,
+      0
+    );
     return {
       totalRegistered,
       currentlyActive,
       inactiveOnLeave,
+      totalMissions,
     };
   }, [apiPilots, totalPilotsFromDb]);
 
@@ -680,217 +654,183 @@ export function PilotStatusView({
     };
   }, []);
 
-  useEffect(() => {
-    setPage(1);
-  }, [filter]);
-
   return (
     <div
       className={cn(
-        "relative text-foreground dark:text-white",
-        ADMIN_PAGE_TYPE_CLASS
+        "mx-auto w-full max-w-6xl px-4 sm:px-6",
+        showPageTitle && ADMIN_PAGE_TOP_PADDING_CLASS
       )}
     >
-      <div
+      {showPageTitle ? (
+        <h1 className={ADMIN_PAGE_TITLE_CLASS}>Pilot Status</h1>
+      ) : null}
+
+      <section
         className={cn(
-          "relative z-10 mx-auto max-w-7xl px-0 pb-2 lg:px-2",
-          ADMIN_PAGE_TOP_PADDING_CLASS
+          "grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4",
+          showPageTitle ? "mt-6" : "mt-4"
         )}
+        aria-label="Pilot status summary: total registered, currently active, inactive or on leave, and total missions"
       >
-        {showPageTitle ? (
-          <div className="mb-8 md:mb-10">
-            <h1 className={ADMIN_PAGE_TITLE_CLASS}>Pilot Status</h1>
-          </div>
-        ) : (
-          <div className="mb-5 md:mb-6" />
-        )}
+        <UserRequestStatCard
+          label="Total registered"
+          value={kpi.totalRegistered}
+          icon={Users}
+          iconClassName="text-[#008B8B]"
+          iconWrapClassName="bg-[#008B8B]/10"
+        />
+        <UserRequestStatCard
+          label="Currently active"
+          value={kpi.currentlyActive}
+          icon={BadgeCheck}
+          iconClassName="text-emerald-700"
+          iconWrapClassName="bg-emerald-100"
+        />
+        <UserRequestStatCard
+          label="Inactive / On-leave"
+          value={kpi.inactiveOnLeave}
+          icon={UserRound}
+          iconClassName="text-amber-700"
+          iconWrapClassName="bg-amber-100"
+        />
+        <UserRequestStatCard
+          label="Total missions"
+          value={kpi.totalMissions}
+          icon={PackageCheck}
+          iconClassName="text-sky-800"
+          iconWrapClassName="bg-sky-100"
+        />
+      </section>
 
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:mb-8 lg:grid-cols-3">
-          <div className={pilotStatusKpiCardClass}>
-            <span className={cn("mb-2", pilotStatusKpiLabelClass)}>
-              Total registered
+      <div className="mt-6 sm:mt-8">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 sm:mb-8">
+          <p className="text-[13px] font-semibold text-foreground">
+            Total {filteredRows.length} pilot
+            {filteredRows.length === 1 ? "" : "s"}
+          </p>
+          <label className="relative w-full max-w-[9.5rem] sm:w-auto">
+            <span className="sr-only" htmlFor="pilot-status-filter">
+              Duty status
             </span>
-            <span className="text-2xl font-bold tracking-tight text-foreground dark:text-white sm:text-3xl">
-              {kpi.totalRegistered}
-            </span>
-          </div>
-          <div className={pilotStatusKpiCardClass}>
-            <span className={cn("mb-2", pilotStatusKpiLabelClass)}>
-              Currently active
-            </span>
-            <span className="text-2xl font-bold tracking-tight text-foreground dark:text-white sm:text-3xl">
-              {kpi.currentlyActive}
-            </span>
-          </div>
-          <div className={pilotStatusKpiCardClass}>
-            <span className={cn("mb-2", pilotStatusKpiLabelClass)}>
-              Inactive / On-leave
-            </span>
-            <span className="text-2xl font-bold tracking-tight text-foreground dark:text-white sm:text-3xl">
-              {kpi.inactiveOnLeave}
-            </span>
-          </div>
-        </div>
-
-        <div className="mb-6 flex justify-end">
-          <label className="sr-only" htmlFor="pilot-status-filter">
-            Duty status
-          </label>
-          <div className="relative w-full max-w-[9.5rem] sm:w-auto">
             <select
               id="pilot-status-filter"
               value={filter}
               onChange={(e) => setFilter(e.target.value as FilterTab)}
-              className="w-full cursor-pointer appearance-none rounded-md border border-border bg-card py-1.5 pl-2 pr-7 text-xs font-normal text-foreground outline-none transition hover:border-muted-foreground/40 focus-visible:border-[#006a6e] focus-visible:ring-1 focus-visible:ring-[#006a6e]/25 dark:bg-card dark:text-white"
+              className="w-full cursor-pointer appearance-none rounded-lg border border-border bg-card py-2 pl-3 pr-8 text-xs font-medium text-foreground outline-none transition hover:border-muted-foreground/40 focus-visible:border-[#008B8B] focus-visible:ring-2 focus-visible:ring-[#008B8B]/25"
             >
               <option value="all">All</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
             <ChevronDown
-              className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/80 dark:text-white"
+              className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
               aria-hidden
             />
-          </div>
+          </label>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  {[
-                    "Pilot personnel",
-                    "Certification",
-                    "Flight hours",
-                    "Missions",
-                    "Duty status",
-                    "Actions",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className={cn(
-                        "px-4 py-3 sm:px-5",
-                        pilotStatusTableHeaderClass,
-                        h === "Actions" && "text-center"
-                      )}
-                    >
-                      {h}
-                    </th>
-                  ))}
+        <div className="overflow-hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+          <table className="w-full min-w-[52rem] table-fixed border-collapse text-left text-[10px] leading-snug sm:text-[11px]">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50">
+                <th scope="col" className={cn(thBase, "text-left")}>
+                  Pilot personnel
+                </th>
+                <th scope="col" className={cn(thBase, "text-left")}>
+                  Certification
+                </th>
+                <th scope="col" className={cn(thBase, "text-left")}>
+                  Flight hours
+                </th>
+                <th scope="col" className={cn(thBase, "text-left")}>
+                  Missions
+                </th>
+                <th scope="col" className={cn(thBase, "text-left")}>
+                  Duty status
+                </th>
+                <th scope="col" className={cn(thBase, "text-right pr-4 sm:pr-5")}>
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-12 text-center text-sm text-muted-foreground"
+                  >
+                    No pilots match your filters.
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {paginatedRows.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-12 text-center text-sm text-muted-foreground dark:text-white"
-                    >
-                      No pilots match your filters.
+              ) : (
+                filteredRows.map((row) => (
+                  <tr
+                    key={row.id}
+                    className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60"
+                  >
+                    <td className={cn(tdBase, "text-left")}>
+                      <button
+                        type="button"
+                        onClick={() => void openPilotDetail(row.id)}
+                        className="group block w-full max-w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
+                      >
+                        <span className="block break-words font-semibold text-[#006767] underline decoration-[#008B8B]/35 underline-offset-2 transition-colors group-hover:text-[#005a5a] group-hover:decoration-[#008B8B]/70 dark:text-primary">
+                          {row.name}
+                        </span>
+                        <span className="mt-0.5 block font-mono text-[10px] tracking-tight text-muted-foreground sm:text-[11px]">
+                          ID: {row.id}
+                        </span>
+                      </button>
                     </td>
-                  </tr>
-                ) : (
-                  paginatedRows.map((row) => (
-                    <tr
-                      key={row.id}
-                      className="transition-colors hover:bg-muted/50"
-                    >
-                      <td className="px-6 py-5">
+                    <td className={cn(tdBase, "text-left")}>
+                      <CertificationBadge level={row.certLevel} />
+                    </td>
+                    <td className={cn(tdBase, "text-left tabular-nums")}>
+                      {row.flightHours.toLocaleString("en-US")} hrs
+                    </td>
+                    <td className={cn(tdBase, "text-left tabular-nums")}>
+                      {row.flightCount.toLocaleString("en-US")} completed
+                    </td>
+                    <td className={cn(tdBase, "text-left")}>
+                      <DutyBadge status={row.dutyStatus} />
+                    </td>
+                    <td className={cn(tdBase, "text-right")}>
+                      <div className="inline-flex items-center justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => void openPilotDetail(row.id)}
-                          className="group block w-full max-w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#006a6e]"
+                          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#008B8B]/35 bg-[#008B8B]/8 text-[#006767] transition-colors hover:bg-[#008B8B]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
+                          title="View"
+                          aria-label={`View pilot ${row.name}`}
                         >
-                          <span className="text-sm font-bold text-[#1a1c1e] underline decoration-transparent decoration-2 underline-offset-2 transition group-hover:decoration-[#006a6e] dark:text-white dark:group-hover:decoration-white/80">
-                            {row.name}
-                          </span>
-                          <span className="mt-0.5 block text-[10px] uppercase tracking-tighter text-muted-foreground/80 dark:text-white/85">
-                            ID: {row.id}
-                          </span>
+                          <Eye className="size-3.5" aria-hidden />
                         </button>
-                      </td>
-                      <td className="px-6 py-5">
-                        <CertificationBadge level={row.certLevel} />
-                      </td>
-                      <td className="px-6 py-5 text-sm tabular-nums text-[#1a1c1e] dark:text-white">
-                        {row.flightHours.toLocaleString("en-US")} hrs
-                      </td>
-                      <td className="px-6 py-5 text-sm text-[#1a1c1e] dark:text-white">
-                        {row.flightCount.toLocaleString("en-US")} completed
-                      </td>
-                      <td className="px-6 py-5">
-                        <DutyBadge status={row.dutyStatus} />
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <div className="flex flex-wrap items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => void openPilotEdit(row.id)}
-                            className={pilotRowEditBtnClass}
-                            aria-label={`Edit pilot ${row.name}`}
-                          >
-                            <Pencil className="size-3.5 shrink-0" aria-hidden />
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void deletePilot(row)}
-                            className={pilotRowDeleteBtnClass}
-                            aria-label={`Delete pilot ${row.name}`}
-                          >
-                            <Trash2 className="size-3.5 shrink-0" aria-hidden />
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 border-t border-border bg-muted/40 px-6 py-4">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="rounded border border-border bg-card p-1.5 text-muted-foreground/80 disabled:cursor-not-allowed disabled:opacity-50 hover:text-[#006a6e] dark:text-white dark:hover:text-white"
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="size-[18px]" />
-              </button>
-              <div className="flex gap-1">
-                {pageNumbers.map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPage(p)}
-                      className={cn(
-                        "size-8 rounded text-xs font-bold transition-colors",
-                        p === page
-                          ? "bg-[#006a6e] text-white shadow-sm"
-                          : "border border-border bg-card text-muted-foreground hover:text-[#006a6e] dark:text-white dark:hover:text-white"
-                      )}
-                      aria-current={p === page ? "page" : undefined}
-                    >
-                      {p}
-                    </button>
-                  ))}
-              </div>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() =>
-                  setPage((p) => Math.min(totalPages, p + 1))
-                }
-                className="rounded border border-border bg-card p-1.5 text-muted-foreground/80 transition hover:text-[#006a6e] disabled:cursor-not-allowed disabled:opacity-50 dark:text-white dark:hover:text-white"
-                aria-label="Next page"
-              >
-                <ChevronRight className="size-[18px]" />
-              </button>
-          </div>
+                        <button
+                          type="button"
+                          onClick={() => void openPilotEdit(row.id)}
+                          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-blue-500/25 bg-blue-500/8 text-blue-700 transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                          title="Edit"
+                          aria-label={`Edit pilot ${row.name}`}
+                        >
+                          <Pencil className="size-3.5" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void deletePilot(row)}
+                          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-red-500/25 bg-red-500/8 text-red-700 transition-colors hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
+                          title="Delete"
+                          aria-label={`Delete pilot ${row.name}`}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

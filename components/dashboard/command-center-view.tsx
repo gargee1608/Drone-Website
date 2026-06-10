@@ -10,7 +10,7 @@ import { PROFILE_INFO_POPUP_SHELL_CLASS } from "@/lib/profile-popup-styles";
 import { type PilotRegCard } from "@/lib/admin-pilot-registration-storage";
 import {
   ADMIN_DASH_AVATAR_RING,
-  ADMIN_DASH_PANEL_BORDER,
+  ADMIN_DASH_STAT_CARD_SURFACE,
 } from "@/lib/admin-dashboard-styles";
 import {
   ADMIN_PROFILE_UPDATED_EVENT,
@@ -82,8 +82,8 @@ function mapDbPilotToPendingCard(row: DashboardPilotDbRow): PilotRegCard {
     badge: "Pending drone details",
     submitted: "From database",
     rows: [
-      { k: "License Type", v: license, vClass: "text-[#008B8B]" },
-      { k: "Flight Experience", v: flightHoursRaw ? `${flightHoursRaw} Hours` : "—" },
+      { k: "License ID", v: license, vClass: "text-[#008B8B]" },
+      { k: "Flight Experience", v: flightHoursRaw ? `${flightHoursRaw} hours` : "—" },
       { k: "Region", v: region || "—" },
       { k: "Pilot ID", v: id, vClass: "font-mono text-xs" },
     ],
@@ -335,7 +335,7 @@ function KpiCard({
     <div
       className={cn(
         "cc-glass-card flex items-center justify-between rounded-2xl p-5",
-        ADMIN_DASH_PANEL_BORDER
+        ADMIN_DASH_STAT_CARD_SURFACE
       )}
     >
       <div>
@@ -375,8 +375,8 @@ function PendingRegistrationsSection({
         <div>
           <h3 className="text-xl font-bold text-foreground">
             {pilotRegView === "approved"
-              ? "Registered Pilot"
-              : "Pilot Registrations Pending"}
+              ? "Registered Pilots"
+              : "Pending Pilot Registrations"}
           </h3>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -430,20 +430,45 @@ function pilotRowValue(
   pilot: PilotRegCard,
   key: string
 ): { v: string; vClass?: string } {
-  const row = pilot.rows.find((r) => r.k === key);
-  return { v: row?.v?.trim() || "—", vClass: row?.vClass };
+  const row =
+    pilot.rows.find((r) => r.k === key) ??
+    (key === "License ID"
+      ? pilot.rows.find((r) => r.k === "License Type")
+      : undefined);
+  let v = row?.v?.trim() || "—";
+  if (key === "Flight Experience" && v !== "—") {
+    v = v.replace(/\s*hours?\s*$/i, " hours");
+  }
+  return { v, vClass: row?.vClass };
 }
 
 const PENDING_TABLE_COLUMNS = [
-  "License Type",
+  "License ID",
   "Flight Experience",
   "Pilot ID",
+  "Status",
 ] as const;
 
 const APPROVED_TABLE_COLUMNS = [
   "License ID",
   "Status",
 ] as const;
+
+function pilotRegistrationStatusPill(variant: "pending" | "approved"): {
+  label: string;
+  className: string;
+} {
+  if (variant === "pending") {
+    return {
+      label: "Review Pending",
+      className: "bg-amber-100 text-amber-800",
+    };
+  }
+  return {
+    label: "Approved Pilot",
+    className: "bg-green-100 text-green-800",
+  };
+}
 
 function PilotRegistrationsTable({
   variant,
@@ -459,40 +484,42 @@ function PilotRegistrationsTable({
   const isPending = variant === "pending";
   const detailColumns = isPending ? PENDING_TABLE_COLUMNS : APPROVED_TABLE_COLUMNS;
   const thBase =
-    "px-3 py-3 align-middle text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-4 sm:py-3.5 sm:text-[10px] sm:tracking-wider";
+    "whitespace-nowrap px-5 py-4 text-left align-middle text-sm font-semibold text-slate-700";
+  const thActions =
+    "whitespace-nowrap px-5 py-4 text-right align-middle text-sm font-semibold text-slate-700";
   const tdBase =
-    "min-w-0 px-3 py-3 align-middle text-[10px] text-foreground sm:px-4 sm:py-3.5 sm:text-[11px]";
+    "min-w-0 px-5 py-4 align-middle text-left text-sm text-slate-600";
+  const tdActions = "min-w-0 px-5 py-4 align-middle text-right text-sm";
 
   if (pilots.length === 0) {
     return (
-      <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
-        <p className="text-sm font-medium text-muted-foreground">
+      <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+        <p className="text-sm font-medium text-slate-500">
           {isPending
-            ? "No pending pilot registrations."
-            : "No registered pilots yet."}
+            ? "No pending pilot registrations at this time."
+            : "No registered pilots at this time."}
         </p>
       </div>
     );
   }
 
+  const statusPill = pilotRegistrationStatusPill(variant);
+
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse text-left">
+        <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-border bg-muted/60">
-              <th scope="col" className={cn(thBase, "text-left")}>
-                Pilot name
-              </th>
-              <th scope="col" className={cn(thBase, "text-left")}>
-                Badge
+            <tr className="border-b border-slate-200 bg-slate-50">
+              <th scope="col" className={thBase}>
+                Pilot Name
               </th>
               {detailColumns.map((col) => (
-                <th key={col} scope="col" className={cn(thBase, "text-left")}>
+                <th key={col} scope="col" className={thBase}>
                   {col}
                 </th>
               ))}
-              <th scope="col" className={cn(thBase, "text-right")}>
+              <th scope="col" className={thActions}>
                 Actions
               </th>
             </tr>
@@ -501,49 +528,67 @@ function PilotRegistrationsTable({
             {pilots.map((p) => (
               <tr
                 key={p.id}
-                className="border-b border-border/60 transition-colors last:border-b-0 hover:bg-muted/30"
+                className="border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/60"
               >
-                <td className={cn(tdBase, "font-semibold")}>{p.name}</td>
                 <td className={tdBase}>
                   <span
-                    className={cn(
-                      "inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-[9px] font-bold uppercase",
-                      isPending
-                        ? "bg-[#cfe8e8] text-[#0a3030] dark:bg-primary/25 dark:text-primary"
-                        : "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
-                    )}
+                    className="block truncate font-medium text-slate-900"
+                    title={p.name}
                   >
-                    {p.badge}
+                    {p.name}
                   </span>
                 </td>
                 {detailColumns.map((col) => {
+                  if (col === "Status") {
+                    return (
+                      <td key={col} className={tdBase}>
+                        <span
+                          className={cn(
+                            "inline-flex max-w-full items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium",
+                            statusPill.className
+                          )}
+                        >
+                          {statusPill.label}
+                        </span>
+                      </td>
+                    );
+                  }
                   const { v, vClass } = pilotRowValue(p, col);
                   return (
-                    <td key={col} className={cn(tdBase, "font-medium")}>
-                      <span className={vClass}>{v}</span>
+                    <td key={col} className={tdBase}>
+                      <span
+                        className={cn(
+                          "block truncate",
+                          vClass,
+                          col === "Pilot ID" && "tabular-nums"
+                        )}
+                        title={v}
+                      >
+                        {v}
+                      </span>
                     </td>
                   );
                 })}
-                <td className={cn(tdBase, "text-right")}>
+                <td className={tdActions}>
                   {isPending ? (
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="rounded-lg border-[#008B8B] text-xs font-bold text-[#008B8B] hover:bg-[#008B8B] hover:text-white"
+                      className="h-7 whitespace-nowrap rounded-lg border-[#008B8B] px-2.5 text-[10px] font-bold text-[#008B8B] hover:bg-[#008B8B] hover:text-white sm:px-3 sm:text-[11px]"
                       onClick={() => onRejectPilot(p.id)}
                     >
-                      Add drone details
+                      Add Drone Details
                     </Button>
                   ) : (
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="rounded-lg border-[#008B8B] text-xs font-bold text-[#008B8B] hover:bg-[#008B8B] hover:text-white"
+                      className="h-7 whitespace-nowrap rounded-lg border-[#008B8B] px-2.5 text-[10px] font-bold text-[#008B8B] hover:bg-[#008B8B] hover:text-white sm:px-3 sm:text-[11px]"
                       onClick={() => onViewProfile(p)}
                     >
-                      View profile
+                      View Profile
                     </Button>
                   )}
                 </td>

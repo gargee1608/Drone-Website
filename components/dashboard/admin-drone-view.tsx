@@ -45,7 +45,7 @@ function OpenRequestDetailTable({
       <p className="mb-2 text-xs font-semibold text-foreground sm:mb-3 sm:text-[13px]">
         {subtitle}
       </p>
-      <div className="overflow-x-auto rounded-xl border border-border/90">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table
           className={cn(
             "w-full table-fixed border-collapse text-left leading-snug",
@@ -53,7 +53,7 @@ function OpenRequestDetailTable({
           )}
         >
           <thead>
-            <tr className="border-b border-border bg-muted/60">
+            <tr className="border-b border-slate-200 bg-slate-50">
               {columns.map((col) => (
                 <th
                   key={col.header}
@@ -69,7 +69,7 @@ function OpenRequestDetailTable({
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">
+            <tr className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60">
               {columns.map((col) => (
                 <td
                   key={col.header}
@@ -251,8 +251,8 @@ function AdminDroneDetailCard({
   onDelete: () => void;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-muted/30 px-4 py-3">
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             Drone details
@@ -1247,7 +1247,7 @@ export function AdminDroneView() {
 
         {/* Drone Form */}
         {showDroneForm && (
-          <div className="rounded-xl border border-border bg-muted/25 p-3 sm:p-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
             <h3 className="mb-2 text-sm font-semibold text-foreground">
               Add New Drone Details for {request?.pilot_name}
             </h3>
@@ -1564,7 +1564,7 @@ export function AdminDroneView() {
   // Default view - show pending requests or normal drone management
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
-      <div className="rounded-2xl border border-border bg-card px-4 py-3 text-sm text-foreground sm:px-5">
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-foreground shadow-sm sm:px-5">
         Total drones:{" "}
         <span className="font-semibold tabular-nums">
           {pilotDroneRows.length}
@@ -1600,8 +1600,8 @@ export function AdminDroneView() {
       </div>
 
       {showPendingRequests ? (
-        <section className="rounded-2xl border border-border bg-card shadow-sm">
-          <div className="border-b border-border px-4 py-3 sm:px-5">
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
             <h3 className="text-sm font-semibold text-foreground">
               Pending Pilot Requests
             </h3>
@@ -1615,7 +1615,7 @@ export function AdminDroneView() {
               {pendingRequests.map((req) => (
                 <article
                   key={req.id}
-                  className="rounded-xl border border-border bg-card p-4"
+                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -1646,7 +1646,7 @@ export function AdminDroneView() {
 
       <div ref={addDronePanelRef}>
         {openAddDronePanel ? (
-          <div className="space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
+          <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-sm font-semibold text-foreground">
                 Add New Drone Details
@@ -1713,7 +1713,7 @@ export function AdminDroneView() {
       </div>
 
       {pilotDroneRowsLoading ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-sm text-muted-foreground">
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-muted-foreground shadow-sm">
           Loading drone details...
         </div>
       ) : pilotDroneRowsError ? (
@@ -1721,7 +1721,7 @@ export function AdminDroneView() {
           {pilotDroneRowsError}
         </div>
       ) : pilotDroneRows.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-sm text-muted-foreground">
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-muted-foreground shadow-sm">
           No drone details found in the backend yet.
         </div>
       ) : (

@@ -25,6 +25,8 @@ export type PilotMissionNotification = {
   pilotSub?: string;
   droneModel: string;
   assignedAt: string;
+  /** Mission row status from API (`pending`, `assigned`, `in_progress`, …). */
+  status?: string;
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -232,6 +234,7 @@ export function pushPilotMissionNotification(payload: {
   const nextRow: PilotMissionNotification = {
     id,
     assignedAt,
+    status: "assigned",
     ...payload,
     pilotSub: payload.pilotSub?.trim() || undefined,
   };

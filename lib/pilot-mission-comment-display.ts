@@ -18,3 +18,29 @@ export function pilotMissionCommentForDisplay(text: string): string {
   }
   return raw;
 }
+
+export function pilotMissionCommentsForDisplay(
+  comments: Array<{ text: string; createdAt: string }>
+): Array<{ text: string; createdAt: string }> {
+  return comments
+    .map((entry) => ({
+      ...entry,
+      text: pilotMissionCommentForDisplay(entry.text),
+    }))
+    .filter((entry) => entry.text.trim().length > 0);
+}
+
+function formatCommentTimestamp(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return "";
+  }
+}
+
+export { formatCommentTimestamp };

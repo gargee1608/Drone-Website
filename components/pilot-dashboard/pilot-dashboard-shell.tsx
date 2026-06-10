@@ -5,6 +5,8 @@ import {
   CheckCircle2,
   ClipboardList,
   Drone,
+  FolderCheck,
+  FolderKanban,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -38,6 +40,16 @@ const sidebarNav = [
     label: "Completed Deliveries",
     icon: CheckCircle2,
     href: "/pilot-dashboard/completed-deliveries",
+  },
+  {
+    label: "Project Requests",
+    icon: FolderKanban,
+    href: "/pilot-dashboard/project-requests",
+  },
+  {
+    label: "Completed Project",
+    icon: FolderCheck,
+    href: "/pilot-dashboard/completed-projects",
   },
   {
     label: "My Drones",

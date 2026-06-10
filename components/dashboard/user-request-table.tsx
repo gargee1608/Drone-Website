@@ -28,19 +28,20 @@ import { parsePostRequirementDesc } from "@/lib/post-requirement-parse";
 import { USER_REQUEST_DEMO_MISSIONS } from "./user-request-demos";
 
 function projectTableCells(m: UserRequestAdminRow): {
-  service: string;
+  purpose: string;
   location: string;
-  budget: string;
+  duration: string;
 } {
   const p = m.projectRequirement;
   if (p) {
     return {
-      service: p.serviceCategory.trim() || "—",
+      purpose: p.purposeOfProject.trim() || "—",
       location: p.preferredLocation.trim() || "—",
-      budget: p.budgetRange.trim() || "—",
+      duration: p.expectedDuration.trim() || "—",
     };
   }
-  return parsePostRequirementDesc(m.desc);
+  const parsed = parsePostRequirementDesc(m.desc);
+  return parsed;
 }
 
 export function parsePayloadAndTarget(desc: string): {
@@ -172,40 +173,45 @@ type AdminStatusLabel =
   | "Completed"
   | "Rejected";
 
+/** Matches User Request stat cards + admin table body typography. */
+const ADMIN_TABLE_TEXT =
+  "text-[10px] font-medium leading-tight text-foreground sm:text-[11px]";
+
+function urgencyBadgeLabel(badge: UserRequestAdminRow["badge"]): string {
+  if (badge === "CRITICAL") return "Critical";
+  if (badge === "NORMAL") return "Normal";
+  return "Routine";
+}
+
 /** Map `missions.status` from Postgres to table UI. */
 function displayFromMissionDb(raw: string): {
   label: AdminStatusLabel;
-  dotClass: string;
-  textClass: string;
+  pillClassName: string;
 } | null {
   const s = raw.trim().toLowerCase().replace(/\s+/g, "_");
   if (!s) return null;
   if (s === "completed") {
     return {
       label: "Completed",
-      dotClass: "bg-sky-600",
-      textClass: "text-sky-800 dark:text-sky-300",
+      pillClassName: "bg-green-100 text-green-800",
     };
   }
   if (s === "in_progress" || s === "assigned" || s === "active") {
     return {
       label: "In process",
-      dotClass: "bg-amber-500",
-      textClass: "text-amber-700 dark:text-amber-400",
+      pillClassName: "bg-amber-100 text-amber-800",
     };
   }
   if (s === "pending") {
     return {
       label: "Pending Request",
-      dotClass: "bg-slate-400 dark:bg-slate-500",
-      textClass: "text-foreground/80",
+      pillClassName: "bg-amber-100 text-amber-800",
     };
   }
   if (s === "rejected" || s === "cancelled" || s === "canceled") {
     return {
       label: "Rejected",
-      dotClass: "bg-red-500",
-      textClass: "text-red-700",
+      pillClassName: "bg-red-100 text-red-800",
     };
   }
   return null;
@@ -214,8 +220,7 @@ function displayFromMissionDb(raw: string): {
 /** Status column: latest row in `missions` only (`/api/requests` → `mission_status`). */
 function statusDisplayForAdminRow(m: UserRequestAdminRow): {
   label: AdminStatusLabel | string;
-  dotClass: string;
-  textClass: string;
+  pillClassName: string;
 } {
   const missionRaw =
     typeof m.missionStatus === "string" ? m.missionStatus.trim() : "";
@@ -224,15 +229,13 @@ function statusDisplayForAdminRow(m: UserRequestAdminRow): {
     if (fromMission) return fromMission;
     return {
       label: missionRaw,
-      dotClass: "bg-muted-foreground/50",
-      textClass: "text-muted-foreground",
+      pillClassName: "bg-slate-100 text-slate-700",
     };
   }
 
   return {
     label: "Pending Request",
-    dotClass: "bg-slate-400 dark:bg-slate-500",
-    textClass: "text-foreground/80",
+    pillClassName: "bg-amber-100 text-amber-800",
   };
 }
 
@@ -269,6 +272,9 @@ export function UserRequestTable({
 }: UserRequestTableProps) {
   const isPilot = columnPreset === "pilot";
   const isProject = columnPreset === "project";
+  const isAdmin = columnPreset === "admin";
+  /** Project Requests table matches stat-card typography (same as admin). */
+  const compactTableText = isAdmin || isProject;
   const [statusSync, setStatusSync] = useState(0);
 
   useEffect(() => {
@@ -283,10 +289,24 @@ export function UserRequestTable({
     };
   }, []);
 
-  const thBase =
-    "px-3 py-3 align-middle text-[9px] font-bold uppercase tracking-wide text-muted-foreground sm:px-4 sm:py-3.5 sm:text-[10px] sm:tracking-wider";
-  const tdBase =
-    "min-w-0 px-3 py-3 align-middle text-foreground sm:px-4 sm:py-3.5";
+  const thBase = compactTableText
+    ? "whitespace-nowrap px-5 py-4 text-left align-middle text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]"
+    : "whitespace-nowrap px-5 py-4 text-left align-middle text-sm font-semibold text-slate-700";
+  const thActions = compactTableText
+    ? "whitespace-nowrap px-5 py-4 text-center align-middle text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]"
+    : "whitespace-nowrap px-5 py-4 text-center align-middle text-sm font-semibold text-slate-700";
+  const thCenter = compactTableText
+    ? "whitespace-nowrap px-5 py-4 text-center align-middle text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]"
+    : "whitespace-nowrap px-5 py-4 text-center align-middle text-sm font-semibold text-slate-700";
+  const tdBase = compactTableText
+    ? cn("min-w-0 px-5 py-4 align-middle text-left", ADMIN_TABLE_TEXT)
+    : "min-w-0 px-5 py-4 align-middle text-left text-sm text-slate-600";
+  const tdActions = compactTableText
+    ? cn("min-w-0 px-5 py-4 align-middle text-center", ADMIN_TABLE_TEXT)
+    : "min-w-0 px-5 py-4 align-middle text-center text-sm";
+  const tdCenter = compactTableText
+    ? cn("min-w-0 px-5 py-4 align-middle text-center", ADMIN_TABLE_TEXT)
+    : "min-w-0 px-5 py-4 align-middle text-center text-sm text-slate-600";
 
   return (
     <div
@@ -319,13 +339,13 @@ export function UserRequestTable({
       ) : null}
       <div
         className={cn(
-          "rounded-xl border border-border/90",
-          isPilot || isProject ? "overflow-x-auto" : "overflow-hidden"
+          "overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm",
+          isPilot || isProject ? "overflow-x-auto" : ""
         )}
       >
         <table
           className={cn(
-            "w-full table-fixed border-collapse text-left text-[10px] leading-snug sm:text-[11px]",
+            "w-full table-fixed border-collapse",
             isPilot && "min-w-[640px]",
             isProject && "min-w-[52rem]"
           )}
@@ -360,70 +380,70 @@ export function UserRequestTable({
             </colgroup>
           )}
           <thead>
-            <tr className="border-b border-border bg-muted/60">
+            <tr className="border-b border-slate-200 bg-slate-50">
               {isPilot ? (
                 <>
-                  <th scope="col" className={cn(thBase, "text-left")}>
+                  <th scope="col" className={thBase}>
                     User Id
                   </th>
-                  <th scope="col" className={cn(thBase, "text-left")}>
+                  <th scope="col" className={thBase}>
                     User Name
                   </th>
-                  <th scope="col" className={cn(thBase, "text-left")}>
+                  <th scope="col" className={thBase}>
                     User Requirement
                   </th>
-                  <th scope="col" className={cn(thBase, "text-center tabular-nums")}>
+                  <th scope="col" className={cn(thBase, "tabular-nums")}>
                     Payload
                   </th>
-                  <th scope="col" className={cn(thBase, "text-left")}>
+                  <th scope="col" className={thBase}>
                     Destinations
                   </th>
                 </>
               ) : isProject ? (
                 <>
-                  <th scope="col" className={cn(thBase, "text-left")}>
+                  <th scope="col" className={thBase}>
                     Request ID
                   </th>
-                  <th scope="col" className={cn(thBase, "text-left")}>
+                  <th scope="col" className={thBase}>
                     Project title
                   </th>
-                  <th scope="col" className={cn(thBase, "text-left")}>
-                    Service
+                  <th scope="col" className={thBase}>
+                    Purpose
                   </th>
-                  <th scope="col" className={cn(thBase, "text-left")}>
+                  <th scope="col" className={thBase}>
                     Location
                   </th>
-                  <th scope="col" className={cn(thBase, "text-left")}>
-                    Budget
+                  <th scope="col" className={thBase}>
+                    Duration
                   </th>
-                  <th scope="col" className={cn(thBase, "text-left")}>
+                  <th scope="col" className={thCenter}>
                     Status
                   </th>
-                  <th scope="col" className={cn(thBase, "text-right pr-4 sm:pr-5")}>
+                  <th scope="col" className={thActions}>
                     Actions
                   </th>
                 </>
               ) : (
                 <>
-                  <th scope="col" className={cn(thBase, "text-left")}>
+                  <th scope="col" className={thBase}>
                     Request ID
                   </th>
-                  <th scope="col" className={cn(thBase, "text-left")}>
+                  <th scope="col" className={thCenter}>
                     Requirement type
                   </th>
-                  <th scope="col" className={cn(thBase, "text-center tabular-nums")}>
+                  <th scope="col" className={cn(thBase, "tabular-nums")}>
                     Payload
                   </th>
-                  <th scope="col" className={cn(thBase, "text-left")}>
+                  <th scope="col" className={thBase}>
                     Destination
                   </th>
-                  <th scope="col" className={cn(thBase, "text-center")}>
+                  <th scope="col" className={thBase}>
                     Urgency
                   </th>
-                  <th scope="col" className={cn(thBase, "text-center")}>
+                  <th scope="col" className={thCenter}>
                     Status
                   </th>
-                  <th scope="col" className={cn(thBase, "text-center")}>
+                  <th scope="col" className={thActions}>
                     Actions
                   </th>
                 </>
@@ -446,24 +466,24 @@ export function UserRequestTable({
                   <tr
                     key={m.key}
                     className={cn(
-                      "border-b border-border transition-colors last:border-0 hover:bg-muted/50",
+                      "border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/60",
                       highlightRow && "bg-[#008B8B]/8 hover:bg-[#008B8B]/12"
                     )}
                   >
-                    <td className={cn(tdBase, "text-left")}>
+                    <td className={tdBase}>
                       <span
-                        className="inline-block max-w-full font-mono text-[10px] font-medium leading-snug tracking-tight text-muted-foreground [overflow-wrap:anywhere] sm:text-[11px]"
+                        className="inline-block max-w-full font-mono text-sm font-medium leading-snug tracking-tight text-slate-500 [overflow-wrap:anywhere]"
                         title={pilotCells.userId}
                       >
                         {pilotCells.userId}
                       </span>
                     </td>
-                    <td className={cn(tdBase, "text-left")}>
-                      <span className="block break-words leading-snug">
+                    <td className={tdBase}>
+                      <span className="block break-words font-medium text-slate-900">
                         {pilotCells.userName}
                       </span>
                     </td>
-                    <td className={cn(tdBase, "text-left")}>
+                    <td className={tdBase}>
                       {onViewDetails ? (
                         <button
                           type="button"
@@ -489,13 +509,13 @@ export function UserRequestTable({
                         </div>
                       )}
                     </td>
-                    <td className={cn(tdBase, "text-center tabular-nums")}>
-                      <span className="mx-auto block max-w-full break-words text-center leading-snug">
+                    <td className={cn(tdBase, "tabular-nums")}>
+                      <span className="block max-w-full break-words">
                         {pilotCells.payload}
                       </span>
                     </td>
-                    <td className={cn(tdBase, "text-left")}>
-                      <div className="break-words leading-snug font-medium">
+                    <td className={tdBase}>
+                      <div className="break-words font-medium text-slate-900">
                         {pilotCells.destinations}
                       </div>
                     </td>
@@ -507,104 +527,106 @@ export function UserRequestTable({
                 return (
                   <tr
                     key={m.key}
-                    className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+                    className="border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/60"
                   >
-                    <td className={cn(tdBase, "text-left")}>
+                    <td className={tdBase}>
                       <span
-                        className="inline-block max-w-full font-mono text-[10px] font-medium leading-snug tracking-tight text-muted-foreground [overflow-wrap:anywhere] sm:text-[11px]"
+                        className="inline-block max-w-full font-mono text-[10px] font-medium leading-tight tracking-tight text-muted-foreground [overflow-wrap:anywhere] sm:text-[11px]"
                         title={tableRequestId(m)}
                       >
                         {tableRequestId(m)}
                       </span>
                     </td>
-                    <td className={cn(tdBase, "text-left")}>
+                    <td className={tdBase}>
                       {onViewDetails ? (
                         <button
                           type="button"
-                          className="group flex min-w-0 w-full cursor-pointer items-center gap-2.5 rounded-md py-0.5 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
+                          className="group flex min-w-0 w-full cursor-pointer items-center gap-2 rounded-md py-0.5 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
                           aria-label={`View project request: ${m.title}`}
                           onClick={() => onViewDetails(m)}
                         >
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12 text-[#008B8B]">
-                            <ReqIcon className="size-3.5 shrink-0" aria-hidden />
+                          <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/15 text-[#008B8B]">
+                            <ReqIcon className="size-3 shrink-0" aria-hidden />
                           </span>
-                          <span className="min-w-0 break-words leading-snug font-semibold text-[#006767] underline decoration-[#008B8B]/35 underline-offset-2 group-hover:text-[#005a5a] dark:text-primary">
+                          <span
+                            className={cn(
+                              "min-w-0 break-words text-[#006767] underline decoration-[#008B8B]/35 underline-offset-2 transition-colors group-hover:text-[#005a5a] group-hover:decoration-[#008B8B]/70 dark:text-primary dark:group-hover:text-primary",
+                              ADMIN_TABLE_TEXT
+                            )}
+                          >
                             {m.title}
                           </span>
                         </button>
                       ) : (
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12 text-[#008B8B]">
-                            <ReqIcon className="size-3.5 shrink-0" aria-hidden />
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
+                            <ReqIcon className="size-3 shrink-0" aria-hidden />
                           </span>
-                          <span className="break-words font-medium">{m.title}</span>
+                          <span className={cn("min-w-0 break-words", ADMIN_TABLE_TEXT)}>
+                            {m.title}
+                          </span>
                         </div>
                       )}
                     </td>
-                    <td className={cn(tdBase, "text-left")}>
-                      <span className="break-words">{projectCells.service}</span>
+                    <td className={tdBase}>
+                      <span className="break-words">{projectCells.purpose}</span>
                     </td>
-                    <td className={cn(tdBase, "text-left")}>
+                    <td className={tdBase}>
                       <span className="break-words">{projectCells.location}</span>
                     </td>
-                    <td className={cn(tdBase, "text-left")}>
-                      <span className="break-words">{projectCells.budget}</span>
+                    <td className={tdBase}>
+                      <span className="break-words">{projectCells.duration}</span>
                     </td>
-                    <td className={cn(tdBase, "text-left")}>
+                    <td className={tdCenter}>
                       {adminStatusUi ? (
                         <span
                           className={cn(
-                            "inline-flex min-w-0 max-w-full items-center gap-2 text-[10px] font-medium leading-snug sm:text-[11px]",
-                            adminStatusUi.textClass
+                            "inline-flex max-w-full items-center whitespace-nowrap rounded-full px-2.5 py-0.5",
+                            ADMIN_TABLE_TEXT,
+                            adminStatusUi.pillClassName
                           )}
                         >
-                          <span
-                            className={cn(
-                              "size-2 shrink-0 rounded-full",
-                              adminStatusUi.dotClass
-                            )}
-                            aria-hidden
-                          />
-                          <span className="min-w-0 whitespace-nowrap">
-                            {adminStatusUi.label}
-                          </span>
+                          {adminStatusUi.label}
                         </span>
                       ) : null}
                     </td>
-                    <td className={cn(tdBase, "text-right")}>
+                    <td className={tdActions}>
                       {onViewDetails || onEditRequest || onDeleteRequest ? (
-                        <div className="inline-flex items-center justify-end gap-1.5">
+                        <div className="inline-flex items-center justify-center gap-1.5">
                           {onViewDetails ? (
                             <button
                               type="button"
-                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#008B8B]/35 bg-[#008B8B]/8 text-[#006767] transition-colors hover:bg-[#008B8B]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
+                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#008B8B]/35 bg-[#008B8B]/8 text-[#006767] transition-colors hover:bg-[#008B8B]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 dark:text-primary"
                               title="View"
                               aria-label={`View: ${m.title}`}
                               onClick={() => onViewDetails(m)}
                             >
-                              <Eye className="size-3.5" aria-hidden />
+                              <Eye className="size-3.5 shrink-0" aria-hidden />
+                              <span className="sr-only">View</span>
                             </button>
                           ) : null}
                           {onEditRequest ? (
                             <button
                               type="button"
-                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-blue-500/25 bg-blue-500/8 text-blue-700 transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-blue-500/25 bg-blue-500/8 text-blue-700 transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 dark:text-blue-300"
                               title="Edit"
                               aria-label={`Edit: ${m.title}`}
                               onClick={() => onEditRequest(m)}
                             >
-                              <Pencil className="size-3.5" aria-hidden />
+                              <Pencil className="size-3.5 shrink-0" aria-hidden />
+                              <span className="sr-only">Edit</span>
                             </button>
                           ) : null}
                           {onDeleteRequest ? (
                             <button
                               type="button"
-                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-red-500/25 bg-red-500/8 text-red-700 transition-colors hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
+                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-red-500/25 bg-red-500/8 text-red-700 transition-colors hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 dark:text-red-300"
                               title="Delete"
                               aria-label={`Delete: ${m.title}`}
                               onClick={() => onDeleteRequest(m)}
                             >
-                              <Trash2 className="size-3.5" aria-hidden />
+                              <Trash2 className="size-3.5 shrink-0" aria-hidden />
+                              <span className="sr-only">Delete</span>
                             </button>
                           ) : null}
                         </div>
@@ -620,23 +642,23 @@ export function UserRequestTable({
                 <tr
                   key={m.key}
                   className={cn(
-                    "border-b border-border transition-colors last:border-0 hover:bg-muted/50",
+                    "border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/60",
                     highlightRow && "bg-[#008B8B]/8 hover:bg-[#008B8B]/12"
                   )}
                 >
-                  <td className={cn(tdBase, "text-left")}>
+                  <td className={tdBase}>
                     <span
-                      className="inline-block max-w-full font-mono text-[10px] font-medium leading-snug tracking-tight text-muted-foreground [overflow-wrap:anywhere] sm:text-[11px]"
+                      className="inline-block max-w-full font-mono text-[10px] font-medium leading-tight tracking-tight text-muted-foreground [overflow-wrap:anywhere] sm:text-[11px]"
                       title={tableRequestId(m)}
                     >
                       {tableRequestId(m)}
                     </span>
                   </td>
-                  <td className={cn(tdBase, "text-left")}>
+                  <td className={tdCenter}>
                     {onViewDetails ? (
                       <button
                         type="button"
-                        className="group flex min-w-0 w-full cursor-pointer items-center gap-2 rounded-md py-0.5 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
+                        className="group inline-flex min-w-0 cursor-pointer items-center justify-center gap-2 rounded-md py-0.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#008B8B]/40"
                         title="Opens this request on the Assign To page"
                         aria-label={`Open Assign To for request: ${m.title}`}
                         onClick={() => onViewDetails(m)}
@@ -644,66 +666,64 @@ export function UserRequestTable({
                         <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/15 text-[#008B8B] transition-colors group-hover:bg-[#008B8B]/25 dark:text-primary">
                           <ReqIcon className="size-3 shrink-0" aria-hidden />
                         </span>
-                        <span className="min-w-0 break-words leading-snug font-semibold text-[#006767] underline decoration-[#008B8B]/35 underline-offset-2 transition-colors group-hover:text-[#005a5a] group-hover:decoration-[#008B8B]/70 dark:text-primary dark:group-hover:text-primary">
+                        <span
+                          className={cn(
+                            "min-w-0 break-words text-[#006767] underline decoration-[#008B8B]/35 underline-offset-2 transition-colors group-hover:text-[#005a5a] group-hover:decoration-[#008B8B]/70 dark:text-primary dark:group-hover:text-primary",
+                            ADMIN_TABLE_TEXT
+                          )}
+                        >
                           {m.title}
                         </span>
                       </button>
                     ) : (
-                      <div className="flex min-w-0 items-center gap-2 py-0.5">
+                      <div className="inline-flex min-w-0 items-center justify-center gap-2 py-0.5">
                         <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/8 text-[#008B8B]">
                           <ReqIcon className="size-3 shrink-0" aria-hidden />
                         </span>
-                        <span className="min-w-0 break-words leading-snug font-medium text-foreground">
+                        <span className={cn("min-w-0 break-words", ADMIN_TABLE_TEXT)}>
                           {m.title}
                         </span>
                       </div>
                     )}
                   </td>
-                  <td className={cn(tdBase, "text-center tabular-nums")}>
-                    <span className="mx-auto block max-w-full break-words text-center leading-snug">
+                  <td className={cn(tdBase, "tabular-nums")}>
+                    <span className="block max-w-full break-words">
                       {weightDisplay}
                     </span>
                   </td>
-                  <td className={cn(tdBase, "text-left")}>
-                    <div className="break-words leading-snug font-medium">{target}</div>
-                    <div className="mt-1 break-words text-[8px] leading-snug text-muted-foreground sm:text-[9px]">
+                  <td className={tdBase}>
+                    <div className="break-words">{target}</div>
+                    <div className="mt-1 break-words text-[10px] leading-tight text-muted-foreground sm:text-[11px]">
                       {payload.replace(/\s*\([^)]*kg\)\s*/i, "").trim() || "—"}
                     </div>
                   </td>
-                  <td className={cn(tdBase, "text-center")}>
+                  <td className={tdBase}>
                     <span
                       className={cn(
-                        "inline-flex max-w-full items-center justify-center rounded px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide sm:text-[9px]",
+                        "inline-flex max-w-full items-center whitespace-nowrap rounded-full px-2.5 py-0.5 normal-case",
+                        ADMIN_TABLE_TEXT,
                         m.badgeClass
                       )}
                     >
-                      {m.badge}
+                      {urgencyBadgeLabel(m.badge)}
                     </span>
                   </td>
-                  <td className={cn(tdBase, "text-center")}>
+                  <td className={tdCenter}>
                     {adminStatusUi ? (
                       <span
                         className={cn(
-                          "inline-flex min-w-0 max-w-full items-center justify-center gap-1.5 text-[9px] font-medium leading-snug sm:text-[10px]",
-                          adminStatusUi.textClass
+                          "inline-flex max-w-full items-center whitespace-nowrap rounded-full px-2.5 py-0.5",
+                          ADMIN_TABLE_TEXT,
+                          adminStatusUi.pillClassName
                         )}
                       >
-                        <span
-                          className={cn(
-                            "size-1.5 shrink-0 rounded-full",
-                            adminStatusUi.dotClass
-                          )}
-                          aria-hidden
-                        />
-                        <span className="min-w-0 break-words">
-                          {adminStatusUi.label}
-                        </span>
+                        {adminStatusUi.label}
                       </span>
                     ) : null}
                   </td>
-                  <td className={cn(tdBase, "text-center")}>
+                  <td className={tdActions}>
                     {onViewDetails || onEditRequest || onDeleteRequest ? (
-                      <div className="flex items-center justify-center gap-1">
+                      <div className="inline-flex items-center justify-center gap-1.5">
                         {onViewDetails ? (
                           <button
                             type="button"

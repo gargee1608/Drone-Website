@@ -95,7 +95,7 @@ export function ContactInquiriesView() {
       )}
 
       {rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-muted/40 px-6 py-14 text-center">
+        <div className="rounded-xl border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
           <Mail
             className="mx-auto mb-3 size-10 text-[#c1c6d7]"
             strokeWidth={1.5}
@@ -109,10 +109,10 @@ export function ContactInquiriesView() {
           </p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border/90">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full table-fixed border-collapse text-left text-[10px] leading-snug sm:text-[11px]">
               <thead>
-                <tr className="border-b border-border bg-muted/60">
+                <tr className="border-b border-slate-200 bg-slate-50">
                   <th
                     scope="col"
                     className={cn(thBase, "w-[15%] text-left")}
@@ -146,7 +146,7 @@ export function ContactInquiriesView() {
                     <tr
                       key={row.id}
                       id={`contact-inquiry-${row.id}`}
-                      className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+                      className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60"
                     >
                       <td className={cn(tdBase, "text-left align-top")}>
                         <time

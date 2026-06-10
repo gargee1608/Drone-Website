@@ -1,5 +1,19 @@
 import { getPgPool } from "@/lib/pg-pool";
 
+let serviceDetailColumnsEnsured = false;
+
+async function ensureServiceDetailColumns() {
+  if (serviceDetailColumnsEnsured) return;
+  const pool = getPgPool();
+  await pool.query(
+    "ALTER TABLE services ADD COLUMN IF NOT EXISTS detail_sections JSONB"
+  );
+  await pool.query(
+    "ALTER TABLE services ADD COLUMN IF NOT EXISTS highlights JSONB"
+  );
+  serviceDetailColumnsEnsured = true;
+}
+
 export type ServiceApiRow = {
   id: number | string;
   slug?: string | null;
@@ -7,13 +21,16 @@ export type ServiceApiRow = {
   description?: string | null;
   price?: number | string | null;
   image?: string | null;
+  detail_sections?: string[] | null;
+  highlights?: string[] | null;
   created_at?: string | null;
 };
 
 /** Loads services from PostgreSQL (same table as Express `/api/services`). */
 export async function queryAllServices(): Promise<ServiceApiRow[]> {
+  await ensureServiceDetailColumns();
   const result = await getPgPool().query(
-    `SELECT id, slug, title, description, price, image, created_at
+    `SELECT id, slug, title, description, price, image, detail_sections, highlights, created_at
      FROM services
      ORDER BY id DESC`
   );

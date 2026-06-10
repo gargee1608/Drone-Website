@@ -1,4 +1,5 @@
 import {
+  parseServiceStringArray,
   serviceCatalogItems,
   serviceSlugFromTitle,
   type ServiceCatalogItem,
@@ -11,6 +12,8 @@ export type AdminServiceRow = {
   description: string;
   price: number;
   image: string;
+  detailSections: string[];
+  highlights: string[];
   createdAt?: string;
   /** Built-in website catalog entry not yet in the database (or API offline). */
   catalogOnly?: boolean;
@@ -30,6 +33,9 @@ export function normalizeServiceRow(raw: unknown): AdminServiceRow | null {
         : Number(idRaw);
   if (!Number.isFinite(id)) return null;
   const price = Number(row.price);
+  const detailSections =
+    parseServiceStringArray(row.detail_sections) ?? [];
+  const highlights = parseServiceStringArray(row.highlights) ?? [];
   return {
     id,
     slug: typeof row.slug === "string" ? row.slug : undefined,
@@ -37,6 +43,8 @@ export function normalizeServiceRow(raw: unknown): AdminServiceRow | null {
     description: String(row.description ?? ""),
     price: Number.isFinite(price) ? price : 0,
     image: String(row.image ?? ""),
+    detailSections,
+    highlights,
     createdAt:
       typeof row.created_at === "string"
         ? row.created_at
@@ -61,6 +69,8 @@ export function catalogItemToAdminRow(
     description: item.description,
     price: parseCatalogPriceLabel(item.topBadge.text),
     image: item.image,
+    detailSections: item.detailSections,
+    highlights: item.highlights,
     catalogOnly: true,
   };
 }

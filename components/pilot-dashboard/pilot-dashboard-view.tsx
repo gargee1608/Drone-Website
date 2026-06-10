@@ -40,6 +40,7 @@ import {
   MISSIONS_DB_BROADCAST_CHANNEL,
   MISSIONS_DB_UPDATED_EVENT,
 } from "@/lib/user-requests";
+import { DASH_STAT_CARD_SURFACE } from "@/lib/admin-dashboard-styles";
 import { cn } from "@/lib/utils";
 
 const flightDeck = Space_Grotesk({
@@ -53,8 +54,6 @@ const FD_PRIMARY = "#00418f";
 
 const LIVE_FEED_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDZ0f9uXM7jzeoXxh2c5WuE8cSxxxdPN2Gs-7YcV39DYRuhcq7nb5pD5f6oYdf9b-Gs4sfyX-Xp-yvyzcp0T7XJ7fh1M03lZpLy9ODmqvdX9-Tb-C2_Y8vT-elTvruYtsixaIWB05aJt3XRt0kifxLVtKCocqAngquDMsBzEjmJ-DP26S33wmi7h-ruFGbfJwrkQ6YxbxKinBYuaPoXwJAvKXKIGZt9QCEoFxuyXHaJQCE6YohzPX_zRyQBQQgx_BnAPtxTW2p1hzbN";
-
-const cardShadow = "shadow-[0_4px_20px_rgba(0,0,0,0.04)]";
 
 function DeckStatCard({
   label,
@@ -76,8 +75,8 @@ function DeckStatCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1 rounded-xl border border-border bg-card p-5 sm:p-6",
-        cardShadow
+        "flex flex-col gap-1 rounded-2xl bg-card p-5 sm:p-6",
+        DASH_STAT_CARD_SURFACE
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -144,8 +143,8 @@ function PilotDutyStatusCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1 rounded-xl border border-border bg-card p-5 sm:p-6",
-        cardShadow
+        "flex flex-col gap-1 rounded-2xl bg-card p-5 sm:p-6",
+        DASH_STAT_CARD_SURFACE
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -446,8 +445,8 @@ export function PilotDashboardView() {
             {/* Active Mission Control */}
             <div
               className={cn(
-                "overflow-hidden rounded-xl border border-border bg-card",
-                cardShadow
+                "overflow-hidden rounded-xl bg-card",
+                DASH_STAT_CARD_SURFACE
               )}
             >
               <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-4 sm:px-6">

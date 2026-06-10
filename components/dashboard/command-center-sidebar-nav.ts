@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Drone,
+  FolderCheck,
   FolderKanban,
   LayoutDashboard,
   LogOut,
@@ -31,19 +32,24 @@ export const commandCenterNavMain: readonly CommandCenterNavItem[] = [
   { href: "/dashboard/user-requests", label: "User Request", icon: ClipboardList },
   { href: "/dashboard/assign", label: "Assign To", icon: Plane },
   {
+    href: "/dashboard/completed-deliveries",
+    label: "Completed Deliveries",
+    icon: CheckCircle2,
+  },
+  {
     href: "/dashboard/project-requests",
     label: "Project Requests",
     icon: FolderKanban,
   },
   {
+    href: "/dashboard/completed-projects",
+    label: "Completed Project",
+    icon: FolderCheck,
+  },
+  {
     href: "/dashboard/available-missions",
     label: "Available Mission",
     icon: Radar,
-  },
-    {
-    href: "/dashboard/completed-deliveries",
-    label: "Completed Deliveries",
-    icon: CheckCircle2,
   },
   {
     href: "/dashboard/drone",

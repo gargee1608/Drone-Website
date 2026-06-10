@@ -23,13 +23,9 @@ import {
   ADMIN_PAGE_TOP_PADDING_CLASS,
 } from "@/lib/page-heading";
 import {
-  POST_REQUIREMENT_BUDGET_OPTIONS,
   POST_REQUIREMENT_DESCRIPTION_MAX,
   POST_REQUIREMENT_DURATION_OPTIONS,
-  POST_REQUIREMENT_NOTES_MAX,
-  POST_REQUIREMENT_PROJECT_TYPE_OPTIONS,
   POST_REQUIREMENT_PURPOSE_OPTIONS,
-  POST_REQUIREMENT_SERVICE_OPTIONS,
 } from "@/lib/post-requirement-options";
 import {
   parsePostRequirementBackend,
@@ -37,11 +33,18 @@ import {
 } from "@/lib/post-requirement-parse";
 import { mapPostRequirementToSubmitPayload } from "@/lib/post-requirement-submit";
 import {
+  computeProjectRequestStats,
+  fetchPilotProjectMissionRefs,
+  filterPilotAssignedProjectRows,
+} from "@/lib/pilot-project-request-scope";
+import { PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT } from "@/lib/pilot-mission-notifications";
+import {
+  isCompletedProjectRequest,
   isProjectRequirementRequest,
+  notifyProjectRequestsUpdated,
   PROJECT_REQUESTS_UPDATED_EVENT,
 } from "@/lib/project-requests";
 import {
-  isUserRequestCompletedDelivery,
   MISSIONS_DB_UPDATED_EVENT,
   normalizeUserMissionAdminStatus,
   type UserMissionAdminStatus,
@@ -127,10 +130,21 @@ function rowToEditForm(row: UserRequestAdminRow): ProjectEditForm {
   };
 }
 
-export function ProjectRequestsView() {
+export function ProjectRequestsView({
+  showPageTitle = true,
+  pilotScoped = false,
+}: {
+  showPageTitle?: boolean;
+  /** Pilot dashboard: only show project requests assigned to the signed-in pilot. */
+  pilotScoped?: boolean;
+} = {}) {
   const pathname = usePathname();
   const prevPathnameRef = useRef<string | null>(null);
   const [rows, setRows] = useState<UserRequestAdminRow[]>([]);
+  const [pilotMissionRefs, setPilotMissionRefs] = useState<Set<string> | null>(
+    null
+  );
+  const [pilotSub, setPilotSub] = useState<string | null>(null);
   const [backendRefresh, setBackendRefresh] = useState(0);
   const [detailRow, setDetailRow] = useState<UserRequestAdminRow | null>(null);
   const [editingRequest, setEditingRequest] = useState<UserRequestAdminRow | null>(
@@ -174,19 +188,63 @@ export function ProjectRequestsView() {
   }, [backendRefresh]);
 
   useEffect(() => {
+    if (!pilotScoped) {
+      setPilotMissionRefs(null);
+      setPilotSub(null);
+      return;
+    }
+
+    let cancelled = false;
+    async function loadPilotMissions() {
+      try {
+        const { pilotSub: currentPilotSub, refs } =
+          await fetchPilotProjectMissionRefs();
+        if (!cancelled) {
+          setPilotSub(currentPilotSub);
+          setPilotMissionRefs(refs);
+        }
+      } catch {
+        if (!cancelled) {
+          setPilotSub(null);
+          setPilotMissionRefs(new Set());
+        }
+      }
+    }
+
+    void loadPilotMissions();
+    return () => {
+      cancelled = true;
+    };
+  }, [pilotScoped, backendRefresh]);
+
+  useEffect(() => {
     const bump = () => setBackendRefresh((n) => n + 1);
     window.addEventListener(PROJECT_REQUESTS_UPDATED_EVENT, bump);
     window.addEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
+    if (pilotScoped) {
+      window.addEventListener(PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT, bump);
+    }
     return () => {
       window.removeEventListener(PROJECT_REQUESTS_UPDATED_EVENT, bump);
       window.removeEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
+      if (pilotScoped) {
+        window.removeEventListener(
+          PILOT_MISSION_NOTIFICATIONS_UPDATED_EVENT,
+          bump
+        );
+      }
     };
-  }, []);
+  }, [pilotScoped]);
 
   useEffect(() => {
     const prev = prevPathnameRef.current;
     prevPathnameRef.current = pathname;
-    if (pathname !== "/dashboard/project-requests") return;
+    if (
+      pathname !== "/dashboard/project-requests" &&
+      pathname !== "/pilot-dashboard/project-requests"
+    ) {
+      return;
+    }
     if (prev !== null && prev !== pathname) {
       setBackendRefresh((n) => n + 1);
     }
@@ -197,33 +255,20 @@ export function ProjectRequestsView() {
     [detailRow]
   );
 
-  const stats = useMemo(() => {
-    let pending = 0;
-    let activeAssigned = 0;
-    let completedDeliveries = 0;
-    for (const row of rows) {
-      const s = normalizeUserMissionAdminStatus(
-        typeof row.adminStatus === "string" ? row.adminStatus : undefined
-      );
-      const delivered = isUserRequestCompletedDelivery(row);
+  const scopedRows = useMemo(() => {
+    if (!pilotScoped) return rows;
+    return filterPilotAssignedProjectRows(rows, pilotMissionRefs, pilotSub);
+  }, [rows, pilotScoped, pilotMissionRefs, pilotSub]);
 
-      if (s === "rejected") {
-        /* excluded from workflow buckets; still in total */
-      } else if (delivered) {
-        completedDeliveries += 1;
-      } else if (s === "accepted") {
-        activeAssigned += 1;
-      } else {
-        pending += 1;
-      }
-    }
-    return {
-      total: rows.length,
-      pending,
-      activeAssigned,
-      completedDeliveries,
-    };
-  }, [rows]);
+  const openProjectRows = useMemo(
+    () => scopedRows.filter((row) => !isCompletedProjectRequest(row)),
+    [scopedRows]
+  );
+
+  const stats = useMemo(
+    () => computeProjectRequestStats(scopedRows),
+    [scopedRows]
+  );
 
   const openRequestEdit = (row: UserRequestAdminRow) => {
     if (!row.backendRequest?.id) {
@@ -247,19 +292,17 @@ export function ProjectRequestsView() {
     const form = requestEditForm;
     if (!id || !form) return;
 
-    if (!form.contactName.trim() || !form.contactEmail.trim()) {
-      setRequestEditError("Name and email are required.");
+    if (!form.contactEmail.trim()) {
+      setRequestEditError("Email is required.");
       return;
     }
 
     if (
       !form.projectTitle.trim() ||
-      !form.serviceCategory.trim() ||
-      !form.projectType.trim() ||
       !form.preferredLocation.trim() ||
       !form.projectDescription.trim() ||
       !form.expectedStartDate.trim() ||
-      !form.budgetRange.trim() ||
+      !form.expectedDuration.trim() ||
       !form.purposeOfProject.trim()
     ) {
       setRequestEditError("Please fill in all required project fields.");
@@ -289,6 +332,7 @@ export function ProjectRequestsView() {
       setEditingRequest(null);
       setRequestEditForm(null);
       setBackendRefresh((n) => n + 1);
+      notifyProjectRequestsUpdated();
     } catch (error) {
       setRequestEditError(
         error instanceof Error ? error.message : "Could not update request."
@@ -314,6 +358,7 @@ export function ProjectRequestsView() {
         throw new Error("Could not delete request.");
       }
       setBackendRefresh((n) => n + 1);
+      notifyProjectRequestsUpdated();
     } catch (error) {
       alert(error instanceof Error ? error.message : "Could not delete request.");
     }
@@ -326,7 +371,9 @@ export function ProjectRequestsView() {
         ADMIN_PAGE_TOP_PADDING_CLASS
       )}
     >
-      <h1 className={ADMIN_PAGE_TITLE_CLASS}>Project Requests</h1>
+      {showPageTitle ? (
+        <h1 className={ADMIN_PAGE_TITLE_CLASS}>Project Requests</h1>
+      ) : null}
 
       <section
         className="mt-6 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4"
@@ -354,7 +401,7 @@ export function ProjectRequestsView() {
           iconWrapClassName="bg-emerald-100"
         />
         <UserRequestStatCard
-          label="Completed Deliveries"
+          label="Completed Projects"
           value={stats.completedDeliveries}
           icon={PackageCheck}
           iconClassName="text-sky-800"
@@ -365,14 +412,14 @@ export function ProjectRequestsView() {
       <div className="mt-6 sm:mt-8">
         <UserRequestTable
           title="Project requests"
-          rows={rows}
+          rows={openProjectRows}
           showTitle={false}
           showTotalSubtitle
           omitOuterBorder
           columnPreset="project"
           onViewDetails={setDetailRow}
-          onEditRequest={openRequestEdit}
-          onDeleteRequest={deleteRequest}
+          onEditRequest={pilotScoped ? undefined : openRequestEdit}
+          onDeleteRequest={pilotScoped ? undefined : deleteRequest}
         />
       </div>
 
@@ -382,10 +429,11 @@ export function ProjectRequestsView() {
           contact={detailContact}
           onClose={() => setDetailRow(null)}
           onAssigned={() => setBackendRefresh((n) => n + 1)}
+          hideAssignPilot={pilotScoped}
         />
       ) : null}
 
-      {editingRequest && requestEditForm ? (
+      {!pilotScoped && editingRequest && requestEditForm ? (
         <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
           <button
             type="button"
@@ -422,7 +470,7 @@ export function ProjectRequestsView() {
             <div className="mt-5 space-y-6">
               <fieldset className="space-y-3">
                 <legend className="text-sm font-bold text-foreground">
-                  1. Project information
+                  1. Project Information
                 </legend>
                 <EditField
                   label="Project title"
@@ -430,65 +478,12 @@ export function ProjectRequestsView() {
                   value={requestEditForm.projectTitle}
                   onChange={(v) => updateEditForm("projectTitle", v)}
                 />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block text-sm">
-                    <span className={editLabelClass}>Service category *</span>
-                    <select
-                      value={requestEditForm.serviceCategory}
-                      onChange={(e) =>
-                        updateEditForm("serviceCategory", e.target.value)
-                      }
-                      className={editFieldClass}
-                    >
-                      <option value="">Select a service</option>
-                      {POST_REQUIREMENT_SERVICE_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block text-sm">
-                    <span className={editLabelClass}>Project type *</span>
-                    <select
-                      value={requestEditForm.projectType}
-                      onChange={(e) =>
-                        updateEditForm("projectType", e.target.value)
-                      }
-                      className={editFieldClass}
-                    >
-                      <option value="">Select project type</option>
-                      {POST_REQUIREMENT_PROJECT_TYPE_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
                 <EditField
-                  label="Preferred location"
+                  label="Location"
                   required
                   value={requestEditForm.preferredLocation}
                   onChange={(v) => updateEditForm("preferredLocation", v)}
                 />
-                <label className="block text-sm">
-                  <span className={editLabelClass}>Project description *</span>
-                  <textarea
-                    value={requestEditForm.projectDescription}
-                    maxLength={POST_REQUIREMENT_DESCRIPTION_MAX}
-                    onChange={(e) =>
-                      updateEditForm("projectDescription", e.target.value)
-                    }
-                    className={cn(editFieldClass, "min-h-[88px] resize-y")}
-                  />
-                </label>
-              </fieldset>
-
-              <fieldset className="space-y-3 border-t border-border pt-5">
-                <legend className="text-sm font-bold text-foreground">
-                  2. Project details
-                </legend>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block text-sm">
                     <span className={editLabelClass}>Expected start date *</span>
@@ -502,7 +497,7 @@ export function ProjectRequestsView() {
                     />
                   </label>
                   <label className="block text-sm">
-                    <span className={editLabelClass}>Expected duration</span>
+                    <span className={editLabelClass}>Expected duration *</span>
                     <select
                       value={requestEditForm.expectedDuration}
                       onChange={(e) =>
@@ -518,28 +513,6 @@ export function ProjectRequestsView() {
                       ))}
                     </select>
                   </label>
-                  <label className="block text-sm">
-                    <span className={editLabelClass}>Budget range (INR) *</span>
-                    <select
-                      value={requestEditForm.budgetRange}
-                      onChange={(e) =>
-                        updateEditForm("budgetRange", e.target.value)
-                      }
-                      className={editFieldClass}
-                    >
-                      <option value="">Select budget</option>
-                      {POST_REQUIREMENT_BUDGET_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <EditField
-                    label="Area of coverage"
-                    value={requestEditForm.areaOfCoverage}
-                    onChange={(v) => updateEditForm("areaOfCoverage", v)}
-                  />
                 </div>
                 <label className="block text-sm">
                   <span className={editLabelClass}>Purpose of project *</span>
@@ -558,21 +531,15 @@ export function ProjectRequestsView() {
                     ))}
                   </select>
                 </label>
-              </fieldset>
-
-              <fieldset className="space-y-3 border-t border-border pt-5">
-                <legend className="text-sm font-bold text-foreground">
-                  3. Additional information
-                </legend>
                 <label className="block text-sm">
-                  <span className={editLabelClass}>Additional notes</span>
+                  <span className={editLabelClass}>Project description *</span>
                   <textarea
-                    value={requestEditForm.additionalNotes}
-                    maxLength={POST_REQUIREMENT_NOTES_MAX}
+                    value={requestEditForm.projectDescription}
+                    maxLength={POST_REQUIREMENT_DESCRIPTION_MAX}
                     onChange={(e) =>
-                      updateEditForm("additionalNotes", e.target.value)
+                      updateEditForm("projectDescription", e.target.value)
                     }
-                    className={cn(editFieldClass, "min-h-[72px] resize-y")}
+                    className={cn(editFieldClass, "min-h-[88px] resize-y")}
                   />
                 </label>
                 <label className="block text-sm">
@@ -589,6 +556,7 @@ export function ProjectRequestsView() {
                   >
                     <option value="pending">Pending</option>
                     <option value="accepted">Accepted</option>
+                    <option value="completed">Completed</option>
                     <option value="rejected">Rejected</option>
                   </select>
                 </label>
@@ -596,12 +564,11 @@ export function ProjectRequestsView() {
 
               <fieldset className="space-y-3 border-t border-border pt-5">
                 <legend className="text-sm font-bold text-foreground">
-                  4. Contact details
+                  2. Contact details
                 </legend>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <EditField
-                    label="Name"
-                    required
+                    label="Name / Company (optional)"
                     value={requestEditForm.contactName}
                     onChange={(v) => updateEditForm("contactName", v)}
                   />

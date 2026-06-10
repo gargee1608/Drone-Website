@@ -1,7 +1,9 @@
 import { serviceCatalogItems } from "@/lib/service-catalog";
 
 export const POST_REQUIREMENT_SERVICE_OPTIONS = [
-  ...serviceCatalogItems.map((item) => item.title),
+  ...serviceCatalogItems.map((item) =>
+    item.title === "Medical Logistics" ? "Logistics" : item.title
+  ),
   "Agricultural Services",
   "Aerial Photography & Videography",
   "Mapping & Surveying",
@@ -13,15 +15,6 @@ export const POST_REQUIREMENT_PROJECT_TYPE_OPTIONS = [
   "Short-term Contract",
   "Long-term Contract",
   "Recurring / Ongoing",
-] as const;
-
-export const POST_REQUIREMENT_DURATION_OPTIONS = [
-  "Less than 1 day",
-  "1–3 days",
-  "1 week",
-  "2–4 weeks",
-  "1–3 months",
-  "More than 3 months",
 ] as const;
 
 export const POST_REQUIREMENT_BUDGET_OPTIONS = [
@@ -42,6 +35,15 @@ export const POST_REQUIREMENT_PURPOSE_OPTIONS = [
   "Construction",
   "Search & Rescue",
   "Other",
+] as const;
+
+export const POST_REQUIREMENT_DURATION_OPTIONS = [
+  "Less than 1 day",
+  "1–3 days",
+  "1 week",
+  "2–4 weeks",
+  "1–3 months",
+  "More than 3 months",
 ] as const;
 
 export const POST_REQUIREMENT_ALLOWED_FILE_TYPES = [

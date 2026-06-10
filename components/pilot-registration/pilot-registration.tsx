@@ -8,7 +8,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { patchPilotDroneDetails } from "@/app/services/pilotServices";
 import { notifyAdminFleetUpdated } from "@/lib/admin-fleet-updated";
@@ -125,6 +125,192 @@ const INDIAN_STATES_AND_UT = [
 
 function RequiredMark() {
   return <span className="text-red-500">*</span>;
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p className="text-xs text-red-600" role="alert">
+      {message}
+    </p>
+  );
+}
+
+function getPersonalStepValidation(args: {
+  fullName: string;
+  email: string;
+  password: string;
+  phone: string;
+  city: string;
+  state: string;
+  aadhaarDigits: string;
+  forceShow: boolean;
+}) {
+  const {
+    fullName,
+    email,
+    password,
+    phone,
+    city,
+    state,
+    aadhaarDigits,
+    forceShow,
+  } = args;
+
+  const errors: Partial<
+    Record<
+      "fullName" | "email" | "password" | "phone" | "city" | "state" | "aadhaar",
+      string
+    >
+  > = {};
+
+  if (!fullName.trim()) errors.fullName = "Full Name is required.";
+  if (!email.trim()) {
+    errors.email = "Email is required.";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    errors.email = "Enter the proper email id.";
+  }
+  if (!password.trim()) {
+    errors.password = "Password is required.";
+  } else if (password.trim().length < 6) {
+    errors.password = "Password is required.";
+  }
+  if (!phone.trim()) errors.phone = "Phone is required.";
+  if (!city.trim()) errors.city = "City is required.";
+  if (!state.trim()) errors.state = "State is required.";
+  if (aadhaarDigits.length !== 12) {
+    errors.aadhaar = "Aadhaar Number is required.";
+  }
+
+  const hasEmptyRequired = Object.keys(errors).length > 0;
+
+  const completedCount = [
+    Boolean(fullName.trim()),
+    Boolean(
+      email.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+    ),
+    Boolean(password.trim()),
+    Boolean(phone.trim()),
+    Boolean(city.trim()),
+    Boolean(state.trim()),
+    aadhaarDigits.length === 12,
+  ].filter(Boolean).length;
+
+  const PERSONAL_REQUIRED_FIELD_COUNT = 7;
+  const oneFieldLeft =
+    completedCount === PERSONAL_REQUIRED_FIELD_COUNT - 1 && hasEmptyRequired;
+
+  return {
+    show: hasEmptyRequired && (forceShow || oneFieldLeft),
+    errors,
+  };
+}
+
+function getDroneDraftValidation(args: {
+  draftModel: string;
+  draftType: string;
+  draftCamera: string;
+  draftPayload: string;
+  draftFlightMin: string;
+  draftRangeKm: string;
+  draftUseCases: string[];
+  forceShow: boolean;
+}) {
+  const {
+    draftModel,
+    draftType,
+    draftCamera,
+    draftPayload,
+    draftFlightMin,
+    draftRangeKm,
+    draftUseCases,
+    forceShow,
+  } = args;
+
+  const errors: Partial<
+    Record<
+      | "modelName"
+      | "type"
+      | "camera"
+      | "payload"
+      | "flightTime"
+      | "range"
+      | "useCases",
+      string
+    >
+  > = {};
+
+  if (!draftModel.trim()) errors.modelName = "Model Name is required.";
+  if (!draftType.trim()) errors.type = "Type is required.";
+  if (!draftCamera.trim()) errors.camera = "Camera is required.";
+  if (!draftPayload.trim()) errors.payload = "Payload (kg) is required.";
+  if (!draftFlightMin.trim()) {
+    errors.flightTime = "Flight Time (min) is required.";
+  }
+  if (!draftRangeKm.trim()) errors.range = "Range (km) is required.";
+  if (draftUseCases.length === 0) errors.useCases = "Use Cases is required.";
+
+  const hasEmptyRequired = Object.keys(errors).length > 0;
+
+  const completedCount = [
+    Boolean(draftModel.trim()),
+    Boolean(draftType.trim()),
+    Boolean(draftCamera.trim()),
+    Boolean(draftPayload.trim()),
+    Boolean(draftFlightMin.trim()),
+    Boolean(draftRangeKm.trim()),
+    draftUseCases.length > 0,
+  ].filter(Boolean).length;
+
+  const DRONE_REQUIRED_FIELD_COUNT = 7;
+  const oneFieldLeft =
+    completedCount === DRONE_REQUIRED_FIELD_COUNT - 1 && hasEmptyRequired;
+
+  return {
+    show: hasEmptyRequired && (forceShow || oneFieldLeft),
+    errors,
+  };
+}
+
+function getSkillsStepValidation(args: {
+  selectedSkills: string[];
+  flightHours: number;
+  certifications: PilotCertificationUpload[];
+  bio: string;
+  forceShow: boolean;
+}) {
+  const { selectedSkills, flightHours, certifications, bio, forceShow } = args;
+
+  const errors: Partial<
+    Record<"skills" | "flightHours" | "certifications" | "bio", string>
+  > = {};
+
+  const hrs = Math.max(0, Math.floor(Number(flightHours) || 0));
+
+  if (selectedSkills.length === 0) errors.skills = "Skills is required.";
+  if (hrs <= 0) errors.flightHours = "Flight Hours is required.";
+  if (certifications.length === 0) {
+    errors.certifications = "Upload certifications is required.";
+  }
+  if (!bio.trim()) errors.bio = "Brief Bio is required.";
+
+  const hasEmptyRequired = Object.keys(errors).length > 0;
+
+  const completedCount = [
+    selectedSkills.length > 0,
+    hrs > 0,
+    certifications.length > 0,
+    Boolean(bio.trim()),
+  ].filter(Boolean).length;
+
+  const SKILLS_REQUIRED_FIELD_COUNT = 4;
+  const oneFieldLeft =
+    completedCount === SKILLS_REQUIRED_FIELD_COUNT - 1 && hasEmptyRequired;
+
+  return {
+    show: hasEmptyRequired && (forceShow || oneFieldLeft),
+    errors,
+  };
 }
 
 const textareaClass =
@@ -252,6 +438,9 @@ export function PilotRegistrationView({
   const [profileReturnTo, setProfileReturnTo] = useState<string | null>(null);
   const [adminDroneSubmitting, setAdminDroneSubmitting] = useState(false);
   const [adminDroneSubmitSuccess, setAdminDroneSubmitSuccess] = useState(false);
+  const [personalFieldErrorsShown, setPersonalFieldErrorsShown] = useState(false);
+  const [skillsFieldErrorsShown, setSkillsFieldErrorsShown] = useState(false);
+  const [droneFieldErrorsShown, setDroneFieldErrorsShown] = useState(false);
 
   const resetForm = useCallback(() => {
     setStep(1);
@@ -278,6 +467,9 @@ export function PilotRegistrationView({
     setDraftUseCases([]);
     setSubmitError(null);
     setStepError(null);
+    setPersonalFieldErrorsShown(false);
+    setSkillsFieldErrorsShown(false);
+    setDroneFieldErrorsShown(false);
   }, []);
 
   function hydrateFromPilotProfileSnapshot(snap: PilotProfileSnapshot) {
@@ -475,6 +667,72 @@ export function PilotRegistrationView({
   const aadhaarDigits = aadhaar.replace(/\D/g, "");
   const aadhaarCount = aadhaarDigits.length;
 
+  const personalValidation = useMemo(
+    () =>
+      getPersonalStepValidation({
+        fullName,
+        email,
+        password,
+        phone,
+        city,
+        state,
+        aadhaarDigits,
+        forceShow: personalFieldErrorsShown,
+      }),
+    [
+      fullName,
+      email,
+      password,
+      phone,
+      city,
+      state,
+      aadhaarDigits,
+      personalFieldErrorsShown,
+    ]
+  );
+
+  const skillsValidation = useMemo(
+    () =>
+      getSkillsStepValidation({
+        selectedSkills,
+        flightHours,
+        certifications,
+        bio,
+        forceShow: skillsFieldErrorsShown,
+      }),
+    [
+      selectedSkills,
+      flightHours,
+      certifications,
+      bio,
+      skillsFieldErrorsShown,
+    ]
+  );
+
+  const droneDraftValidation = useMemo(
+    () =>
+      getDroneDraftValidation({
+        draftModel,
+        draftType,
+        draftCamera,
+        draftPayload,
+        draftFlightMin,
+        draftRangeKm,
+        draftUseCases,
+        forceShow: droneFieldErrorsShown,
+      }),
+    [
+      draftModel,
+      draftType,
+      draftCamera,
+      draftPayload,
+      draftFlightMin,
+      draftRangeKm,
+      draftUseCases,
+      droneFieldErrorsShown,
+    ]
+  );
+
   const setAadhaarDigitsOnly = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 12);
     setAadhaar(digits);
@@ -486,8 +744,12 @@ export function PilotRegistrationView({
       setStepError("Full name is required.");
       return false;
     }
-    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setStepError("A valid email is required.");
+    if (!email.trim()) {
+      setStepError("Email is required.");
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setStepError("Enter the proper email id.");
       return false;
     }
     if (!password.trim() || password.trim().length < 6) {
@@ -516,15 +778,29 @@ export function PilotRegistrationView({
   function goNext() {
     setStepError(null);
     if (step === 1) {
-      if (!validatePersonal()) return;
+      if (!validatePersonal()) {
+        setPersonalFieldErrorsShown(true);
+        setStepError(null);
+        return;
+      }
+      setPersonalFieldErrorsShown(false);
       setStep(2);
       return;
     }
     if (step === 2) {
-      if (selectedSkills.length === 0) {
-        setStepError("Select at least one skill.");
+      const validation = getSkillsStepValidation({
+        selectedSkills,
+        flightHours,
+        certifications,
+        bio,
+        forceShow: true,
+      });
+      if (validation.show) {
+        setSkillsFieldErrorsShown(true);
+        setStepError(null);
         return;
       }
+      setSkillsFieldErrorsShown(false);
       setStep(3);
       return;
     }
@@ -537,26 +813,34 @@ export function PilotRegistrationView({
   function goPrev() {
     setStepError(null);
     setSubmitError(null);
+    if (step === 2) setPersonalFieldErrorsShown(false);
+    if (step === 3) setSkillsFieldErrorsShown(false);
+    if (step === 4) setDroneFieldErrorsShown(false);
     if (adminDroneOnlyMode && step <= 3) return;
     if (step <= 1) return;
     setStep(step - 1);
   }
 
   function commitDraftDrone() {
-    const model = draftModel.trim();
-    const type = draftType.trim();
-    if (!model) {
-      setStepError("Model name is required.");
-      return;
-    }
-    if (!type) {
-      setStepError("Type is required.");
+    const validation = getDroneDraftValidation({
+      draftModel,
+      draftType,
+      draftCamera,
+      draftPayload,
+      draftFlightMin,
+      draftRangeKm,
+      draftUseCases,
+      forceShow: true,
+    });
+    if (validation.show) {
+      setDroneFieldErrorsShown(true);
+      setStepError(null);
       return;
     }
     const row: PilotProfileDrone = {
       ...emptyDrone(),
-      modelName: model,
-      type,
+      modelName: draftModel.trim(),
+      type: draftType.trim(),
       camera: draftCamera.trim(),
       payloadKg: draftPayload.trim(),
       flightTimeMin: draftFlightMin.trim(),
@@ -572,6 +856,7 @@ export function PilotRegistrationView({
     setDraftRangeKm("");
     setDraftUseCases([]);
     setStepError(null);
+    setDroneFieldErrorsShown(false);
   }
 
   function toggleDraftUseCase(label: string) {
@@ -596,7 +881,20 @@ export function PilotRegistrationView({
       setSubmitError("Complete all required fields before submitting.");
       return;
     }
-    if (selectedSkills.length === 0) {
+    if (skipFromSkills) {
+      const validation = getSkillsStepValidation({
+        selectedSkills,
+        flightHours,
+        certifications,
+        bio,
+        forceShow: true,
+      });
+      if (validation.show) {
+        setSkillsFieldErrorsShown(true);
+        setSubmitError(null);
+        return;
+      }
+    } else if (selectedSkills.length === 0) {
       setSubmitError("Select at least one skill on the Skills step.");
       return;
     }
@@ -965,6 +1263,9 @@ export function PilotRegistrationView({
                     className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                     autoComplete="name"
                   />
+                  {personalValidation.show ? (
+                    <FieldError message={personalValidation.errors.fullName} />
+                  ) : null}
                 </div>
 
                 <div className="space-y-2">
@@ -984,6 +1285,9 @@ export function PilotRegistrationView({
                     className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                     autoComplete="email"
                   />
+                  {personalValidation.show ? (
+                    <FieldError message={personalValidation.errors.email} />
+                  ) : null}
                 </div>
 
                 <div className="space-y-2">
@@ -1003,6 +1307,9 @@ export function PilotRegistrationView({
                     className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                     autoComplete="new-password"
                   />
+                  {personalValidation.show ? (
+                    <FieldError message={personalValidation.errors.password} />
+                  ) : null}
                 </div>
 
                 <div className="space-y-2">
@@ -1022,6 +1329,9 @@ export function PilotRegistrationView({
                     className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                     autoComplete="tel"
                   />
+                  {personalValidation.show ? (
+                    <FieldError message={personalValidation.errors.phone} />
+                  ) : null}
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -1041,6 +1351,9 @@ export function PilotRegistrationView({
                       className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                       autoComplete="address-level2"
                     />
+                    {personalValidation.show ? (
+                      <FieldError message={personalValidation.errors.city} />
+                    ) : null}
                   </div>
                   <div className="space-y-2">
                     <label
@@ -1064,6 +1377,9 @@ export function PilotRegistrationView({
                         </option>
                       ))}
                     </select>
+                    {personalValidation.show ? (
+                      <FieldError message={personalValidation.errors.state} />
+                    ) : null}
                   </div>
                 </div>
 
@@ -1085,6 +1401,9 @@ export function PilotRegistrationView({
                     className="h-10 rounded-lg border-slate-200 !bg-white px-3 tabular-nums tracking-wide"
                     autoComplete="off"
                   />
+                  {personalValidation.show ? (
+                    <FieldError message={personalValidation.errors.aadhaar} />
+                  ) : null}
                   <p className="text-xs text-slate-500">
                     Only 12 numbers allowed. {aadhaarCount}/12
                   </p>
@@ -1108,6 +1427,12 @@ export function PilotRegistrationView({
                     autoComplete="off"
                   />
                 </div>
+
+                {personalValidation.show ? (
+                  <p className="text-sm font-medium text-red-600" role="alert">
+                    All fields are required
+                  </p>
+                ) : null}
               </>
             ) : null}
 
@@ -1147,6 +1472,9 @@ export function PilotRegistrationView({
                       );
                     })}
                   </div>
+                  {skillsValidation.show ? (
+                    <FieldError message={skillsValidation.errors.skills} />
+                  ) : null}
                 </div>
 
                 <div className="space-y-3">
@@ -1154,7 +1482,8 @@ export function PilotRegistrationView({
                     htmlFor="flight-hours-slider"
                     className="text-sm font-medium text-slate-800"
                   >
-                    Flight Hours:{" "}
+                    Flight Hours <RequiredMark />
+                    {": "}
                     <span className="tabular-nums text-slate-900">
                       {Math.min(
                         FLIGHT_HOURS_SLIDER_MAX,
@@ -1177,6 +1506,9 @@ export function PilotRegistrationView({
                     onChange={(e) => setFlightHours(Number(e.target.value))}
                     className="h-2 w-full cursor-pointer rounded-full bg-white accent-[#008B8B]"
                   />
+                  {skillsValidation.show ? (
+                    <FieldError message={skillsValidation.errors.flightHours} />
+                  ) : null}
                 </div>
 
                 <div className="space-y-2">
@@ -1184,8 +1516,7 @@ export function PilotRegistrationView({
                     htmlFor="cert-upload"
                     className="text-sm font-medium text-slate-800"
                   >
-                    Upload certifications{" "}
-                    <span className="font-normal text-slate-500">(optional)</span>
+                    Upload certifications <RequiredMark />
                   </label>
                   <input
                     ref={certInputRef}
@@ -1214,6 +1545,11 @@ export function PilotRegistrationView({
                         : `${certifications.length} file(s) selected`}
                     </span>
                   </div>
+                  {skillsValidation.show ? (
+                    <FieldError
+                      message={skillsValidation.errors.certifications}
+                    />
+                  ) : null}
                   {certifications.length > 0 ? (
                     <ul className="space-y-1.5 rounded-lg border border-slate-100 bg-white p-2">
                       {certifications.map((c, i) => (
@@ -1254,7 +1590,7 @@ export function PilotRegistrationView({
                     htmlFor="bio"
                     className="text-sm font-medium text-slate-800"
                   >
-                    Brief Bio
+                    Brief Bio <RequiredMark />
                   </label>
                   <textarea
                     id="bio"
@@ -1265,7 +1601,16 @@ export function PilotRegistrationView({
                     placeholder="Tell clients about your experience..."
                     className={textareaClass}
                   />
+                  {skillsValidation.show ? (
+                    <FieldError message={skillsValidation.errors.bio} />
+                  ) : null}
                 </div>
+
+                {skillsValidation.show ? (
+                  <p className="text-sm font-medium text-red-600" role="alert">
+                    All fields are required
+                  </p>
+                ) : null}
               </>
             ) : null}
 
@@ -1353,6 +1698,11 @@ export function PilotRegistrationView({
                         placeholder="DJI Mavic 3"
                         className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                       />
+                      {droneDraftValidation.show ? (
+                        <FieldError
+                          message={droneDraftValidation.errors.modelName}
+                        />
+                      ) : null}
                     </div>
                     <div className="space-y-2">
                       <label
@@ -1374,6 +1724,9 @@ export function PilotRegistrationView({
                           </option>
                         ))}
                       </select>
+                      {droneDraftValidation.show ? (
+                        <FieldError message={droneDraftValidation.errors.type} />
+                      ) : null}
                     </div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Technical specifications
@@ -1384,7 +1737,7 @@ export function PilotRegistrationView({
                           htmlFor="draft-camera"
                           className="text-sm font-medium text-slate-800"
                         >
-                          Camera
+                          Camera <RequiredMark />
                         </label>
                         <Input
                           id="draft-camera"
@@ -1393,13 +1746,18 @@ export function PilotRegistrationView({
                           placeholder="4K HDR"
                           className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                         />
+                        {droneDraftValidation.show ? (
+                          <FieldError
+                            message={droneDraftValidation.errors.camera}
+                          />
+                        ) : null}
                       </div>
                       <div className="space-y-2">
                         <label
                           htmlFor="draft-payload"
                           className="text-sm font-medium text-slate-800"
                         >
-                          Payload (kg)
+                          Payload (kg) <RequiredMark />
                         </label>
                         <Input
                           id="draft-payload"
@@ -1408,13 +1766,18 @@ export function PilotRegistrationView({
                           placeholder="2.5"
                           className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                         />
+                        {droneDraftValidation.show ? (
+                          <FieldError
+                            message={droneDraftValidation.errors.payload}
+                          />
+                        ) : null}
                       </div>
                       <div className="space-y-2">
                         <label
                           htmlFor="draft-flight"
                           className="text-sm font-medium text-slate-800"
                         >
-                          Flight Time (min)
+                          Flight Time (min) <RequiredMark />
                         </label>
                         <Input
                           id="draft-flight"
@@ -1423,13 +1786,18 @@ export function PilotRegistrationView({
                           placeholder="45"
                           className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                         />
+                        {droneDraftValidation.show ? (
+                          <FieldError
+                            message={droneDraftValidation.errors.flightTime}
+                          />
+                        ) : null}
                       </div>
                       <div className="space-y-2">
                         <label
                           htmlFor="draft-range"
                           className="text-sm font-medium text-slate-800"
                         >
-                          Range (km)
+                          Range (km) <RequiredMark />
                         </label>
                         <Input
                           id="draft-range"
@@ -1438,10 +1806,17 @@ export function PilotRegistrationView({
                           placeholder="15"
                           className="h-10 rounded-lg border-slate-200 !bg-white px-3"
                         />
+                        {droneDraftValidation.show ? (
+                          <FieldError
+                            message={droneDraftValidation.errors.range}
+                          />
+                        ) : null}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-slate-800">Use Cases</p>
+                      <p className="text-sm font-medium text-slate-800">
+                        Use Cases <RequiredMark />
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {DRONE_USE_CASE_OPTIONS.map((label) => {
                           const on = draftUseCases.includes(label);
@@ -1462,7 +1837,17 @@ export function PilotRegistrationView({
                           );
                         })}
                       </div>
+                      {droneDraftValidation.show ? (
+                        <FieldError
+                          message={droneDraftValidation.errors.useCases}
+                        />
+                      ) : null}
                     </div>
+                    {droneDraftValidation.show ? (
+                      <p className="text-sm font-medium text-red-600" role="alert">
+                        All fields are required
+                      </p>
+                    ) : null}
                     <Button
                       type="button"
                       variant="outline"

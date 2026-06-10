@@ -11,6 +11,14 @@ function slugFromTitle(title) {
     .replace(/^-+|-+$/g, "");
 }
 
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) return null;
+  const lines = value
+    .map((entry) => String(entry ?? "").trim())
+    .filter(Boolean);
+  return lines.length > 0 ? lines : null;
+}
+
 // ✅ GET all services
 router.get("/", async (req, res) => {
   try {
@@ -78,15 +86,33 @@ router.get("/:id", async (req, res) => {
 
 // ✅ ADD new service
 router.post("/", async (req, res) => {
-  const { title, description, price, image, slug: slugBody } = req.body || {};
+  const {
+    title,
+    description,
+    price,
+    image,
+    slug: slugBody,
+    detail_sections: detailSectionsBody,
+    highlights: highlightsBody,
+  } = req.body || {};
   const slug =
     String(slugBody ?? "").trim() || slugFromTitle(title);
+  const detailSections = normalizeStringArray(detailSectionsBody);
+  const highlights = normalizeStringArray(highlightsBody);
 
   try {
     const result = await pool.query(
-      `INSERT INTO services (slug, title, description, price, image)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [slug, title, description, price != null ? String(price) : null, image ?? null]
+      `INSERT INTO services (slug, title, description, price, image, detail_sections, highlights)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb) RETURNING *`,
+      [
+        slug,
+        title,
+        description,
+        price != null ? String(price) : null,
+        image ?? null,
+        detailSections ? JSON.stringify(detailSections) : null,
+        highlights ? JSON.stringify(highlights) : null,
+      ]
     );
 
     res.json(result.rows[0]);
@@ -101,12 +127,28 @@ router.put("/:id", async (req, res) => {
   if (!Number.isFinite(id)) {
     return res.status(400).json({ error: "Invalid id" });
   }
-  const { title, description, price, image, slug: slugBody } = req.body || {};
+  const {
+    title,
+    description,
+    price,
+    image,
+    slug: slugBody,
+    detail_sections: detailSectionsBody,
+    highlights: highlightsBody,
+  } = req.body || {};
   /** Only change slug when the client sends `slug` — keeps detail URLs stable on rename. */
   const slug =
     slugBody !== undefined && slugBody !== null
       ? String(slugBody).trim() || null
       : null;
+  const detailSections =
+    detailSectionsBody !== undefined
+      ? normalizeStringArray(detailSectionsBody)
+      : undefined;
+  const highlights =
+    highlightsBody !== undefined
+      ? normalizeStringArray(highlightsBody)
+      : undefined;
   try {
     const result = await pool.query(
       `UPDATE services
@@ -114,8 +156,16 @@ router.put("/:id", async (req, res) => {
            description = COALESCE($2, description),
            price = COALESCE($3, price),
            image = COALESCE($4, image),
-           slug = COALESCE($5, slug)
-       WHERE id = $6
+           slug = COALESCE($5, slug),
+           detail_sections = CASE
+             WHEN $6::boolean THEN $7::jsonb
+             ELSE detail_sections
+           END,
+           highlights = CASE
+             WHEN $8::boolean THEN $9::jsonb
+             ELSE highlights
+           END
+       WHERE id = $10
        RETURNING *`,
       [
         title ?? null,
@@ -123,6 +173,10 @@ router.put("/:id", async (req, res) => {
         price != null ? String(price) : null,
         image ?? null,
         slug,
+        detailSectionsBody !== undefined,
+        detailSections ? JSON.stringify(detailSections) : null,
+        highlightsBody !== undefined,
+        highlights ? JSON.stringify(highlights) : null,
         id,
       ]
     );

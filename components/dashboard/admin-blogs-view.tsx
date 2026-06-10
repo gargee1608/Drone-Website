@@ -41,10 +41,10 @@ import {
   saveBlogOverrides,
   type AdminBlogExtra,
 } from "@/lib/blog-admin-storage";
+import { getMergedBlogPostsList } from "@/lib/blog-merge";
 import {
-  getAdminCatalogBlogPostsList,
-  isBlogSlugHiddenFromCatalog,
-} from "@/lib/blog-merge";
+  ADMIN_DASH_LIGHT_BOX_BORDER,
+} from "@/lib/admin-dashboard-styles";
 import {
   ADMIN_PAGE_TITLE_CLASS,
   ADMIN_PAGE_TOP_PADDING_CLASS,
@@ -148,7 +148,7 @@ function buildAdminBlogRows(
   const dbPosts = mapApiRowsToDbPosts(apiRows);
   const dbSlugs = new Set(dbPosts.map((p) => p.slug));
   const catalogPosts = useLocalCatalog
-    ? getAdminCatalogBlogPostsList()
+    ? getMergedBlogPostsList()
     : blogPosts;
   const merged = catalogPosts.filter((p) => !dbSlugs.has(p.slug));
   return [...dbPosts, ...merged];
@@ -605,8 +605,19 @@ export function AdminBlogsView({
         </Button>
       </div>
 
+      <div
+        className={cn(
+          "overflow-hidden rounded-2xl border bg-card shadow-sm",
+          ADMIN_DASH_LIGHT_BOX_BORDER
+        )}
+      >
       {editorMode !== "closed" ? (
-        <section className="mb-10 rounded-2xl border-2 border-border bg-card p-5 shadow-sm sm:p-6">
+        <section
+          className={cn(
+            "border-b p-5 sm:p-6",
+            ADMIN_DASH_LIGHT_BOX_BORDER
+          )}
+        >
           <div className="mb-5">
             <h2 className="text-base font-bold text-foreground">
               {editorMode === "add" ? "New article" : "Edit article"}
@@ -621,7 +632,7 @@ export function AdminBlogsView({
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="h-11 rounded-lg border-border"
+                  className={cn("h-11 rounded-lg border", ADMIN_DASH_LIGHT_BOX_BORDER)}
                   required
                 />
               </div>
@@ -651,7 +662,10 @@ export function AdminBlogsView({
                   onChange={(e) =>
                     setCategory(e.target.value as BlogPost["category"])
                   }
-                  className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
+                  className={cn(
+                    "h-11 w-full rounded-lg border bg-card px-3 text-sm",
+                    ADMIN_DASH_LIGHT_BOX_BORDER
+                  )}
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>
@@ -667,7 +681,7 @@ export function AdminBlogsView({
                 <Input
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="h-11 rounded-lg border-border"
+                  className={cn("h-11 rounded-lg border", ADMIN_DASH_LIGHT_BOX_BORDER)}
                 />
               </div>
               <div>
@@ -677,7 +691,7 @@ export function AdminBlogsView({
                 <Input
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  className="h-11 rounded-lg border-border"
+                  className={cn("h-11 rounded-lg border", ADMIN_DASH_LIGHT_BOX_BORDER)}
                 />
               </div>
               <div>
@@ -689,7 +703,10 @@ export function AdminBlogsView({
                   onChange={(e) =>
                     setStatus(e.target.value as BlogStatus)
                   }
-                  className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
+                  className={cn(
+                    "h-11 w-full rounded-lg border bg-card px-3 text-sm",
+                    ADMIN_DASH_LIGHT_BOX_BORDER
+                  )}
                 >
                   {BLOG_STATUSES.map((value) => (
                     <option key={value} value={value}>
@@ -706,14 +723,22 @@ export function AdminBlogsView({
                   value={excerpt}
                   onChange={(e) => setExcerpt(e.target.value)}
                   rows={2}
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  className={cn(
+                    "w-full rounded-lg border px-3 py-2 text-sm",
+                    ADMIN_DASH_LIGHT_BOX_BORDER
+                  )}
                 />
               </div>
               <div className="sm:col-span-2 space-y-2">
                 <label className="mb-1.5 block text-xs font-semibold text-foreground">
                   Cover image
                 </label>
-                <div className="max-w-sm rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div
+                  className={cn(
+                    "max-w-sm rounded-xl border bg-card p-4 shadow-sm",
+                    ADMIN_DASH_LIGHT_BOX_BORDER
+                  )}
+                >
                   <input
                     ref={coverFileInputRef}
                     type="file"
@@ -731,7 +756,7 @@ export function AdminBlogsView({
                       className={cn(
                         "relative aspect-[16/10] w-full overflow-hidden rounded-lg border bg-muted transition-colors",
                         image
-                          ? "border-border"
+                          ? ADMIN_DASH_LIGHT_BOX_BORDER
                           : "border-dashed border-muted-foreground/30",
                         coverDragActive &&
                           "border-[#008B8B] bg-[#008B8B]/10 ring-2 ring-[#008B8B]/30"
@@ -757,7 +782,10 @@ export function AdminBlogsView({
                           />
                           <button
                             type="button"
-                            className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition hover:bg-muted"
+                            className={cn(
+                              "absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full border bg-card text-foreground shadow-sm transition hover:bg-muted",
+                              ADMIN_DASH_LIGHT_BOX_BORDER
+                            )}
                             aria-label="Remove cover image"
                             onClick={() => {
                               setImage("");
@@ -811,7 +839,7 @@ export function AdminBlogsView({
                 <Input
                   value={imageAlt}
                   onChange={(e) => setImageAlt(e.target.value)}
-                  className="h-11 rounded-lg border-border"
+                  className={cn("h-11 rounded-lg border", ADMIN_DASH_LIGHT_BOX_BORDER)}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -822,7 +850,10 @@ export function AdminBlogsView({
                   value={bodyText}
                   onChange={(e) => setBodyText(e.target.value)}
                   rows={10}
-                  className="w-full rounded-lg border border-border px-3 py-2 font-mono text-xs leading-relaxed"
+                  className={cn(
+                    "w-full rounded-lg border px-3 py-2 font-mono text-xs leading-relaxed",
+                    ADMIN_DASH_LIGHT_BOX_BORDER
+                  )}
                 />
               </div>
             </div>
@@ -852,8 +883,13 @@ export function AdminBlogsView({
         </section>
       ) : null}
 
-      <section className="rounded-2xl border-2 border-border bg-card shadow-sm">
-        <div className="border-b border-border px-5 py-4 sm:px-6">
+      <section>
+        <div
+          className={cn(
+            "border-b px-5 py-4 sm:px-6",
+            ADMIN_DASH_LIGHT_BOX_BORDER
+          )}
+        >
           <h2 className="text-base font-bold text-foreground">
             All posts ({hydrated ? rows.length : "…"})
           </h2>
@@ -872,7 +908,6 @@ export function AdminBlogsView({
               const isDb = typeof post.dbId === "number";
               const isBuiltIn = builtinSlugs.has(post.slug);
               const extra = extras.find((e) => e.slug === post.slug);
-              const isHidden = isBlogSlugHiddenFromCatalog(post.slug);
               const typeLabel = isDb
                 ? "Database"
                 : extra
@@ -885,12 +920,17 @@ export function AdminBlogsView({
                 : extra
                   ? "border-[#008B8B]/25 bg-[#008B8B]/10 text-[#006d6d]"
                   : isBuiltIn
-                    ? "border-border bg-muted text-foreground"
-                    : "border-border bg-muted/50 text-muted-foreground";
+                    ? "border-slate-200 bg-muted text-foreground dark:border-white/20"
+                    : "border-slate-200 bg-muted/50 text-muted-foreground dark:border-white/20";
 
               return (
                 <li key={isDb ? `db-${post.dbId}` : post.slug}>
-                  <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:border-[#008B8B]/35 hover:shadow-md">
+                  <article
+                    className={cn(
+                      "flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition hover:border-[#008B8B]/35 hover:shadow-md",
+                      ADMIN_DASH_LIGHT_BOX_BORDER
+                    )}
+                  >
                     <div className="relative aspect-[16/10] w-full shrink-0 bg-muted">
                       <Image
                         src={post.image}
@@ -911,17 +951,17 @@ export function AdminBlogsView({
                         >
                           {typeLabel}
                         </span>
-                        <span className="rounded-full border border-border bg-card px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span
+                          className={cn(
+                            "rounded-full border bg-card px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground",
+                            ADMIN_DASH_LIGHT_BOX_BORDER
+                          )}
+                        >
                           {post.category}
                         </span>
                         {post.status === "draft" ? (
                           <span className="rounded-full border border-amber-600/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
                             Draft
-                          </span>
-                        ) : null}
-                        {isHidden ? (
-                          <span className="rounded-full border border-red-600/30 bg-red-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-900">
-                            Hidden
                           </span>
                         ) : null}
                       </div>
@@ -943,7 +983,12 @@ export function AdminBlogsView({
                       <p className="font-mono text-[10px] leading-tight text-muted-foreground break-all">
                         {post.slug}
                       </p>
-                      <div className="mt-auto flex flex-wrap gap-2 border-t border-border pt-3">
+                      <div
+                        className={cn(
+                          "mt-auto flex flex-wrap gap-2 border-t pt-3",
+                          ADMIN_DASH_LIGHT_BOX_BORDER
+                        )}
+                      >
                         <button
                           type="button"
                           onClick={() => openEdit(post)}
@@ -970,6 +1015,7 @@ export function AdminBlogsView({
           </ul>
         )}
       </section>
+      </div>
     </div>
   );
 }

@@ -21,6 +21,10 @@ import {
   recordUserMissionAssignment,
 } from "@/lib/user-mission-tracking";
 import {
+  notifyProjectRequestsUpdated,
+  projectRequestMissionRef,
+} from "@/lib/project-requests";
+import {
   missionOwnerFieldsForRequestRef,
   notifyMissionsDbUpdated,
   userMissionAdminStatusLabel,
@@ -121,28 +125,31 @@ function normalizePilotOption(row: unknown): PilotOption | null {
   return { id, name, badgeId };
 }
 
-function projectRequestMissionRef(row: UserRequestAdminRow): string {
-  const clientId = row.queueDisplayId?.trim();
-  if (clientId) return clientId;
-  return row.backendRequest?.id?.trim() || row.key.trim();
-}
-
 export function ProjectRequestDetailModal({
   row,
   contact,
   onClose,
   onAssigned,
+  hideAssignPilot = false,
 }: {
   row: UserRequestAdminRow;
   contact: ProjectRequestDetailContact;
   onClose: () => void;
   onAssigned?: () => void;
+  /** Pilot dashboard: read-only details without admin assign controls. */
+  hideAssignPilot?: boolean;
 }) {
   const requestId = row.queueDisplayId ?? row.key;
   const backend = row.backendRequest;
   const project = contact.project;
   const adminStatus = backend?.adminStatus;
   const missionRef = projectRequestMissionRef(row);
+  const trackingEntry = getUserMissionTrackingEntryForRequest(missionRef);
+  const isPilotAssigned = Boolean(trackingEntry?.pilotSub?.trim());
+  const assignedPilotDisplay = (() => {
+    if (!isPilotAssigned || !trackingEntry) return null;
+    return trackingEntry.pilotName.trim() || "Assigned pilot";
+  })();
 
   const [pilots, setPilots] = useState<PilotOption[]>([]);
   const [pilotsLoading, setPilotsLoading] = useState(true);
@@ -150,7 +157,6 @@ export function ProjectRequestDetailModal({
   const [selectedPilotId, setSelectedPilotId] = useState("");
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
-  const [assignFeedback, setAssignFeedback] = useState<string | null>(null);
 
   const sortedPilots = useMemo(
     () =>
@@ -161,6 +167,13 @@ export function ProjectRequestDetailModal({
   );
 
   useEffect(() => {
+    if (hideAssignPilot || isPilotAssigned) {
+      setPilots([]);
+      setPilotsLoading(false);
+      setPilotsError(null);
+      return;
+    }
+
     let cancelled = false;
     async function loadPilots() {
       setPilotsLoading(true);
@@ -184,14 +197,7 @@ export function ProjectRequestDetailModal({
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  useEffect(() => {
-    const tracking = getUserMissionTrackingEntryForRequest(missionRef);
-    if (tracking?.pilotSub?.trim()) {
-      setSelectedPilotId(tracking.pilotSub.trim());
-    }
-  }, [missionRef]);
+  }, [hideAssignPilot, isPilotAssigned]);
 
   const handleAssignPilot = async () => {
     if (!selectedPilotId || assigning || !project) return;
@@ -200,14 +206,10 @@ export function ProjectRequestDetailModal({
 
     setAssigning(true);
     setAssignError(null);
-    setAssignFeedback(null);
 
     const ownerFields = missionOwnerFieldsForRequestRef(missionRef);
-    const service = project.serviceCategory.trim() || contact.title;
-    const location =
-      project.preferredLocation.trim() ||
-      project.areaOfCoverage.trim() ||
-      "—";
+    const service = project.purposeOfProject.trim() || contact.title;
+    const location = project.preferredLocation.trim() || "—";
 
     const res = await assignHubMissionToPilot({
       requestRef: missionRef,
@@ -273,13 +275,9 @@ export function ProjectRequestDetailModal({
     });
 
     notifyMissionsDbUpdated();
+    notifyProjectRequestsUpdated();
     onAssigned?.();
     setAssigning(false);
-    setAssignFeedback(
-      res.alreadyAssigned
-        ? `${pilot.name} is already assigned to this request.`
-        : `${pilot.name} has been assigned to this project request.`
-    );
   };
 
   useEffect(() => {
@@ -358,18 +356,29 @@ export function ProjectRequestDetailModal({
 
           {project ? (
             <>
-              <section className="mt-4 space-y-2" aria-label="Project information">
-                <SectionHeading>1. Project information</SectionHeading>
+              <section className="mt-4 space-y-2" aria-label="Project Information">
+                <SectionHeading>1. Project Information</SectionHeading>
                 <dl className="grid gap-1.5 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <DetailBox label="Location" value={project.preferredLocation} />
+                  </div>
+                  <div className={innerBoxClass}>
+                    <p className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                      <Calendar className="size-2.5" aria-hidden />
+                      Expected start date
+                    </p>
+                    <p className="mt-0.5 text-xs font-medium">
+                      {project.expectedStartDate.trim() || "—"}
+                    </p>
+                  </div>
                   <DetailBox
-                    label="Service category"
-                    value={project.serviceCategory}
+                    label="Expected duration"
+                    value={project.expectedDuration}
                   />
-                  <DetailBox label="Project type" value={project.projectType} />
                   <div className="sm:col-span-2">
                     <DetailBox
-                      label="Preferred location"
-                      value={project.preferredLocation}
+                      label="Purpose of project"
+                      value={project.purposeOfProject}
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -385,60 +394,12 @@ export function ProjectRequestDetailModal({
                 </dl>
               </section>
 
-              <section className="mt-4 space-y-2" aria-label="Project details">
-                <SectionHeading>2. Project details</SectionHeading>
-                <dl className="grid gap-1.5 sm:grid-cols-2">
-                  <div className={innerBoxClass}>
-                    <p className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                      <Calendar className="size-2.5" aria-hidden />
-                      Expected start
-                    </p>
-                    <p className="mt-0.5 text-xs font-medium">
-                      {project.expectedStartDate.trim() || "—"}
-                    </p>
-                  </div>
-                  <DetailBox
-                    label="Expected duration"
-                    value={project.expectedDuration}
-                  />
-                  <DetailBox label="Budget (INR)" value={project.budgetRange} />
-                  <DetailBox
-                    label="Area of coverage"
-                    value={project.areaOfCoverage}
-                  />
-                  <div className="sm:col-span-2">
-                    <DetailBox
-                      label="Purpose of project"
-                      value={project.purposeOfProject}
-                    />
-                  </div>
-                </dl>
-              </section>
-
-              <section className="mt-4 space-y-2" aria-label="Additional information">
-                <SectionHeading>3. Additional information</SectionHeading>
-                {project.referenceFileNames.length > 0 ? (
-                  <DetailBox
-                    label="Reference files"
-                    value={project.referenceFileNames.join(", ")}
-                  />
-                ) : null}
-                <div className={innerBoxClass}>
-                  <p className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                    Additional notes
-                  </p>
-                  <p className="mt-0.5 whitespace-pre-wrap break-words text-xs font-medium leading-snug">
-                    {project.additionalNotes.trim() || "—"}
-                  </p>
-                </div>
-              </section>
-
               <section className="mt-4 space-y-2" aria-label="Contact details">
-                <SectionHeading>4. Contact details</SectionHeading>
+                <SectionHeading>2. Contact details</SectionHeading>
                 <div className="grid gap-1.5 sm:grid-cols-2">
                   <ContactRow
                     icon={User}
-                    label="Name"
+                    label="Name / Company (optional)"
                     value={project.contactName.trim() || contact.name}
                   />
                   <ContactRow
@@ -456,83 +417,102 @@ export function ProjectRequestDetailModal({
                 </div>
               </section>
 
-              <section className="mt-4 space-y-2" aria-label="Assign pilot">
-                <SectionHeading>Assign pilot</SectionHeading>
-                <div className={cn("space-y-3", innerBoxClass)}>
-                  <div className="flex items-start gap-2">
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/10 text-[#008B8B]">
-                      <UserRound className="size-3.5" aria-hidden />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <label
-                        htmlFor="project-request-assign-pilot"
-                        className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground"
-                      >
-                        Assign pilot
-                      </label>
-                      {pilotsLoading ? (
-                        <p className="mt-1 text-xs text-muted-foreground" role="status">
-                          Loading pilots…
-                        </p>
-                      ) : pilotsError ? (
-                        <p className="mt-1 text-xs text-red-600" role="alert">
-                          {pilotsError}
-                        </p>
-                      ) : sortedPilots.length === 0 ? (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          No active pilots are available to assign yet.
-                        </p>
-                      ) : (
-                        <select
-                          id="project-request-assign-pilot"
-                          value={selectedPilotId}
-                          onChange={(e) => {
-                            setSelectedPilotId(e.target.value);
-                            setAssignError(null);
-                            setAssignFeedback(null);
-                          }}
-                          className="mt-1 w-full rounded-lg border border-border bg-white px-2.5 py-2 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35 dark:border-white/20 dark:bg-black dark:text-white"
-                        >
-                          <option value="">Choose a pilot…</option>
-                          {sortedPilots.map((pilot) => (
-                            <option key={pilot.id} value={pilot.id}>
-                              {pilot.name}
-                              {pilot.badgeId ? ` · ${pilot.badgeId}` : ""}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
+              {!hideAssignPilot ? (
+                <section
+                  className="mt-4 space-y-2"
+                  aria-label={isPilotAssigned ? "Assigned pilot" : "Assign pilot"}
+                >
+                  <SectionHeading>
+                    {isPilotAssigned ? "Assigned pilot" : "Assign pilot"}
+                  </SectionHeading>
+                  <div className={cn("space-y-3", innerBoxClass)}>
+                    {isPilotAssigned ? (
+                      <div className="flex items-start gap-2">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/10 text-[#008B8B] dark:bg-[#008B8B]/20 dark:text-[#5eead4]">
+                          <UserRound className="size-3.5" aria-hidden />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                            Assigned pilot
+                          </p>
+                          <p className="mt-px text-xs font-medium text-foreground">
+                            {assignedPilotDisplay}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-start gap-2">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#008B8B]/10 text-[#008B8B]">
+                            <UserRound className="size-3.5" aria-hidden />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <label
+                              htmlFor="project-request-assign-pilot"
+                              className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground"
+                            >
+                              Assign pilot
+                            </label>
+                            {pilotsLoading ? (
+                              <p
+                                className="mt-1 text-xs text-muted-foreground"
+                                role="status"
+                              >
+                                Loading pilots…
+                              </p>
+                            ) : pilotsError ? (
+                              <p className="mt-1 text-xs text-red-600" role="alert">
+                                {pilotsError}
+                              </p>
+                            ) : sortedPilots.length === 0 ? (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                No active pilots are available to assign yet.
+                              </p>
+                            ) : (
+                              <select
+                                id="project-request-assign-pilot"
+                                value={selectedPilotId}
+                                onChange={(e) => {
+                                  setSelectedPilotId(e.target.value);
+                                  setAssignError(null);
+                                }}
+                                className="mt-1 w-full rounded-lg border border-border bg-white px-2.5 py-2 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35 dark:border-white/20 dark:bg-black dark:text-white"
+                              >
+                                <option value="">Choose a pilot…</option>
+                                {sortedPilots.map((pilot) => (
+                                  <option key={pilot.id} value={pilot.id}>
+                                    {pilot.name}
+                                    {pilot.badgeId ? ` · ${pilot.badgeId}` : ""}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        </div>
+                        {!pilotsLoading && sortedPilots.length > 0 ? (
+                          <button
+                            type="button"
+                            disabled={!selectedPilotId || assigning}
+                            onClick={() => void handleAssignPilot()}
+                            className="w-full rounded-lg bg-[#008B8B] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#007474] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {assigning ? "Assigning…" : "Assign pilot"}
+                          </button>
+                        ) : null}
+                        {assignError ? (
+                          <p className="text-xs font-medium text-red-600" role="alert">
+                            {assignError}
+                          </p>
+                        ) : null}
+                      </>
+                    )}
+                    <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <MapPin className="size-3 shrink-0" aria-hidden />
+                      {project.preferredLocation.trim() || "Location TBC"}
+                    </p>
                   </div>
-                  {!pilotsLoading && sortedPilots.length > 0 ? (
-                    <button
-                      type="button"
-                      disabled={!selectedPilotId || assigning}
-                      onClick={() => void handleAssignPilot()}
-                      className="w-full rounded-lg bg-[#008B8B] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#007474] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {assigning ? "Assigning…" : "Assign pilot"}
-                    </button>
-                  ) : null}
-                  {assignError ? (
-                    <p className="text-xs font-medium text-red-600" role="alert">
-                      {assignError}
-                    </p>
-                  ) : null}
-                  {assignFeedback ? (
-                    <p
-                      className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-medium text-emerald-900 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100"
-                      role="status"
-                    >
-                      {assignFeedback}
-                    </p>
-                  ) : null}
-                  <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <MapPin className="size-3 shrink-0" aria-hidden />
-                    {project.preferredLocation.trim() || "Location TBC"}
-                  </p>
-                </div>
-              </section>
+                </section>
+              ) : null}
             </>
           ) : backend ? (
             <section className="mt-4">

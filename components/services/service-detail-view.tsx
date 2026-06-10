@@ -5,10 +5,7 @@ import { CheckCircle2, ChevronRight } from "lucide-react";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { PersistFeaturedService } from "@/components/services/persist-featured-service";
 import { RequestServiceModalTrigger } from "@/components/services/request-service-modal-trigger";
-import {
-  formatRupeePrice,
-  type ServiceCatalogItem,
-} from "@/lib/service-catalog";
+import type { ServiceCatalogItem } from "@/lib/service-catalog";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +51,7 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
           </span>
         </nav>
 
-        {/* Copy left · image + indicative rate right (image first on narrow screens) */}
+        {/* Copy left · image right (image first on narrow screens) */}
         <div className="mb-10 grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,11rem)] md:items-start md:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,12.5rem)] lg:gap-12">
           <div className="order-2 min-w-0 md:order-1">
             <h1 className={ADMIN_PAGE_TITLE_CLASS}>{item.title}</h1>
@@ -135,25 +132,6 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
             </div>
 
             <div className="mt-3 sm:mt-4">
-              <p
-                className={cn(
-                  headline,
-                  "text-xs font-semibold uppercase tracking-wide text-foreground"
-                )}
-              >
-                Indicative rate
-              </p>
-              <p
-                className={cn(
-                  headline,
-                  "mt-0.5 text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
-                )}
-              >
-                {formatRupeePrice(item.topBadge.text)}
-              </p>
-              <p className={cn(body, "mt-2 text-sm leading-relaxed text-foreground")}>
-                Final quote may vary by scope, region, and compliance.
-              </p>
               <RequestServiceModalTrigger
                 reasonTitle={item.title}
                 label="Request this service"

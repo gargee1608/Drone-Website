@@ -7,6 +7,23 @@ function toTrimmed(value) {
   return String(value).trim();
 }
 
+/** When a mission is finalized, mirror completion on the linked hire request row. */
+async function syncRequestAdminStatusCompleted(requestRef) {
+  const ref = toTrimmed(requestRef);
+  if (!ref) return;
+  try {
+    await pool.query(
+      `UPDATE drone_hire_requests
+       SET admin_status = 'completed'
+       WHERE TRIM(id::text) = $1
+          OR TRIM(COALESCE(client_request_id, '')) = $1`,
+      [ref]
+    );
+  } catch (err) {
+    console.warn("[missions] sync request completed:", err?.message ?? err);
+  }
+}
+
 function jsonSafeMissionRow(row) {
   if (!row || typeof row !== "object") return row;
   const out = { ...row };
@@ -17,6 +34,11 @@ function jsonSafeMissionRow(row) {
         : out.id.toString();
   }
   return out;
+}
+
+function readPilotCommentFromBody(body) {
+  if (!body || typeof body !== "object") return "";
+  return toTrimmed(body.pilotComment ?? body.pilot_comment);
 }
 
 async function ensureMissionColumns() {
@@ -61,6 +83,9 @@ async function ensureMissionColumns() {
   );
   await pool.query(
     "ALTER TABLE missions ADD COLUMN IF NOT EXISTS user_email TEXT"
+  );
+  await pool.query(
+    "ALTER TABLE missions ADD COLUMN IF NOT EXISTS pilot_comment TEXT"
   );
   try {
     await pool.query(
@@ -193,6 +218,74 @@ async function enrichMissionUserFields(rows) {
  * Query: pilotSub, pilotName — when both absent, counts all completed missions.
  */
 /** All mission rows for this pilot (active assignments + completed). */
+router.patch("/comment", async (req, res) => {
+  try {
+    await ensureMissionColumns();
+
+    const pilotComment = toTrimmed(req.body?.pilotComment);
+    const rawId = req.body?.id;
+    const parsedId =
+      rawId == null || rawId === "" ? NaN : Number.parseInt(String(rawId), 10);
+    const rowCtid = toTrimmed(req.body?.rowCtid);
+    const requestRef = toTrimmed(req.body?.requestRef);
+    const pilotSub = toTrimmed(req.body?.pilotSub);
+
+    if (!Number.isFinite(parsedId) && !rowCtid && !requestRef) {
+      return res
+        .status(400)
+        .json({ error: "id, rowCtid, or requestRef is required" });
+    }
+
+    let result;
+    if (Number.isFinite(parsedId)) {
+      result = await pool.query(
+        `UPDATE missions SET pilot_comment = NULLIF($1, '') WHERE id = $2 RETURNING *`,
+        [pilotComment, parsedId]
+      );
+    } else if (rowCtid) {
+      result = await pool.query(
+        `UPDATE missions SET pilot_comment = NULLIF($1, '') WHERE ctid = $2::tid RETURNING *`,
+        [pilotComment, rowCtid]
+      );
+    } else {
+      const params = [pilotComment, requestRef];
+      let pilotFilter = "";
+      if (pilotSub) {
+        pilotFilter = "AND TRIM(COALESCE(pilot_sub, '')) = $3";
+        params.push(pilotSub);
+      }
+      result = await pool.query(
+        `UPDATE missions SET pilot_comment = NULLIF($1, '')
+         WHERE ctid = (
+           SELECT ctid
+           FROM missions
+           WHERE request_ref = $2
+             ${pilotFilter}
+           ORDER BY
+             CASE WHEN LOWER(COALESCE(status, 'completed')) = 'completed' THEN 0 ELSE 1 END,
+             completed_at DESC NULLS LAST,
+             id DESC
+           LIMIT 1
+         )
+         RETURNING *`,
+        params
+      );
+    }
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Mission not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: jsonSafeMissionRow(result.rows[0]),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.get("/assigned-count", async (req, res) => {
   try {
     await ensureMissionColumns();
@@ -273,6 +366,37 @@ router.get("/completed-deliveries-count", async (req, res) => {
         );
     const count = Number(result.rows[0]?.count ?? 0);
     return res.status(200).json({ success: true, count });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+/** Active assignments (admin: all pilots; optional `pilotSub` filter). */
+router.get("/active-assignments", async (req, res) => {
+  try {
+    await ensureMissionColumns();
+    const pilotSub = toTrimmed(req.query?.pilotSub);
+    const result = pilotSub
+      ? await pool.query(
+          `SELECT ctid::text AS row_ctid, *
+           FROM missions
+           WHERE TRIM(COALESCE(pilot_sub, '')) = $1
+             AND LOWER(TRIM(COALESCE(status, ''))) = ANY($2::text[])
+           ORDER BY assigned_at DESC NULLS LAST, id DESC`,
+          [pilotSub, ACTIVE_ASSIGNMENT_STATUSES]
+        )
+      : await pool.query(
+          `SELECT ctid::text AS row_ctid, *
+           FROM missions
+           WHERE LOWER(TRIM(COALESCE(status, ''))) = ANY($1::text[])
+           ORDER BY assigned_at DESC NULLS LAST, id DESC`,
+          [ACTIVE_ASSIGNMENT_STATUSES]
+        );
+    const enriched = await enrichMissionUserFields(result.rows);
+    return res
+      .status(200)
+      .json({ success: true, data: enriched.map(jsonSafeMissionRow) });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Server error" });
@@ -411,6 +535,7 @@ router.put("/", async (req, res) => {
     const assignedAt = assignedAtRaw ? new Date(assignedAtRaw) : null;
     const completedAt = completedAtRaw ? new Date(completedAtRaw) : null;
     const status = toTrimmed(req.body?.status).toLowerCase().replace(/\s+/g, "_");
+    const pilotComment = readPilotCommentFromBody(req.body);
 
     if (!Number.isFinite(parsedId) && !rowCtid) {
       return res.status(400).json({ error: "id or rowCtid is required" });
@@ -437,6 +562,7 @@ router.put("/", async (req, res) => {
       assignedAt ? assignedAt.toISOString() : null,
       completedAt ? completedAt.toISOString() : null,
       status || "completed",
+      pilotComment || null,
     ];
 
     const setClause = `SET
@@ -450,20 +576,26 @@ router.put("/", async (req, res) => {
       user_email = NULLIF($8, ''),
       assigned_at = $9::timestamptz,
       completed_at = $10::timestamptz,
-      status = $11`;
+      status = $11,
+      pilot_comment = COALESCE(NULLIF($12, ''), pilot_comment)`;
 
     const result = Number.isFinite(parsedId)
       ? await pool.query(
-          `UPDATE missions ${setClause} WHERE id = $12 RETURNING *`,
+          `UPDATE missions ${setClause} WHERE id = $13 RETURNING *`,
           [...values, parsedId]
         )
       : await pool.query(
-          `UPDATE missions ${setClause} WHERE ctid = $12::tid RETURNING *`,
+          `UPDATE missions ${setClause} WHERE ctid = $13::tid RETURNING *`,
           [...values, rowCtid]
         );
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: "Mission not found" });
+    }
+
+    const finalStatus = status || "completed";
+    if (finalStatus === "completed") {
+      await syncRequestAdminStatusCompleted(requestRef);
     }
 
     return res.status(200).json({
@@ -492,6 +624,7 @@ router.post("/", async (req, res) => {
     const droneModel = toTrimmed(req.body?.droneModel);
     const assignedAtRaw = toTrimmed(req.body?.assignedAt);
     const assignedAt = assignedAtRaw ? new Date(assignedAtRaw) : new Date();
+    const pilotComment = readPilotCommentFromBody(req.body);
     const statusNorm = toTrimmed(req.body?.status).toLowerCase().replace(/\s+/g, "_");
     let status = "completed";
     if (statusNorm === "in_progress") status = "in_progress";
@@ -530,7 +663,8 @@ router.post("/", async (req, res) => {
           user_name = COALESCE(NULLIF(TRIM($9), ''), user_name),
           user_email = COALESCE(NULLIF(TRIM($10), ''), user_email),
           completed_at = NOW(),
-          status = 'completed'
+          status = 'completed',
+          pilot_comment = COALESCE(NULLIF(TRIM($12), ''), pilot_comment)
         WHERE request_ref = $1
           AND TRIM(COALESCE(pilot_sub, '')) = $7
           AND LOWER(TRIM(COALESCE(status, ''))) = ANY($11::text[])
@@ -547,9 +681,11 @@ router.post("/", async (req, res) => {
           userName || null,
           userEmail || null,
           ACTIVE_ASSIGNMENT_STATUSES,
+          pilotComment || null,
         ]
       );
       if (updated.rowCount > 0) {
+        await syncRequestAdminStatusCompleted(requestRef);
         return res.status(200).json({
           success: true,
           data: jsonSafeMissionRow(updated.rows[0]),
@@ -596,8 +732,9 @@ router.post("/", async (req, res) => {
         user_email,
         assigned_at,
         completed_at,
-        status
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        status,
+        pilot_comment
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       RETURNING *`,
       [
         requestRef,
@@ -613,8 +750,13 @@ router.post("/", async (req, res) => {
         assignedAt.toISOString(),
         completedAt,
         status,
+        pilotComment || null,
       ]
     );
+
+    if (status === "completed") {
+      await syncRequestAdminStatusCompleted(requestRef);
+    }
 
     return res.status(201).json({
       success: true,
