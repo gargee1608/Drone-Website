@@ -329,19 +329,33 @@ export function PilotDashboardShell({
                   {isMainPilotDashboard ? (
                     <>
                       <h1 className="sr-only lg:hidden">{pageTitle}</h1>
-                      <h1
-                        className={cn(
-                          ADMIN_PAGE_TITLE_CLASS,
-                          "mb-4 hidden lg:block sm:mb-5"
-                        )}
-                      >
-                        {pageTitle}
-                      </h1>
-                      {pilotWelcome ? (
-                        <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
-                          Welcome, {pilotWelcome}
-                        </h2>
-                      ) : null}
+                      <div className="mb-8 hidden lg:block sm:mb-10">
+                        <div className="flex items-center gap-4 sm:gap-5">
+                          <div
+                            className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#008B8B]/25 bg-[#008B8B]/10 shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06] sm:size-11"
+                            aria-hidden
+                          >
+                            <Plane
+                              className="size-5 text-[#008B8B] sm:size-6"
+                              strokeWidth={2.25}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <h1 className={ADMIN_PAGE_TITLE_CLASS}>
+                              {pageTitle}
+                            </h1>
+                            <span
+                              className="mt-2.5 block h-1 w-10 rounded-full bg-gradient-to-r from-[#008B8B] to-[#008B8B]/40 sm:mt-3"
+                              aria-hidden
+                            />
+                          </div>
+                        </div>
+                        {pilotWelcome ? (
+                          <h2 className="mt-5 text-xl font-bold text-foreground sm:mt-6">
+                            Welcome, {pilotWelcome}
+                          </h2>
+                        ) : null}
+                      </div>
                     </>
                   ) : (
                     <h1 className="sr-only">{pageTitle}</h1>

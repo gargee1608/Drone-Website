@@ -87,8 +87,16 @@ function SidebarNavLinks({ onNavigate }: { onNavigate?: () => void }) {
             href={item.href}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-normal text-[#191c1d] transition-colors duration-200 active:scale-[0.98] dark:text-foreground",
-              isActive ? USER_DASH_NAV_ITEM_ACTIVE : USER_DASH_NAV_ITEM_INACTIVE
+              "flex items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-normal text-[#191c1d] transition-colors duration-200 active:scale-[0.98] dark:text-white/90",
+              isActive
+                ? cn(
+                    USER_DASH_NAV_ITEM_ACTIVE,
+                    "dark:bg-white/[0.08] dark:text-white"
+                  )
+                : cn(
+                    USER_DASH_NAV_ITEM_INACTIVE,
+                    "dark:hover:bg-white/10 dark:active:bg-white/10"
+                  )
             )}
           >
             <Icon className="size-5 shrink-0" aria-hidden />
@@ -110,7 +118,7 @@ function LogoutControl({ onAfterClick }: { onAfterClick?: () => void }) {
         clearAuthSession();
         router.replace(USER_LOGIN_HREF);
       }}
-      className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-sm font-normal text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-sm font-normal text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-white/90 dark:hover:bg-white/10"
     >
       <LogOut className="size-5 shrink-0" aria-hidden />
       Logout
@@ -244,14 +252,14 @@ export function UserDashboardShell({
           />
           <aside
             className={cn(
-              "relative absolute left-0 top-0 flex h-full w-[min(18rem,85vw)] flex-col gap-2 bg-white p-4 text-card-foreground shadow-xl",
+              "relative absolute left-0 top-0 flex h-full w-[min(18rem,85vw)] flex-col gap-2 bg-white p-4 text-card-foreground shadow-xl dark:bg-black dark:text-white",
               USER_DASH_SIDEBAR_VERTICAL_BORDER
             )}
           >
             <div className="flex justify-end">
               <button
                 type="button"
-                className="rounded-lg p-2 text-muted-foreground hover:bg-muted"
+                className="rounded-lg p-2 text-muted-foreground hover:bg-muted dark:text-white/70 dark:hover:bg-white/10"
                 onClick={() => setMobileNavOpen(false)}
                 aria-label="Close"
               >
@@ -271,7 +279,7 @@ export function UserDashboardShell({
         <aside
           id="user-dashboard-sidebar"
           className={cn(
-            "relative hidden flex-col overflow-hidden border-r bg-white text-card-foreground transition-[width] duration-300 ease-out lg:border-r-0 lg:shadow-none lg:fixed lg:bottom-0 lg:left-0 lg:top-20 lg:z-40 lg:flex",
+            "relative hidden flex-col overflow-hidden border-r bg-white text-card-foreground transition-[width] duration-300 ease-out dark:bg-black dark:text-white lg:border-r-0 lg:shadow-none lg:fixed lg:bottom-0 lg:left-0 lg:top-20 lg:z-40 lg:flex",
             USER_DASH_BORDER_COLOR,
             sidebarExpanded ? "lg:w-60" : "lg:w-0 lg:border-0 lg:p-0"
           )}
@@ -333,19 +341,33 @@ export function UserDashboardShell({
                   {isMainUserDashboard ? (
                     <>
                       <h1 className="sr-only lg:hidden">{pageTitle}</h1>
-                      <h1
-                        className={cn(
-                          ADMIN_PAGE_TITLE_CLASS,
-                          "mb-4 hidden lg:block sm:mb-5"
-                        )}
-                      >
-                        {pageTitle}
-                      </h1>
-                      {userWelcome ? (
-                        <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
-                          Welcome, {userWelcome}
-                        </h2>
-                      ) : null}
+                      <div className="mb-8 hidden lg:block sm:mb-10">
+                        <div className="flex items-center gap-4 sm:gap-5">
+                          <div
+                            className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#008B8B]/25 bg-[#008B8B]/10 shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06] sm:size-11"
+                            aria-hidden
+                          >
+                            <UserRound
+                              className="size-5 text-[#008B8B] sm:size-6"
+                              strokeWidth={2.25}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <h1 className={ADMIN_PAGE_TITLE_CLASS}>
+                              {pageTitle}
+                            </h1>
+                            <span
+                              className="mt-2.5 block h-1 w-10 rounded-full bg-gradient-to-r from-[#008B8B] to-[#008B8B]/40 sm:mt-3"
+                              aria-hidden
+                            />
+                          </div>
+                        </div>
+                        {userWelcome ? (
+                          <h2 className="mt-5 text-xl font-bold text-foreground sm:mt-6">
+                            Welcome, {userWelcome}
+                          </h2>
+                        ) : null}
+                      </div>
                     </>
                   ) : (
                     <h1 className="sr-only">{pageTitle}</h1>
