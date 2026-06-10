@@ -12,6 +12,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/api-url";
 import { PROFILE_INFO_POPUP_SHELL_CLASS } from "@/lib/profile-popup-styles";
@@ -19,7 +20,6 @@ import { type PilotRegCard } from "@/lib/admin-pilot-registration-storage";
 import {
   ADMIN_DASH_AVATAR_RING,
   ADMIN_DASH_PANEL_BORDER,
-  ADMIN_DASH_STAT_CARD_SURFACE,
 } from "@/lib/admin-dashboard-styles";
 import {
   ADMIN_PROFILE_UPDATED_EVENT,
@@ -271,7 +271,7 @@ export function DashboardHomeContent() {
       <AdminDashboardHero adminWelcome={adminWelcome} />
 
       <section className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
+        <AdminKpiCard
           title="Total Pilots"
           value={dbTotalPilots.toLocaleString()}
           icon={Users}
@@ -279,7 +279,7 @@ export function DashboardHomeContent() {
           iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
           accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
         />
-        <KpiCard
+        <AdminKpiCard
           title="Total Drones"
           value={dbTotalDrones.toLocaleString()}
           icon={Plane}
@@ -287,7 +287,7 @@ export function DashboardHomeContent() {
           iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
           accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
         />
-        <KpiCard
+        <AdminKpiCard
           title="Pilot registration pending"
           value={String(pendingPilots.length)}
           icon={ClipboardList}
@@ -295,7 +295,7 @@ export function DashboardHomeContent() {
           iconBg="bg-gradient-to-br from-[#ffdad6] to-[#ffdad6]/40 dark:from-red-950/60 dark:to-red-950/30"
           accentClass="bg-gradient-to-r from-[#ba1a1a] to-[#e53935]"
         />
-        <KpiCard
+        <AdminKpiCard
           title="Registered pilots"
           value={registeredTotalDisplay}
           icon={UserCheck}
@@ -376,52 +376,6 @@ function pilotInitials(name: string): string {
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
-}
-
-function KpiCard({
-  title,
-  value,
-  icon: Icon,
-  iconClassName,
-  iconBg,
-  accentClass,
-}: {
-  title: string;
-  value: string;
-  icon: React.ComponentType<{ className?: string }>;
-  iconClassName: string;
-  iconBg: string;
-  accentClass: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "admin-kpi-card group relative overflow-hidden cc-glass-card flex items-center justify-between rounded-2xl p-5 transition-all duration-300 hover:-translate-y-0.5",
-        ADMIN_DASH_STAT_CARD_SURFACE
-      )}
-    >
-      <div
-        className={cn("absolute inset-x-0 top-0 h-1 opacity-90", accentClass)}
-        aria-hidden
-      />
-      <div className="min-w-0 pr-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          {title}
-        </p>
-        <h2 className="mt-1.5 text-2xl font-bold tabular-nums tracking-tight text-foreground sm:text-[1.75rem]">
-          {value}
-        </h2>
-      </div>
-      <div
-        className={cn(
-          "shrink-0 rounded-xl p-3 ring-1 ring-black/[0.04] transition-transform duration-300 group-hover:scale-105 dark:ring-white/[0.06]",
-          iconBg
-        )}
-      >
-        <Icon className={cn("size-6 sm:size-7", iconClassName)} aria-hidden />
-      </div>
-    </div>
-  );
 }
 
 function PendingRegistrationsSection({

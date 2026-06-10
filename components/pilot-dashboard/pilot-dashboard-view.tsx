@@ -3,24 +3,17 @@
 import Image from "next/image";
 import { Space_Grotesk } from "next/font/google";
 import { useRouter } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckCircle2,
   ChevronDown,
-  History,
   Maximize2,
   Rocket,
   ShieldCheck,
-  Star,
   Timer,
-  TrendingUp,
 } from "lucide-react";
+
+import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
 
 import {
   getPilotAssignedMissionCount,
@@ -40,7 +33,10 @@ import {
   MISSIONS_DB_BROADCAST_CHANNEL,
   MISSIONS_DB_UPDATED_EVENT,
 } from "@/lib/user-requests";
-import { DASH_STAT_CARD_SURFACE } from "@/lib/admin-dashboard-styles";
+import {
+  ADMIN_DASH_STAT_CARD_SURFACE,
+  DASH_STAT_CARD_SURFACE,
+} from "@/lib/admin-dashboard-styles";
 import { cn } from "@/lib/utils";
 
 const flightDeck = Space_Grotesk({
@@ -54,63 +50,6 @@ const FD_PRIMARY = "#00418f";
 
 const LIVE_FEED_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDZ0f9uXM7jzeoXxh2c5WuE8cSxxxdPN2Gs-7YcV39DYRuhcq7nb5pD5f6oYdf9b-Gs4sfyX-Xp-yvyzcp0T7XJ7fh1M03lZpLy9ODmqvdX9-Tb-C2_Y8vT-elTvruYtsixaIWB05aJt3XRt0kifxLVtKCocqAngquDMsBzEjmJ-DP26S33wmi7h-ruFGbfJwrkQ6YxbxKinBYuaPoXwJAvKXKIGZt9QCEoFxuyXHaJQCE6YohzPX_zRyQBQQgx_BnAPtxTW2p1hzbN";
-
-function DeckStatCard({
-  label,
-  value,
-  unit,
-  footer,
-  footerClassName,
-  icon: Icon,
-  iconClassName,
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-  footer: ReactNode;
-  footerClassName?: string;
-  icon: typeof Timer;
-  iconClassName: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-1 rounded-2xl bg-card p-5 sm:p-6",
-        DASH_STAT_CARD_SURFACE
-      )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <span
-          className={cn(
-            flightDeck.variable,
-            "font-[family-name:var(--font-flight-deck)] text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
-          )}
-        >
-          {label}
-        </span>
-        <Icon className={cn("size-4 shrink-0 sm:size-[18px]", iconClassName)} aria-hidden />
-      </div>
-      <div className="flex items-baseline gap-1.5">
-        <span
-          className={cn(
-            flightDeck.variable,
-            "text-[1.65rem] font-semibold leading-tight tracking-tight text-foreground sm:text-3xl"
-          )}
-        >
-          {value}
-        </span>
-        {unit ? (
-          <span className="font-[family-name:var(--font-flight-deck)] text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-            {unit}
-          </span>
-        ) : null}
-      </div>
-      <div className={cn("flex items-center gap-1.5 text-xs font-semibold", footerClassName)}>
-        {footer}
-      </div>
-    </div>
-  );
-}
 
 type DutyStatus = "ACTIVE" | "INACTIVE";
 
@@ -143,67 +82,79 @@ function PilotDutyStatusCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1 rounded-2xl bg-card p-5 sm:p-6",
-        DASH_STAT_CARD_SURFACE
+        "admin-kpi-card group relative overflow-hidden cc-glass-card flex items-center justify-between rounded-2xl p-5 transition-all duration-300 hover:-translate-y-0.5",
+        ADMIN_DASH_STAT_CARD_SURFACE
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <span
-          className={cn(
-            flightDeck.variable,
-            "font-[family-name:var(--font-flight-deck)] text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
-          )}
-        >
+      <div
+        className={cn(
+          "absolute inset-x-0 top-0 h-1 opacity-90",
+          active
+            ? "bg-gradient-to-r from-green-600 to-emerald-400"
+            : "bg-gradient-to-r from-amber-500 to-amber-300"
+        )}
+        aria-hidden
+      />
+      <div className="min-w-0 pr-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Status
-        </span>
-        <CheckCircle2
+        </p>
+        <div className="relative mt-1.5 w-fit max-w-full">
+          <select
+            id="pilot-deck-duty-status"
+            aria-label="Duty status"
+            value={status}
+            disabled={loading || saving}
+            onChange={(e) => onChange(e.target.value as DutyStatus)}
+            className={cn(
+              "w-fit min-w-[5.5rem] cursor-pointer appearance-none rounded-md border border-border bg-background",
+              "py-1 pl-2 pr-7 text-xs font-bold uppercase tracking-wide text-foreground sm:min-w-[6rem] sm:py-1.5 sm:pl-2.5 sm:pr-8 sm:text-sm",
+              "outline-none transition hover:border-muted-foreground/25 focus-visible:ring-2 focus-visible:ring-[#008B8B]/25",
+              "disabled:cursor-not-allowed disabled:opacity-60"
+            )}
+          >
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+          </select>
+          <ChevronDown
+            className="pointer-events-none absolute right-1.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground sm:right-2 sm:size-4"
+            aria-hidden
+          />
+        </div>
+        <p
           className={cn(
-            "size-4 shrink-0 sm:size-[18px]",
+            "mt-1.5 flex items-center gap-1.5 text-xs font-semibold",
             active
               ? "text-emerald-600 dark:text-emerald-400"
-              : "text-amber-600 dark:text-amber-400"
-          )}
-          aria-hidden
-        />
-      </div>
-      <div className="relative w-fit max-w-full min-h-0">
-        <select
-          id="pilot-deck-duty-status"
-          aria-label="Duty status"
-          value={status}
-          disabled={loading || saving}
-          onChange={(e) => onChange(e.target.value as DutyStatus)}
-          className={cn(
-            flightDeck.variable,
-            "w-fit min-w-[5.5rem] cursor-pointer appearance-none rounded-md border border-border bg-background",
-            "py-1 pl-2 pr-7 text-xs font-semibold uppercase tracking-wide text-foreground sm:min-w-[6rem] sm:py-1.5 sm:pl-2.5 sm:pr-8 sm:text-sm",
-            "outline-none transition hover:border-muted-foreground/25 focus-visible:ring-2 focus-visible:ring-[#00418f]/25",
-            "disabled:cursor-not-allowed disabled:opacity-60"
+              : "text-amber-700 dark:text-amber-400"
           )}
         >
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-        </select>
-        <ChevronDown
-          className="pointer-events-none absolute right-1.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground sm:right-2 sm:size-4"
-          aria-hidden
-        />
+          <span
+            className={cn(
+              "size-2 shrink-0 rounded-full",
+              active ? "bg-emerald-500" : "bg-amber-500"
+            )}
+          />
+          <span>{saving ? "Saving…" : active ? "On duty" : "Off duty"}</span>
+        </p>
       </div>
       <div
         className={cn(
-          "flex items-center gap-1.5 text-xs font-semibold",
+          "shrink-0 rounded-xl p-3 ring-1 ring-black/[0.04] transition-transform duration-300 group-hover:scale-105 dark:ring-white/[0.06]",
           active
-            ? "text-emerald-600 dark:text-emerald-400"
-            : "text-amber-700 dark:text-amber-400"
+            ? "bg-gradient-to-br from-green-100 to-green-50 dark:from-green-950/50 dark:to-green-950/20"
+            : "bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-950/50 dark:to-amber-950/20"
         )}
       >
-        <span
+        <CheckCircle2
           className={cn(
-            "size-2 shrink-0 rounded-full",
-            active ? "bg-emerald-500" : "bg-amber-500"
+            "size-6 sm:size-7",
+            active
+              ? "text-green-700 dark:text-green-400"
+              : "text-amber-700 dark:text-amber-300"
           )}
+          aria-hidden
         />
-        <span>{saving ? "Saving…" : active ? "On duty" : "Off duty"}</span>
       </div>
     </div>
   );
@@ -364,57 +315,29 @@ export function PilotDashboardView() {
           "text-foreground"
         )}
       >
-        {/* Top stats — 4 columns */}
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
-          <DeckStatCard
-            label="Flight Hours"
+        <section
+          className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-4"
+          aria-label="Pilot summary: flight hours, assigned missions, duty status, and completed missions"
+        >
+          <AdminKpiCard
+            title="Flight Hours"
             value={
               dutyLoading ? "…" : flightHoursTotal.toLocaleString("en-US")
             }
-            unit="HRS"
             icon={Timer}
-            iconClassName="text-[#00418f] dark:text-sky-300"
-            footerClassName={
-              dutyLoading
-                ? "text-muted-foreground"
-                : flightHoursFromPilotRecord
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-muted-foreground"
-            }
-            footer={
-              dutyLoading ? (
-                <>
-                  <Timer className="size-3.5 shrink-0" aria-hidden />
-                  <span>Loading pilot record…</span>
-                </>
-              ) : flightHoursFromPilotRecord ? (
-                <>
-                  <TrendingUp className="size-3.5 shrink-0" aria-hidden />
-                  <span>Live total</span>
-                </>
-              ) : (
-                <>
-                  <History className="size-3.5 shrink-0" aria-hidden />
-                  <span>
-                    Saved profile hours — could not load your pilots row; check
-                    backend
-                  </span>
-                </>
-              )
-            }
+            iconClassName="text-[#008B8B]"
+            iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
+            accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
           />
-          <DeckStatCard
-            label="Assigned Mission Count"
-            value={dutyLoading ? "…" : assignedMissionCount.toLocaleString("en-US")}
-            icon={ShieldCheck}
-            iconClassName="text-[#00418f] dark:text-sky-300"
-            footerClassName="text-blue-600 dark:text-blue-400"
-            footer={
-              <>
-                <Star className="size-3.5 shrink-0 fill-current" aria-hidden />
-                <span>Total assigned to this pilot</span>
-              </>
+          <AdminKpiCard
+            title="Assigned Mission Count"
+            value={
+              dutyLoading ? "…" : assignedMissionCount.toLocaleString("en-US")
             }
+            icon={ShieldCheck}
+            iconClassName="text-[#008B8B]"
+            iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
+            accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
           />
           <PilotDutyStatusCard
             status={dutyStatus}
@@ -422,21 +345,15 @@ export function PilotDashboardView() {
             saving={dutySaving}
             onChange={onDutyChange}
           />
-          <DeckStatCard
-            label="Missions Completed"
+          <AdminKpiCard
+            title="Missions Completed"
             value={
               dutyLoading ? "…" : missionsCompleted.toLocaleString("en-US")
             }
-            unit="Total"
             icon={Rocket}
-            iconClassName="text-[#00418f] dark:text-sky-300"
-            footerClassName="text-muted-foreground"
-            footer={
-              <>
-                <History className="size-3.5 shrink-0" aria-hidden />
-                <span>Stored on your pilot record</span>
-              </>
-            }
+            iconClassName="text-sky-800 dark:text-sky-300"
+            iconBg="bg-gradient-to-br from-sky-100 to-sky-50 dark:from-sky-950/50 dark:to-sky-950/20"
+            accentClass="bg-gradient-to-r from-sky-600 to-sky-400"
           />
         </section>
 

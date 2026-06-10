@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { UserRequestStatCard } from "@/components/dashboard/user-request-stat-card";
+import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
 import { apiUrl } from "@/lib/api-url";
 import {
   type BackendDroneHireRequestRow,
@@ -1028,29 +1028,32 @@ export function CompletedDeliveriesView({
         </div>
 
         <section
-          className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3"
+          className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3"
           aria-label="Request summary: total, pending requests, and completed deliveries"
         >
-          <UserRequestStatCard
-            label="Total requests"
+          <AdminKpiCard
+            title="Total requests"
             value={stats.total}
             icon={ClipboardList}
             iconClassName="text-[#008B8B]"
-            iconWrapClassName="bg-[#008B8B]/10"
+            iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
+            accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
           />
-          <UserRequestStatCard
-            label="Pending Request"
+          <AdminKpiCard
+            title="Pending Request"
             value={stats.pending}
             icon={Clock}
-            iconClassName="text-amber-700"
-            iconWrapClassName="bg-amber-100"
+            iconClassName="text-[#ba1a1a]"
+            iconBg="bg-gradient-to-br from-[#ffdad6] to-[#ffdad6]/40 dark:from-red-950/60 dark:to-red-950/30"
+            accentClass="bg-gradient-to-r from-[#ba1a1a] to-[#e53935]"
           />
-          <UserRequestStatCard
-            label="Completed Deliveries"
+          <AdminKpiCard
+            title="Completed Deliveries"
             value={completedDeliveriesDisplay}
             icon={PackageCheck}
-            iconClassName="text-sky-800"
-            iconWrapClassName="bg-sky-100"
+            iconClassName="text-sky-800 dark:text-sky-300"
+            iconBg="bg-gradient-to-br from-sky-100 to-sky-50 dark:from-sky-950/50 dark:to-sky-950/20"
+            accentClass="bg-gradient-to-r from-sky-600 to-sky-400"
           />
         </section>
       </header>

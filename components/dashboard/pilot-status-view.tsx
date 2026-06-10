@@ -19,7 +19,7 @@ import {
   patchPilotProfile,
 } from "@/app/services/pilotServices";
 import { DetailField } from "@/components/dashboard/user-request-detail-modal";
-import { UserRequestStatCard } from "@/components/dashboard/user-request-stat-card";
+import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
 import { apiUrl } from "@/lib/api-url";
 import {
   flightHoursFromPilotRow,
@@ -667,38 +667,42 @@ export function PilotStatusView({
 
       <section
         className={cn(
-          "grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4",
+          "grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-4",
           showPageTitle ? "mt-6" : "mt-4"
         )}
         aria-label="Pilot status summary: total registered, currently active, inactive or on leave, and total missions"
       >
-        <UserRequestStatCard
-          label="Total registered"
+        <AdminKpiCard
+          title="Total registered"
           value={kpi.totalRegistered}
           icon={Users}
           iconClassName="text-[#008B8B]"
-          iconWrapClassName="bg-[#008B8B]/10"
+          iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
+          accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
         />
-        <UserRequestStatCard
-          label="Currently active"
+        <AdminKpiCard
+          title="Currently active"
           value={kpi.currentlyActive}
           icon={BadgeCheck}
-          iconClassName="text-emerald-700"
-          iconWrapClassName="bg-emerald-100"
+          iconClassName="text-green-700 dark:text-green-400"
+          iconBg="bg-gradient-to-br from-green-100 to-green-50 dark:from-green-950/50 dark:to-green-950/20"
+          accentClass="bg-gradient-to-r from-green-600 to-emerald-400"
         />
-        <UserRequestStatCard
-          label="Inactive / On-leave"
+        <AdminKpiCard
+          title="Inactive / On-leave"
           value={kpi.inactiveOnLeave}
           icon={UserRound}
-          iconClassName="text-amber-700"
-          iconWrapClassName="bg-amber-100"
+          iconClassName="text-[#ba1a1a]"
+          iconBg="bg-gradient-to-br from-[#ffdad6] to-[#ffdad6]/40 dark:from-red-950/60 dark:to-red-950/30"
+          accentClass="bg-gradient-to-r from-[#ba1a1a] to-[#e53935]"
         />
-        <UserRequestStatCard
-          label="Total missions"
+        <AdminKpiCard
+          title="Total missions"
           value={kpi.totalMissions}
           icon={PackageCheck}
-          iconClassName="text-sky-800"
-          iconWrapClassName="bg-sky-100"
+          iconClassName="text-sky-800 dark:text-sky-300"
+          iconBg="bg-gradient-to-br from-sky-100 to-sky-50 dark:from-sky-950/50 dark:to-sky-950/20"
+          accentClass="bg-gradient-to-r from-sky-600 to-sky-400"
         />
       </section>
 
