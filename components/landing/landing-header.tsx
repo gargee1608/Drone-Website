@@ -29,10 +29,15 @@ import { PilotMissionNotificationsMenu } from "@/components/notifications/pilot-
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getPilotDisplayName, jwtPayloadRole } from "@/lib/pilot-display-name";
 import {
+  ADMIN_PROFILE_UPDATED_EVENT,
   buildAdminProfileForDisplay,
+  getAdminDisplayName,
 } from "@/lib/admin-profile-storage";
+import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
 import { clearAuthSession } from "@/lib/auth-session-browser";
+import { USER_PROFILE_UPDATED_EVENT } from "@/lib/user-profile-storage";
 import {
+  getUserDisplayName,
   readStoredUserSession,
   type StoredUserSession,
 } from "@/lib/user-session-browser";
@@ -223,6 +228,8 @@ export function LandingHeader() {
   const isPilotLogoutContext =
     isPilotDashboard ||
     (isSettingsPage && settingsFrom === "pilot");
+  const isAdminLogoutContext =
+    isAdminDashboard || isAdminSettingsContext;
 
   /** Sun/moon control: pilot, user, and admin app shells (+ matching settings). */
   const showDashboardShellThemeToggle =
@@ -259,6 +266,26 @@ export function LandingHeader() {
   const [adminMarketingActive, setAdminMarketingActive] = useState(false);
   const [marketingUserMenuOpen, setMarketingUserMenuOpen] = useState(false);
   const marketingUserMenuRef = useRef<HTMLDivElement>(null);
+  const [userDashboardDisplayName, setUserDashboardDisplayName] =
+    useState<string>("User");
+  const [pilotDashboardDisplayName, setPilotDashboardDisplayName] =
+    useState<string>("Pilot");
+  const [adminDashboardDisplayName, setAdminDashboardDisplayName] =
+    useState<string>("Admin");
+
+  const accountMenuIdentity = isUserLogoutContext
+    ? { displayName: userDashboardDisplayName, accountLabel: "User Account" }
+    : isPilotLogoutContext
+      ? { displayName: pilotDashboardDisplayName, accountLabel: "Pilot Account" }
+      : isAdminLogoutContext
+        ? { displayName: adminDashboardDisplayName, accountLabel: "Admin Account" }
+        : null;
+  const accountMenuInitial = accountMenuIdentity
+    ? (accountMenuIdentity.displayName.trim().slice(0, 1) || "A").toUpperCase()
+    : "";
+
+  const accountMenuItemClassName =
+    "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none";
 
   const hasLoggedInAppUser = appUserSession != null;
   const hasLoggedInAdmin = adminMarketingActive;
@@ -300,6 +327,78 @@ export function LandingHeader() {
 
   const marketingUserChipClassName =
     "inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border-0 bg-transparent px-1 font-normal text-slate-800 transition-colors hover:bg-slate-100/90 hover:text-[#008B8B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008B8B]/35 dark:text-white dark:hover:bg-white/10 dark:hover:text-white sm:px-1.5";
+
+  useEffect(() => {
+    if (!isUserLogoutContext) return;
+    const syncUserDisplayName = () => {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!token || jwtPayloadRole(token) !== "user") {
+        setUserDashboardDisplayName("User");
+        return;
+      }
+      setUserDashboardDisplayName(getUserDisplayName(token));
+    };
+    syncUserDisplayName();
+    window.addEventListener("storage", syncUserDisplayName);
+    window.addEventListener("focus", syncUserDisplayName);
+    window.addEventListener(USER_PROFILE_UPDATED_EVENT, syncUserDisplayName);
+    return () => {
+      window.removeEventListener("storage", syncUserDisplayName);
+      window.removeEventListener("focus", syncUserDisplayName);
+      window.removeEventListener(USER_PROFILE_UPDATED_EVENT, syncUserDisplayName);
+    };
+  }, [isUserLogoutContext, pathname]);
+
+  useEffect(() => {
+    if (!isPilotLogoutContext) return;
+    const syncPilotDisplayName = () => {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!token || jwtPayloadRole(token) !== "pilot") {
+        setPilotDashboardDisplayName("Pilot");
+        return;
+      }
+      setPilotDashboardDisplayName(getPilotDisplayName(token));
+    };
+    syncPilotDisplayName();
+    window.addEventListener("storage", syncPilotDisplayName);
+    window.addEventListener("focus", syncPilotDisplayName);
+    window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, syncPilotDisplayName);
+    return () => {
+      window.removeEventListener("storage", syncPilotDisplayName);
+      window.removeEventListener("focus", syncPilotDisplayName);
+      window.removeEventListener(
+        PILOT_PROFILE_UPDATED_EVENT,
+        syncPilotDisplayName
+      );
+    };
+  }, [isPilotLogoutContext, pathname]);
+
+  useEffect(() => {
+    if (!isAdminLogoutContext) return;
+    const syncAdminDisplayName = () => {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!token || jwtPayloadRole(token) !== "admin") {
+        setAdminDashboardDisplayName("Admin");
+        return;
+      }
+      setAdminDashboardDisplayName(getAdminDisplayName());
+    };
+    syncAdminDisplayName();
+    window.addEventListener("storage", syncAdminDisplayName);
+    window.addEventListener("focus", syncAdminDisplayName);
+    window.addEventListener(ADMIN_PROFILE_UPDATED_EVENT, syncAdminDisplayName);
+    return () => {
+      window.removeEventListener("storage", syncAdminDisplayName);
+      window.removeEventListener("focus", syncAdminDisplayName);
+      window.removeEventListener(
+        ADMIN_PROFILE_UPDATED_EVENT,
+        syncAdminDisplayName
+      );
+    };
+  }, [isAdminLogoutContext, pathname]);
 
   useEffect(() => {
     function syncMarketingSessions() {
@@ -732,56 +831,90 @@ export function LandingHeader() {
                 {accountMenuOpen ? (
                   <div
                     role="menu"
-                    className="absolute right-0 top-full z-[60] mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg ring-1 ring-black/5"
+                    className="absolute right-0 top-full z-[60] mt-2 min-w-[13.5rem] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg ring-1 ring-black/5"
                   >
-                    {isUserLogoutContext ||
-                    isPilotLogoutContext ||
-                    isAdminDashboard ||
-                    isAdminSettingsContext ? (
+                    {accountMenuIdentity ? (
+                      <div
+                        className="flex items-center gap-3 border-b border-border bg-muted/30 px-4 py-3"
+                        role="presentation"
+                      >
+                        <span
+                          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12 text-sm font-semibold text-[#008B8B] dark:bg-white/10 dark:text-[#5eb3ff]"
+                          aria-hidden
+                        >
+                          {accountMenuInitial}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold leading-snug text-foreground">
+                            {accountMenuIdentity.displayName}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs leading-snug text-muted-foreground">
+                            {accountMenuIdentity.accountLabel}
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+                    <div className="p-1.5">
+                      {isUserLogoutContext ||
+                      isPilotLogoutContext ||
+                      isAdminDashboard ||
+                      isAdminSettingsContext ? (
+                        <Link
+                          href="/"
+                          role="menuitem"
+                          className={accountMenuItemClassName}
+                          onClick={() => setAccountMenuOpen(false)}
+                        >
+                          <HomeIcon
+                            className="size-4 shrink-0 text-muted-foreground"
+                            aria-hidden
+                          />
+                          Home
+                        </Link>
+                      ) : null}
                       <Link
-                        href="/"
+                        href={profileHref}
                         role="menuitem"
-                        className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                        className={accountMenuItemClassName}
                         onClick={() => setAccountMenuOpen(false)}
                       >
-                        <HomeIcon
+                        <User
                           className="size-4 shrink-0 text-muted-foreground"
                           aria-hidden
                         />
-                        Home
+                        Profile
                       </Link>
-                    ) : null}
-                    <Link
-                      href={profileHref}
-                      role="menuitem"
-                      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                      onClick={() => setAccountMenuOpen(false)}
-                    >
-                      <User className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                      Profile
-                    </Link>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                      onClick={() => {
-                        setAccountMenuOpen(false);
-                        clearAuthSession();
-                        setAppUserSession(null);
-                        setPilotMarketingActive(false);
-                        setAdminMarketingActive(false);
-                        router.replace(
-                          isPilotDashboard || settingsFrom === "pilot"
-                            ? "/pilot-login"
-                            : isUserLogoutContext
-                              ? "/pilot-login?panel=user"
-                              : "/admin"
-                        );
-                      }}
-                    >
-                      <LogOut className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                      Logout
-                    </button>
+                      <div
+                        className="my-1 border-t border-border"
+                        role="separator"
+                        aria-hidden
+                      />
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={cn(accountMenuItemClassName, "text-left")}
+                        onClick={() => {
+                          setAccountMenuOpen(false);
+                          clearAuthSession();
+                          setAppUserSession(null);
+                          setPilotMarketingActive(false);
+                          setAdminMarketingActive(false);
+                          router.replace(
+                            isPilotDashboard || settingsFrom === "pilot"
+                              ? "/pilot-login"
+                              : isUserLogoutContext
+                                ? "/pilot-login?panel=user"
+                                : "/admin"
+                          );
+                        }}
+                      >
+                        <LogOut
+                          className="size-4 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
+                        Logout
+                      </button>
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -888,9 +1021,29 @@ export function LandingHeader() {
                 </Link>
               </>
             ) : null}
-            {showAccountMenu && !isAdminDashboard ? (
+            {showAccountMenu ? (
               <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-3">
-                {isUserLogoutContext || isPilotLogoutContext ? (
+                {accountMenuIdentity ? (
+                  <div className="mb-2 flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
+                    <span
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12 text-sm font-semibold text-[#008B8B]"
+                      aria-hidden
+                    >
+                      {accountMenuInitial}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900">
+                        {accountMenuIdentity.displayName}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {accountMenuIdentity.accountLabel}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+                {isUserLogoutContext ||
+                isPilotLogoutContext ||
+                isAdminLogoutContext ? (
                   <Link
                     href="/"
                     className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"

@@ -10,6 +10,7 @@ import {
   MapPinned,
   Menu,
   Plus,
+  Rocket,
   Settings,
   UserRound,
   X,
@@ -20,6 +21,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-nav-context";
 import { clearAuthSession } from "@/lib/auth-session-browser";
 import { jwtPayloadRole } from "@/lib/pilot-display-name";
+import {
+  ADMIN_DASH_AVATAR_RING,
+  ADMIN_DASH_PANEL_BORDER,
+} from "@/lib/admin-dashboard-styles";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { USER_PROFILE_UPDATED_EVENT } from "@/lib/user-profile-storage";
 import { getUserDisplayName } from "@/lib/user-session-browser";
@@ -123,6 +128,81 @@ function LogoutControl({ onAfterClick }: { onAfterClick?: () => void }) {
       <LogOut className="size-5 shrink-0" aria-hidden />
       Logout
     </button>
+  );
+}
+
+function userDisplayInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "U";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
+}
+
+function UserDashboardHero({
+  pageTitle,
+  userWelcome,
+}: {
+  pageTitle: string;
+  userWelcome: string | null;
+}) {
+  return (
+    <header
+      className={cn(
+        "admin-dash-hero relative mb-8 hidden overflow-hidden rounded-2xl lg:block sm:mb-10",
+        ADMIN_DASH_PANEL_BORDER
+      )}
+    >
+      <div
+        className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-[#008B8B]/20 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -bottom-6 left-1/3 size-28 rounded-full bg-[#008B8B]/10 blur-2xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 opacity-[0.06] dark:opacity-[0.1]"
+        aria-hidden
+      >
+        <Rocket className="size-36 text-[#008B8B] sm:size-44" strokeWidth={1.1} />
+      </div>
+      <div className="relative p-5 sm:p-7">
+        <div className="min-w-0">
+          <div className="flex items-center gap-4 sm:gap-5">
+            <div
+              className={cn(
+                "flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[#008B8B]/25 bg-gradient-to-br from-[#008B8B]/20 to-[#008B8B]/5 text-sm font-bold tracking-tight text-[#008B8B] shadow-sm sm:size-14 sm:text-base",
+                ADMIN_DASH_AVATAR_RING
+              )}
+              aria-hidden
+            >
+              {userWelcome ? (
+                userDisplayInitials(userWelcome)
+              ) : (
+                <UserRound className="size-6 sm:size-7" strokeWidth={2.25} />
+              )}
+            </div>
+            <div className="min-w-0">
+              <h1 className={ADMIN_PAGE_TITLE_CLASS}>{pageTitle}</h1>
+              <span
+                className="mt-2.5 block h-1 w-10 rounded-full bg-gradient-to-r from-[#008B8B] to-[#008B8B]/40 sm:mt-3"
+                aria-hidden
+              />
+            </div>
+          </div>
+          {userWelcome ? (
+            <p className="mt-4 text-sm text-muted-foreground sm:mt-5 sm:text-base">
+              Welcome,{" "}
+              <span className="font-semibold text-foreground">{userWelcome}</span>
+            </p>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground sm:mt-5">
+              Submit mission requests and track deliveries at a glance.
+            </p>
+          )}
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -341,33 +421,10 @@ export function UserDashboardShell({
                   {isMainUserDashboard ? (
                     <>
                       <h1 className="sr-only lg:hidden">{pageTitle}</h1>
-                      <div className="mb-8 hidden lg:block sm:mb-10">
-                        <div className="flex items-center gap-4 sm:gap-5">
-                          <div
-                            className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#008B8B]/25 bg-[#008B8B]/10 shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06] sm:size-11"
-                            aria-hidden
-                          >
-                            <UserRound
-                              className="size-5 text-[#008B8B] sm:size-6"
-                              strokeWidth={2.25}
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <h1 className={ADMIN_PAGE_TITLE_CLASS}>
-                              {pageTitle}
-                            </h1>
-                            <span
-                              className="mt-2.5 block h-1 w-10 rounded-full bg-gradient-to-r from-[#008B8B] to-[#008B8B]/40 sm:mt-3"
-                              aria-hidden
-                            />
-                          </div>
-                        </div>
-                        {userWelcome ? (
-                          <h2 className="mt-5 text-xl font-bold text-foreground sm:mt-6">
-                            Welcome, {userWelcome}
-                          </h2>
-                        ) : null}
-                      </div>
+                      <UserDashboardHero
+                        pageTitle={pageTitle}
+                        userWelcome={userWelcome}
+                      />
                     </>
                   ) : (
                     <h1 className="sr-only">{pageTitle}</h1>

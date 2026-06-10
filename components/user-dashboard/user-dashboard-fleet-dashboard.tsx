@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
+import { ADMIN_DASH_LIGHT_BOX_BORDER } from "@/lib/admin-dashboard-styles";
 
 import {
   appendUserRequest,
@@ -32,7 +33,6 @@ import {
 } from "@/lib/user-requests";
 import { apiUrl } from "@/lib/api-url";
 import {
-  USER_DASH_BORDER_COLOR,
   USER_DASH_CHIP,
   USER_DASH_CHIP_CHECKED,
   USER_DASH_DIVIDER_BORDER,
@@ -344,8 +344,8 @@ export function UserDashboardFleetDashboard({
         <div className="col-span-12 flex flex-col gap-6 lg:col-span-5">
           <section
             className={cn(
-              "flex h-full flex-col overflow-hidden rounded-xl bg-card",
-              USER_DASH_BORDER_COLOR,
+              "flex h-full flex-col overflow-hidden rounded-xl border bg-card",
+              ADMIN_DASH_LIGHT_BOX_BORDER,
               "shadow-[0_1px_3px_rgba(15,23,42,0.06)] dark:shadow-none"
             )}
           >
