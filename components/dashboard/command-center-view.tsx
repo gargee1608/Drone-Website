@@ -1,6 +1,14 @@
 "use client";
 
-import { ClipboardList, Plane, User, UserCheck, Users, X } from "lucide-react";
+import {
+  Activity,
+  ClipboardList,
+  Plane,
+  User,
+  UserCheck,
+  Users,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -10,6 +18,7 @@ import { PROFILE_INFO_POPUP_SHELL_CLASS } from "@/lib/profile-popup-styles";
 import { type PilotRegCard } from "@/lib/admin-pilot-registration-storage";
 import {
   ADMIN_DASH_AVATAR_RING,
+  ADMIN_DASH_PANEL_BORDER,
   ADMIN_DASH_STAT_CARD_SURFACE,
 } from "@/lib/admin-dashboard-styles";
 import {
@@ -259,49 +268,40 @@ export function DashboardHomeContent() {
 
   return (
     <>
-      <h1 className="sr-only lg:hidden">Admin Dashboard</h1>
-      <h1
-        className={cn(
-          ADMIN_PAGE_TITLE_CLASS,
-          "mb-4 mt-8 hidden lg:block sm:mb-5"
-        )}
-      >
-        Admin Dashboard
-      </h1>
-      {adminWelcome ? (
-        <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
-          Welcome, {adminWelcome}
-        </h2>
-      ) : null}
+      <AdminDashboardHero adminWelcome={adminWelcome} />
 
-      <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           title="Total Pilots"
           value={dbTotalPilots.toLocaleString()}
           icon={Users}
           iconClassName="text-[#008B8B]"
-          iconBg="bg-[#008B8B]/5"
+          iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
+          accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
         />
         <KpiCard
           title="Total Drones"
           value={dbTotalDrones.toLocaleString()}
           icon={Plane}
           iconClassName="text-[#008B8B]"
-          iconBg="bg-[#008B8B]/5"
+          iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
+          accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
         />
         <KpiCard
           title="Pilot registration pending"
           value={String(pendingPilots.length)}
           icon={ClipboardList}
           iconClassName="text-[#ba1a1a]"
-          iconBg="bg-[#ffdad6]/80 dark:bg-red-950/50"
+          iconBg="bg-gradient-to-br from-[#ffdad6] to-[#ffdad6]/40 dark:from-red-950/60 dark:to-red-950/30"
+          accentClass="bg-gradient-to-r from-[#ba1a1a] to-[#e53935]"
         />
         <KpiCard
           title="Registered pilots"
           value={registeredTotalDisplay}
           icon={UserCheck}
           iconClassName="text-green-700 dark:text-green-400"
-          iconBg="bg-green-100 dark:bg-green-950/40"
+          iconBg="bg-gradient-to-br from-green-100 to-green-50 dark:from-green-950/50 dark:to-green-950/20"
+          accentClass="bg-gradient-to-r from-green-600 to-emerald-400"
         />
       </section>
 
@@ -318,36 +318,107 @@ export function CommandCenterView() {
   return <DashboardHomeContent />;
 }
 
+function AdminDashboardHero({
+  adminWelcome,
+}: {
+  adminWelcome: string | null;
+}) {
+  return (
+    <header
+      className={cn(
+        "admin-dash-hero relative mt-6 overflow-hidden rounded-2xl sm:mt-8",
+        ADMIN_DASH_PANEL_BORDER
+      )}
+    >
+      <div
+        className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-[#008B8B]/20 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -bottom-6 left-1/3 size-28 rounded-full bg-[#008B8B]/10 blur-2xl"
+        aria-hidden
+      />
+      <div className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+        <div className="min-w-0">
+          <h1 className={ADMIN_PAGE_TITLE_CLASS}>
+            Admin Dashboard
+          </h1>
+          {adminWelcome ? (
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+              Welcome back,{" "}
+              <span className="font-semibold text-foreground">
+                {adminWelcome}
+              </span>
+            </p>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Monitor pilots, drones, and registrations at a glance.
+            </p>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2.5 self-start rounded-xl border border-[#008B8B]/20 bg-[#008B8B]/8 px-4 py-2.5 sm:self-center">
+          <span className="relative flex size-2.5 shrink-0">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#008B8B]/40 opacity-75" />
+            <span className="relative inline-flex size-2.5 rounded-full bg-[#008B8B]" />
+          </span>
+          <Activity className="size-4 shrink-0 text-[#008B8B]" aria-hidden />
+          <span className="text-xs font-semibold text-[#006b6b] dark:text-[#5ec4c4]">
+            Live overview
+          </span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function pilotInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
+}
+
 function KpiCard({
   title,
   value,
   icon: Icon,
   iconClassName,
   iconBg,
+  accentClass,
 }: {
   title: string;
   value: string;
   icon: React.ComponentType<{ className?: string }>;
   iconClassName: string;
   iconBg: string;
+  accentClass: string;
 }) {
   return (
     <div
       className={cn(
-        "cc-glass-card flex items-center justify-between rounded-2xl p-5",
+        "admin-kpi-card group relative overflow-hidden cc-glass-card flex items-center justify-between rounded-2xl p-5 transition-all duration-300 hover:-translate-y-0.5",
         ADMIN_DASH_STAT_CARD_SURFACE
       )}
     >
-      <div>
-        <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+      <div
+        className={cn("absolute inset-x-0 top-0 h-1 opacity-90", accentClass)}
+        aria-hidden
+      />
+      <div className="min-w-0 pr-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           {title}
         </p>
-        <h2 className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+        <h2 className="mt-1.5 text-2xl font-bold tabular-nums tracking-tight text-foreground sm:text-[1.75rem]">
           {value}
         </h2>
       </div>
-      <div className={cn("rounded-xl p-2.5", iconBg)}>
-        <Icon className={cn("size-7", iconClassName)} aria-hidden />
+      <div
+        className={cn(
+          "shrink-0 rounded-xl p-3 ring-1 ring-black/[0.04] transition-transform duration-300 group-hover:scale-105 dark:ring-white/[0.06]",
+          iconBg
+        )}
+      >
+        <Icon className={cn("size-6 sm:size-7", iconClassName)} aria-hidden />
       </div>
     </div>
   );
@@ -370,53 +441,79 @@ function PendingRegistrationsSection({
   const list = pilotRegView === "pending" ? pendingPilots : approvedPilots;
 
   return (
-    <section id="pilot-registrations" className="scroll-mt-24 space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-xl font-bold text-foreground">
-            {pilotRegView === "approved"
-              ? "Registered Pilots"
-              : "Pending Pilot Registrations"}
-          </h3>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            size="sm"
-            aria-pressed={pilotRegView === "pending"}
-            className={cn(
-              "rounded-lg text-xs font-semibold",
-              pilotRegView === "pending"
-                ? "bg-[#008B8B] text-white shadow-lg shadow-[#008B8B]/20 hover:bg-[#006b6b]"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            )}
-            onClick={() => setPilotRegView("pending")}
+    <section
+      id="pilot-registrations"
+      className={cn(
+        "scroll-mt-24 overflow-hidden rounded-2xl bg-card",
+        ADMIN_DASH_PANEL_BORDER
+      )}
+    >
+      <div className="bg-muted/30 px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#008B8B]">
+              Pilot management
+            </p>
+            <h3 className="mt-1 text-lg font-bold tracking-tight text-foreground sm:text-xl">
+              {pilotRegView === "approved"
+                ? "Registered Pilots"
+                : "Pending Pilot Registrations"}
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {pilotRegView === "approved"
+                ? "Pilots with complete drone registration details."
+                : "Pilots awaiting drone details before full approval."}
+            </p>
+          </div>
+          <div
+            className="inline-flex shrink-0 gap-2 self-start sm:self-center"
+            role="tablist"
+            aria-label="Pilot registration view"
           >
-            Pending Pilots
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            aria-pressed={pilotRegView === "approved"}
-            className={cn(
-              "rounded-lg text-xs font-semibold",
-              pilotRegView === "approved"
-                ? "bg-[#008B8B] text-white shadow-lg shadow-[#008B8B]/20 hover:bg-[#006b6b]"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            )}
-            onClick={() => setPilotRegView("approved")}
-          >
-            Approved Pilots
-          </Button>
+            <Button
+              type="button"
+              size="sm"
+              role="tab"
+              aria-selected={pilotRegView === "pending"}
+              aria-pressed={pilotRegView === "pending"}
+              className={cn(
+                "h-8 rounded-lg px-3 text-xs font-semibold shadow-none",
+                pilotRegView === "pending"
+                  ? "bg-[#008B8B] text-white hover:bg-[#006b6b]"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+              )}
+              onClick={() => setPilotRegView("pending")}
+            >
+              Pending Pilots
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              role="tab"
+              aria-selected={pilotRegView === "approved"}
+              aria-pressed={pilotRegView === "approved"}
+              className={cn(
+                "h-8 rounded-lg px-3 text-xs font-semibold shadow-none",
+                pilotRegView === "approved"
+                  ? "bg-[#008B8B] text-white hover:bg-[#006b6b]"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+              )}
+              onClick={() => setPilotRegView("approved")}
+            >
+              Approved Pilots
+            </Button>
+          </div>
         </div>
       </div>
 
-      <PilotRegistrationsTable
-        variant={pilotRegView}
-        pilots={list}
-        onRejectPilot={onRejectPilot}
-        onViewProfile={(p) => setProfilePilot(p)}
-      />
+      <div className="p-4 sm:p-6">
+        <PilotRegistrationsTable
+          variant={pilotRegView}
+          pilots={list}
+          onRejectPilot={onRejectPilot}
+          onViewProfile={(p) => setProfilePilot(p)}
+        />
+      </div>
 
       <ApprovedPilotProfileModal
         pilot={profilePilot}
@@ -461,12 +558,14 @@ function pilotRegistrationStatusPill(variant: "pending" | "approved"): {
   if (variant === "pending") {
     return {
       label: "Review Pending",
-      className: "bg-amber-100 text-amber-800",
+      className:
+        "bg-amber-100 text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-800/50",
     };
   }
   return {
     label: "Approved Pilot",
-    className: "bg-green-100 text-green-800",
+    className:
+      "bg-green-100 text-green-800 ring-1 ring-green-200/80 dark:bg-green-950/40 dark:text-green-300 dark:ring-green-800/50",
   };
 }
 
@@ -484,20 +583,35 @@ function PilotRegistrationsTable({
   const isPending = variant === "pending";
   const detailColumns = isPending ? PENDING_TABLE_COLUMNS : APPROVED_TABLE_COLUMNS;
   const thBase =
-    "whitespace-nowrap px-5 py-4 text-left align-middle text-sm font-semibold text-slate-700";
+    "whitespace-nowrap px-4 py-3.5 text-left align-middle text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground sm:px-5 sm:py-4 sm:text-xs";
+  const thCenter =
+    "whitespace-nowrap px-4 py-3.5 text-center align-middle text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground sm:px-5 sm:py-4 sm:text-xs";
   const thActions =
-    "whitespace-nowrap px-5 py-4 text-right align-middle text-sm font-semibold text-slate-700";
+    "whitespace-nowrap px-4 py-3.5 text-right align-middle text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground sm:px-5 sm:py-4 sm:text-xs";
   const tdBase =
-    "min-w-0 px-5 py-4 align-middle text-left text-sm text-slate-600";
-  const tdActions = "min-w-0 px-5 py-4 align-middle text-right text-sm";
+    "min-w-0 px-4 py-3.5 align-middle text-left text-sm text-muted-foreground sm:px-5 sm:py-4";
+  const tdCenter =
+    "min-w-0 px-4 py-3.5 align-middle text-center text-sm text-muted-foreground sm:px-5 sm:py-4";
+  const tdActions = "min-w-0 px-4 py-3.5 align-middle text-right text-sm sm:px-5 sm:py-4";
 
   if (pilots.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-        <p className="text-sm font-medium text-slate-500">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-6 py-14 text-center">
+        <div
+          className={cn(
+            "mb-4 flex size-12 items-center justify-center rounded-full bg-[#008B8B]/10",
+            ADMIN_DASH_AVATAR_RING
+          )}
+        >
+          <Users className="size-5 text-[#008B8B]" aria-hidden />
+        </div>
+        <p className="text-sm font-semibold text-foreground">
+          {isPending ? "No pending registrations" : "No registered pilots yet"}
+        </p>
+        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
           {isPending
-            ? "No pending pilot registrations at this time."
-            : "No registered pilots at this time."}
+            ? "All pilot registrations are up to date."
+            : "Approved pilots will appear here once drone details are complete."}
         </p>
       </div>
     );
@@ -506,16 +620,20 @@ function PilotRegistrationsTable({
   const statusPill = pilotRegistrationStatusPill(variant);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-border/80 bg-card">
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
+            <tr className="border-b border-border bg-gradient-to-r from-[#008B8B]/8 via-muted/40 to-transparent dark:from-[#008B8B]/15">
               <th scope="col" className={thBase}>
                 Pilot Name
               </th>
               {detailColumns.map((col) => (
-                <th key={col} scope="col" className={thBase}>
+                <th
+                  key={col}
+                  scope="col"
+                  className={col === "Status" ? thCenter : thBase}
+                >
                   {col}
                 </th>
               ))}
@@ -524,27 +642,38 @@ function PilotRegistrationsTable({
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border/60">
             {pilots.map((p) => (
               <tr
                 key={p.id}
-                className="border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/60"
+                className="transition-colors hover:bg-[#008B8B]/[0.03] dark:hover:bg-[#008B8B]/10"
               >
                 <td className={tdBase}>
-                  <span
-                    className="block truncate font-medium text-slate-900"
-                    title={p.name}
-                  >
-                    {p.name}
-                  </span>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div
+                      className={cn(
+                        "flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#008B8B]/20 to-[#008B8B]/5 text-xs font-bold text-[#006b6b] dark:text-[#5ec4c4]",
+                        ADMIN_DASH_AVATAR_RING
+                      )}
+                      aria-hidden
+                    >
+                      {pilotInitials(p.name)}
+                    </div>
+                    <span
+                      className="block truncate font-medium text-foreground"
+                      title={p.name}
+                    >
+                      {p.name}
+                    </span>
+                  </div>
                 </td>
                 {detailColumns.map((col) => {
                   if (col === "Status") {
                     return (
-                      <td key={col} className={tdBase}>
+                      <td key={col} className={tdCenter}>
                         <span
                           className={cn(
-                            "inline-flex max-w-full items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium",
+                            "inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium",
                             statusPill.className
                           )}
                         >
@@ -575,7 +704,7 @@ function PilotRegistrationsTable({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-7 whitespace-nowrap rounded-lg border-[#008B8B] px-2.5 text-[10px] font-bold text-[#008B8B] hover:bg-[#008B8B] hover:text-white sm:px-3 sm:text-[11px]"
+                      className="h-8 whitespace-nowrap rounded-lg border-[#008B8B] bg-transparent px-3 text-[11px] font-bold text-[#008B8B] hover:border-[#008B8B] hover:bg-[#008B8B]/5 sm:text-xs"
                       onClick={() => onRejectPilot(p.id)}
                     >
                       Add Drone Details
@@ -585,7 +714,7 @@ function PilotRegistrationsTable({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-7 whitespace-nowrap rounded-lg border-[#008B8B] px-2.5 text-[10px] font-bold text-[#008B8B] hover:bg-[#008B8B] hover:text-white sm:px-3 sm:text-[11px]"
+                      className="h-8 whitespace-nowrap rounded-lg border-[#008B8B]/40 px-3 text-[11px] font-bold text-[#008B8B] hover:border-[#008B8B] hover:bg-[#008B8B]/5 sm:text-xs"
                       onClick={() => onViewProfile(p)}
                     >
                       View Profile

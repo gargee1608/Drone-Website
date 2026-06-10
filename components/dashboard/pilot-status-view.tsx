@@ -709,9 +709,7 @@ export function PilotStatusView({
             {filteredRows.length === 1 ? "" : "s"}
           </p>
           <label className="relative w-full max-w-[9.5rem] sm:w-auto">
-            <span className="sr-only" htmlFor="pilot-status-filter">
-              Duty status
-            </span>
+            <span className="sr-only">Duty status</span>
             <select
               id="pilot-status-filter"
               value={filter}
