@@ -1,4 +1,5 @@
 import { apiUrl } from "@/lib/api-url";
+import { notifyMissionsDbUpdated } from "@/lib/user-requests";
 
 export const PILOT_MISSION_COMMENTS_KEY = "aerolaminar_pilot_mission_comments_v1";
 export const PILOT_MISSION_COMMENT_SAVED_EVENT =
@@ -197,6 +198,7 @@ async function syncPilotMissionCommentToBackend(
     });
     if (!response.ok) return false;
     notifyPilotMissionCommentSaved();
+    notifyMissionsDbUpdated();
     return true;
   } catch {
     return false;

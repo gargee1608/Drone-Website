@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CheckCircle2,
   ClipboardList,
   Clock,
   Download,
@@ -34,20 +35,67 @@ import {
   ADMIN_PAGE_TOP_PADDING_CLASS,
 } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
+import { updateUserMissionTrackingStatusToCompleted } from "@/lib/user-mission-tracking";
 import {
   buildRequestOwnerLookup,
   findStoredUserRequestByAdminRef,
   isUserRequestCompletedDelivery,
   MISSIONS_DB_UPDATED_EVENT,
+  MISSIONS_DB_BROADCAST_CHANNEL,
   normalizeUserMissionAdminStatus,
   notifyMissionsDbUpdated,
   type RequestOwnerInfo,
   resolveRequestOwnerDisplay,
+  updateUserRequestAdminStatus,
   USER_REQUESTS_UPDATED_EVENT,
   type UserRequestAdminRow,
 } from "@/lib/user-requests";
 
 const COMPLETED_MISSION_PREVIEW_KEY = "aerolaminar_completed_mission_preview_v1";
+const ADMIN_CONFIRMED_DELIVERIES_KEY =
+  "aerolaminar_admin_confirmed_deliveries_v1";
+const ADMIN_CONFIRMED_DELIVERIES_EVENT =
+  "aerolaminar-admin-confirmed-deliveries";
+
+function canonicalAdminDeliveryRef(ref: string): string {
+  const trimmed = ref.trim();
+  const stored = trimmed ? findStoredUserRequestByAdminRef(trimmed) : undefined;
+  return (stored?.backendRequestId || stored?.id || trimmed).trim().toLowerCase();
+}
+
+function loadAdminConfirmedDeliveryRefs(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(ADMIN_CONFIRMED_DELIVERIES_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(
+      parsed
+        .filter((entry): entry is string => typeof entry === "string")
+        .map((entry) => entry.trim().toLowerCase())
+        .filter(Boolean)
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function saveAdminConfirmedDeliveryRef(requestRef: string): void {
+  if (typeof window === "undefined") return;
+  const key = canonicalAdminDeliveryRef(requestRef);
+  if (!key) return;
+  const next = loadAdminConfirmedDeliveryRefs();
+  next.add(key);
+  localStorage.setItem(ADMIN_CONFIRMED_DELIVERIES_KEY, JSON.stringify([...next]));
+  window.dispatchEvent(new Event(ADMIN_CONFIRMED_DELIVERIES_EVENT));
+}
+
+function isAdminConfirmedDelivery(
+  requestRef: string,
+  confirmedRefs: Set<string>
+): boolean {
+  return confirmedRefs.has(canonicalAdminDeliveryRef(requestRef));
+}
 
 function resolveDeliveryCommentDisplay(
   row: DeliveryRow,
@@ -58,6 +106,22 @@ function resolveDeliveryCommentDisplay(
   const fromDb = pilotMissionCommentForDisplay(dbComment);
   if (fromDb) return fromDb;
   return pilotMissionCommentForDisplay(loadPilotMissionCommentText(row.missionId));
+}
+
+function normalizeDeliveryStatus(status: string): string {
+  return status.trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+function isDeliveryRowCompleted(row: DeliveryRow): boolean {
+  return normalizeDeliveryStatus(row.status) === "completed";
+}
+
+function deliveryFieldValue(value: string): string {
+  return value === "—" ? "" : value.trim();
+}
+
+function deliveryRowMarkKey(row: DeliveryRow): string {
+  return `${row.id || row.rowCtid || row.missionId}::${row.missionId}`;
 }
 
 type DeliveryRow = {
@@ -221,6 +285,7 @@ function dedupeDeliveryRows(rows: DeliveryRow[]): DeliveryRow[] {
       row.id,
       row.rowCtid,
       row.pilotSub,
+      row.pilotComment,
     ].filter((v) => v && v !== "—").length;
 
   const out: DeliveryRow[] = [];
@@ -252,6 +317,12 @@ function dedupeDeliveryRows(rows: DeliveryRow[]): DeliveryRow[] {
     const nextScore = completenessScore(row);
 
     if (nextScore > prevScore || nextTime > prevTime) {
+      bySignature.set(key, row);
+    } else if (
+      nextScore === prevScore &&
+      nextTime === prevTime &&
+      row.pilotComment.trim().length > prev.pilotComment.trim().length
+    ) {
       bySignature.set(key, row);
     }
   }
@@ -344,6 +415,35 @@ export function CompletedDeliveriesView({
   const [commentsDisplayVers, setCommentsDisplayVers] = useState(0);
   const [commentSaving, setCommentSaving] = useState(false);
   const [commentSaveError, setCommentSaveError] = useState<string | null>(null);
+  const [markingCompleteKey, setMarkingCompleteKey] = useState<string | null>(
+    null
+  );
+  const [adminConfirmedVers, setAdminConfirmedVers] = useState(0);
+
+  const adminConfirmedRefs = useMemo(() => {
+    void adminConfirmedVers;
+    return loadAdminConfirmedDeliveryRefs();
+  }, [adminConfirmedVers]);
+
+  useEffect(() => {
+    if (pilotScoped) return;
+    const bump = () => setAdminConfirmedVers((v) => v + 1);
+    window.addEventListener(ADMIN_CONFIRMED_DELIVERIES_EVENT, bump);
+    return () => {
+      window.removeEventListener(ADMIN_CONFIRMED_DELIVERIES_EVENT, bump);
+    };
+  }, [pilotScoped]);
+
+  useEffect(() => {
+    if (pilotScoped) return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        setRefreshTick((n) => n + 1);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [pilotScoped]);
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -377,9 +477,14 @@ export function CompletedDeliveriesView({
               )
             : apiUrl("/api/missions");
 
-        const [missionsRes, requestsRes] = await Promise.all([
+        const [missionsRes, requestsRes, activeRes] = await Promise.all([
           fetch(missionsEndpoint, { cache: "no-store" }),
           fetch(apiUrl("/api/requests"), { cache: "no-store" }),
+          !pilotScoped
+            ? fetch(apiUrl("/api/missions/active-assignments"), {
+                cache: "no-store",
+              })
+            : Promise.resolve(null),
         ]);
 
         if (!missionsRes.ok) {
@@ -414,11 +519,32 @@ export function CompletedDeliveriesView({
               !isProjectRequirementRequest(String(row.request_ref ?? ""))
           )
           .map((row, i) => mapBackendMissionToDeliveryRow(row, i, ownerLookup));
+
+        let activeWithComments: DeliveryRow[] = [];
+        if (!pilotScoped && activeRes?.ok) {
+          const activePayload: unknown = await activeRes.json();
+          const activeList = Array.isArray(
+            (activePayload as { data?: unknown[] })?.data
+          )
+            ? ((activePayload as { data?: unknown[] }).data as BackendMissionRow[])
+            : [];
+          activeWithComments = activeList
+            .filter(
+              (row) =>
+                !isProjectRequirementRequest(String(row.request_ref ?? "")) &&
+                String(row.pilot_comment ?? "").trim().length > 0
+            )
+            .map((row, i) =>
+              mapBackendMissionToDeliveryRow(row, i + list.length, ownerLookup)
+            );
+        }
+
         setRows((prev) => {
           const optimisticRows = prev.filter((row) => !row.id && !row.rowCtid);
           return dedupeDeliveryRows([
             ...(preview ? [preview] : []),
             ...apiRows,
+            ...activeWithComments,
             ...optimisticRows,
           ]);
         });
@@ -530,9 +656,19 @@ export function CompletedDeliveriesView({
     const bump = () => setRefreshTick((n) => n + 1);
     window.addEventListener(USER_REQUESTS_UPDATED_EVENT, bump);
     window.addEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
+    window.addEventListener(PILOT_MISSION_COMMENT_SAVED_EVENT, bump);
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel(MISSIONS_DB_BROADCAST_CHANNEL);
+      bc.onmessage = bump;
+    } catch {
+      /* BroadcastChannel unavailable */
+    }
     return () => {
       window.removeEventListener(USER_REQUESTS_UPDATED_EVENT, bump);
       window.removeEventListener(MISSIONS_DB_UPDATED_EVENT, bump);
+      window.removeEventListener(PILOT_MISSION_COMMENT_SAVED_EVENT, bump);
+      bc?.close();
     };
   }, []);
 
@@ -586,6 +722,15 @@ export function CompletedDeliveriesView({
       setCommentSaveError("Could not save comment. Please try again.");
       return;
     }
+    const savedText = commentDraft.trim();
+    const savedRowKey = deliveryRowMarkKey(commentsForRow);
+    setRows((prev) =>
+      prev.map((row) =>
+        deliveryRowMarkKey(row) === savedRowKey
+          ? { ...row, pilotComment: savedText }
+          : row
+      )
+    );
     setCommentsForRow(null);
     setCommentsDisplayVers((v) => v + 1);
     setRefreshTick((n) => n + 1);
@@ -783,6 +928,75 @@ export function CompletedDeliveriesView({
     }
   }
 
+  async function markDeliveryAsCompleted(row: DeliveryRow) {
+    if (!row.id && !row.rowCtid) {
+      alert(
+        "This delivery cannot be marked completed because it is not linked to a database row."
+      );
+      return;
+    }
+    const ok = window.confirm(
+      `Complete mission "${row.missionId}"? This will mark the delivery as completed.`
+    );
+    if (!ok) return;
+
+    const markKey = deliveryRowMarkKey(row);
+    const alreadyDbCompleted = isDeliveryRowCompleted(row);
+    setMarkingCompleteKey(markKey);
+    try {
+      if (!alreadyDbCompleted) {
+        const response = await fetch(apiUrl("/api/missions"), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: row.id,
+            rowCtid: row.rowCtid,
+            requestRef: row.missionId,
+            customer: deliveryFieldValue(row.customer),
+            service: deliveryFieldValue(row.service),
+            dropoff: deliveryFieldValue(row.dropoff),
+            pilotName: deliveryFieldValue(row.pilot),
+            droneModel: deliveryFieldValue(row.droneUnit),
+            userName: deliveryFieldValue(row.userName),
+            userEmail: deliveryFieldValue(row.userEmail),
+            assignedAt: row.assignedAt || undefined,
+            completedAt: new Date().toISOString(),
+            status: "completed",
+          }),
+        });
+        if (!response.ok) {
+          throw new Error("Could not mark delivery as completed.");
+        }
+
+        updateUserRequestAdminStatus(row.missionId, "completed");
+        updateUserMissionTrackingStatusToCompleted(row.missionId);
+
+        const numericId = String(row.missionId).replace(/^#/, "");
+        if (/^\d+$/.test(numericId)) {
+          void fetch(apiUrl(`/api/requests/${encodeURIComponent(numericId)}`), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ admin_status: "completed" }),
+          });
+        }
+
+        setRefreshTick((n) => n + 1);
+        notifyMissionsDbUpdated();
+      }
+
+      saveAdminConfirmedDeliveryRef(row.missionId);
+      setAdminConfirmedVers((v) => v + 1);
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Could not mark delivery as completed."
+      );
+    } finally {
+      setMarkingCompleteKey(null);
+    }
+  }
+
   return (
     <section
       className={cn(
@@ -857,14 +1071,29 @@ export function CompletedDeliveriesView({
               pilotScoped
             );
 
+            const rowCompleted = isDeliveryRowCompleted(row);
+            const adminConfirmed =
+              !pilotScoped &&
+              isAdminConfirmedDelivery(row.missionId, adminConfirmedRefs);
+
             return (
               <CompletedDeliveryDetailCard
-                key={`${row.missionId}-${row.completedAt}-${commentsDisplayVers}`}
+                key={`${row.missionId}-${row.completedAt}-${commentsDisplayVers}-${adminConfirmedVers}`}
                 row={row}
                 pilotScoped={pilotScoped}
+                isAdminConfirmed={adminConfirmed}
+                isDbCompleted={rowCompleted}
                 savedCommentDisplay={savedCommentDisplay}
+                markingComplete={
+                  markingCompleteKey === deliveryRowMarkKey(row)
+                }
                 onOpenComments={
                   pilotScoped ? () => openCommentsDialog(row) : undefined
+                }
+                onMarkCompleted={
+                  !pilotScoped
+                    ? () => void markDeliveryAsCompleted(row)
+                    : undefined
                 }
                 onEdit={() => openDeliveryEdit(row)}
                 onDelete={() => void deleteDelivery(row)}
@@ -1104,15 +1333,23 @@ function InlineDeliveryField({ label, value }: { label: string; value: string })
 function CompletedDeliveryDetailCard({
   row,
   pilotScoped,
+  isAdminConfirmed,
+  isDbCompleted,
   savedCommentDisplay,
+  markingComplete,
   onOpenComments,
+  onMarkCompleted,
   onEdit,
   onDelete,
 }: {
   row: DeliveryRow;
   pilotScoped: boolean;
+  isAdminConfirmed: boolean;
+  isDbCompleted: boolean;
   savedCommentDisplay?: string;
+  markingComplete?: boolean;
   onOpenComments?: () => void;
+  onMarkCompleted?: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -1125,7 +1362,7 @@ function CompletedDeliveryDetailCard({
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Completed delivery
+            {isAdminConfirmed ? "Completed delivery" : "Assigned delivery"}
           </p>
           <h2 className="mt-1 truncate text-sm font-semibold text-foreground">{title}</h2>
           {hasUserLine ? (
@@ -1168,6 +1405,31 @@ function CompletedDeliveryDetailCard({
                 <Trash2 className="size-3.5 shrink-0" aria-hidden />
                 Delete
               </button>
+              {onMarkCompleted ? (
+                <button
+                  type="button"
+                  onClick={onMarkCompleted}
+                  disabled={isAdminConfirmed || markingComplete}
+                  title={
+                    isAdminConfirmed
+                      ? "You confirmed this mission as completed"
+                      : undefined
+                  }
+                  className={cn(
+                    "inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition disabled:opacity-50",
+                    isAdminConfirmed
+                      ? "border-sky-300 bg-sky-50 text-sky-700"
+                      : "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700"
+                  )}
+                >
+                  <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+                  {isAdminConfirmed
+                    ? "Mission completed"
+                    : markingComplete
+                      ? "Completing…"
+                      : "Completed Mission"}
+                </button>
+              ) : null}
             </>
           ) : null}
         </div>
@@ -1183,7 +1445,16 @@ function CompletedDeliveryDetailCard({
         <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
           <InlineDeliveryField label="Pilot" value={row.pilot} />
           <InlineDeliveryField label="Assigned at" value={formatDateTime(row.assignedAt)} />
-          <InlineDeliveryField label="Completed at" value={formatDateTime(row.completedAt)} />
+          <InlineDeliveryField
+            label="Completed at"
+            value={
+              isAdminConfirmed
+                ? formatDateTime(row.completedAt)
+                : isDbCompleted
+                  ? "Pending admin confirmation"
+                  : "—"
+            }
+          />
           <InlineDeliveryField
             label="Destination"
             value={row.dropoff !== "—" ? row.dropoff : "Destination TBD"}

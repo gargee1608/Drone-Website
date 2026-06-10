@@ -372,6 +372,37 @@ router.get("/completed-deliveries-count", async (req, res) => {
   }
 });
 
+/** Active assignments (admin: all pilots; optional `pilotSub` filter). */
+router.get("/active-assignments", async (req, res) => {
+  try {
+    await ensureMissionColumns();
+    const pilotSub = toTrimmed(req.query?.pilotSub);
+    const result = pilotSub
+      ? await pool.query(
+          `SELECT ctid::text AS row_ctid, *
+           FROM missions
+           WHERE TRIM(COALESCE(pilot_sub, '')) = $1
+             AND LOWER(TRIM(COALESCE(status, ''))) = ANY($2::text[])
+           ORDER BY assigned_at DESC NULLS LAST, id DESC`,
+          [pilotSub, ACTIVE_ASSIGNMENT_STATUSES]
+        )
+      : await pool.query(
+          `SELECT ctid::text AS row_ctid, *
+           FROM missions
+           WHERE LOWER(TRIM(COALESCE(status, ''))) = ANY($1::text[])
+           ORDER BY assigned_at DESC NULLS LAST, id DESC`,
+          [ACTIVE_ASSIGNMENT_STATUSES]
+        );
+    const enriched = await enrichMissionUserFields(result.rows);
+    return res
+      .status(200)
+      .json({ success: true, data: enriched.map(jsonSafeMissionRow) });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 /** Active hub / roster assignments for a pilot (not yet completed). */
 router.get("/pending-assignments", async (req, res) => {
   try {
@@ -560,6 +591,11 @@ router.put("/", async (req, res) => {
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: "Mission not found" });
+    }
+
+    const finalStatus = status || "completed";
+    if (finalStatus === "completed") {
+      await syncRequestAdminStatusCompleted(requestRef);
     }
 
     return res.status(200).json({
