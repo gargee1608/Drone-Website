@@ -211,7 +211,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           sidebarExpanded ? "lg:ml-64" : "lg:ml-0"
         )}
       >
-        <div className="flex flex-1 flex-col space-y-10 bg-background px-3 pb-2 pt-0 sm:px-5 sm:pb-2">
+        <div className="flex flex-1 flex-col space-y-8 bg-background px-3 pb-2 pt-0 sm:space-y-10 sm:px-5 sm:pb-2">
           {children}
         </div>
       </main>

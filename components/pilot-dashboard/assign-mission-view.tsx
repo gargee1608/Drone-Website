@@ -358,7 +358,10 @@ export function AssignMissionView() {
       const mapped = data
         .map((r: Record<string, unknown>) => dbMissionRowToNotification(r))
         .filter((x: PilotMissionNotification | null): x is PilotMissionNotification => x != null)
-        .filter((row) => !isProjectRequirementRequest(row.requestRef));
+        .filter(
+          (row: PilotMissionNotification) =>
+            !isProjectRequirementRequest(row.requestRef)
+        );
       setApiRows(mapped);
     } finally {
       setLoading(false);
