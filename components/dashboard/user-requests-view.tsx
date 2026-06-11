@@ -23,6 +23,11 @@ import {
 import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
 import { UserRequestTable } from "@/components/dashboard/user-request-table";
 import {
+  ADMIN_URGENCY_BADGE_CRITICAL,
+  ADMIN_URGENCY_BADGE_NORMAL,
+  ADMIN_URGENCY_BADGE_ROUTINE,
+} from "@/lib/admin-dashboard-styles";
+import {
   ADMIN_PAGE_TITLE_CLASS,
   ADMIN_PAGE_TOP_PADDING_CLASS,
 } from "@/lib/page-heading";
@@ -126,8 +131,7 @@ function staticRequestToAdminRow(
       key: `demo-${r.title}`,
       title: r.title,
       badge: "CRITICAL",
-      badgeClass:
-        "bg-[#ffdad6] text-[#93000a] dark:bg-red-950/50 dark:text-red-200",
+      badgeClass: ADMIN_URGENCY_BADGE_CRITICAL,
       barColor: "#ba1a1a",
       desc,
       adminStatus,
@@ -138,8 +142,7 @@ function staticRequestToAdminRow(
       key: `demo-${r.title}`,
       title: r.title,
       badge: "NORMAL",
-      badgeClass:
-        "bg-[#cde5ff] text-[#001d32] dark:bg-blue-950/50 dark:text-blue-200",
+      badgeClass: ADMIN_URGENCY_BADGE_NORMAL,
       barColor: "#006195",
       desc,
       adminStatus,
@@ -149,8 +152,7 @@ function staticRequestToAdminRow(
     key: `demo-${r.title}`,
     title: r.title,
     badge: "ROUTINE",
-    badgeClass:
-      "bg-[#008B8B]/14 text-[#0a3030] dark:bg-[#008B8B]/25 dark:text-teal-100",
+    badgeClass: ADMIN_URGENCY_BADGE_ROUTINE,
     barColor: "#008B8B",
     desc,
     adminStatus,

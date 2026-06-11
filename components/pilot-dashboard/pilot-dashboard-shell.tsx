@@ -103,24 +103,10 @@ function PilotDashboardHero({
   return (
     <header
       className={cn(
-        "admin-dash-hero relative mb-8 hidden overflow-hidden rounded-2xl lg:block sm:mb-10",
+        "relative mb-8 hidden overflow-hidden rounded-2xl bg-white dark:bg-black lg:block sm:mb-10",
         ADMIN_DASH_PANEL_BORDER
       )}
     >
-      <div
-        className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-[#008B8B]/20 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-6 left-1/3 size-28 rounded-full bg-[#008B8B]/10 blur-2xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 opacity-[0.06] dark:opacity-[0.1]"
-        aria-hidden
-      >
-        <Plane className="size-36 text-[#008B8B] sm:size-44" strokeWidth={1.1} />
-      </div>
       <div className="relative p-5 sm:p-7">
         <div className="min-w-0">
           <div className="flex items-center gap-4 sm:gap-5">

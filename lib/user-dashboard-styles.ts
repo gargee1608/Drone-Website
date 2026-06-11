@@ -32,7 +32,7 @@ export const USER_DASH_TABLE_ROW_DIVIDE =
 
 /** Table header background — soft, no heavy contrast. */
 export const USER_DASH_TABLE_HEAD =
-  "bg-neutral-50/90 dark:bg-white/[0.04]";
+  "bg-white dark:bg-black";
 
 /** Standard user-dashboard data table. */
 export const USER_DASH_TABLE =

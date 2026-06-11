@@ -374,11 +374,11 @@ export function CompletedProjectsView({
 
       <section className="space-y-4">
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-muted-foreground shadow-sm">
+          <div className="rounded-xl border border-border bg-card dark:bg-black p-6 text-center text-sm text-muted-foreground shadow-sm">
             Loading completed projects...
           </div>
         ) : rows.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-muted-foreground shadow-sm">
+          <div className="rounded-xl border border-border bg-card dark:bg-black p-6 text-center text-sm text-muted-foreground shadow-sm">
             No completed projects yet.
           </div>
         ) : (
@@ -441,8 +441,8 @@ function CompletedProjectDetailCard({
   const status = projectStatusLabel(row);
 
   return (
-    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+    <section className="overflow-hidden rounded-xl border border-border bg-card dark:bg-black shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-white dark:bg-black px-4 py-3">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             Completed project

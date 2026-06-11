@@ -14,6 +14,11 @@ import { useEffect, useState } from "react";
 
 import { COMPLETED_ASSIGNMENTS_UPDATED_EVENT } from "@/lib/completed-assignments";
 import {
+  ADMIN_DASH_TABLE_BODY_ROW,
+  ADMIN_DASH_TABLE_HEAD_ROW,
+  ADMIN_DASH_TABLE_SHELL,
+} from "@/lib/admin-dashboard-styles";
+import {
   loadUserRequests,
   MISSIONS_DB_UPDATED_EVENT,
   type UserRequestAdminRow,
@@ -193,25 +198,25 @@ function displayFromMissionDb(raw: string): {
   if (s === "completed") {
     return {
       label: "Completed",
-      pillClassName: "bg-green-100 text-green-800",
+      pillClassName: "text-black dark:text-white",
     };
   }
   if (s === "in_progress" || s === "assigned" || s === "active") {
     return {
       label: "In process",
-      pillClassName: "bg-amber-100 text-amber-800",
+      pillClassName: "text-black dark:text-white",
     };
   }
   if (s === "pending") {
     return {
       label: "Pending Request",
-      pillClassName: "bg-amber-100 text-amber-800",
+      pillClassName: "text-black dark:text-white",
     };
   }
   if (s === "rejected" || s === "cancelled" || s === "canceled") {
     return {
       label: "Rejected",
-      pillClassName: "bg-red-100 text-red-800",
+      pillClassName: "text-black dark:text-white",
     };
   }
   return null;
@@ -229,13 +234,13 @@ function statusDisplayForAdminRow(m: UserRequestAdminRow): {
     if (fromMission) return fromMission;
     return {
       label: missionRaw,
-      pillClassName: "bg-slate-100 text-slate-700",
+      pillClassName: "text-black dark:text-white",
     };
   }
 
   return {
     label: "Pending Request",
-    pillClassName: "bg-amber-100 text-amber-800",
+    pillClassName: "text-black dark:text-white",
   };
 }
 
@@ -291,22 +296,22 @@ export function UserRequestTable({
 
   const thBase = compactTableText
     ? "whitespace-nowrap px-5 py-4 text-left align-middle text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]"
-    : "whitespace-nowrap px-5 py-4 text-left align-middle text-sm font-semibold text-slate-700";
+    : "whitespace-nowrap px-5 py-4 text-left align-middle text-sm font-semibold text-slate-700 dark:text-muted-foreground";
   const thActions = compactTableText
     ? "whitespace-nowrap px-5 py-4 text-center align-middle text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]"
-    : "whitespace-nowrap px-5 py-4 text-center align-middle text-sm font-semibold text-slate-700";
+    : "whitespace-nowrap px-5 py-4 text-center align-middle text-sm font-semibold text-slate-700 dark:text-muted-foreground";
   const thCenter = compactTableText
     ? "whitespace-nowrap px-5 py-4 text-center align-middle text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]"
-    : "whitespace-nowrap px-5 py-4 text-center align-middle text-sm font-semibold text-slate-700";
+    : "whitespace-nowrap px-5 py-4 text-center align-middle text-sm font-semibold text-slate-700 dark:text-muted-foreground";
   const tdBase = compactTableText
     ? cn("min-w-0 px-5 py-4 align-middle text-left", ADMIN_TABLE_TEXT)
-    : "min-w-0 px-5 py-4 align-middle text-left text-sm text-slate-600";
+    : "min-w-0 px-5 py-4 align-middle text-left text-sm text-slate-600 dark:text-muted-foreground";
   const tdActions = compactTableText
     ? cn("min-w-0 px-5 py-4 align-middle text-center", ADMIN_TABLE_TEXT)
     : "min-w-0 px-5 py-4 align-middle text-center text-sm";
   const tdCenter = compactTableText
     ? cn("min-w-0 px-5 py-4 align-middle text-center", ADMIN_TABLE_TEXT)
-    : "min-w-0 px-5 py-4 align-middle text-center text-sm text-slate-600";
+    : "min-w-0 px-5 py-4 align-middle text-center text-sm text-slate-600 dark:text-muted-foreground";
 
   return (
     <div
@@ -339,7 +344,7 @@ export function UserRequestTable({
       ) : null}
       <div
         className={cn(
-          "overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm",
+          ADMIN_DASH_TABLE_SHELL,
           isPilot || isProject ? "overflow-x-auto" : ""
         )}
       >
@@ -380,7 +385,7 @@ export function UserRequestTable({
             </colgroup>
           )}
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
+            <tr className={ADMIN_DASH_TABLE_HEAD_ROW}>
               {isPilot ? (
                 <>
                   <th scope="col" className={thBase}>
@@ -466,20 +471,20 @@ export function UserRequestTable({
                   <tr
                     key={m.key}
                     className={cn(
-                      "border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/60",
+                      ADMIN_DASH_TABLE_BODY_ROW,
                       highlightRow && "bg-[#008B8B]/8 hover:bg-[#008B8B]/12"
                     )}
                   >
                     <td className={tdBase}>
                       <span
-                        className="inline-block max-w-full font-mono text-sm font-medium leading-snug tracking-tight text-slate-500 [overflow-wrap:anywhere]"
+                        className="inline-block max-w-full font-mono text-sm font-medium leading-snug tracking-tight text-muted-foreground [overflow-wrap:anywhere]"
                         title={pilotCells.userId}
                       >
                         {pilotCells.userId}
                       </span>
                     </td>
                     <td className={tdBase}>
-                      <span className="block break-words font-medium text-slate-900">
+                      <span className="block break-words font-medium text-foreground">
                         {pilotCells.userName}
                       </span>
                     </td>
@@ -515,7 +520,7 @@ export function UserRequestTable({
                       </span>
                     </td>
                     <td className={tdBase}>
-                      <div className="break-words font-medium text-slate-900">
+                      <div className="break-words font-medium text-foreground">
                         {pilotCells.destinations}
                       </div>
                     </td>
@@ -527,7 +532,7 @@ export function UserRequestTable({
                 return (
                   <tr
                     key={m.key}
-                    className="border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/60"
+                    className={ADMIN_DASH_TABLE_BODY_ROW}
                   >
                     <td className={tdBase}>
                       <span
@@ -581,7 +586,7 @@ export function UserRequestTable({
                       {adminStatusUi ? (
                         <span
                           className={cn(
-                            "inline-flex max-w-full items-center whitespace-nowrap rounded-full px-2.5 py-0.5",
+                            "inline-block max-w-full whitespace-nowrap",
                             ADMIN_TABLE_TEXT,
                             adminStatusUi.pillClassName
                           )}
@@ -642,7 +647,7 @@ export function UserRequestTable({
                 <tr
                   key={m.key}
                   className={cn(
-                    "border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/60",
+                    ADMIN_DASH_TABLE_BODY_ROW,
                     highlightRow && "bg-[#008B8B]/8 hover:bg-[#008B8B]/12"
                   )}
                 >
@@ -700,7 +705,7 @@ export function UserRequestTable({
                   <td className={tdBase}>
                     <span
                       className={cn(
-                        "inline-flex max-w-full items-center whitespace-nowrap rounded-full px-2.5 py-0.5 normal-case",
+                        "inline-flex max-w-full items-center whitespace-nowrap rounded-full px-2.5 py-0.5 normal-case dark:text-white",
                         ADMIN_TABLE_TEXT,
                         m.badgeClass
                       )}
@@ -712,7 +717,7 @@ export function UserRequestTable({
                     {adminStatusUi ? (
                       <span
                         className={cn(
-                          "inline-flex max-w-full items-center whitespace-nowrap rounded-full px-2.5 py-0.5",
+                          "inline-block max-w-full whitespace-nowrap",
                           ADMIN_TABLE_TEXT,
                           adminStatusUi.pillClassName
                         )}

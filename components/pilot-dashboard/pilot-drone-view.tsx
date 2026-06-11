@@ -641,7 +641,7 @@ export function PilotDroneView() {
           <div className="hidden overflow-hidden rounded-xl border border-border bg-card shadow-sm md:block">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                <thead className="border-b border-border bg-white text-xs uppercase tracking-wide text-muted-foreground dark:bg-black">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Drone Model</th>
                     <th className="px-4 py-3 font-semibold">Type</th>

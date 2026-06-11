@@ -343,18 +343,10 @@ function AdminDashboardHero({
   return (
     <header
       className={cn(
-        "admin-dash-hero relative mt-6 overflow-hidden rounded-2xl sm:mt-8",
+        "relative mt-6 overflow-hidden rounded-2xl bg-white dark:bg-black sm:mt-8",
         ADMIN_DASH_PANEL_BORDER
       )}
     >
-      <div
-        className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-[#008B8B]/20 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-6 left-1/3 size-28 rounded-full bg-[#008B8B]/10 blur-2xl"
-        aria-hidden
-      />
       <div className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
@@ -434,7 +426,7 @@ function PendingRegistrationsSection({
         ADMIN_DASH_PANEL_BORDER
       )}
     >
-      <div className="bg-muted/30 px-4 py-4 sm:px-6 sm:py-5">
+      <div className="bg-card px-4 py-4 sm:px-6 sm:py-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#008B8B]">
@@ -610,7 +602,7 @@ function PilotRegistrationsTable({
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-border bg-gradient-to-r from-[#008B8B]/8 via-muted/40 to-transparent dark:from-[#008B8B]/15">
+            <tr className="border-b border-border bg-white dark:bg-black">
               <th scope="col" className={thBase}>
                 Pilot Name
               </th>
@@ -807,7 +799,7 @@ function PilotProfileFieldCard({
       className={cn(
         "group flex min-w-0 items-start gap-2.5 rounded-xl border border-neutral-200/80 bg-white p-2.5 transition-colors sm:p-3",
         "hover:border-[#008B8B]/25 hover:bg-[#008B8B]/[0.02]",
-        "dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-[#008B8B]/30"
+        "dark:border-white/10 dark:bg-black dark:hover:border-[#008B8B]/30"
       )}
     >
       <span
@@ -902,8 +894,8 @@ function PilotDroneDetailCard({
   const hasContent = specCards.length > 0 || useCases.length > 0;
 
   return (
-    <article className="overflow-hidden rounded-xl border border-neutral-200/80 bg-white shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
-      <header className="flex items-start gap-3 border-b border-neutral-200/60 bg-gradient-to-r from-[#008B8B]/8 via-[#008B8B]/3 to-transparent px-3.5 py-3 sm:px-4 dark:border-white/10">
+    <article className="overflow-hidden rounded-xl border border-neutral-200/80 bg-white shadow-sm dark:border-white/10 dark:bg-black">
+      <header className="flex items-start gap-3 border-b border-neutral-200/60 bg-card px-3.5 py-3 sm:px-4 dark:border-white/10">
         <span
           className={cn(
             "flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#008B8B]/20 to-[#008B8B]/5 text-[#006b6b] ring-1 ring-[#008B8B]/15 dark:text-[#5ec4c4]",
@@ -1237,7 +1229,7 @@ function ApprovedPilotProfileModal({
                 className={cn(
                   "group flex min-w-0 items-start gap-2.5 rounded-xl border border-neutral-200/80 bg-white p-2.5 transition-colors sm:p-3",
                   "hover:border-[#008B8B]/25 hover:bg-[#008B8B]/[0.02]",
-                  "dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-[#008B8B]/30"
+                  "dark:border-white/10 dark:bg-black dark:hover:border-[#008B8B]/30"
                 )}
               >
                 <span

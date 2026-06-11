@@ -731,10 +731,10 @@ export function PilotStatusView({
           </label>
         </div>
 
-        <div className="overflow-hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden overflow-x-auto rounded-xl border border-border bg-card dark:bg-black shadow-sm">
           <table className="w-full min-w-[52rem] table-fixed border-collapse text-left text-[10px] leading-snug sm:text-[11px]">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
+              <tr className="border-b border-border bg-white dark:bg-black">
                 <th scope="col" className={cn(thBase, "text-left")}>
                   Pilot personnel
                 </th>
@@ -769,7 +769,7 @@ export function PilotStatusView({
                 filteredRows.map((row) => (
                   <tr
                     key={row.id}
-                    className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60"
+                    className="border-b border-border transition-colors last:border-0 hover:bg-muted/40 dark:hover:bg-white/5"
                   >
                     <td className={cn(tdBase, "text-left")}>
                       <button

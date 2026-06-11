@@ -1,3 +1,8 @@
+import {
+  ADMIN_URGENCY_BADGE_CRITICAL,
+  ADMIN_URGENCY_BADGE_NORMAL,
+  ADMIN_URGENCY_BADGE_ROUTINE,
+} from "@/lib/admin-dashboard-styles";
 import { jwtPayloadSub } from "@/lib/pilot-display-name";
 import type { ParsedPostRequirement } from "@/lib/post-requirement-parse";
 import type { RequirementStatus } from "@/lib/project-requests";
@@ -614,15 +619,15 @@ export function mapUserRequestToAdminRow(
   let barColor: string;
   if (p === "urgent") {
     badge = "CRITICAL";
-    badgeClass = "bg-[#ffdad6] text-[#93000a]";
+    badgeClass = ADMIN_URGENCY_BADGE_CRITICAL;
     barColor = "#ba1a1a";
   } else if (p === "standard") {
     badge = "ROUTINE";
-    badgeClass = "bg-[#008B8B]/14 text-[#0a3030]";
+    badgeClass = ADMIN_URGENCY_BADGE_ROUTINE;
     barColor = "#008B8B";
   } else {
     badge = "NORMAL";
-    badgeClass = "bg-[#cde5ff] text-[#001d32]";
+    badgeClass = ADMIN_URGENCY_BADGE_NORMAL;
     barColor = "#006195";
   }
 

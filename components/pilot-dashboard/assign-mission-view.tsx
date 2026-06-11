@@ -8,6 +8,7 @@ import {
   MessageSquareText,
   Plane,
   Trash2,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -689,15 +690,27 @@ export function AssignMissionView() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="border-b border-border bg-muted/30 px-5 py-4 sm:px-6">
-              <h2
-                id="pilot-comments-dialog-title"
-                className="text-base font-bold text-foreground"
-              >
-                Mission comments
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {commentsForRow.customer || "Mission"} · {commentsForRow.requestRef}
-              </p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2
+                    id="pilot-comments-dialog-title"
+                    className="text-base font-bold text-foreground"
+                  >
+                    Mission comments
+                  </h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {commentsForRow.customer || "Mission"} · {commentsForRow.requestRef}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCommentsForRow(null)}
+                  className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted dark:text-white/80 dark:hover:bg-white/10"
+                  aria-label="Close"
+                >
+                  <X className="size-4" aria-hidden />
+                </button>
+              </div>
             </div>
             <div className="max-h-[70vh] overflow-y-auto px-5 py-4 sm:px-6">
               {dialogComments.length > 0 ? (
@@ -746,7 +759,7 @@ export function AssignMissionView() {
               ) : null}
               <label
                 htmlFor="pilot-mission-comment"
-                className="mb-2 block text-xs font-semibold text-muted-foreground"
+                className="mb-2 block text-xs font-semibold text-foreground dark:text-white"
               >
                 Add a comment
               </label>
@@ -756,7 +769,7 @@ export function AssignMissionView() {
                 value={commentDraft}
                 onChange={(e) => setCommentDraft(e.target.value)}
                 placeholder="Write a new comment..."
-                className="w-full resize-y rounded-lg border border-border !bg-transparent px-3 py-2 text-sm text-foreground shadow-none outline-none placeholder:text-muted-foreground focus:border-[#008B8B] focus:bg-transparent focus:outline-none focus:ring-0"
+                className="w-full resize-y rounded-lg border border-border !bg-transparent px-3 py-2 text-sm text-foreground shadow-none outline-none placeholder:text-muted-foreground focus:border-[#008B8B] focus:bg-transparent focus:outline-none focus:ring-0 dark:placeholder:text-white/60"
               />
             </div>
             <div className="flex flex-wrap justify-end gap-2 border-t border-border bg-muted/30 px-5 py-3 sm:px-6">
@@ -771,7 +784,7 @@ export function AssignMissionView() {
                 type="button"
                 onClick={() => void addCommentInDialog()}
                 disabled={commentSaving || !commentDraft.trim()}
-                className="rounded-lg border border-[#008B8B] bg-transparent px-4 py-2 text-xs font-semibold text-[#008B8B] transition-colors hover:bg-[#008B8B]/10 disabled:opacity-50 dark:border-primary dark:text-primary dark:hover:bg-primary/10"
+                className="rounded-lg border border-[#008B8B] bg-transparent px-4 py-2 text-xs font-semibold text-[#008B8B] transition-colors hover:bg-[#008B8B]/10 disabled:opacity-50 dark:border-white dark:text-white dark:hover:bg-white/10"
               >
                 {commentSaving ? "Adding..." : "Add comment"}
               </button>
