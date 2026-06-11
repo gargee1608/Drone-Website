@@ -2,12 +2,15 @@
 
 import {
   Activity,
+  Camera,
   ClipboardList,
   Clock,
   IdCard,
   LayoutDashboard,
   Mail,
   MapPin,
+  Package,
+  PackageCheck,
   Phone,
   Plane,
   ShieldCheck,
@@ -19,10 +22,17 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { getPilotById } from "@/app/services/pilotServices";
 import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/api-url";
-import { PROFILE_INFO_POPUP_SHELL_CLASS } from "@/lib/profile-popup-styles";
+import {
+  flightHoursFromPilotRow,
+  missionsCompletedFromPilotRow,
+} from "@/lib/pilot-db-metrics";
+import {
+  PROFILE_INFO_POPUP_SHELL_CLASS,
+} from "@/lib/profile-popup-styles";
 import { type PilotRegCard } from "@/lib/admin-pilot-registration-storage";
 import {
   ADMIN_DASH_AVATAR_RING,
@@ -635,12 +645,14 @@ function PilotRegistrationsTable({
                     >
                       {pilotInitials(p.name)}
                     </div>
-                    <span
-                      className="block truncate font-medium text-foreground"
-                      title={p.name}
+                    <button
+                      type="button"
+                      onClick={() => onViewProfile(p)}
+                      className="block min-w-0 truncate text-left font-medium text-foreground underline-offset-2 transition-colors hover:text-[#008B8B] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 focus-visible:ring-offset-1"
+                      title={`View ${p.name} details`}
                     >
                       {p.name}
-                    </span>
+                    </button>
                   </div>
                 </td>
                 {detailColumns.map((col) => {
@@ -707,11 +719,69 @@ function PilotRegistrationsTable({
 }
 
 
+function pilotIdFromCard(pilot: PilotRegCard): string | null {
+  const rowId = pilot.rows.find((r) => r.k === "Pilot ID")?.v?.trim();
+  if (rowId && /^\d+$/.test(rowId)) return rowId;
+  const match = pilot.id.match(/^db-(?:approved|pending)-(\d+)$/);
+  return match?.[1] ?? null;
+}
+
+function pickPilotRecordStr(
+  record: Record<string, unknown> | null,
+  keys: readonly string[]
+): string {
+  if (!record) return "";
+  for (const k of keys) {
+    const v = record[k];
+    if (v == null) continue;
+    const s = String(v).trim();
+    if (s) return s;
+  }
+  return "";
+}
+
+function parsePilotDroneDetails(raw: unknown): Record<string, unknown>[] {
+  if (Array.isArray(raw)) {
+    return raw.filter(
+      (x): x is Record<string, unknown> =>
+        x != null && typeof x === "object" && !Array.isArray(x)
+    );
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(
+          (x): x is Record<string, unknown> =>
+            x != null && typeof x === "object" && !Array.isArray(x)
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return [];
+}
+
+function parsePilotUseCasesList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v ?? "").trim()).filter(Boolean);
+  }
+  const text = String(value ?? "").trim();
+  if (!text) return [];
+  return text.split(/,\s*/).filter(Boolean);
+}
+
 function pilotProfileRow(
   pilot: PilotRegCard,
-  key: string
+  key: string,
+  alternateKeys: readonly string[] = []
 ): { label: string; value: string; valueClass?: string } {
-  const row = pilot.rows.find((r) => r.k === key);
+  const row =
+    pilot.rows.find((r) => r.k === key) ??
+    alternateKeys
+      .map((altKey) => pilot.rows.find((r) => r.k === altKey))
+      .find(Boolean);
   return {
     label: key,
     value: row?.v?.trim() || "—",
@@ -767,6 +837,144 @@ function PilotProfileFieldCard({
   );
 }
 
+function PilotDroneDetailCard({
+  drone,
+  index,
+  total,
+}: {
+  drone: Record<string, unknown>;
+  index: number;
+  total: number;
+}) {
+  const modelName =
+    pickPilotRecordStr(drone, ["modelName", "model_name"]) || "Unnamed drone";
+  const type = pickPilotRecordStr(drone, ["type"]);
+  const camera = pickPilotRecordStr(drone, ["camera"]);
+  const payload = pickPilotRecordStr(drone, ["payloadKg", "payload_kg"]);
+  const flightTime = pickPilotRecordStr(drone, [
+    "flightTimeMin",
+    "flight_time_min",
+  ]);
+  const range = pickPilotRecordStr(drone, ["rangeKm", "range_km"]);
+  const useCases = parsePilotUseCasesList(drone.useCases ?? drone.use_cases);
+  const droneId = pickPilotRecordStr(drone, ["id"]);
+
+  const specCards: {
+    icon: typeof Camera;
+    label: string;
+    value: string;
+    accentClass: string;
+  }[] = [];
+
+  if (camera) {
+    specCards.push({
+      icon: Camera,
+      label: "Camera",
+      value: camera,
+      accentClass: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+    });
+  }
+  if (payload) {
+    specCards.push({
+      icon: Package,
+      label: "Payload",
+      value: `${payload} kg`,
+      accentClass: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
+    });
+  }
+  if (flightTime) {
+    specCards.push({
+      icon: Clock,
+      label: "Flight time",
+      value: `${flightTime} min`,
+      accentClass: "bg-orange-500/10 text-orange-700 dark:text-orange-300",
+    });
+  }
+  if (range) {
+    specCards.push({
+      icon: MapPin,
+      label: "Range",
+      value: `${range} km`,
+      accentClass: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+    });
+  }
+
+  const hasContent = specCards.length > 0 || useCases.length > 0;
+
+  return (
+    <article className="overflow-hidden rounded-xl border border-neutral-200/80 bg-white shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
+      <header className="flex items-start gap-3 border-b border-neutral-200/60 bg-gradient-to-r from-[#008B8B]/8 via-[#008B8B]/3 to-transparent px-3.5 py-3 sm:px-4 dark:border-white/10">
+        <span
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#008B8B]/20 to-[#008B8B]/5 text-[#006b6b] ring-1 ring-[#008B8B]/15 dark:text-[#5ec4c4]",
+            ADMIN_DASH_AVATAR_RING
+          )}
+          aria-hidden
+        >
+          <Plane className="size-5" strokeWidth={2} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#008B8B]">
+                {total > 1 ? `Drone ${index + 1} of ${total}` : "Registered drone"}
+              </p>
+              <h4 className="mt-0.5 truncate text-sm font-bold tracking-tight text-foreground sm:text-base">
+                {modelName}
+              </h4>
+            </div>
+            {type ? (
+              <span className="inline-flex shrink-0 rounded-full bg-[#008B8B]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#006b6b] ring-1 ring-[#008B8B]/20 dark:text-[#5ec4c4]">
+                {type}
+              </span>
+            ) : null}
+          </div>
+          {droneId ? (
+            <p className="mt-1 font-mono text-[10px] tabular-nums text-muted-foreground">
+              ID {droneId}
+            </p>
+          ) : null}
+        </div>
+      </header>
+
+      {specCards.length > 0 ? (
+        <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 sm:p-4">
+          {specCards.map((spec) => (
+            <PilotProfileFieldCard
+              key={spec.label}
+              icon={spec.icon}
+              label={spec.label}
+              value={spec.value}
+              accentClass={spec.accentClass}
+            />
+          ))}
+        </div>
+      ) : !hasContent ? (
+        <p className="px-4 py-3 text-xs text-muted-foreground">
+          No specifications recorded for this drone.
+        </p>
+      ) : null}
+
+      {useCases.length > 0 ? (
+        <footer className="border-t border-neutral-200/60 px-3.5 py-3 sm:px-4 dark:border-white/10">
+          <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+            Use cases
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {useCases.map((useCase) => (
+              <li key={useCase}>
+                <span className="inline-flex items-center rounded-full bg-[#008B8B]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#006b6b] ring-1 ring-[#008B8B]/15 dark:text-[#5ec4c4]">
+                  {useCase}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </footer>
+      ) : null}
+    </article>
+  );
+}
+
 function ApprovedPilotProfileModal({
   pilot,
   onClose,
@@ -774,8 +982,19 @@ function ApprovedPilotProfileModal({
   pilot: PilotRegCard | null;
   onClose: () => void;
 }) {
+  const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [apiRecord, setApiRecord] = useState<Record<string, unknown> | null>(
+    null
+  );
+
   useEffect(() => {
-    if (!pilot) return;
+    if (!pilot) {
+      setApiRecord(null);
+      setFetchError(null);
+      setLoading(false);
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -788,17 +1007,113 @@ function ApprovedPilotProfileModal({
     };
   }, [pilot, onClose]);
 
+  useEffect(() => {
+    if (!pilot) return;
+    const id = pilotIdFromCard(pilot);
+    if (!id) {
+      setApiRecord(null);
+      setFetchError(null);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setFetchError(null);
+    setApiRecord(null);
+
+    void (async () => {
+      try {
+        const data = await getPilotById(id);
+        if (cancelled) return;
+        if (data == null || (typeof data === "object" && "error" in data)) {
+          setFetchError("Could not load full pilot details.");
+          return;
+        }
+        if (typeof data === "object" && !Array.isArray(data)) {
+          setApiRecord(data as Record<string, unknown>);
+        } else {
+          setFetchError("Unexpected response from server.");
+        }
+      } catch {
+        if (!cancelled) setFetchError("Could not load full pilot details.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pilot]);
+
   if (!pilot) return null;
 
+  const isPendingPilot = pilot.id.startsWith("db-pending-");
   const pilotId = pilotProfileRow(pilot, "Pilot ID");
   const license = pilotProfileRow(pilot, "License ID");
   const status = pilotProfileRow(pilot, "Status");
   const region = pilotProfileRow(pilot, "Region");
   const email = pilotProfileRow(pilot, "Email");
   const phone = pilotProfileRow(pilot, "Phone");
-  const flightExperience = pilotProfileRow(pilot, "Flight experience");
+  const flightExperience = pilotProfileRow(pilot, "Flight experience", [
+    "Flight Experience",
+  ]);
   const dronesRegistered = pilotProfileRow(pilot, "Drones registered");
-  const isActive = status.value.toUpperCase() === "ACTIVE";
+
+  const displayName =
+    pickPilotRecordStr(apiRecord, ["name", "full_name", "fullName"]) ||
+    pilot.name;
+  const displayEmail =
+    pickPilotRecordStr(apiRecord, ["email"]) || email.value;
+  const displayPhone =
+    pickPilotRecordStr(apiRecord, ["phone"]) || phone.value;
+  const displayLicense =
+    pickPilotRecordStr(apiRecord, ["license_number", "licenseNumber"]) ||
+    license.value;
+  const displayRegion =
+    [
+      pickPilotRecordStr(apiRecord, ["city"]),
+      pickPilotRecordStr(apiRecord, ["state"]),
+    ]
+      .filter(Boolean)
+      .join(", ") || region.value;
+  const displayStatusRaw =
+    pickPilotRecordStr(apiRecord, ["duty_status", "dutyStatus", "status"]) ||
+    status.value;
+  const flightHoursFromApi = apiRecord
+    ? flightHoursFromPilotRow(apiRecord)
+    : null;
+  const displayFlightExperience =
+    flightHoursFromApi != null && flightHoursFromApi > 0
+      ? `${flightHoursFromApi.toLocaleString("en-IN")} hours`
+      : flightExperience.value;
+  const displayMissions = apiRecord
+    ? missionsCompletedFromPilotRow(apiRecord).toLocaleString("en-IN")
+    : null;
+  const displayCertLevel =
+    pickPilotRecordStr(apiRecord, ["cert_level", "certLevel"]) || null;
+  const displayExperienceRank =
+    pickPilotRecordStr(apiRecord, ["experience_rank", "experienceRank"]) || null;
+  const droneDetails = parsePilotDroneDetails(apiRecord?.drone_details);
+  const displayDroneCount =
+    droneDetails.length > 0
+      ? String(droneDetails.length)
+      : dronesRegistered.value !== "—"
+        ? dronesRegistered.value
+        : isPendingPilot
+          ? "0"
+          : dronesRegistered.value;
+  const isReviewPending = isPendingPilot && droneDetails.length === 0;
+  const isActive =
+    !isReviewPending && displayStatusRaw.toUpperCase() === "ACTIVE";
+  const displayStatus = isReviewPending
+    ? "Review Pending"
+    : displayStatusRaw && displayStatusRaw !== "—"
+      ? displayStatusRaw.toUpperCase() === "ACTIVE"
+        ? "Active"
+        : displayStatusRaw
+      : "—";
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
@@ -813,7 +1128,7 @@ function ApprovedPilotProfileModal({
         aria-modal="true"
         aria-labelledby="approved-pilot-profile-title"
         className={cn(
-          "relative z-10 flex w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl shadow-[0_24px_64px_rgba(15,23,42,0.18)] sm:rounded-3xl",
+          "relative z-10 flex max-h-[min(92dvh,44rem)] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl shadow-[0_24px_64px_rgba(15,23,42,0.18)] sm:rounded-3xl",
           PROFILE_INFO_POPUP_SHELL_CLASS
         )}
       >
@@ -839,18 +1154,28 @@ function ApprovedPilotProfileModal({
               </div>
               <div className="min-w-0 pt-0.5">
                 <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#008B8B] sm:text-[10px]">
-                  Pilot profile
+                  {isPendingPilot ? "Pilot details" : "Pilot profile"}
                 </p>
                 <h2
                   id="approved-pilot-profile-title"
                   className="mt-0.5 truncate text-lg font-bold tracking-tight text-foreground sm:text-xl"
                 >
-                  {pilot.name}
+                  {displayName}
                 </h2>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-500/20 dark:text-emerald-300">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide ring-1",
+                      isPendingPilot
+                        ? "bg-amber-500/15 text-amber-800 ring-amber-500/20 dark:text-amber-300"
+                        : "bg-emerald-500/15 text-emerald-800 ring-emerald-500/20 dark:text-emerald-300"
+                    )}
+                  >
                     <span
-                      className="size-1.5 rounded-full bg-emerald-500"
+                      className={cn(
+                        "size-1.5 rounded-full",
+                        isPendingPilot ? "bg-amber-500" : "bg-emerald-500"
+                      )}
                       aria-hidden
                     />
                     {pilot.badge}
@@ -882,7 +1207,17 @@ function ApprovedPilotProfileModal({
           </div>
         </div>
 
-        <div className="overflow-hidden px-4 pb-4 pt-0 sm:px-5 sm:pb-5">
+        <div className="overflow-y-auto overscroll-contain px-4 pb-4 pt-0 sm:px-5 sm:pb-5">
+          {loading ? (
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              Loading pilot details…
+            </p>
+          ) : fetchError ? (
+            <p className="mt-4 text-center text-sm text-amber-700 dark:text-amber-300">
+              {fetchError}
+            </p>
+          ) : null}
+
           <section className="mt-3">
             <div className="mb-2 flex items-center gap-2">
               <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
@@ -895,7 +1230,7 @@ function ApprovedPilotProfileModal({
               <PilotProfileFieldCard
                 icon={IdCard}
                 label="License ID"
-                value={license.value}
+                value={displayLicense}
                 valueClass={cn("font-mono", license.valueClass)}
               />
               <div
@@ -923,34 +1258,56 @@ function ApprovedPilotProfileModal({
                   <span
                     className={cn(
                       "mt-0.5 inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:text-xs",
-                      isActive
-                        ? "bg-emerald-500/15 text-emerald-800 ring-1 ring-emerald-500/20 dark:text-emerald-300"
-                        : "bg-amber-500/15 text-amber-900 ring-1 ring-amber-500/20 dark:text-amber-200"
+                      isReviewPending
+                        ? "bg-amber-500/15 text-amber-900 ring-1 ring-amber-500/20 dark:text-amber-200"
+                        : isActive
+                          ? "bg-emerald-500/15 text-emerald-800 ring-1 ring-emerald-500/20 dark:text-emerald-300"
+                          : "bg-amber-500/15 text-amber-900 ring-1 ring-amber-500/20 dark:text-amber-200"
                     )}
                   >
                     <span
                       className={cn(
                         "size-1.5 shrink-0 rounded-full",
-                        isActive ? "bg-emerald-500" : "bg-amber-500"
+                        isReviewPending
+                          ? "bg-amber-500"
+                          : isActive
+                            ? "bg-emerald-500"
+                            : "bg-amber-500"
                       )}
                       aria-hidden
                     />
-                    <span className="truncate">{status.value}</span>
+                    <span className="truncate">{displayStatus}</span>
                   </span>
                 </div>
               </div>
               <PilotProfileFieldCard
                 icon={MapPin}
                 label="Region"
-                value={region.value}
+                value={displayRegion}
                 accentClass="bg-sky-500/10 text-sky-700 dark:text-sky-300"
               />
               <PilotProfileFieldCard
                 icon={Plane}
                 label="Drones registered"
-                value={dronesRegistered.value}
+                value={displayDroneCount}
                 accentClass="bg-violet-500/10 text-violet-700 dark:text-violet-300"
               />
+              {displayCertLevel ? (
+                <PilotProfileFieldCard
+                  icon={ShieldCheck}
+                  label="Certification level"
+                  value={displayCertLevel}
+                  accentClass="bg-teal-500/10 text-teal-700 dark:text-teal-300"
+                />
+              ) : null}
+              {displayMissions ? (
+                <PilotProfileFieldCard
+                  icon={PackageCheck}
+                  label="Missions completed"
+                  value={displayMissions}
+                  accentClass="bg-sky-500/10 text-sky-700 dark:text-sky-300"
+                />
+              ) : null}
             </div>
           </section>
 
@@ -966,26 +1323,59 @@ function ApprovedPilotProfileModal({
               <PilotProfileFieldCard
                 icon={Mail}
                 label="Email"
-                value={email.value}
+                value={displayEmail}
                 valueClass={email.valueClass}
                 accentClass="bg-rose-500/10 text-rose-700 dark:text-rose-300"
               />
               <PilotProfileFieldCard
                 icon={Phone}
                 label="Phone"
-                value={phone.value}
+                value={displayPhone}
                 valueClass={phone.valueClass}
                 accentClass="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
               />
               <PilotProfileFieldCard
                 icon={Clock}
                 label="Flight experience"
-                value={flightExperience.value}
+                value={displayFlightExperience}
                 valueClass={cn("col-span-2 sm:col-span-1", flightExperience.valueClass)}
                 accentClass="bg-orange-500/10 text-orange-700 dark:text-orange-300"
               />
+              {displayExperienceRank ? (
+                <PilotProfileFieldCard
+                  icon={UserCheck}
+                  label="Experience rank"
+                  value={displayExperienceRank}
+                  accentClass="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                />
+              ) : null}
             </div>
           </section>
+
+          {droneDetails.length > 0 ? (
+            <section className="mt-3 sm:mt-4">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
+                <p className="flex shrink-0 items-center gap-2 text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">
+                  Drone details
+                  <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#008B8B]/12 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-[#008B8B] ring-1 ring-[#008B8B]/20">
+                    {droneDetails.length}
+                  </span>
+                </p>
+                <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
+              </div>
+              <div className="space-y-3">
+                {droneDetails.map((drone, index) => (
+                  <PilotDroneDetailCard
+                    key={index}
+                    drone={drone}
+                    index={index}
+                    total={droneDetails.length}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
         </div>
       </div>
     </div>
