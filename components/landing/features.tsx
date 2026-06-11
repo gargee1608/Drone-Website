@@ -251,7 +251,7 @@ export function Features() {
                   return (
                     <div
                       key={title}
-                      className={`group relative flex h-full min-h-[180px] flex-col overflow-hidden rounded-3xl border border-[#008B8B]/15 bg-white/90 text-left shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-[#008B8B]/35 hover:shadow-[0_24px_60px_rgba(0,139,139,0.16)] sm:min-h-[210px] ${image ? "p-0" : "p-5 sm:p-7"}`}
+                      className={`group relative flex h-full min-h-[180px] flex-col overflow-hidden rounded-3xl border border-[#008B8B]/15 bg-white text-left shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-[#008B8B]/35 hover:shadow-[0_24px_60px_rgba(15,23,42,0.12)] sm:min-h-[210px] ${image ? "p-0" : "p-5 sm:p-7"}`}
                     >
                       {image ? (
                         <div className={imageContainerClass}>
@@ -275,16 +275,8 @@ export function Features() {
                             : "contents"
                         }
                       >
-                        <div
-                          className="absolute inset-x-6 top-0 h-1 rounded-b-full bg-gradient-to-r from-transparent via-[#008B8B] to-transparent opacity-60"
-                          aria-hidden
-                        />
-                        <div
-                          className="pointer-events-none absolute -right-12 -top-12 size-32 rounded-full bg-[#008B8B]/10 transition-transform duration-300 group-hover:scale-125"
-                          aria-hidden
-                        />
                         {Icon && !image ? (
-                          <div className="relative mb-5 flex size-14 shrink-0 items-center justify-center rounded-2xl border border-[#008B8B]/20 bg-[#f4fbfb] shadow-sm transition-transform duration-300 group-hover:scale-105 sm:mb-6 sm:size-16">
+                          <div className="relative mb-5 flex size-14 shrink-0 items-center justify-center rounded-2xl border border-[#008B8B]/20 bg-white shadow-sm transition-transform duration-300 group-hover:scale-105 sm:mb-6 sm:size-16">
                             <Icon
                               className="size-8 text-[#008B8B] sm:size-9"
                               strokeWidth={1.5}
@@ -294,7 +286,7 @@ export function Features() {
                         ) : null}
                         <h3 className="relative mb-3 flex items-center gap-2.5 font-[family-name:var(--font-landing-headline)] text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl">
                           {Icon && image ? (
-                            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#008B8B]/20 bg-[#f4fbfb] sm:size-9">
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#008B8B]/20 bg-white sm:size-9">
                               <Icon
                                 className="size-4 text-[#008B8B] sm:size-5"
                                 strokeWidth={1.75}
@@ -315,7 +307,7 @@ export function Features() {
                                     key={listItem.text}
                                     className="flex items-start gap-2.5"
                                   >
-                                    <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border border-[#008B8B]/20 bg-[#f4fbfb]">
+                                    <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border border-[#008B8B]/20 bg-white">
                                       <ItemIcon
                                         className="size-3.5 text-[#008B8B]"
                                         strokeWidth={1.75}
@@ -346,10 +338,6 @@ export function Features() {
                             {description}
                           </p>
                         ) : null}
-                        <div className="relative mt-auto flex items-center gap-3">
-                          <div className="landing-telemetry-line flex-1 opacity-90" />
-                          <span className="size-2 rounded-full bg-[#008B8B] shadow-[0_0_0_5px_rgba(0,139,139,0.12)]" />
-                        </div>
                       </div>
                     </div>
                   );
