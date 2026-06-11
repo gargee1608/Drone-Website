@@ -8,6 +8,8 @@ import { jwtPayloadRole } from "@/lib/pilot-display-name";
 import {
   USER_PROFILE_STORAGE_KEY,
   USER_PROFILE_UPDATED_EVENT,
+  readUserProfilePhoto,
+  saveUserProfilePhoto,
 } from "@/lib/user-profile-storage";
 import {
   readStoredUserSession,
@@ -35,8 +37,6 @@ type UserProfileDraft = {
   state: string;
   country: string;
 };
-
-const USER_PROFILE_PHOTO_STORAGE_KEY = "aerolaminar_user_profile_photo_v1";
 
 const DEFAULT_USER_PROFILE: UserProfileDraft = {
   firstName: "User",
@@ -132,7 +132,7 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
           rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase()
         );
       }
-      const savedAvatar = localStorage.getItem(USER_PROFILE_PHOTO_STORAGE_KEY);
+      const savedAvatar = readUserProfilePhoto();
       if (savedAvatar) {
         setAvatarSrc(savedAvatar);
       }
@@ -151,6 +151,15 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
     return () => window.removeEventListener(USER_PROFILE_UPDATED_EVENT, sync);
   }, [editingPersonal]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncPhoto = () => {
+      setAvatarSrc(readUserProfilePhoto());
+    };
+    window.addEventListener(USER_PROFILE_UPDATED_EVENT, syncPhoto);
+    return () => window.removeEventListener(USER_PROFILE_UPDATED_EVENT, syncPhoto);
+  }, []);
+
   function onAvatarPick() {
     avatarInputRef.current?.click();
   }
@@ -163,9 +172,7 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
       const result = typeof reader.result === "string" ? reader.result : null;
       if (!result) return;
       setAvatarSrc(result);
-      if (typeof window !== "undefined") {
-        localStorage.setItem(USER_PROFILE_PHOTO_STORAGE_KEY, result);
-      }
+      saveUserProfilePhoto(result);
     };
     reader.readAsDataURL(file);
   }
@@ -278,19 +285,19 @@ export function UserProfileView({ embedded = false, allowEditWhenEmbedded = fals
                     "absolute -bottom-1 -right-1 inline-flex size-6 items-center justify-center rounded-full bg-card text-foreground transition-colors hover:bg-muted",
                     USER_DASH_BORDER_COLOR
                   )}
-                    aria-label="Edit profile photo"
-                  >
-                    <Pencil className="size-3" aria-hidden />
-                  </button>
-                  <input
-                    ref={avatarInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={onAvatarChange}
-                  />
-                </>
-              ) : null}
+                  aria-label="Edit profile photo"
+                >
+                  <Pencil className="size-3" aria-hidden />
+                </button>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={onAvatarChange}
+                />
+              </>
+            ) : null}
             </div>
             <div className="min-w-0">
               <p className="text-lg font-semibold text-[#033f3f] dark:text-white">

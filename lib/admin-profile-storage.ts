@@ -6,6 +6,25 @@ export const ADMIN_PROFILE_PHOTO_STORAGE_KEY = "admin_profile_photo";
 
 export const ADMIN_PROFILE_UPDATED_EVENT = "aerolaminar-admin-profile-updated";
 
+export function readAdminProfilePhoto(): string | null {
+  if (typeof window === "undefined") return null;
+  const saved = localStorage.getItem(ADMIN_PROFILE_PHOTO_STORAGE_KEY);
+  return saved && saved.startsWith("data:image/") ? saved : null;
+}
+
+export function saveAdminProfilePhoto(dataUrl: string): void {
+  if (typeof window === "undefined") return;
+  if (!dataUrl.startsWith("data:image/")) return;
+  localStorage.setItem(ADMIN_PROFILE_PHOTO_STORAGE_KEY, dataUrl);
+  window.dispatchEvent(new Event(ADMIN_PROFILE_UPDATED_EVENT));
+}
+
+export function removeAdminProfilePhoto(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(ADMIN_PROFILE_PHOTO_STORAGE_KEY);
+  window.dispatchEvent(new Event(ADMIN_PROFILE_UPDATED_EVENT));
+}
+
 export type AdminProfileDraft = {
   firstName: string;
   lastName: string;

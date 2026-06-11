@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
+  Camera,
   Home as HomeIcon,
   LayoutDashboard,
   LogOut,
@@ -27,15 +28,28 @@ import { useUserDashboardNav } from "@/components/user-dashboard/user-dashboard-
 import { AdminInboxMenu } from "@/components/notifications/admin-inbox-menu";
 import { PilotMissionNotificationsMenu } from "@/components/notifications/pilot-mission-notifications-menu";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { getPilotDisplayName, jwtPayloadRole } from "@/lib/pilot-display-name";
+import { getPilotDisplayName, jwtPayloadRole, jwtPayloadSub } from "@/lib/pilot-display-name";
 import {
   ADMIN_PROFILE_UPDATED_EVENT,
   buildAdminProfileForDisplay,
   getAdminDisplayName,
+  readAdminProfilePhoto,
+  removeAdminProfilePhoto,
+  saveAdminProfilePhoto,
 } from "@/lib/admin-profile-storage";
+import {
+  getPilotProfilePhotoDataUrl,
+  removePilotProfilePhoto,
+  setPilotProfilePhotoDataUrl,
+} from "@/lib/pilot-profile-photo-storage";
 import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
 import { clearAuthSession } from "@/lib/auth-session-browser";
-import { USER_PROFILE_UPDATED_EVENT } from "@/lib/user-profile-storage";
+import {
+  USER_PROFILE_UPDATED_EVENT,
+  readUserProfilePhoto,
+  removeUserProfilePhoto,
+  saveUserProfilePhoto,
+} from "@/lib/user-profile-storage";
 import {
   getUserDisplayName,
   readStoredUserSession,
@@ -48,6 +62,99 @@ import { cn } from "@/lib/utils";
 const landingOutlineButtonClassName =
   "inline-flex h-9 shrink-0 items-center justify-center rounded-md border-2 border-[#008B8B] bg-transparent px-4 font-[family-name:var(--font-landing-headline)] text-xs font-bold tracking-wider text-[#008B8B] uppercase transition hover:border-[#006b6b] hover:bg-transparent hover:text-[#006b6b] dark:border-white dark:text-white dark:hover:border-white/85 dark:hover:text-white";
 
+function AccountMenuAvatar({
+  src,
+  initial,
+  size = "md",
+  showUserFallback = false,
+  className,
+}: {
+  src?: string | null;
+  initial: string;
+  size?: "sm" | "md";
+  showUserFallback?: boolean;
+  className?: string;
+}) {
+  const sizeClass = size === "sm" ? "size-7 text-xs" : "size-9 text-sm";
+
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#008B8B]/12 font-semibold text-[#008B8B] ring-1 ring-[#008B8B]/15 dark:bg-white/10 dark:text-[#5eb3ff] dark:ring-white/10",
+        !src && showUserFallback && "border border-dashed border-[#008B8B]/35",
+        sizeClass,
+        className
+      )}
+      aria-hidden
+    >
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" className="size-full object-cover" />
+      ) : showUserFallback ? (
+        <User className="size-[45%] shrink-0" strokeWidth={2} />
+      ) : (
+        initial
+      )}
+    </span>
+  );
+}
+
+const profilePhotoRemoveButtonClassName =
+  "absolute -right-0.5 -top-0.5 z-10 flex size-4 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35";
+
+function AccountMenuPhotoControl({
+  avatarSrc,
+  initial,
+  onPickPhoto,
+  onRemovePhoto,
+  size = "sm",
+  showRemoveButton = true,
+}: {
+  avatarSrc: string | null;
+  initial: string;
+  onPickPhoto: () => void;
+  onRemovePhoto: () => void;
+  size?: "sm" | "md";
+  showRemoveButton?: boolean;
+}) {
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={onPickPhoto}
+        className="group relative shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35"
+        aria-label={
+          avatarSrc ? "Change profile photo" : "Add profile photo"
+        }
+      >
+        <AccountMenuAvatar
+          src={avatarSrc}
+          initial={initial}
+          size={size}
+          showUserFallback={!avatarSrc}
+        />
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
+          <Camera
+            className="size-3.5 text-white"
+            strokeWidth={2.25}
+            aria-hidden
+          />
+        </span>
+      </button>
+      {showRemoveButton && avatarSrc ? (
+        <button
+          type="button"
+          onClick={onRemovePhoto}
+          className={profilePhotoRemoveButtonClassName}
+          aria-label="Remove profile photo"
+        >
+          <X className="size-2.5" strokeWidth={3} aria-hidden />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export function LandingHeader() {
   const serviceMegaMenuItems = useServiceMegaMenuItems();
   const { copy: pilotLoginCopy } = usePilotLoginLanguage();
@@ -57,6 +164,7 @@ export function LandingHeader() {
   const [open, setOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const accountPhotoInputRef = useRef<HTMLInputElement>(null);
   const isAdminDashboard =
     pathname === "/dashboard" ||
     pathname === "/dashboard/" ||
@@ -230,6 +338,8 @@ export function LandingHeader() {
     (isSettingsPage && settingsFrom === "pilot");
   const isAdminLogoutContext =
     isAdminDashboard || isAdminSettingsContext;
+  const accountMenuPhotoEnabled =
+    isAdminLogoutContext || isUserLogoutContext || isPilotLogoutContext;
 
   /** Sun/moon control: pilot, user, and admin app shells (+ matching settings). */
   const showDashboardShellThemeToggle =
@@ -272,6 +382,9 @@ export function LandingHeader() {
     useState<string>("Pilot");
   const [adminDashboardDisplayName, setAdminDashboardDisplayName] =
     useState<string>("Admin");
+  const [accountMenuAvatarSrc, setAccountMenuAvatarSrc] = useState<
+    string | null
+  >(null);
 
   const accountMenuIdentity = isUserLogoutContext
     ? { displayName: userDashboardDisplayName, accountLabel: "User Account" }
@@ -399,6 +512,94 @@ export function LandingHeader() {
       );
     };
   }, [isAdminLogoutContext, pathname]);
+
+  useEffect(() => {
+    if (!accountMenuPhotoEnabled) {
+      setAccountMenuAvatarSrc(null);
+      return;
+    }
+    const syncAvatar = () => {
+      if (typeof window === "undefined") return;
+      if (isAdminLogoutContext) {
+        setAccountMenuAvatarSrc(readAdminProfilePhoto());
+        return;
+      }
+      if (isUserLogoutContext) {
+        setAccountMenuAvatarSrc(readUserProfilePhoto());
+        return;
+      }
+      if (isPilotLogoutContext) {
+        const token = localStorage.getItem("token");
+        const sub = token ? jwtPayloadSub(token) : null;
+        setAccountMenuAvatarSrc(getPilotProfilePhotoDataUrl(sub) ?? null);
+      }
+    };
+    syncAvatar();
+    window.addEventListener("storage", syncAvatar);
+    window.addEventListener("focus", syncAvatar);
+    window.addEventListener(ADMIN_PROFILE_UPDATED_EVENT, syncAvatar);
+    window.addEventListener(USER_PROFILE_UPDATED_EVENT, syncAvatar);
+    window.addEventListener(PILOT_PROFILE_UPDATED_EVENT, syncAvatar);
+    return () => {
+      window.removeEventListener("storage", syncAvatar);
+      window.removeEventListener("focus", syncAvatar);
+      window.removeEventListener(ADMIN_PROFILE_UPDATED_EVENT, syncAvatar);
+      window.removeEventListener(USER_PROFILE_UPDATED_EVENT, syncAvatar);
+      window.removeEventListener(PILOT_PROFILE_UPDATED_EVENT, syncAvatar);
+    };
+  }, [
+    accountMenuPhotoEnabled,
+    isAdminLogoutContext,
+    isUserLogoutContext,
+    isPilotLogoutContext,
+    pathname,
+  ]);
+
+  function openAccountPhotoPicker() {
+    accountPhotoInputRef.current?.click();
+  }
+
+  function handleRemoveAccountPhoto() {
+    if (isAdminLogoutContext) {
+      removeAdminProfilePhoto();
+    } else if (isUserLogoutContext) {
+      removeUserProfilePhoto();
+    } else if (isPilotLogoutContext) {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const sub = token ? jwtPayloadSub(token) : null;
+      if (sub) removePilotProfilePhoto(sub);
+    }
+    setAccountMenuAvatarSrc(null);
+  }
+
+  function handleAccountPhotoSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : null;
+      if (!result) return;
+      if (isAdminLogoutContext) {
+        saveAdminProfilePhoto(result);
+      } else if (isUserLogoutContext) {
+        saveUserProfilePhoto(result);
+      } else if (isPilotLogoutContext) {
+        const token =
+          typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        const sub = token ? jwtPayloadSub(token) : null;
+        if (sub) setPilotProfilePhotoDataUrl(sub, result);
+      }
+      setAccountMenuAvatarSrc(result);
+      setAccountMenuOpen(true);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  }
+
+  function handleAccountButtonClick() {
+    setAccountMenuOpen((v) => !v);
+  }
 
   useEffect(() => {
     function syncMarketingSessions() {
@@ -812,21 +1013,41 @@ export function LandingHeader() {
             ) : null}
             {showAccountMenu ? (
               <div className="relative shrink-0" ref={accountMenuRef}>
+                <input
+                  ref={accountPhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  aria-hidden
+                  tabIndex={-1}
+                  onChange={handleAccountPhotoSelected}
+                />
                 <button
                   type="button"
-                  onClick={() => setAccountMenuOpen((v) => !v)}
+                  onClick={handleAccountButtonClick}
                   aria-expanded={accountMenuOpen}
                   aria-haspopup="menu"
                   aria-label="Account menu"
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "icon" }),
-                    "shrink-0 text-slate-500 hover:text-[#008B8B] focus-visible:ring-2 focus-visible:ring-[#008B8B]/35",
+                    "size-9 shrink-0 overflow-hidden rounded-full p-0 text-slate-500 hover:text-[#008B8B] focus-visible:ring-2 focus-visible:ring-[#008B8B]/35",
+                    accountMenuPhotoEnabled &&
+                      !accountMenuAvatarSrc &&
+                      "ring-1 ring-dashed ring-[#008B8B]/30",
                     appDashboardShell
                       ? "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                       : "dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
                   )}
                 >
-                  <User className="size-5" aria-hidden />
+                  <AccountMenuAvatar
+                    src={accountMenuPhotoEnabled ? accountMenuAvatarSrc : null}
+                    initial={accountMenuInitial}
+                    size="md"
+                    showUserFallback={
+                      accountMenuPhotoEnabled && !accountMenuAvatarSrc
+                    }
+                    className="size-full ring-0"
+                  />
                 </button>
                 {accountMenuOpen ? (
                   <div
@@ -838,12 +1059,20 @@ export function LandingHeader() {
                         className="flex items-center gap-3 border-b border-border bg-muted/30 px-4 py-3"
                         role="presentation"
                       >
-                        <span
-                          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12 text-sm font-semibold text-[#008B8B] dark:bg-white/10 dark:text-[#5eb3ff]"
-                          aria-hidden
-                        >
-                          {accountMenuInitial}
-                        </span>
+                        {accountMenuPhotoEnabled ? (
+                          <AccountMenuPhotoControl
+                            avatarSrc={accountMenuAvatarSrc}
+                            initial={accountMenuInitial}
+                            onPickPhoto={openAccountPhotoPicker}
+                            onRemovePhoto={handleRemoveAccountPhoto}
+                          />
+                        ) : (
+                          <AccountMenuAvatar
+                            src={null}
+                            initial={accountMenuInitial}
+                            size="sm"
+                          />
+                        )}
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold leading-snug text-foreground">
                             {accountMenuIdentity.displayName}
@@ -1024,18 +1253,27 @@ export function LandingHeader() {
             {showAccountMenu ? (
               <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-3">
                 {accountMenuIdentity ? (
-                  <div className="mb-2 flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
-                    <span
-                      className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/12 text-sm font-semibold text-[#008B8B]"
-                      aria-hidden
-                    >
-                      {accountMenuInitial}
-                    </span>
+                  <div className="mb-2 flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-muted/30">
+                    {accountMenuPhotoEnabled ? (
+                      <AccountMenuPhotoControl
+                        avatarSrc={accountMenuAvatarSrc}
+                        initial={accountMenuInitial}
+                        onPickPhoto={openAccountPhotoPicker}
+                        onRemovePhoto={handleRemoveAccountPhoto}
+                        showRemoveButton={false}
+                      />
+                    ) : (
+                      <AccountMenuAvatar
+                        src={null}
+                        initial={accountMenuInitial}
+                        size="sm"
+                      />
+                    )}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-900">
+                      <p className="truncate text-sm font-semibold text-slate-900 dark:text-foreground">
                         {accountMenuIdentity.displayName}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-500">
+                      <p className="mt-0.5 text-xs text-slate-500 dark:text-muted-foreground">
                         {accountMenuIdentity.accountLabel}
                       </p>
                     </div>
@@ -1098,16 +1336,50 @@ export function LandingHeader() {
           </div>
         ) : (
           <div className="flex flex-col gap-1">
+            {accountMenuIdentity ? (
+              <div className="mb-2 flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-muted/30">
+                {accountMenuPhotoEnabled ? (
+                  <AccountMenuPhotoControl
+                    avatarSrc={accountMenuAvatarSrc}
+                    initial={accountMenuInitial}
+                    onPickPhoto={openAccountPhotoPicker}
+                    onRemovePhoto={handleRemoveAccountPhoto}
+                    showRemoveButton={false}
+                  />
+                ) : (
+                  <AccountMenuAvatar
+                    src={null}
+                    initial={accountMenuInitial}
+                    size="sm"
+                  />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-foreground">
+                    {accountMenuIdentity.displayName}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-muted-foreground">
+                    {accountMenuIdentity.accountLabel}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            <Link
+              href="/"
+              className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-foreground dark:hover:bg-muted"
+              onClick={() => setOpen(false)}
+            >
+              Home
+            </Link>
             <Link
               href={profileHref}
-              className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-foreground dark:hover:bg-muted"
               onClick={() => setOpen(false)}
             >
               Profile
             </Link>
             <button
               type="button"
-              className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-foreground dark:hover:bg-muted"
               onClick={() => {
                 setOpen(false);
                 clearAuthSession();
