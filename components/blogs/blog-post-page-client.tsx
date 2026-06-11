@@ -131,7 +131,7 @@ export function BlogPostPageClient({
       <div
         className={cn(
           landingFontClassName,
-          "min-h-[50vh] flex-1 bg-[#fcfcff] dark:bg-background pt-22 sm:pt-24"
+          "min-h-[50vh] flex-1 bg-white dark:bg-background pt-22 sm:pt-24"
         )}
       >
         <div className="mx-auto max-w-3xl px-6 py-16 text-foreground">
@@ -146,7 +146,7 @@ export function BlogPostPageClient({
       <div
         className={cn(
           landingFontClassName,
-          "min-h-[50vh] flex-1 bg-[#fcfcff] dark:bg-background pt-22 sm:pt-24"
+          "min-h-[50vh] flex-1 bg-white dark:bg-background pt-22 sm:pt-24"
         )}
       >
         <div className="mx-auto max-w-3xl px-6 py-16">

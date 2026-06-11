@@ -59,7 +59,7 @@
   --brand: #008b8b;
   --brand-hover: #006b6b;
   /* Brand: blue #2563EB, ink #0F172A, surfaces #F1F5F9 */
-  --background: oklch(0.995 0.003 247);
+  --background: #ffffff;
   --foreground: oklch(0.208 0.042 265.8);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.208 0.042 265.8);
@@ -134,7 +134,7 @@
   color-scheme: light;
   --brand: #008b8b;
   --brand-hover: #006b6b;
-  --background: oklch(0.995 0.003 247);
+  --background: #ffffff;
   --foreground: oklch(0.208 0.042 265.8);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.208 0.042 265.8);

@@ -204,18 +204,9 @@ export function Features() {
   return (
     <section
       id="industry-use-cases"
-      className="relative overflow-hidden bg-gradient-to-b from-white via-[#f5fbfb] to-white px-3 pt-12 pb-16 sm:px-8 sm:pt-20 sm:pb-32"
+      className="bg-white px-3 pt-12 pb-16 sm:px-8 sm:pt-20 sm:pb-32"
     >
-      <div
-        className="pointer-events-none absolute -left-24 top-20 size-72 rounded-full bg-[#008B8B]/10 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-24 top-1/2 size-80 rounded-full bg-[#0D9488]/10 blur-3xl"
-        aria-hidden
-      />
-
-      <div className="relative mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl">
         <div className="mx-auto mb-10 max-w-3xl text-center sm:mb-20">
           <h2 className="font-[family-name:var(--font-landing-headline)] text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
             Industry Use Cases
@@ -348,23 +339,10 @@ export function Features() {
         </div>
         <div
           id="why-hire-a-drone"
-          className="relative mx-auto mt-14 max-w-6xl sm:mt-20"
+          className="mx-auto mt-14 max-w-6xl sm:mt-20"
         >
-          <div
-            className="pointer-events-none absolute inset-x-8 -top-6 h-24 rounded-full bg-[#008B8B]/8 blur-3xl"
-            aria-hidden
-          />
-          <div className="relative overflow-hidden rounded-[2rem] border border-[#008B8B]/15 bg-gradient-to-br from-white via-[#f6fcfc] to-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.07)] sm:p-10 lg:p-12">
-            <div
-              className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-[#0D9488]/10 blur-2xl"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute -bottom-20 -left-16 size-56 rounded-full bg-[#008B8B]/8 blur-3xl"
-              aria-hidden
-            />
-
-            <div className="relative mx-auto max-w-3xl text-center">
+          <div className="overflow-hidden rounded-[2rem] border border-[#008B8B]/15 bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.07)] sm:p-10 lg:p-12">
+            <div className="mx-auto max-w-3xl text-center">
               <span className="inline-flex items-center rounded-full border border-[#008B8B]/20 bg-white px-4 py-1.5 font-[family-name:var(--font-landing-headline)] text-[10px] font-bold uppercase tracking-[0.22em] text-[#008B8B] shadow-sm">
                 Core Values
               </span>
@@ -382,9 +360,9 @@ export function Features() {
               {coreValueHighlights.map(({ icon: Icon, title, description }) => (
                 <li
                   key={title}
-                  className="group flex h-full flex-col rounded-2xl border border-[#008B8B]/12 bg-white/90 p-6 text-center shadow-[0_12px_32px_rgba(15,23,42,0.06)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-[#008B8B]/30 hover:shadow-[0_20px_48px_rgba(0,139,139,0.14)] sm:p-7"
+                  className="group flex h-full flex-col rounded-2xl border border-[#008B8B]/12 bg-white p-6 text-center shadow-[0_12px_32px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-[#008B8B]/30 hover:shadow-[0_20px_48px_rgba(15,23,42,0.1)] sm:p-7"
                 >
-                  <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl border border-[#008B8B]/20 bg-gradient-to-br from-[#f0fafa] to-white shadow-inner transition-transform duration-300 group-hover:scale-105 sm:size-[4.5rem]">
+                  <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl border border-[#008B8B]/20 bg-white shadow-inner transition-transform duration-300 group-hover:scale-105 sm:size-[4.5rem]">
                     <Icon
                       className="size-8 text-[#008B8B] sm:size-9"
                       strokeWidth={1.6}
