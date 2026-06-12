@@ -20,7 +20,6 @@ import {
   MapPinned,
   Megaphone,
   Package,
-  Radar,
   Radio,
   ScanLine,
   Search,
@@ -43,22 +42,6 @@ function isIconListItem(
 }
 
 const items = [
-  {
-    icon: Radar,
-    title: "Defence & Surveillance",
-    image: "/images/defence-surveillance-hero-v2.png",
-    imageAlt:
-      "Surveillance drone hovering over a fortified border fence and watchtower at sunset",
-    imageObjectPosition: "object-[72%_6%]",
-    imageContainerClass: "relative h-40 w-full shrink-0 sm:h-44",
-    description: [
-      { text: "Border Surveillance", icon: Map },
-      { text: "Perimeter Security Monitoring", icon: ScanLine },
-      { text: "Reconnaissance & Intelligence Gathering", icon: Radar },
-      { text: "Critical Infrastructure Protection", icon: Building2 },
-      { text: "Search & Rescue Operations", icon: Heart },
-    ],
-  },
   {
     icon: Tractor,
     title: "Agriculture & Spraying",
