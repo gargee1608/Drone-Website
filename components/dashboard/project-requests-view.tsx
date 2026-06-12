@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ProjectRequestDetailModal } from "@/components/dashboard/project-request-detail-modal";
-import { UserRequestStatCard } from "@/components/dashboard/user-request-stat-card";
+import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
 import { UserRequestTable } from "@/components/dashboard/user-request-table";
 import { apiUrl } from "@/lib/api-url";
 import {
@@ -57,7 +57,7 @@ type ProjectEditForm = ParsedPostRequirement & {
 };
 
 const editFieldClass =
-  "w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35 dark:border-white/20 dark:bg-black dark:text-white";
+  "w-full rounded-lg border border-border bg-white px-2.5 py-1.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/35 dark:border-white/20 dark:bg-black dark:text-white";
 
 const editLabelClass =
   "mb-1 block text-xs font-semibold text-muted-foreground";
@@ -376,36 +376,40 @@ export function ProjectRequestsView({
       ) : null}
 
       <section
-        className="mt-6 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4"
+        className="mt-6 grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-4"
         aria-label="Project request summary: total, pending, active or assigned, and completed deliveries"
       >
-        <UserRequestStatCard
-          label="Total requests"
+        <AdminKpiCard
+          title="Total requests"
           value={stats.total}
           icon={ClipboardList}
           iconClassName="text-[#008B8B]"
-          iconWrapClassName="bg-[#008B8B]/10"
+          iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
+          accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
         />
-        <UserRequestStatCard
-          label="Pending Request"
+        <AdminKpiCard
+          title="Pending Request"
           value={stats.pending}
           icon={Clock}
-          iconClassName="text-amber-700"
-          iconWrapClassName="bg-amber-100"
+          iconClassName="text-[#ba1a1a]"
+          iconBg="bg-gradient-to-br from-[#ffdad6] to-[#ffdad6]/40 dark:from-red-950/60 dark:to-red-950/30"
+          accentClass="bg-gradient-to-r from-[#ba1a1a] to-[#e53935]"
         />
-        <UserRequestStatCard
-          label="Active / Assigned"
+        <AdminKpiCard
+          title="Active / Assigned"
           value={stats.activeAssigned}
           icon={CheckCircle2}
-          iconClassName="text-emerald-700"
-          iconWrapClassName="bg-emerald-100"
+          iconClassName="text-green-700 dark:text-green-400"
+          iconBg="bg-gradient-to-br from-green-100 to-green-50 dark:from-green-950/50 dark:to-green-950/20"
+          accentClass="bg-gradient-to-r from-green-600 to-emerald-400"
         />
-        <UserRequestStatCard
-          label="Completed Projects"
+        <AdminKpiCard
+          title="Completed Projects"
           value={stats.completedDeliveries}
           icon={PackageCheck}
-          iconClassName="text-sky-800"
-          iconWrapClassName="bg-sky-100"
+          iconClassName="text-sky-800 dark:text-sky-300"
+          iconBg="bg-gradient-to-br from-sky-100 to-sky-50 dark:from-sky-950/50 dark:to-sky-950/20"
+          accentClass="bg-gradient-to-r from-sky-600 to-sky-400"
         />
       </section>
 
@@ -444,13 +448,13 @@ export function ProjectRequestsView({
               setRequestEditForm(null);
             }}
           />
-          <div className="relative z-10 max-h-[min(92dvh,44rem)] w-full max-w-3xl overflow-y-auto rounded-t-2xl border border-border bg-white p-5 text-foreground shadow-2xl sm:rounded-2xl sm:p-6 dark:border-white/20 dark:bg-black dark:text-white">
-            <div className="flex items-start justify-between gap-4">
+          <div className="relative z-10 max-h-[min(88dvh,38rem)] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-border bg-white p-4 text-foreground shadow-2xl sm:rounded-2xl sm:p-5 dark:border-white/20 dark:bg-black dark:text-white">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-foreground">
+                <h2 className="text-base font-bold text-foreground">
                   Edit project request
                 </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   Same fields as Post Your Requirement.
                 </p>
               </div>
@@ -467,8 +471,8 @@ export function ProjectRequestsView({
               </button>
             </div>
 
-            <div className="mt-5 space-y-6">
-              <fieldset className="space-y-3">
+            <div className="mt-4 space-y-4">
+              <fieldset className="space-y-2.5">
                 <legend className="text-sm font-bold text-foreground">
                   1. Project Information
                 </legend>
@@ -484,7 +488,7 @@ export function ProjectRequestsView({
                   value={requestEditForm.preferredLocation}
                   onChange={(v) => updateEditForm("preferredLocation", v)}
                 />
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-2.5 sm:grid-cols-2">
                   <label className="block text-sm">
                     <span className={editLabelClass}>Expected start date *</span>
                     <input
@@ -539,7 +543,7 @@ export function ProjectRequestsView({
                     onChange={(e) =>
                       updateEditForm("projectDescription", e.target.value)
                     }
-                    className={cn(editFieldClass, "min-h-[88px] resize-y")}
+                    className={cn(editFieldClass, "min-h-[72px] resize-y")}
                   />
                 </label>
                 <label className="block text-sm">
@@ -562,11 +566,11 @@ export function ProjectRequestsView({
                 </label>
               </fieldset>
 
-              <fieldset className="space-y-3 border-t border-border pt-5">
+              <fieldset className="space-y-2.5 border-t border-border pt-4">
                 <legend className="text-sm font-bold text-foreground">
                   2. Contact details
                 </legend>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-2.5 sm:grid-cols-2">
                   <EditField
                     label="Name / Company (optional)"
                     value={requestEditForm.contactName}
@@ -588,14 +592,14 @@ export function ProjectRequestsView({
               </p>
             ) : null}
 
-            <div className="mt-6 flex flex-wrap justify-end gap-2">
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setEditingRequest(null);
                   setRequestEditForm(null);
                 }}
-                className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted sm:text-sm"
               >
                 Cancel
               </button>
@@ -603,7 +607,7 @@ export function ProjectRequestsView({
                 type="button"
                 disabled={requestSaving}
                 onClick={() => void saveRequestEdit()}
-                className="rounded-lg bg-[#008B8B] px-4 py-2 text-sm font-semibold text-white hover:bg-[#007474] disabled:opacity-60"
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-black hover:bg-muted/50 disabled:opacity-60 dark:border-white/20 dark:text-white dark:hover:bg-white/5 sm:text-sm"
               >
                 {requestSaving ? "Saving…" : "Save changes"}
               </button>

@@ -1,4 +1,9 @@
 import {
+  ADMIN_URGENCY_BADGE_CRITICAL,
+  ADMIN_URGENCY_BADGE_NORMAL,
+  ADMIN_URGENCY_BADGE_ROUTINE,
+} from "@/lib/admin-dashboard-styles";
+import {
   formatPostRequirementDesc,
   parsePostRequirementBackend,
 } from "@/lib/post-requirement-parse";
@@ -57,18 +62,16 @@ export function mapBackendRequestToAdminRow(
     .trim()
     .toLowerCase();
   let badge: UserRequestAdminRow["badge"] = "NORMAL";
-  let badgeClass =
-    "bg-[#cde5ff] text-[#001d32] dark:bg-blue-950/50 dark:text-blue-200";
+  let badgeClass = ADMIN_URGENCY_BADGE_NORMAL;
   let barColor = "#006195";
 
   if (urgency === "critical" || urgency === "urgent") {
     badge = "CRITICAL";
-    badgeClass =
-      "bg-[#ffdad6] text-[#93000a] dark:bg-red-950/50 dark:text-red-200";
+    badgeClass = ADMIN_URGENCY_BADGE_CRITICAL;
     barColor = "#ba1a1a";
   } else if (urgency === "standard" || urgency === "routine") {
     badge = "ROUTINE";
-    badgeClass = "bg-[#008B8B]/14 text-[#0a3030]";
+    badgeClass = ADMIN_URGENCY_BADGE_ROUTINE;
     barColor = "#008B8B";
   }
 

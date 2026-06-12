@@ -110,28 +110,13 @@ function HomeFooter({
     <footer
       className={cn(
         "relative z-[60] w-full shrink-0 overflow-hidden",
-        "bg-gradient-to-b from-white via-[#f5fbfb] to-[#eef8f8]",
+        "bg-white",
         "transition-[padding-left,padding-right] duration-200 ease-out",
         overlaySuppressed && footerOverlaySuppressedClass,
         className
       )}
       role="contentinfo"
     >
-      <div
-        className={cn(
-          "pointer-events-none absolute -left-32 top-8 size-80 rounded-full bg-[#008B8B]/10 blur-3xl",
-          overlaySuppressed && "opacity-0"
-        )}
-        aria-hidden
-      />
-      <div
-        className={cn(
-          "pointer-events-none absolute -right-24 bottom-20 size-96 rounded-full bg-[#0D9488]/10 blur-3xl",
-          overlaySuppressed && "opacity-0"
-        )}
-        aria-hidden
-      />
-
       <div
         className={cn(
           "landing-section-rule h-px w-full",

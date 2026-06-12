@@ -1755,7 +1755,7 @@ export function AssignPilotDroneView() {
             <div className="overflow-hidden rounded-lg border border-border">
               <table className="w-full table-fixed border-collapse text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-border dark:bg-muted/40">
+                  <tr className="border-b border-border bg-white dark:bg-black">
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
                       Request ID
                     </th>

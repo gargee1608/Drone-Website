@@ -20,8 +20,13 @@ import {
   UserRequestDetailModal,
   type UserRequestDetailPayload,
 } from "@/components/dashboard/user-request-detail-modal";
-import { UserRequestStatCard } from "@/components/dashboard/user-request-stat-card";
+import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
 import { UserRequestTable } from "@/components/dashboard/user-request-table";
+import {
+  ADMIN_URGENCY_BADGE_CRITICAL,
+  ADMIN_URGENCY_BADGE_NORMAL,
+  ADMIN_URGENCY_BADGE_ROUTINE,
+} from "@/lib/admin-dashboard-styles";
 import {
   ADMIN_PAGE_TITLE_CLASS,
   ADMIN_PAGE_TOP_PADDING_CLASS,
@@ -126,8 +131,7 @@ function staticRequestToAdminRow(
       key: `demo-${r.title}`,
       title: r.title,
       badge: "CRITICAL",
-      badgeClass:
-        "bg-[#ffdad6] text-[#93000a] dark:bg-red-950/50 dark:text-red-200",
+      badgeClass: ADMIN_URGENCY_BADGE_CRITICAL,
       barColor: "#ba1a1a",
       desc,
       adminStatus,
@@ -138,8 +142,7 @@ function staticRequestToAdminRow(
       key: `demo-${r.title}`,
       title: r.title,
       badge: "NORMAL",
-      badgeClass:
-        "bg-[#cde5ff] text-[#001d32] dark:bg-blue-950/50 dark:text-blue-200",
+      badgeClass: ADMIN_URGENCY_BADGE_NORMAL,
       barColor: "#006195",
       desc,
       adminStatus,
@@ -149,8 +152,7 @@ function staticRequestToAdminRow(
     key: `demo-${r.title}`,
     title: r.title,
     badge: "ROUTINE",
-    badgeClass:
-      "bg-[#008B8B]/14 text-[#0a3030] dark:bg-[#008B8B]/25 dark:text-teal-100",
+    badgeClass: ADMIN_URGENCY_BADGE_ROUTINE,
     barColor: "#008B8B",
     desc,
     adminStatus,
@@ -509,36 +511,43 @@ export function UserRequestsView({
       </p>
 
       <section
-        className={`grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4 ${showPageTitle ? "mt-6" : "mt-4"}`}
+        className={cn(
+          "grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-4",
+          showPageTitle ? "mt-6" : "mt-4"
+        )}
         aria-label="Request summary: total, pending requests, active or assigned, and completed deliveries"
       >
-        <UserRequestStatCard
-          label="Total requests"
+        <AdminKpiCard
+          title="Total requests"
           value={stats.total}
           icon={ClipboardList}
           iconClassName="text-[#008B8B]"
-          iconWrapClassName="bg-[#008B8B]/10"
+          iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
+          accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
         />
-        <UserRequestStatCard
-          label="Pending Request"
+        <AdminKpiCard
+          title="Pending Request"
           value={stats.pending}
           icon={Clock}
-          iconClassName="text-amber-700"
-          iconWrapClassName="bg-amber-100"
+          iconClassName="text-[#ba1a1a]"
+          iconBg="bg-gradient-to-br from-[#ffdad6] to-[#ffdad6]/40 dark:from-red-950/60 dark:to-red-950/30"
+          accentClass="bg-gradient-to-r from-[#ba1a1a] to-[#e53935]"
         />
-        <UserRequestStatCard
-          label="Active / Assigned"
+        <AdminKpiCard
+          title="Active / Assigned"
           value={stats.activeAssigned}
           icon={CheckCircle2}
-          iconClassName="text-emerald-700"
-          iconWrapClassName="bg-emerald-100"
+          iconClassName="text-green-700 dark:text-green-400"
+          iconBg="bg-gradient-to-br from-green-100 to-green-50 dark:from-green-950/50 dark:to-green-950/20"
+          accentClass="bg-gradient-to-r from-green-600 to-emerald-400"
         />
-        <UserRequestStatCard
-          label="Completed Deliveries"
+        <AdminKpiCard
+          title="Completed Deliveries"
           value={completedDeliveriesDisplay}
           icon={PackageCheck}
-          iconClassName="text-sky-800"
-          iconWrapClassName="bg-sky-100"
+          iconClassName="text-sky-800 dark:text-sky-300"
+          iconBg="bg-gradient-to-br from-sky-100 to-sky-50 dark:from-sky-950/50 dark:to-sky-950/20"
+          accentClass="bg-gradient-to-r from-sky-600 to-sky-400"
         />
       </section>
 

@@ -9,10 +9,11 @@ import {
   PackageCheck,
   Pencil,
   Trash2,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { UserRequestStatCard } from "@/components/dashboard/user-request-stat-card";
+import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
 import { apiUrl } from "@/lib/api-url";
 import {
   type BackendDroneHireRequestRow,
@@ -1028,40 +1029,43 @@ export function CompletedDeliveriesView({
         </div>
 
         <section
-          className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3"
+          className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3"
           aria-label="Request summary: total, pending requests, and completed deliveries"
         >
-          <UserRequestStatCard
-            label="Total requests"
+          <AdminKpiCard
+            title="Total requests"
             value={stats.total}
             icon={ClipboardList}
             iconClassName="text-[#008B8B]"
-            iconWrapClassName="bg-[#008B8B]/10"
+            iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
+            accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
           />
-          <UserRequestStatCard
-            label="Pending Request"
+          <AdminKpiCard
+            title="Pending Request"
             value={stats.pending}
             icon={Clock}
-            iconClassName="text-amber-700"
-            iconWrapClassName="bg-amber-100"
+            iconClassName="text-[#ba1a1a]"
+            iconBg="bg-gradient-to-br from-[#ffdad6] to-[#ffdad6]/40 dark:from-red-950/60 dark:to-red-950/30"
+            accentClass="bg-gradient-to-r from-[#ba1a1a] to-[#e53935]"
           />
-          <UserRequestStatCard
-            label="Completed Deliveries"
+          <AdminKpiCard
+            title="Completed Deliveries"
             value={completedDeliveriesDisplay}
             icon={PackageCheck}
-            iconClassName="text-sky-800"
-            iconWrapClassName="bg-sky-100"
+            iconClassName="text-sky-800 dark:text-sky-300"
+            iconBg="bg-gradient-to-br from-sky-100 to-sky-50 dark:from-sky-950/50 dark:to-sky-950/20"
+            accentClass="bg-gradient-to-r from-sky-600 to-sky-400"
           />
         </section>
       </header>
 
       <section className="space-y-4">
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-muted-foreground shadow-sm">
+          <div className="rounded-xl border border-border bg-card dark:bg-black p-6 text-center text-sm text-muted-foreground shadow-sm">
             Loading completed missions...
           </div>
         ) : paginatedRows.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-muted-foreground shadow-sm">
+          <div className="rounded-xl border border-border bg-card dark:bg-black p-6 text-center text-sm text-muted-foreground shadow-sm">
             No completed missions yet.
           </div>
         ) : (
@@ -1124,9 +1128,10 @@ export function CompletedDeliveriesView({
               <button
                 type="button"
                 onClick={() => setEditingDelivery(null)}
-                className="rounded-lg border border-border px-2 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-muted"
+                className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted dark:text-white/80 dark:hover:bg-white/10"
+                aria-label="Close edit completed delivery dialog"
               >
-                Close
+                <X className="size-4" aria-hidden />
               </button>
             </div>
 
@@ -1223,7 +1228,7 @@ export function CompletedDeliveriesView({
                 type="button"
                 disabled={deliverySaving}
                 onClick={() => void saveDeliveryEdit()}
-                className="rounded-lg bg-[#008B8B] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#007373] disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border border-[#008B8B] bg-transparent px-4 py-2 text-sm font-bold text-[#008B8B] transition hover:bg-[#008B8B]/8 disabled:cursor-not-allowed disabled:opacity-60 dark:border-primary dark:text-primary dark:hover:bg-[#008B8B]/15"
               >
                 {deliverySaving ? "Saving..." : "Save changes"}
               </button>
@@ -1358,8 +1363,8 @@ function CompletedDeliveryDetailCard({
   const hasUserLine = row.userName !== "—" || row.userEmail !== "—";
 
   return (
-    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+    <section className="overflow-hidden rounded-xl border border-border bg-card dark:bg-black shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-white dark:bg-black px-4 py-3">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             {isAdminConfirmed ? "Completed delivery" : "Assigned delivery"}

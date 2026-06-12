@@ -22,6 +22,10 @@ import { usePilotDashboardNav } from "@/components/pilot-dashboard/pilot-dashboa
 import { getPilotDisplayName, jwtPayloadRole } from "@/lib/pilot-display-name";
 import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
 import { clearAuthSession } from "@/lib/auth-session-browser";
+import {
+  ADMIN_DASH_AVATAR_RING,
+  ADMIN_DASH_PANEL_BORDER,
+} from "@/lib/admin-dashboard-styles";
 import { ADMIN_PAGE_TITLE_CLASS } from "@/lib/page-heading";
 import { cn } from "@/lib/utils";
 
@@ -80,6 +84,69 @@ function pilotShellNavItemIsActive(pathname: string | null, href: string) {
     );
   }
   return pathname === base || pathname.startsWith(`${base}/`);
+}
+
+function pilotDisplayInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "P";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
+}
+
+function PilotDashboardHero({
+  pageTitle,
+  pilotWelcome,
+}: {
+  pageTitle: string;
+  pilotWelcome: string | null;
+}) {
+  return (
+    <header
+      className={cn(
+        "relative mb-8 hidden overflow-hidden rounded-2xl bg-white dark:bg-black lg:block sm:mb-10",
+        ADMIN_DASH_PANEL_BORDER
+      )}
+    >
+      <div className="relative p-5 sm:p-7">
+        <div className="min-w-0">
+          <div className="flex items-center gap-4 sm:gap-5">
+            <div
+              className={cn(
+                "flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[#008B8B]/25 bg-gradient-to-br from-[#008B8B]/20 to-[#008B8B]/5 text-sm font-bold tracking-tight text-[#008B8B] shadow-sm sm:size-14 sm:text-base",
+                ADMIN_DASH_AVATAR_RING
+              )}
+              aria-hidden
+            >
+              {pilotWelcome ? (
+                pilotDisplayInitials(pilotWelcome)
+              ) : (
+                <Plane className="size-6 sm:size-7" strokeWidth={2.25} />
+              )}
+            </div>
+            <div className="min-w-0">
+              <h1 className={ADMIN_PAGE_TITLE_CLASS}>{pageTitle}</h1>
+              <span
+                className="mt-2.5 block h-1 w-10 rounded-full bg-gradient-to-r from-[#008B8B] to-[#008B8B]/40 sm:mt-3"
+                aria-hidden
+              />
+            </div>
+          </div>
+          {pilotWelcome ? (
+            <p className="mt-4 text-sm text-muted-foreground sm:mt-5 sm:text-base">
+              Welcome back,{" "}
+              <span className="font-semibold text-foreground">
+                {pilotWelcome}
+              </span>
+            </p>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground sm:mt-5">
+              Monitor missions, duty status, and deliveries at a glance.
+            </p>
+          )}
+        </div>
+      </div>
+    </header>
+  );
 }
 
 function SidebarNavLinks({ onNavigate }: { onNavigate?: () => void }) {
@@ -329,19 +396,10 @@ export function PilotDashboardShell({
                   {isMainPilotDashboard ? (
                     <>
                       <h1 className="sr-only lg:hidden">{pageTitle}</h1>
-                      <h1
-                        className={cn(
-                          ADMIN_PAGE_TITLE_CLASS,
-                          "mb-4 hidden lg:block sm:mb-5"
-                        )}
-                      >
-                        {pageTitle}
-                      </h1>
-                      {pilotWelcome ? (
-                        <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
-                          Welcome, {pilotWelcome}
-                        </h2>
-                      ) : null}
+                      <PilotDashboardHero
+                        pageTitle={pageTitle}
+                        pilotWelcome={pilotWelcome}
+                      />
                     </>
                   ) : (
                     <h1 className="sr-only">{pageTitle}</h1>
@@ -380,7 +438,7 @@ export function PilotDashboardShell({
                   </div>
                   {pilotWelcome && isMainPilotDashboard ? (
                     <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
-                      Welcome, {pilotWelcome}
+                      Welcome back, {pilotWelcome}
                     </h2>
                   ) : null}
                   {children}

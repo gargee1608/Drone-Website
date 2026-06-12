@@ -6,8 +6,9 @@ import {
   Clock,
   MapPin,
 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useCallback, useState } from "react";
 
+import { RobotCaptcha } from "@/components/captcha/robot-captcha";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { appendContactInquiry } from "@/lib/contact-inquiries";
 import { apiUrl } from "@/lib/api-url";
@@ -23,6 +24,12 @@ const HERO_DRONE_SRC =
 export function ContactView() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [robotVerified, setRobotVerified] = useState(false);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+
+  const resetCaptcha = useCallback(() => {
+    setRobotVerified(false);
+  }, []);
 
   async function handleInquirySubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,7 +41,12 @@ export function ContactView() {
     const phone = String(fd.get("phone") ?? "").trim() || undefined;
     const message = String(fd.get("message") ?? "").trim();
     if (!fullName || !email || !message) return;
+    if (!robotVerified) {
+      setCaptchaError('Please tick "I\'m not a robot" before submitting.');
+      return;
+    }
 
+    setCaptchaError(null);
     setSubmitting(true);
     setSubmitted(false);
     try {
@@ -48,6 +60,7 @@ export function ContactView() {
           email,
           phone,
           message,
+          robot_verified: true,
         }),
       });
 
@@ -59,7 +72,14 @@ export function ContactView() {
       }
 
       if (!res.ok) {
-        alert(payload.error || payload.message || "Could not submit inquiry.");
+        const message =
+          payload.error || payload.message || "Could not submit inquiry.";
+        if (message.toLowerCase().includes("captcha")) {
+          setCaptchaError(message);
+        } else {
+          alert(message);
+        }
+        resetCaptcha();
         return;
       }
 
@@ -73,9 +93,11 @@ export function ContactView() {
 
       setSubmitted(true);
       form.reset();
+      resetCaptcha();
     } catch (error) {
       console.error(error);
       alert("Could not connect to backend. Please ensure the API is running.");
+      resetCaptcha();
     } finally {
       setSubmitting(false);
     }
@@ -179,13 +201,27 @@ export function ContactView() {
                 />
               </label>
 
+              <RobotCaptcha
+                checked={robotVerified}
+                onChange={(checked) => {
+                  setRobotVerified(checked);
+                  if (checked) setCaptchaError(null);
+                }}
+              />
+
+              {captchaError ? (
+                <p className="text-sm text-red-600" role="alert">
+                  {captchaError}
+                </p>
+              ) : null}
+
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !robotVerified}
                   className={cn(
                     "inline-flex items-center justify-center rounded-lg border-2 border-[#006a6e] bg-transparent px-5 py-2.5 font-[family-name:var(--font-landing-headline)] text-xs font-bold uppercase tracking-wider text-[#006a6e] transition hover:bg-[#006a6e]/10 sm:ml-auto",
-                    submitting && "cursor-not-allowed opacity-60"
+                    (submitting || !robotVerified) && "cursor-not-allowed opacity-60"
                   )}
                 >
                   {submitting ? "Submitting..." : "Submit inquiry"}

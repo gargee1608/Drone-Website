@@ -12,17 +12,8 @@ const heroHighlights = [
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-0 flex-col items-center justify-start overflow-hidden bg-gradient-to-br from-white via-[#f5fbfb] to-white px-3 pt-5 pb-12 sm:min-h-[min(820px,90svh)] sm:px-8 sm:pt-8 sm:pb-16 lg:pt-12">
-      <div
-        className="pointer-events-none absolute -left-28 top-24 size-80 rounded-full bg-[#008B8B]/10 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-24 bottom-16 size-96 rounded-full bg-[#0D9488]/10 blur-3xl"
-        aria-hidden
-      />
-
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-8 sm:gap-12 lg:grid-cols-2 lg:gap-16">
+    <section className="relative flex min-h-0 flex-col items-center justify-start overflow-hidden bg-white px-3 pt-5 pb-12 sm:min-h-[min(820px,90svh)] sm:px-8 sm:pt-8 sm:pb-16 lg:pt-12">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-8 sm:gap-12 lg:grid-cols-2 lg:gap-16">
         <div className="hero-content-enter rounded-3xl border border-[#008B8B]/10 bg-white/80 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none">
           <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[#008B8B]/20 bg-white px-3 py-2 font-[family-name:var(--font-landing-headline)] text-[9px] font-bold uppercase tracking-[0.16em] text-[#008B8B] shadow-sm sm:px-4 sm:text-[10px] sm:tracking-[0.22em]">
             <ShieldCheck className="size-4" aria-hidden />

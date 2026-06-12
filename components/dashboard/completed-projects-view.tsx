@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ProjectRequestDetailModal } from "@/components/dashboard/project-request-detail-modal";
-import { UserRequestStatCard } from "@/components/dashboard/user-request-stat-card";
+import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
 import { tableRequestId } from "@/components/dashboard/user-request-table";
 import { apiUrl } from "@/lib/api-url";
 import {
@@ -342,40 +342,43 @@ export function CompletedProjectsView({
         </div>
 
         <section
-          className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3"
+          className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3"
           aria-label="Project request summary: total, pending, and completed projects"
         >
-          <UserRequestStatCard
-            label="Total requests"
+          <AdminKpiCard
+            title="Total requests"
             value={stats.total}
             icon={ClipboardList}
             iconClassName="text-[#008B8B]"
-            iconWrapClassName="bg-[#008B8B]/10"
+            iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
+            accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
           />
-          <UserRequestStatCard
-            label="Pending Request"
+          <AdminKpiCard
+            title="Pending Request"
             value={stats.pending}
             icon={Clock}
-            iconClassName="text-amber-700"
-            iconWrapClassName="bg-amber-100"
+            iconClassName="text-[#ba1a1a]"
+            iconBg="bg-gradient-to-br from-[#ffdad6] to-[#ffdad6]/40 dark:from-red-950/60 dark:to-red-950/30"
+            accentClass="bg-gradient-to-r from-[#ba1a1a] to-[#e53935]"
           />
-          <UserRequestStatCard
-            label="Completed Projects"
+          <AdminKpiCard
+            title="Completed Projects"
             value={stats.completedDeliveries}
             icon={PackageCheck}
-            iconClassName="text-sky-800"
-            iconWrapClassName="bg-sky-100"
+            iconClassName="text-sky-800 dark:text-sky-300"
+            iconBg="bg-gradient-to-br from-sky-100 to-sky-50 dark:from-sky-950/50 dark:to-sky-950/20"
+            accentClass="bg-gradient-to-r from-sky-600 to-sky-400"
           />
         </section>
       </header>
 
       <section className="space-y-4">
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-muted-foreground shadow-sm">
+          <div className="rounded-xl border border-border bg-card dark:bg-black p-6 text-center text-sm text-muted-foreground shadow-sm">
             Loading completed projects...
           </div>
         ) : rows.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-muted-foreground shadow-sm">
+          <div className="rounded-xl border border-border bg-card dark:bg-black p-6 text-center text-sm text-muted-foreground shadow-sm">
             No completed projects yet.
           </div>
         ) : (
@@ -438,8 +441,8 @@ function CompletedProjectDetailCard({
   const status = projectStatusLabel(row);
 
   return (
-    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+    <section className="overflow-hidden rounded-xl border border-border bg-card dark:bg-black shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-white dark:bg-black px-4 py-3">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             Completed project

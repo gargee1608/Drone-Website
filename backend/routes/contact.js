@@ -1,9 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
-
 router.post("/submit-inquiry", async (req, res) => {
   try {
+    if (req.body.robot_verified !== true) {
+      return res.status(400).json({
+        error: 'Please tick "I\'m not a robot" before submitting.',
+      });
+    }
+
     const {
       full_name,
       email,

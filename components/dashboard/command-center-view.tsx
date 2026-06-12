@@ -2,8 +2,18 @@
 
 import {
   Activity,
+  Camera,
   ClipboardList,
+  Clock,
+  IdCard,
+  LayoutDashboard,
+  Mail,
+  MapPin,
+  Package,
+  PackageCheck,
+  Phone,
   Plane,
+  ShieldCheck,
   User,
   UserCheck,
   Users,
@@ -12,14 +22,21 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { getPilotById } from "@/app/services/pilotServices";
+import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/api-url";
-import { PROFILE_INFO_POPUP_SHELL_CLASS } from "@/lib/profile-popup-styles";
+import {
+  flightHoursFromPilotRow,
+  missionsCompletedFromPilotRow,
+} from "@/lib/pilot-db-metrics";
+import {
+  PROFILE_INFO_POPUP_SHELL_CLASS,
+} from "@/lib/profile-popup-styles";
 import { type PilotRegCard } from "@/lib/admin-pilot-registration-storage";
 import {
   ADMIN_DASH_AVATAR_RING,
   ADMIN_DASH_PANEL_BORDER,
-  ADMIN_DASH_STAT_CARD_SURFACE,
 } from "@/lib/admin-dashboard-styles";
 import {
   ADMIN_PROFILE_UPDATED_EVENT,
@@ -271,7 +288,7 @@ export function DashboardHomeContent() {
       <AdminDashboardHero adminWelcome={adminWelcome} />
 
       <section className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
+        <AdminKpiCard
           title="Total Pilots"
           value={dbTotalPilots.toLocaleString()}
           icon={Users}
@@ -279,7 +296,7 @@ export function DashboardHomeContent() {
           iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
           accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
         />
-        <KpiCard
+        <AdminKpiCard
           title="Total Drones"
           value={dbTotalDrones.toLocaleString()}
           icon={Plane}
@@ -287,7 +304,7 @@ export function DashboardHomeContent() {
           iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
           accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
         />
-        <KpiCard
+        <AdminKpiCard
           title="Pilot registration pending"
           value={String(pendingPilots.length)}
           icon={ClipboardList}
@@ -295,7 +312,7 @@ export function DashboardHomeContent() {
           iconBg="bg-gradient-to-br from-[#ffdad6] to-[#ffdad6]/40 dark:from-red-950/60 dark:to-red-950/30"
           accentClass="bg-gradient-to-r from-[#ba1a1a] to-[#e53935]"
         />
-        <KpiCard
+        <AdminKpiCard
           title="Registered pilots"
           value={registeredTotalDisplay}
           icon={UserCheck}
@@ -326,23 +343,30 @@ function AdminDashboardHero({
   return (
     <header
       className={cn(
-        "admin-dash-hero relative mt-6 overflow-hidden rounded-2xl sm:mt-8",
+        "relative mt-6 overflow-hidden rounded-2xl bg-white dark:bg-black sm:mt-8",
         ADMIN_DASH_PANEL_BORDER
       )}
     >
-      <div
-        className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-[#008B8B]/20 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-6 left-1/3 size-28 rounded-full bg-[#008B8B]/10 blur-2xl"
-        aria-hidden
-      />
       <div className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
         <div className="min-w-0">
-          <h1 className={ADMIN_PAGE_TITLE_CLASS}>
-            Admin Dashboard
-          </h1>
+          <div className="flex items-center gap-3">
+            <div
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#008B8B]/25 bg-[#008B8B]/10 shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06] sm:size-11"
+              aria-hidden
+            >
+              <LayoutDashboard
+                className="size-5 text-[#008B8B] sm:size-6"
+                strokeWidth={2.25}
+              />
+            </div>
+            <div className="min-w-0">
+              <h1 className={ADMIN_PAGE_TITLE_CLASS}>Admin Dashboard</h1>
+              <span
+                className="mt-1.5 block h-1 w-10 rounded-full bg-gradient-to-r from-[#008B8B] to-[#008B8B]/40"
+                aria-hidden
+              />
+            </div>
+          </div>
           {adminWelcome ? (
             <p className="mt-2 text-sm text-muted-foreground sm:text-base">
               Welcome back,{" "}
@@ -378,52 +402,6 @@ function pilotInitials(name: string): string {
   return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
 }
 
-function KpiCard({
-  title,
-  value,
-  icon: Icon,
-  iconClassName,
-  iconBg,
-  accentClass,
-}: {
-  title: string;
-  value: string;
-  icon: React.ComponentType<{ className?: string }>;
-  iconClassName: string;
-  iconBg: string;
-  accentClass: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "admin-kpi-card group relative overflow-hidden cc-glass-card flex items-center justify-between rounded-2xl p-5 transition-all duration-300 hover:-translate-y-0.5",
-        ADMIN_DASH_STAT_CARD_SURFACE
-      )}
-    >
-      <div
-        className={cn("absolute inset-x-0 top-0 h-1 opacity-90", accentClass)}
-        aria-hidden
-      />
-      <div className="min-w-0 pr-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          {title}
-        </p>
-        <h2 className="mt-1.5 text-2xl font-bold tabular-nums tracking-tight text-foreground sm:text-[1.75rem]">
-          {value}
-        </h2>
-      </div>
-      <div
-        className={cn(
-          "shrink-0 rounded-xl p-3 ring-1 ring-black/[0.04] transition-transform duration-300 group-hover:scale-105 dark:ring-white/[0.06]",
-          iconBg
-        )}
-      >
-        <Icon className={cn("size-6 sm:size-7", iconClassName)} aria-hidden />
-      </div>
-    </div>
-  );
-}
-
 function PendingRegistrationsSection({
   pendingPilots,
   approvedPilots,
@@ -448,7 +426,7 @@ function PendingRegistrationsSection({
         ADMIN_DASH_PANEL_BORDER
       )}
     >
-      <div className="bg-muted/30 px-4 py-4 sm:px-6 sm:py-5">
+      <div className="bg-card px-4 py-4 sm:px-6 sm:py-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#008B8B]">
@@ -624,7 +602,7 @@ function PilotRegistrationsTable({
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-border bg-gradient-to-r from-[#008B8B]/8 via-muted/40 to-transparent dark:from-[#008B8B]/15">
+            <tr className="border-b border-border bg-white dark:bg-black">
               <th scope="col" className={thBase}>
                 Pilot Name
               </th>
@@ -659,12 +637,14 @@ function PilotRegistrationsTable({
                     >
                       {pilotInitials(p.name)}
                     </div>
-                    <span
-                      className="block truncate font-medium text-foreground"
-                      title={p.name}
+                    <button
+                      type="button"
+                      onClick={() => onViewProfile(p)}
+                      className="block min-w-0 truncate text-left font-medium text-foreground underline-offset-2 transition-colors hover:text-[#008B8B] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008B8B]/40 focus-visible:ring-offset-1"
+                      title={`View ${p.name} details`}
                     >
                       {p.name}
-                    </span>
+                    </button>
                   </div>
                 </td>
                 {detailColumns.map((col) => {
@@ -731,11 +711,69 @@ function PilotRegistrationsTable({
 }
 
 
+function pilotIdFromCard(pilot: PilotRegCard): string | null {
+  const rowId = pilot.rows.find((r) => r.k === "Pilot ID")?.v?.trim();
+  if (rowId && /^\d+$/.test(rowId)) return rowId;
+  const match = pilot.id.match(/^db-(?:approved|pending)-(\d+)$/);
+  return match?.[1] ?? null;
+}
+
+function pickPilotRecordStr(
+  record: Record<string, unknown> | null,
+  keys: readonly string[]
+): string {
+  if (!record) return "";
+  for (const k of keys) {
+    const v = record[k];
+    if (v == null) continue;
+    const s = String(v).trim();
+    if (s) return s;
+  }
+  return "";
+}
+
+function parsePilotDroneDetails(raw: unknown): Record<string, unknown>[] {
+  if (Array.isArray(raw)) {
+    return raw.filter(
+      (x): x is Record<string, unknown> =>
+        x != null && typeof x === "object" && !Array.isArray(x)
+    );
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(
+          (x): x is Record<string, unknown> =>
+            x != null && typeof x === "object" && !Array.isArray(x)
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return [];
+}
+
+function parsePilotUseCasesList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v ?? "").trim()).filter(Boolean);
+  }
+  const text = String(value ?? "").trim();
+  if (!text) return [];
+  return text.split(/,\s*/).filter(Boolean);
+}
+
 function pilotProfileRow(
   pilot: PilotRegCard,
-  key: string
+  key: string,
+  alternateKeys: readonly string[] = []
 ): { label: string; value: string; valueClass?: string } {
-  const row = pilot.rows.find((r) => r.k === key);
+  const row =
+    pilot.rows.find((r) => r.k === key) ??
+    alternateKeys
+      .map((altKey) => pilot.rows.find((r) => r.k === altKey))
+      .find(Boolean);
   return {
     label: key,
     value: row?.v?.trim() || "—",
@@ -743,21 +781,189 @@ function pilotProfileRow(
   };
 }
 
-function InlinePilotProfileField({
+function PilotProfileFieldCard({
+  icon: Icon,
   label,
   value,
   valueClass,
+  accentClass = "bg-[#008B8B]/10 text-[#008B8B]",
 }: {
+  icon: typeof User;
   label: string;
   value: string;
   valueClass?: string;
+  accentClass?: string;
 }) {
   return (
-    <p className="min-w-0 text-xs leading-snug text-muted-foreground">
-      <span className="font-semibold text-foreground">{label}</span>
-      {" : "}
-      <span className={cn("text-foreground", valueClass)}>{value}</span>
-    </p>
+    <div
+      className={cn(
+        "group flex min-w-0 items-start gap-2.5 rounded-xl border border-neutral-200/80 bg-white p-2.5 transition-colors sm:p-3",
+        "hover:border-[#008B8B]/25 hover:bg-[#008B8B]/[0.02]",
+        "dark:border-white/10 dark:bg-black dark:hover:border-[#008B8B]/30"
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-7 shrink-0 items-center justify-center rounded-lg sm:size-8",
+          accentClass
+        )}
+        aria-hidden
+      >
+        <Icon className="size-3.5 sm:size-4" strokeWidth={2} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground sm:text-[10px]">
+          {label}
+        </p>
+        <p
+          className={cn(
+            "mt-0.5 truncate text-xs font-semibold leading-snug text-foreground sm:text-sm",
+            valueClass
+          )}
+          title={value}
+        >
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function PilotDroneDetailCard({
+  drone,
+  index,
+  total,
+}: {
+  drone: Record<string, unknown>;
+  index: number;
+  total: number;
+}) {
+  const modelName =
+    pickPilotRecordStr(drone, ["modelName", "model_name"]) || "Unnamed drone";
+  const type = pickPilotRecordStr(drone, ["type"]);
+  const camera = pickPilotRecordStr(drone, ["camera"]);
+  const payload = pickPilotRecordStr(drone, ["payloadKg", "payload_kg"]);
+  const flightTime = pickPilotRecordStr(drone, [
+    "flightTimeMin",
+    "flight_time_min",
+  ]);
+  const range = pickPilotRecordStr(drone, ["rangeKm", "range_km"]);
+  const useCases = parsePilotUseCasesList(drone.useCases ?? drone.use_cases);
+  const droneId = pickPilotRecordStr(drone, ["id"]);
+
+  const specCards: {
+    icon: typeof Camera;
+    label: string;
+    value: string;
+    accentClass: string;
+  }[] = [];
+
+  if (camera) {
+    specCards.push({
+      icon: Camera,
+      label: "Camera",
+      value: camera,
+      accentClass: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+    });
+  }
+  if (payload) {
+    specCards.push({
+      icon: Package,
+      label: "Payload",
+      value: `${payload} kg`,
+      accentClass: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
+    });
+  }
+  if (flightTime) {
+    specCards.push({
+      icon: Clock,
+      label: "Flight time",
+      value: `${flightTime} min`,
+      accentClass: "bg-orange-500/10 text-orange-700 dark:text-orange-300",
+    });
+  }
+  if (range) {
+    specCards.push({
+      icon: MapPin,
+      label: "Range",
+      value: `${range} km`,
+      accentClass: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+    });
+  }
+
+  const hasContent = specCards.length > 0 || useCases.length > 0;
+
+  return (
+    <article className="overflow-hidden rounded-xl border border-neutral-200/80 bg-white shadow-sm dark:border-white/10 dark:bg-black">
+      <header className="flex items-start gap-3 border-b border-neutral-200/60 bg-card px-3.5 py-3 sm:px-4 dark:border-white/10">
+        <span
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#008B8B]/20 to-[#008B8B]/5 text-[#006b6b] ring-1 ring-[#008B8B]/15 dark:text-[#5ec4c4]",
+            ADMIN_DASH_AVATAR_RING
+          )}
+          aria-hidden
+        >
+          <Plane className="size-5" strokeWidth={2} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#008B8B]">
+                {total > 1 ? `Drone ${index + 1} of ${total}` : "Registered drone"}
+              </p>
+              <h4 className="mt-0.5 truncate text-sm font-bold tracking-tight text-foreground sm:text-base">
+                {modelName}
+              </h4>
+            </div>
+            {type ? (
+              <span className="inline-flex shrink-0 rounded-full bg-[#008B8B]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#006b6b] ring-1 ring-[#008B8B]/20 dark:text-[#5ec4c4]">
+                {type}
+              </span>
+            ) : null}
+          </div>
+          {droneId ? (
+            <p className="mt-1 font-mono text-[10px] tabular-nums text-muted-foreground">
+              ID {droneId}
+            </p>
+          ) : null}
+        </div>
+      </header>
+
+      {specCards.length > 0 ? (
+        <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 sm:p-4">
+          {specCards.map((spec) => (
+            <PilotProfileFieldCard
+              key={spec.label}
+              icon={spec.icon}
+              label={spec.label}
+              value={spec.value}
+              accentClass={spec.accentClass}
+            />
+          ))}
+        </div>
+      ) : !hasContent ? (
+        <p className="px-4 py-3 text-xs text-muted-foreground">
+          No specifications recorded for this drone.
+        </p>
+      ) : null}
+
+      {useCases.length > 0 ? (
+        <footer className="border-t border-neutral-200/60 px-3.5 py-3 sm:px-4 dark:border-white/10">
+          <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+            Use cases
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {useCases.map((useCase) => (
+              <li key={useCase}>
+                <span className="inline-flex items-center rounded-full bg-[#008B8B]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#006b6b] ring-1 ring-[#008B8B]/15 dark:text-[#5ec4c4]">
+                  {useCase}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </footer>
+      ) : null}
+    </article>
   );
 }
 
@@ -768,8 +974,19 @@ function ApprovedPilotProfileModal({
   pilot: PilotRegCard | null;
   onClose: () => void;
 }) {
+  const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [apiRecord, setApiRecord] = useState<Record<string, unknown> | null>(
+    null
+  );
+
   useEffect(() => {
-    if (!pilot) return;
+    if (!pilot) {
+      setApiRecord(null);
+      setFetchError(null);
+      setLoading(false);
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -782,23 +999,119 @@ function ApprovedPilotProfileModal({
     };
   }, [pilot, onClose]);
 
+  useEffect(() => {
+    if (!pilot) return;
+    const id = pilotIdFromCard(pilot);
+    if (!id) {
+      setApiRecord(null);
+      setFetchError(null);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setFetchError(null);
+    setApiRecord(null);
+
+    void (async () => {
+      try {
+        const data = await getPilotById(id);
+        if (cancelled) return;
+        if (data == null || (typeof data === "object" && "error" in data)) {
+          setFetchError("Could not load full pilot details.");
+          return;
+        }
+        if (typeof data === "object" && !Array.isArray(data)) {
+          setApiRecord(data as Record<string, unknown>);
+        } else {
+          setFetchError("Unexpected response from server.");
+        }
+      } catch {
+        if (!cancelled) setFetchError("Could not load full pilot details.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pilot]);
+
   if (!pilot) return null;
 
+  const isPendingPilot = pilot.id.startsWith("db-pending-");
   const pilotId = pilotProfileRow(pilot, "Pilot ID");
   const license = pilotProfileRow(pilot, "License ID");
   const status = pilotProfileRow(pilot, "Status");
   const region = pilotProfileRow(pilot, "Region");
   const email = pilotProfileRow(pilot, "Email");
   const phone = pilotProfileRow(pilot, "Phone");
-  const flightExperience = pilotProfileRow(pilot, "Flight experience");
+  const flightExperience = pilotProfileRow(pilot, "Flight experience", [
+    "Flight Experience",
+  ]);
   const dronesRegistered = pilotProfileRow(pilot, "Drones registered");
-  const isActive = status.value.toUpperCase() === "ACTIVE";
+
+  const displayName =
+    pickPilotRecordStr(apiRecord, ["name", "full_name", "fullName"]) ||
+    pilot.name;
+  const displayEmail =
+    pickPilotRecordStr(apiRecord, ["email"]) || email.value;
+  const displayPhone =
+    pickPilotRecordStr(apiRecord, ["phone"]) || phone.value;
+  const displayLicense =
+    pickPilotRecordStr(apiRecord, ["license_number", "licenseNumber"]) ||
+    license.value;
+  const displayRegion =
+    [
+      pickPilotRecordStr(apiRecord, ["city"]),
+      pickPilotRecordStr(apiRecord, ["state"]),
+    ]
+      .filter(Boolean)
+      .join(", ") || region.value;
+  const displayStatusRaw =
+    pickPilotRecordStr(apiRecord, ["duty_status", "dutyStatus", "status"]) ||
+    status.value;
+  const flightHoursFromApi = apiRecord
+    ? flightHoursFromPilotRow(apiRecord)
+    : null;
+  const displayFlightExperience =
+    flightHoursFromApi != null && flightHoursFromApi > 0
+      ? `${flightHoursFromApi.toLocaleString("en-IN")} hours`
+      : flightExperience.value;
+  const displayMissions = apiRecord
+    ? missionsCompletedFromPilotRow(apiRecord).toLocaleString("en-IN")
+    : null;
+  const displayCertLevel =
+    pickPilotRecordStr(apiRecord, ["cert_level", "certLevel"]) || null;
+  const displayExperienceRank =
+    pickPilotRecordStr(apiRecord, ["experience_rank", "experienceRank"]) || null;
+  const droneDetails = parsePilotDroneDetails(apiRecord?.drone_details);
+  const displayDroneCount =
+    droneDetails.length > 0
+      ? String(droneDetails.length)
+      : dronesRegistered.value !== "—"
+        ? dronesRegistered.value
+        : isPendingPilot
+          ? "0"
+          : dronesRegistered.value;
+  const isReviewPending = isPendingPilot && droneDetails.length === 0;
+  const isActive =
+    !isReviewPending && displayStatusRaw.toUpperCase() === "ACTIVE";
+  const displayStatus = isReviewPending
+    ? "Review Pending"
+    : displayStatusRaw && displayStatusRaw !== "—"
+      ? displayStatusRaw.toUpperCase() === "ACTIVE"
+        ? "Active"
+        : displayStatusRaw
+      : "—";
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-[#191c1d]/50 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-[#191c1d]/45 backdrop-blur-sm"
         aria-label="Close dialog"
         onClick={onClose}
       />
@@ -807,128 +1120,254 @@ function ApprovedPilotProfileModal({
         aria-modal="true"
         aria-labelledby="approved-pilot-profile-title"
         className={cn(
-          "relative z-10 flex max-h-[min(90dvh,640px)] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-border shadow-2xl sm:rounded-2xl dark:border-white/20",
+          "relative z-10 flex max-h-[min(92dvh,44rem)] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl shadow-[0_24px_64px_rgba(15,23,42,0.18)] sm:rounded-3xl",
           PROFILE_INFO_POPUP_SHELL_CLASS
         )}
       >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border bg-muted/30 px-4 py-4 sm:px-5">
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-            <div
-              className={cn(
-                "flex size-11 shrink-0 items-center justify-center rounded-full bg-[#008B8B]/10",
-                ADMIN_DASH_AVATAR_RING
-              )}
-              aria-hidden
-            >
-              <User className="size-5 text-[#008B8B]" strokeWidth={2} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Pilot profile
-              </p>
-              <h2
-                id="approved-pilot-profile-title"
-                className="mt-1 truncate text-base font-semibold text-foreground sm:text-lg"
+        <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-[#008B8B]/12 via-[#008B8B]/5 to-transparent px-4 pb-4 pt-4 sm:px-5 sm:pb-4 sm:pt-5">
+          <div
+            className="pointer-events-none absolute -right-8 -top-10 size-40 rounded-full bg-[#008B8B]/10 blur-2xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -left-6 bottom-0 size-28 rounded-full bg-[#008B8B]/8 blur-xl"
+            aria-hidden
+          />
+          <div className="relative flex items-start justify-between gap-2 sm:gap-3">
+            <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-3.5">
+              <div
+                className={cn(
+                  "flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#008B8B] to-[#006d6d] shadow-[0_6px_16px_rgba(0,139,139,0.3)] sm:size-12 sm:rounded-2xl",
+                  ADMIN_DASH_AVATAR_RING
+                )}
+                aria-hidden
               >
-                {pilot.name}
-              </h2>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-800 dark:bg-green-950/50 dark:text-green-300">
-                  {pilot.badge}
-                </span>
-                {pilotId.value !== "—" ? (
-                  <span className="text-xs text-muted-foreground">
-                    <span className="font-semibold text-foreground">Pilot ID</span>
-                    {" : "}
-                    <span className="font-mono">{pilotId.value}</span>
-                  </span>
-                ) : null}
+                <User className="size-5 text-white sm:size-6" strokeWidth={2} />
               </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-muted"
-            aria-label="Close"
-          >
-            <X className="size-5" aria-hidden />
-          </button>
-        </div>
-
-        <div className="overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
-          <section
-            className={cn(
-              "overflow-hidden rounded-2xl border border-border bg-card shadow-sm dark:border-white/20"
-            )}
-          >
-            <div className="border-b border-border bg-muted/20 px-4 py-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Registration &amp; credentials
-              </p>
-            </div>
-            <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
-              <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
-                <InlinePilotProfileField
-                  label="License ID"
-                  value={license.value}
-                  valueClass={license.valueClass}
-                />
-                <div className="min-w-0">
-                  <p className="text-xs leading-snug text-muted-foreground">
-                    <span className="font-semibold text-foreground">Status</span>
-                    {" : "}
+              <div className="min-w-0 pt-0.5">
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#008B8B] sm:text-[10px]">
+                  {isPendingPilot ? "Pilot details" : "Pilot profile"}
+                </p>
+                <h2
+                  id="approved-pilot-profile-title"
+                  className="mt-0.5 truncate text-lg font-bold tracking-tight text-foreground sm:text-xl"
+                >
+                  {displayName}
+                </h2>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide ring-1",
+                      isPendingPilot
+                        ? "bg-amber-500/15 text-amber-800 ring-amber-500/20 dark:text-amber-300"
+                        : "bg-emerald-500/15 text-emerald-800 ring-emerald-500/20 dark:text-emerald-300"
+                    )}
+                  >
                     <span
                       className={cn(
-                        "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-                        isActive
-                          ? "bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300"
-                          : "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+                        "size-1.5 rounded-full",
+                        isPendingPilot ? "bg-amber-500" : "bg-emerald-500"
                       )}
-                    >
-                      {status.value}
+                      aria-hidden
+                    />
+                    {pilot.badge}
+                  </span>
+                  {pilotId.value !== "—" ? (
+                    <span className="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-neutral-200/80 dark:bg-white/5 dark:ring-white/10">
+                      <span className="font-semibold text-foreground">
+                        ID
+                      </span>
+                      <span className="mx-1.5 text-neutral-300 dark:text-white/20">
+                        |
+                      </span>
+                      <span className="font-mono text-foreground">
+                        {pilotId.value}
+                      </span>
                     </span>
-                  </p>
+                  ) : null}
                 </div>
-                <InlinePilotProfileField label="Region" value={region.value} />
-                <InlinePilotProfileField
-                  label="Drones registered"
-                  value={dronesRegistered.value}
-                />
               </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="relative shrink-0 rounded-full bg-white/70 p-2 text-muted-foreground shadow-sm ring-1 ring-neutral-200/80 transition-all hover:bg-white hover:text-foreground dark:bg-white/10 dark:ring-white/10 dark:hover:bg-white/15"
+              aria-label="Close"
+            >
+              <X className="size-5" aria-hidden />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto overscroll-contain px-4 pb-4 pt-0 sm:px-5 sm:pb-5">
+          {loading ? (
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              Loading pilot details…
+            </p>
+          ) : fetchError ? (
+            <p className="mt-4 text-center text-sm text-amber-700 dark:text-amber-300">
+              {fetchError}
+            </p>
+          ) : null}
+
+          <section className="mt-3">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
+              <p className="shrink-0 text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">
+                Registration &amp; credentials
+              </p>
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+              <PilotProfileFieldCard
+                icon={IdCard}
+                label="License ID"
+                value={displayLicense}
+                valueClass={cn("font-mono", license.valueClass)}
+              />
+              <div
+                className={cn(
+                  "group flex min-w-0 items-start gap-2.5 rounded-xl border border-neutral-200/80 bg-white p-2.5 transition-colors sm:p-3",
+                  "hover:border-[#008B8B]/25 hover:bg-[#008B8B]/[0.02]",
+                  "dark:border-white/10 dark:bg-black dark:hover:border-[#008B8B]/30"
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-lg sm:size-8",
+                    isActive
+                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                      : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                  )}
+                  aria-hidden
+                >
+                  <ShieldCheck className="size-3.5 sm:size-4" strokeWidth={2} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground sm:text-[10px]">
+                    Status
+                  </p>
+                  <span
+                    className={cn(
+                      "mt-0.5 inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:text-xs",
+                      isReviewPending
+                        ? "bg-amber-500/15 text-amber-900 ring-1 ring-amber-500/20 dark:text-amber-200"
+                        : isActive
+                          ? "bg-emerald-500/15 text-emerald-800 ring-1 ring-emerald-500/20 dark:text-emerald-300"
+                          : "bg-amber-500/15 text-amber-900 ring-1 ring-amber-500/20 dark:text-amber-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "size-1.5 shrink-0 rounded-full",
+                        isReviewPending
+                          ? "bg-amber-500"
+                          : isActive
+                            ? "bg-emerald-500"
+                            : "bg-amber-500"
+                      )}
+                      aria-hidden
+                    />
+                    <span className="truncate">{displayStatus}</span>
+                  </span>
+                </div>
+              </div>
+              <PilotProfileFieldCard
+                icon={MapPin}
+                label="Region"
+                value={displayRegion}
+                accentClass="bg-sky-500/10 text-sky-700 dark:text-sky-300"
+              />
+              <PilotProfileFieldCard
+                icon={Plane}
+                label="Drones registered"
+                value={displayDroneCount}
+                accentClass="bg-violet-500/10 text-violet-700 dark:text-violet-300"
+              />
+              {displayCertLevel ? (
+                <PilotProfileFieldCard
+                  icon={ShieldCheck}
+                  label="Certification level"
+                  value={displayCertLevel}
+                  accentClass="bg-teal-500/10 text-teal-700 dark:text-teal-300"
+                />
+              ) : null}
+              {displayMissions ? (
+                <PilotProfileFieldCard
+                  icon={PackageCheck}
+                  label="Missions completed"
+                  value={displayMissions}
+                  accentClass="bg-sky-500/10 text-sky-700 dark:text-sky-300"
+                />
+              ) : null}
             </div>
           </section>
 
-          <section
-            className={cn(
-              "mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-sm dark:border-white/20"
-            )}
-          >
-            <div className="border-b border-border bg-muted/20 px-4 py-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <section className="mt-3 sm:mt-4">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
+              <p className="shrink-0 text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">
                 Contact &amp; experience
               </p>
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
             </div>
-            <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
-              <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-                <InlinePilotProfileField
-                  label="Email"
-                  value={email.value}
-                  valueClass="break-all"
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5">
+              <PilotProfileFieldCard
+                icon={Mail}
+                label="Email"
+                value={displayEmail}
+                valueClass={email.valueClass}
+                accentClass="bg-rose-500/10 text-rose-700 dark:text-rose-300"
+              />
+              <PilotProfileFieldCard
+                icon={Phone}
+                label="Phone"
+                value={displayPhone}
+                valueClass={phone.valueClass}
+                accentClass="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
+              />
+              <PilotProfileFieldCard
+                icon={Clock}
+                label="Flight experience"
+                value={displayFlightExperience}
+                valueClass={cn("col-span-2 sm:col-span-1", flightExperience.valueClass)}
+                accentClass="bg-orange-500/10 text-orange-700 dark:text-orange-300"
+              />
+              {displayExperienceRank ? (
+                <PilotProfileFieldCard
+                  icon={UserCheck}
+                  label="Experience rank"
+                  value={displayExperienceRank}
+                  accentClass="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                 />
-                <InlinePilotProfileField label="Phone" value={phone.value} />
-                <InlinePilotProfileField
-                  label="Flight experience"
-                  value={flightExperience.value}
-                />
-                <InlinePilotProfileField
-                  label="Pilot ID"
-                  value={pilotId.value}
-                  valueClass="font-mono text-xs"
-                />
-              </div>
+              ) : null}
             </div>
           </section>
+
+          {droneDetails.length > 0 ? (
+            <section className="mt-3 sm:mt-4">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
+                <p className="flex shrink-0 items-center gap-2 text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">
+                  Drone details
+                  <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#008B8B]/12 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-[#008B8B] ring-1 ring-[#008B8B]/20">
+                    {droneDetails.length}
+                  </span>
+                </p>
+                <span className="h-px flex-1 bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/10" />
+              </div>
+              <div className="space-y-3">
+                {droneDetails.map((drone, index) => (
+                  <PilotDroneDetailCard
+                    key={index}
+                    drone={drone}
+                    index={index}
+                    total={droneDetails.length}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
         </div>
       </div>
     </div>

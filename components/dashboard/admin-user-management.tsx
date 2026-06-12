@@ -139,7 +139,7 @@ export function AdminUserManagement() {
             "Content-Type": "application/json",
             "Authorization": token ? `Bearer ${token}` : "",
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({ ...formData, role: "user" }),
         });
       } else {
         // Create new user (always User role)
@@ -253,7 +253,7 @@ export function AdminUserManagement() {
       email: user.email,
       password: "",
       name: user.name || "",
-      role: user.role,
+      role: "user",
     });
     setIsEditDialogOpen(true);
   };
@@ -306,6 +306,15 @@ export function AdminUserManagement() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="John Doe"
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
@@ -323,15 +332,6 @@ export function AdminUserManagement() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder="Enter password"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="John Doe"
                 />
               </div>
             </div>
@@ -374,7 +374,7 @@ export function AdminUserManagement() {
       )}
 
       {/* Users Table */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-card dark:bg-black shadow-sm">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-muted-foreground">Loading users...</div>
@@ -396,8 +396,8 @@ export function AdminUserManagement() {
         ) : (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-50">
-                <TableRow className="border-slate-200 hover:bg-slate-50">
+              <TableHeader className="bg-white dark:bg-black">
+                <TableRow className="border-border hover:bg-muted/40 dark:hover:bg-white/5">
                   <TableHead className="h-auto px-5 py-4 text-[10px] font-medium leading-tight text-muted-foreground sm:text-[11px]">
                     ID
                   </TableHead>
@@ -422,7 +422,7 @@ export function AdminUserManagement() {
                 {users.map((user) => (
                   <TableRow
                     key={user.id}
-                    className="border-slate-100 transition-colors hover:bg-slate-50/60"
+                    className="border-border transition-colors hover:bg-muted/40 dark:hover:bg-white/5"
                   >
                     <TableCell className="font-medium">{user.id}</TableCell>
                     <TableCell>
@@ -581,7 +581,10 @@ export function AdminUserManagement() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent
+          className="sm:max-w-[425px]"
+          onOpenAutoFocus={(event) => event.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
@@ -589,6 +592,26 @@ export function AdminUserManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="John Doe"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-role">Role</Label>
+              <Select value="user" disabled>
+                <SelectTrigger>
+                  <SelectValue placeholder="User" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-email">Email</Label>
               <Input
@@ -609,30 +632,6 @@ export function AdminUserManagement() {
                 placeholder="Enter new password"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">Name</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="John Doe"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-role">Role</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value) => setFormData({ ...formData, role: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <DialogFooter>
             <Button
@@ -644,6 +643,7 @@ export function AdminUserManagement() {
             </Button>
             <Button
               type="button"
+              variant="outline"
               onClick={saveUser}
               disabled={!formData.email}
             >

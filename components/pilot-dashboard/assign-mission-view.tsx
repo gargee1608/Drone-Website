@@ -8,6 +8,7 @@ import {
   MessageSquareText,
   Plane,
   Trash2,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -16,7 +17,7 @@ import {
   incrementPilotMissionsCompleted,
   saveCompletedMission,
 } from "@/app/services/pilotServices";
-import { UserRequestStatCard } from "@/components/dashboard/user-request-stat-card";
+import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
 import { jwtPayloadSub } from "@/lib/pilot-display-name";
 import {
   missionOwnerFieldsForRequestRef,
@@ -599,29 +600,32 @@ export function AssignMissionView() {
       >
         <header className="mb-5">
           <section
-            className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3"
+            className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3"
             aria-label="Mission assignment summary"
           >
-            <UserRequestStatCard
-              label="Total Mission"
+            <AdminKpiCard
+              title="Total Mission"
               value={stats.total}
               icon={ClipboardList}
               iconClassName="text-[#008B8B]"
-              iconWrapClassName="bg-[#008B8B]/10"
+              iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
+              accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
             />
-            <UserRequestStatCard
-              label="Assigned Missions"
+            <AdminKpiCard
+              title="Assigned Missions"
               value={stats.assigned}
               icon={Plane}
-              iconClassName="text-[#008B8B]"
-              iconWrapClassName="bg-[#008B8B]/10"
+              iconClassName="text-green-700 dark:text-green-400"
+              iconBg="bg-gradient-to-br from-green-100 to-green-50 dark:from-green-950/50 dark:to-green-950/20"
+              accentClass="bg-gradient-to-r from-green-600 to-emerald-400"
             />
-            <UserRequestStatCard
-              label="Completed Mission"
+            <AdminKpiCard
+              title="Completed Mission"
               value={stats.completed}
               icon={CheckCircle2}
-              iconClassName="text-sky-800"
-              iconWrapClassName="bg-sky-100"
+              iconClassName="text-sky-800 dark:text-sky-300"
+              iconBg="bg-gradient-to-br from-sky-100 to-sky-50 dark:from-sky-950/50 dark:to-sky-950/20"
+              accentClass="bg-gradient-to-r from-sky-600 to-sky-400"
             />
           </section>
         </header>
@@ -686,15 +690,27 @@ export function AssignMissionView() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="border-b border-border bg-muted/30 px-5 py-4 sm:px-6">
-              <h2
-                id="pilot-comments-dialog-title"
-                className="text-base font-bold text-foreground"
-              >
-                Mission comments
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {commentsForRow.customer || "Mission"} · {commentsForRow.requestRef}
-              </p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2
+                    id="pilot-comments-dialog-title"
+                    className="text-base font-bold text-foreground"
+                  >
+                    Mission comments
+                  </h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {commentsForRow.customer || "Mission"} · {commentsForRow.requestRef}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCommentsForRow(null)}
+                  className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted dark:text-white/80 dark:hover:bg-white/10"
+                  aria-label="Close"
+                >
+                  <X className="size-4" aria-hidden />
+                </button>
+              </div>
             </div>
             <div className="max-h-[70vh] overflow-y-auto px-5 py-4 sm:px-6">
               {dialogComments.length > 0 ? (
@@ -743,7 +759,7 @@ export function AssignMissionView() {
               ) : null}
               <label
                 htmlFor="pilot-mission-comment"
-                className="mb-2 block text-xs font-semibold text-muted-foreground"
+                className="mb-2 block text-xs font-semibold text-foreground dark:text-white"
               >
                 Add a comment
               </label>
@@ -753,7 +769,7 @@ export function AssignMissionView() {
                 value={commentDraft}
                 onChange={(e) => setCommentDraft(e.target.value)}
                 placeholder="Write a new comment..."
-                className="w-full resize-y rounded-lg border border-border !bg-transparent px-3 py-2 text-sm text-foreground shadow-none outline-none placeholder:text-muted-foreground focus:border-[#008B8B] focus:bg-transparent focus:outline-none focus:ring-0"
+                className="w-full resize-y rounded-lg border border-border !bg-transparent px-3 py-2 text-sm text-foreground shadow-none outline-none placeholder:text-muted-foreground focus:border-[#008B8B] focus:bg-transparent focus:outline-none focus:ring-0 dark:placeholder:text-white/60"
               />
             </div>
             <div className="flex flex-wrap justify-end gap-2 border-t border-border bg-muted/30 px-5 py-3 sm:px-6">
@@ -768,7 +784,7 @@ export function AssignMissionView() {
                 type="button"
                 onClick={() => void addCommentInDialog()}
                 disabled={commentSaving || !commentDraft.trim()}
-                className="rounded-lg border border-[#008B8B] bg-transparent px-4 py-2 text-xs font-semibold text-[#008B8B] transition-colors hover:bg-[#008B8B]/10 disabled:opacity-50 dark:border-primary dark:text-primary dark:hover:bg-primary/10"
+                className="rounded-lg border border-[#008B8B] bg-transparent px-4 py-2 text-xs font-semibold text-[#008B8B] transition-colors hover:bg-[#008B8B]/10 disabled:opacity-50 dark:border-white dark:text-white dark:hover:bg-white/10"
               >
                 {commentSaving ? "Adding..." : "Add comment"}
               </button>

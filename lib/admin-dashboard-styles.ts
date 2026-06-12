@@ -20,3 +20,25 @@ export const ADMIN_DASH_STAT_CARD_SURFACE =
 
 /** @alias ADMIN_DASH_STAT_CARD_SURFACE */
 export const DASH_STAT_CARD_SURFACE = ADMIN_DASH_STAT_CARD_SURFACE;
+
+/** Admin data table shell — white in light mode, black in dark. */
+export const ADMIN_DASH_TABLE_SHELL =
+  "overflow-hidden rounded-xl border border-border bg-card shadow-sm dark:bg-black";
+
+/** Admin table column heading row. */
+export const ADMIN_DASH_TABLE_HEAD_ROW =
+  "border-b border-border bg-white dark:bg-black";
+
+/** Admin table body row. */
+export const ADMIN_DASH_TABLE_BODY_ROW =
+  "border-b border-border transition-colors last:border-b-0 hover:bg-muted/40 dark:hover:bg-white/5";
+
+/** Urgency badges in admin tables — white label text in dark mode. */
+export const ADMIN_URGENCY_BADGE_CRITICAL =
+  "bg-[#ffdad6] text-[#93000a] dark:bg-red-950/50 dark:text-white";
+
+export const ADMIN_URGENCY_BADGE_NORMAL =
+  "bg-[#cde5ff] text-[#001d32] dark:bg-blue-950/50 dark:text-white";
+
+export const ADMIN_URGENCY_BADGE_ROUTINE =
+  "bg-[#008B8B]/14 text-[#0a3030] dark:bg-[#008B8B]/25 dark:text-white";

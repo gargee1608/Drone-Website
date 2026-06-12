@@ -7,7 +7,9 @@ import {
   ADMIN_PROFILE_STORAGE_KEY,
   ADMIN_PROFILE_UPDATED_EVENT,
   DEFAULT_ADMIN_PROFILE,
+  readAdminProfilePhoto,
   readSavedAdminProfile,
+  saveAdminProfilePhoto,
   type AdminProfileDraft,
 } from "@/lib/admin-profile-storage";
 import { jwtPayloadRole } from "@/lib/pilot-display-name";
@@ -51,7 +53,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
       setAddressDraft(savedProfile);
       setHasSavedProfile(true);
     }
-    const saved = localStorage.getItem("admin_profile_photo");
+    const saved = readAdminProfilePhoto();
     if (saved) setAvatarSrc(saved);
     setHydrated(true);
   }, []);
@@ -88,6 +90,16 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
     return () =>
       window.removeEventListener(ADMIN_PROFILE_UPDATED_EVENT, sync);
   }, [editingPersonal, editingAddress]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncPhoto = () => {
+      setAvatarSrc(readAdminProfilePhoto());
+    };
+    window.addEventListener(ADMIN_PROFILE_UPDATED_EVENT, syncPhoto);
+    return () =>
+      window.removeEventListener(ADMIN_PROFILE_UPDATED_EVENT, syncPhoto);
+  }, []);
 
   const fullName = `${profile.firstName} ${profile.lastName}`.trim() || "—";
   const avatarInitials = (() => {
@@ -161,9 +173,7 @@ export function AdminProfileView({ embedded = false, allowEditWhenEmbedded = fal
       const result = typeof reader.result === "string" ? reader.result : null;
       if (!result) return;
       setAvatarSrc(result);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("admin_profile_photo", result);
-      }
+      saveAdminProfilePhoto(result);
     };
     reader.readAsDataURL(file);
   }

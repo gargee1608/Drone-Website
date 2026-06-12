@@ -29,18 +29,9 @@ export function Workflow() {
   return (
     <section
       id="onboarding"
-      className="relative overflow-hidden bg-gradient-to-b from-white via-[#f5fbfb] to-white px-3 py-14 sm:px-8 sm:py-32"
+      className="bg-white px-3 py-14 sm:px-8 sm:py-32"
     >
-      <div
-        className="pointer-events-none absolute -left-24 top-20 size-72 rounded-full bg-[#008B8B]/10 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-24 bottom-12 size-80 rounded-full bg-[#0D9488]/10 blur-3xl"
-        aria-hidden
-      />
-
-      <div className="relative mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl">
         <div className="mb-10 flex flex-col items-center text-center sm:mb-16 md:mb-24">
           <div className="max-w-2xl">
             <h2 className="inline-flex rounded-full border border-[#008B8B]/20 bg-white px-4 py-2 font-[family-name:var(--font-landing-headline)] text-[10px] font-bold uppercase tracking-[0.24em] text-[#008B8B] shadow-sm sm:text-xs sm:tracking-[0.35em]">

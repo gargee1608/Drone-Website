@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Clock,
   Download,
   Factory,
   Filter,
@@ -21,6 +22,9 @@ import {
   Warehouse,
 } from "lucide-react";
 
+import { AdminKpiCard } from "@/components/dashboard/admin-kpi-card";
+import { ADMIN_DASH_LIGHT_BOX_BORDER } from "@/lib/admin-dashboard-styles";
+
 import {
   appendUserRequest,
   userRequestQueueDisplayId,
@@ -28,9 +32,7 @@ import {
   type UserMissionRequest,
 } from "@/lib/user-requests";
 import { apiUrl } from "@/lib/api-url";
-import { DASH_STAT_CARD_SURFACE } from "@/lib/admin-dashboard-styles";
 import {
-  USER_DASH_BORDER_COLOR,
   USER_DASH_CHIP,
   USER_DASH_CHIP_CHECKED,
   USER_DASH_DIVIDER_BORDER,
@@ -307,107 +309,43 @@ export function UserDashboardFleetDashboard({
 
   return (
     <div className="w-full max-w-[1400px] pb-8">
-      {/* KPI row */}
-      <div
-        className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
-        style={{ gap: "24px", marginBottom: "32px" }}
+      <section
+        className="mb-8 grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3"
+        aria-label="Mission summary: total, active, and completed missions"
       >
-        <div className={cn("rounded-2xl bg-card p-6", DASH_STAT_CARD_SURFACE)}>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            Total Missions
-          </p>
-          <div className="flex items-end justify-between">
-            <span
-              className="text-3xl font-semibold tracking-tight text-foreground"
-              style={headingFont}
-            >
-              {totalMissions}
-            </span>
-            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-[#0058bc] dark:bg-blue-500/15 dark:text-blue-300">
-              All
-            </span>
-          </div>
-          <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full"
-              style={{
-                backgroundColor: PRIMARY,
-                boxShadow: "0 0 8px rgba(0,88,188,0.3)",
-                width: totalMissions > 0 ? "100%" : "0%",
-              }}
-            />
-          </div>
-        </div>
-
-        <div className={cn("rounded-2xl bg-card p-6", DASH_STAT_CARD_SURFACE)}>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            Active Missions
-          </p>
-          <div className="flex items-end justify-between">
-            <span
-              className="text-3xl font-semibold tracking-tight text-foreground"
-              style={headingFont}
-            >
-              {activeMissions}
-            </span>
-            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
-              Pending
-            </span>
-          </div>
-          <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-amber-500/90"
-              style={{
-                width:
-                  totalMissions > 0
-                    ? `${Math.min(100, Math.round((activeMissions / totalMissions) * 100))}%`
-                    : "0%",
-              }}
-            />
-          </div>
-        </div>
-
-        <div className={cn("rounded-2xl bg-card p-6", DASH_STAT_CARD_SURFACE)}>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            Completed Missions
-          </p>
-          <div className="flex items-end justify-between">
-            <span
-              className="text-3xl font-semibold tracking-tight text-foreground"
-              style={headingFont}
-            >
-              {completedMissions}
-            </span>
-            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-              Accepted
-            </span>
-          </div>
-          <div className="mt-5 h-1.5">
-            <div className="h-full w-full rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-emerald-500"
-                style={{
-                  width:
-                    totalMissions > 0
-                      ? `${Math.min(
-                          100,
-                          Math.round((completedMissions / totalMissions) * 100)
-                        )}%`
-                      : "0%",
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+        <AdminKpiCard
+          title="Total Missions"
+          value={totalMissions}
+          icon={Rocket}
+          iconClassName="text-[#008B8B]"
+          iconBg="bg-gradient-to-br from-[#008B8B]/15 to-[#008B8B]/5"
+          accentClass="bg-gradient-to-r from-[#008B8B] to-[#00b4b4]"
+        />
+        <AdminKpiCard
+          title="Active Missions"
+          value={activeMissions}
+          icon={Clock}
+          iconClassName="text-[#ba1a1a]"
+          iconBg="bg-gradient-to-br from-[#ffdad6] to-[#ffdad6]/40 dark:from-red-950/60 dark:to-red-950/30"
+          accentClass="bg-gradient-to-r from-[#ba1a1a] to-[#e53935]"
+        />
+        <AdminKpiCard
+          title="Completed Missions"
+          value={completedMissions}
+          icon={CheckCircle2}
+          iconClassName="text-green-700 dark:text-green-400"
+          iconBg="bg-gradient-to-br from-green-100 to-green-50 dark:from-green-950/50 dark:to-green-950/20"
+          accentClass="bg-gradient-to-r from-green-600 to-emerald-400"
+        />
+      </section>
 
       {/* Mission form + radar */}
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 flex flex-col gap-6 lg:col-span-5">
           <section
             className={cn(
-              "flex h-full flex-col overflow-hidden rounded-xl bg-card",
-              USER_DASH_BORDER_COLOR,
+              "flex h-full flex-col overflow-hidden rounded-xl border bg-card",
+              ADMIN_DASH_LIGHT_BOX_BORDER,
               "shadow-[0_1px_3px_rgba(15,23,42,0.06)] dark:shadow-none"
             )}
           >

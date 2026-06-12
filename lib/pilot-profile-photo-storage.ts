@@ -1,5 +1,6 @@
 import { jwtPayloadRole, jwtPayloadSub } from "@/lib/pilot-display-name";
 import type { PilotProfileSnapshot } from "@/lib/pilot-profile-snapshot";
+import { PILOT_PROFILE_UPDATED_EVENT } from "@/lib/pilot-profile-snapshot";
 
 export const PILOT_PROFILE_PHOTOS_STORAGE_KEY =
   "aerolaminar_pilot_profile_photos_by_id_v1";
@@ -46,6 +47,23 @@ export function setPilotProfilePhotoDataUrl(
   map[id] = dataUrl;
   try {
     localStorage.setItem(PILOT_PROFILE_PHOTOS_STORAGE_KEY, JSON.stringify(map));
+    window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
+  } catch {
+    /* quota */
+  }
+}
+
+export function removePilotProfilePhoto(
+  pilotId: string | null | undefined
+): void {
+  const id = pilotId?.trim();
+  if (!id || typeof window === "undefined") return;
+  const map = readPilotProfilePhotosMap();
+  if (!(id in map)) return;
+  delete map[id];
+  try {
+    localStorage.setItem(PILOT_PROFILE_PHOTOS_STORAGE_KEY, JSON.stringify(map));
+    window.dispatchEvent(new Event(PILOT_PROFILE_UPDATED_EVENT));
   } catch {
     /* quota */
   }
