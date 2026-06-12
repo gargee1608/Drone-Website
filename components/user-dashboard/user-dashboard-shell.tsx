@@ -177,7 +177,7 @@ function UserDashboardHero({
           </div>
           {userWelcome ? (
             <p className="mt-4 text-sm text-muted-foreground sm:mt-5 sm:text-base">
-              Welcome,{" "}
+              Welcome back,{" "}
               <span className="font-semibold text-foreground">{userWelcome}</span>
             </p>
           ) : (
@@ -448,7 +448,7 @@ export function UserDashboardShell({
                   </div>
                   {userWelcome && isMainUserDashboard ? (
                     <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
-                      Welcome, {userWelcome}
+                      Welcome back, {userWelcome}
                     </h2>
                   ) : null}
                   {children}

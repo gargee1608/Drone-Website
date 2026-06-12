@@ -1753,9 +1753,10 @@ export function AdminDroneView() {
               <button
                 type="button"
                 onClick={closeDroneEdit}
-                className="rounded-lg px-2 py-1 text-sm hover:bg-muted"
+                className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted dark:text-white/80 dark:hover:bg-white/10"
+                aria-label="Close edit drone dialog"
               >
-                Close
+                <X className="size-4" aria-hidden />
               </button>
             </div>
 

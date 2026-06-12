@@ -133,7 +133,7 @@ function PilotDashboardHero({
           </div>
           {pilotWelcome ? (
             <p className="mt-4 text-sm text-muted-foreground sm:mt-5 sm:text-base">
-              Welcome,{" "}
+              Welcome back,{" "}
               <span className="font-semibold text-foreground">
                 {pilotWelcome}
               </span>
@@ -438,7 +438,7 @@ export function PilotDashboardShell({
                   </div>
                   {pilotWelcome && isMainPilotDashboard ? (
                     <h2 className="mb-4 text-xl font-bold text-foreground sm:mb-5">
-                      Welcome, {pilotWelcome}
+                      Welcome back, {pilotWelcome}
                     </h2>
                   ) : null}
                   {children}
