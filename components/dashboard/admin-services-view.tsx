@@ -43,19 +43,21 @@ import {
   overviewTextFromParagraphs,
   serviceSlugFromTitle,
 } from "@/lib/service-catalog";
+import {
+  isCoverImageFile,
+  readCoverImageFile,
+} from "@/lib/read-cover-image-file";
 import { cn } from "@/lib/utils";
-
-const MAX_SERVICE_IMAGE_BYTES = 2 * 1024 * 1024;
 
 function getImageFileFromDataTransfer(dt: DataTransfer): File | null {
   if (dt.files?.length) {
     const file = dt.files[0];
-    if (file.type.startsWith("image/")) return file;
+    if (isCoverImageFile(file)) return file;
   }
   for (const item of Array.from(dt.items)) {
-    if (item.kind === "file" && item.type.startsWith("image/")) {
+    if (item.kind === "file") {
       const file = item.getAsFile();
-      if (file) return file;
+      if (file && isCoverImageFile(file)) return file;
     }
   }
   return null;
@@ -65,32 +67,10 @@ function getImageFileFromClipboard(dt: DataTransfer): File | null {
   for (const item of Array.from(dt.items)) {
     if (item.type.startsWith("image/")) {
       const file = item.getAsFile();
-      if (file) return file;
+      if (file && isCoverImageFile(file)) return file;
     }
   }
   return getImageFileFromDataTransfer(dt);
-}
-
-function readServiceCoverImageFile(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (!file.type.startsWith("image/")) {
-      reject(
-        new Error("Please choose an image file (JPEG, PNG, WebP, or GIF).")
-      );
-      return;
-    }
-    if (file.size > MAX_SERVICE_IMAGE_BYTES) {
-      reject(new Error("Cover image must be at most 2 MB."));
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") resolve(reader.result);
-      else reject(new Error("Could not read the image."));
-    };
-    reader.onerror = () => reject(new Error("Could not read the image."));
-    reader.readAsDataURL(file);
-  });
 }
 
 export function AdminServicesView({
@@ -151,7 +131,7 @@ export function AdminServicesView({
 
   const applyCoverImageFile = useCallback(async (file: File) => {
     try {
-      const dataUrl = await readServiceCoverImageFile(file);
+      const dataUrl = await readCoverImageFile(file);
       setImage(dataUrl);
       setFormError(null);
     } catch (err) {
@@ -651,7 +631,7 @@ export function AdminServicesView({
                   <input
                     ref={coverFileInputRef}
                     type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
                     className="sr-only"
                     aria-label="Upload service cover image from your computer"
                     onChange={onCoverFileSelected}
@@ -735,8 +715,9 @@ export function AdminServicesView({
                       Browser
                     </Button>
                     <p className="text-[11px] leading-snug text-muted-foreground">
-                      JPEG, PNG, WebP, or GIF · max 2 MB · click, drag & drop,
-                      or paste from clipboard
+                      JPEG, PNG, WebP, or GIF · saved at up to 2 MB (large
+                      files are resized automatically) · click, drag & drop, or
+                      paste from clipboard
                     </p>
                   </div>
                 </div>
