@@ -52,8 +52,8 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
         </nav>
 
         {/* Copy left · image right (image first on narrow screens) */}
-        <div className="mb-10 grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,11rem)] md:items-start md:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,12.5rem)] lg:gap-12">
-          <div className="order-2 min-w-0 md:order-1">
+        <div className="mb-10 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] xl:gap-12">
+          <div className="order-2 min-w-0 lg:order-1">
             <h1 className={ADMIN_PAGE_TITLE_CLASS}>{item.title}</h1>
             <p
               className={cn(
@@ -117,15 +117,15 @@ export function ServiceDetailView({ item }: ServiceDetailViewProps) {
             </section>
           </div>
 
-          <div className="order-1 mx-auto flex w-full max-w-[11rem] flex-col sm:max-w-[12rem] md:order-2 md:mx-0 md:max-w-none md:justify-self-end md:w-full">
+          <div className="order-1 flex w-full flex-col lg:order-2">
             <div className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
-              <div className="relative aspect-[3/4] w-full">
+              <div className="relative aspect-[4/3] w-full sm:aspect-[16/10]">
                 <Image
                   src={item.image}
                   alt={item.imageAlt}
                   fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 176px, 200px"
+                  className="object-contain object-center"
+                  sizes="(max-width: 1024px) 100vw, 26rem"
                   priority
                 />
               </div>
