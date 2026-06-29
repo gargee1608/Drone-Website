@@ -8,6 +8,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const twilio = require("twilio");
 const transporter = require("./email");
+const isSmtpConfigured = transporter.isSmtpConfigured;
+const defaultFromAddress = transporter.defaultFromAddress;
 const pool = require("./db");
 
 
@@ -18,6 +20,10 @@ const JSON_BODY_LIMIT = "4mb";
 
 app.use(cors());
 app.use(express.json({ limit: JSON_BODY_LIMIT }));
+
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, service: "aerolaminar-backend" });
+});
 
 
 /** Extract password string from user row (handles legacy fields). */
@@ -740,7 +746,7 @@ function normalizeEmailForAuth(raw) {
     .toLowerCase();
 }
 
-/** Sends a 6-digit OTP to the account email (Mailtrap / SMTP). */
+/** Sends a password-reset link to the account email (Gmail SMTP). */
 app.post("/api/auth/forgot-password-send-otp", async (req, res) => {
   try {
     await ensureEmailPasswordResetSchema();
@@ -829,7 +835,19 @@ app.post("/api/auth/forgot-password-send-otp", async (req, res) => {
 
     const origin = appOriginForResetLinks();
     const resetUrl = `${origin}/reset-password?token=${encodeURIComponent(plainToken)}`;
-    const fromAddr = process.env.MAIL_FROM || "no-reply@test.com";
+
+    if (!isSmtpConfigured()) {
+      console.error(
+        "[auth] forgot-password-send-otp: Gmail SMTP not configured (GMAIL_USER / GMAIL_APP_PASSWORD in backend/.env)"
+      );
+      return res.status(503).json({
+        message: "Email is not configured on the server.",
+        hint:
+          "Add GMAIL_USER and GMAIL_APP_PASSWORD (Gmail App Password) to backend/.env, then restart the API.",
+      });
+    }
+
+    const fromAddr = defaultFromAddress();
     await transporter.sendMail({
       from: fromAddr,
       to: email,
@@ -841,9 +859,29 @@ app.post("/api/auth/forgot-password-send-otp", async (req, res) => {
     return res.json({ ok: true, message: "Reset link sent to your email." });
   } catch (err) {
     console.error("[auth] forgot-password-send-otp:", err);
-    return res
-      .status(500)
-      .json({ message: "Could not send reset email. Try again later." });
+    if (err?.code === "SMTP_NOT_CONFIGURED") {
+      return res.status(503).json({
+        message: "Email is not configured on the server.",
+        hint:
+          "Add GMAIL_USER and GMAIL_APP_PASSWORD (Gmail App Password) to backend/.env, then restart the API.",
+      });
+    }
+    const smtpHint =
+      err && typeof err.response === "string"
+        ? err.response
+        : err?.message || "";
+    const looksLikeAuth =
+      /invalid login|authentication|username and password|535|534/i.test(
+        String(smtpHint)
+      );
+    return res.status(looksLikeAuth ? 503 : 500).json({
+      message: looksLikeAuth
+        ? "Gmail rejected the sender credentials."
+        : "Could not send reset email. Try again later.",
+      hint: looksLikeAuth
+        ? "Check GMAIL_USER and GMAIL_APP_PASSWORD in backend/.env (use a Google App Password, not your normal Gmail password)."
+        : undefined,
+    });
   }
 });
 
@@ -1535,8 +1573,9 @@ app.post("/send-otp", async (req, res) => {
   const otp = generateOTP();
 
   try {
+    const fromAddr = defaultFromAddress();
     await transporter.sendMail({
-      from: "no-reply@test.com",
+      from: fromAddr,
       to: email,
       subject: "Your OTP Code",
       text: `Your OTP is: ${otp}`,

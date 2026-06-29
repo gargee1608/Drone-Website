@@ -65,13 +65,17 @@ export function ForgotPasswordModal({
         setNote("Invalid server response.");
         return;
       }
-      const payload = body.data as { message?: string } | null;
+      const payload = body.data as { message?: string; hint?: string } | null;
       const msg =
         payload && typeof payload === "object" && "message" in payload
           ? String(payload.message ?? "")
           : "";
+      const hint =
+        payload && typeof payload === "object" && "hint" in payload
+          ? String(payload.hint ?? "").trim()
+          : "";
       if (!res.ok) {
-        setNote(msg || "Could not send reset email.");
+        setNote(hint ? `${msg} ${hint}` : msg || "Could not send reset email.");
         return;
       }
       setStep("emailSent");

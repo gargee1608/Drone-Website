@@ -43,10 +43,21 @@ export async function sendOtp(req, res, next) {
     setOtp(parsed.key, codeHash, expiresAt);
 
     const transport = createMailTransport();
-    const to = process.env.MAIL_TO_INBOX || "test@mailtrap.io";
-    const from = process.env.MAIL_FROM || "noreply@aerolaminar.local";
+    const from = process.env.MAIL_FROM || process.env.SMTP_USER || "noreply@aerolaminar.local";
+    const to =
+      parsed.kind === "email"
+        ? parsed.email
+        : process.env.MAIL_TO_INBOX || process.env.SMTP_USER;
 
     if (transport) {
+      if (!to) {
+        const err = new Error(
+          "Could not determine recipient. Use email login or set MAIL_TO_INBOX / SMTP_USER."
+        );
+        err.status = 503;
+        err.code = "MAIL_FAILED";
+        throw err;
+      }
       const label =
         parsed.kind === "email" ? parsed.email : `mobile +${parsed.mobile}`;
       try {
@@ -58,22 +69,25 @@ export async function sendOtp(req, res, next) {
           html: `<p>Your one-time code is: <strong>${code}</strong></p><p>Requested for: ${label}</p><p>This code expires in 5 minutes.</p>`,
         });
       } catch (mailErr) {
-        console.error("[send-otp] Mailtrap send failed:", mailErr);
+        console.error("[send-otp] SMTP send failed:", mailErr);
         deleteOtp(parsed.key);
         const err = new Error(
-          "Could not send email. Check MAILTRAP_USER and MAILTRAP_PASS in server/.env."
+          "Could not send email. Check SMTP_USER and SMTP_PASS in server/.env."
         );
         err.status = 503;
         err.code = "MAIL_FAILED";
         throw err;
       }
     } else {
-      console.log(`[dev OTP] ${parsed.key}: ${code} (Mailtrap not configured)`);
+      console.log(`[dev OTP] ${parsed.key}: ${code} (SMTP not configured)`);
     }
 
     res.json({
       ok: true,
-      message: "OTP sent. Check your Mailtrap inbox (and email if applicable).",
+      message:
+        parsed.kind === "email"
+          ? "OTP sent. Check your email inbox."
+          : "OTP sent.",
     });
   } catch (e) {
     next(e);

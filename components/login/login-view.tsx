@@ -189,7 +189,7 @@ export function LoginView({
         setOtpSent(true);
         alert(
           emailPattern.test(email)
-            ? "OTP sent to Mailtrap successfully"
+            ? "OTP sent to your email successfully"
             : "OTP sent to your mobile successfully"
         );
       } else {

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently -n next,api -c cyan,magenta \"next dev --webpack -p 3000\" \"npm run dev --prefix backend\"",
+    "dev": "concurrently -n next,api -c cyan,magenta \"next dev --webpack -p 3001\" \"npm run dev --prefix backend\"",
     "dev:next": "next dev",
     "dev:memory-auth": "concurrently -n next,api -c cyan,magenta \"next dev\" \"npm run dev --prefix server\"",
     "dev:all": "npm run dev",
