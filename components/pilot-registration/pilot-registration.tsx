@@ -434,6 +434,10 @@ export function PilotRegistrationView({
   const [draftRangeKm, setDraftRangeKm] = useState("");
   const [draftUseCases, setDraftUseCases] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [backendOffline, setBackendOffline] = useState(false);
+  const [backendOfflineHint, setBackendOfflineHint] = useState<string | null>(
+    null
+  );
   const [stepError, setStepError] = useState<string | null>(null);
   const [profileReturnTo, setProfileReturnTo] = useState<string | null>(null);
   const [adminDroneSubmitting, setAdminDroneSubmitting] = useState(false);
@@ -613,6 +617,39 @@ export function PilotRegistrationView({
     bio,
     drones,
   ]);
+
+  useEffect(() => {
+    if (fromAdminDashboard) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/backend-health", { cache: "no-store" });
+        const body = await res.json().catch(() => null);
+        if (cancelled) return;
+        if (res.ok && body && body.ok === true) {
+          setBackendOffline(false);
+          setBackendOfflineHint(null);
+          return;
+        }
+        setBackendOffline(true);
+        setBackendOfflineHint(
+          typeof body?.hint === "string"
+            ? body.hint
+            : "Start the API on port 4000: run `npm run dev` from the project root."
+        );
+      } catch {
+        if (!cancelled) {
+          setBackendOffline(true);
+          setBackendOfflineHint(
+            "Start the API on port 4000: run `npm run dev` from the project root."
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fromAdminDashboard]);
 
   async function handleCertificationFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -961,13 +998,23 @@ export function PilotRegistrationView({
         regBody.data &&
         typeof regBody.data === "object" &&
         regBody.data !== null
-          ? (regBody.data as { message?: string; error?: string })
+          ? (regBody.data as {
+              message?: string;
+              error?: string;
+              hint?: string;
+            })
           : {};
-      setSubmitError(
-        errObj.message ||
-          errObj.error ||
-          `Registration failed (HTTP ${res.status}).`
-      );
+      const hint =
+        typeof errObj.hint === "string" && errObj.hint.trim()
+          ? errObj.hint.trim()
+          : "";
+      const msg =
+        errObj.message || errObj.error || `Registration failed (HTTP ${res.status}).`;
+      setSubmitError(hint ? `${msg} ${hint}` : msg);
+      if (res.status === 502) {
+        setBackendOffline(true);
+        setBackendOfflineHint(hint || msg);
+      }
       return;
     }
 
@@ -1171,6 +1218,18 @@ export function PilotRegistrationView({
                   : "Register a new pilot in the command center"
                 : "Join India's drone pilot network"}
             </p>
+
+            {backendOffline && !fromAdminDashboard ? (
+              <p
+                className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-relaxed text-amber-900 sm:text-sm"
+                role="alert"
+              >
+                API server is not running — registration cannot be saved until it
+                starts.{" "}
+                {backendOfflineHint ??
+                  "Run `npm run dev` from the project root (starts Next.js and the backend on port 4000)."}
+              </p>
+            ) : null}
 
             {/* Stepper */}
             {!fromAdminDashboard || !adminDroneOnlyMode ? (
