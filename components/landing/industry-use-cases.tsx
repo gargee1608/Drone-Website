@@ -18,7 +18,6 @@ import {
   MapPinned,
   Megaphone,
   Package,
-  Radar,
   Radio,
   ScanLine,
   Search,
@@ -47,11 +46,6 @@ function isIconListItem(
 }
 
 const cases: IndustryUseCase[] = [
-  {
-    icon: Radar,
-    title: "Defence & Surveillance",
-    description: "Perimeter patrols, reconnaissance & tactical overwatch.",
-  },
   {
     icon: Tractor,
     title: "Agriculture & Spraying",

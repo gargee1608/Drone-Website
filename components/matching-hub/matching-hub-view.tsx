@@ -305,6 +305,7 @@ const MATCHING_HUB_REGION_CITIES = [
   "Kochi",
   "Nagpur",
   "Visakhapatnam",
+  "Assam",
 ] as const;
 
 type HubMission = MissionRequestRow;

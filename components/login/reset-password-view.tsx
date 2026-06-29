@@ -74,7 +74,7 @@ export function ResetPasswordView() {
     "font-semibold text-[#008B8B] hover:underline dark:text-[#5eead4]";
 
   const shell = (children: React.ReactNode) => (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 pt-24 pb-12 sm:pt-28 sm:pb-10">
       {children}
     </main>
   );
